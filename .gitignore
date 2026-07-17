@@ -1,0 +1,6 @@
+# machine-local state — never committed (ARCHITECTURE §3.1)
+.aos/
+
+# NOTE on MOD.md / kb-registry.yaml (the overlay family): whether users track them
+# in a private fork or gitignore them is RFC-005 — deliberately NOT decided here.
+# Upstream CI rejects overlay-family paths in PRs either way.
