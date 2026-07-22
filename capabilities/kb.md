@@ -19,7 +19,7 @@ The knowledge-base infrastructure capability: multi-KB registry (`kb-registry.ya
 
 ## Depends
 
-`host: scheduler: preferred` (sync + lint schedules; degraded: manual). No capability deps — this is the root molecule.
+`host: cron: preferred` (sync + lint schedules; degraded: manual). No capability deps — this is the root molecule.
 
 ## Onboarding sketch
 

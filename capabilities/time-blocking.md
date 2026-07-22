@@ -14,7 +14,7 @@ Reads the calendar, writes time blocks for priorities, negotiates conflicts with
 
 ## Depends
 
-`capabilities: [kb, onboarding]` · `host: calendar.read: required, calendar.write: required, voice.tts: optional` (negotiation degrades to text), `scheduler: preferred` (planning pass; degraded: manual).
+`capabilities: [kb, onboarding]` · `host: calendar.read: required, calendar.write: required, voice.tts: optional` (negotiation degrades to text), `cron: preferred` (planning pass; degraded: manual).
 
 ## Onboarding sketch
 
@@ -22,4 +22,4 @@ Which calendar(s), block granularity + minimum block, deep-work windows, negotia
 
 ## v0.1 acceptance
 
-A week of blocks written and surviving a real calendar's churn; zero writes over sacred time; degraded install (no scheduler) still usable via manual invocation.
+A week of blocks written and surviving a real calendar's churn; zero writes over sacred time; degraded install (no cron) still usable via manual invocation.

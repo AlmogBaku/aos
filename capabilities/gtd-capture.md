@@ -14,7 +14,7 @@ Voice/text capture → `ops/inbox.md` in the routed KB → nightly drain promote
 
 ## Depends
 
-`capabilities: [kb, onboarding]` · `host: messaging.inbound: required` (capture arrives via chat/voice), `scheduler: preferred` (drain; degraded: manual).
+`capabilities: [kb, onboarding]` · `host: messaging.inbound: required` (capture arrives via chat/voice), `cron: preferred` (drain; degraded: manual).
 
 ## Onboarding sketch
 

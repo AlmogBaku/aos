@@ -139,7 +139,7 @@ depends:
   capabilities: [kb, onboarding]   # no version ranges, on purpose: one repo = one revision —
                                    # every capability in your clone is from the same commit
   host:                        # enumerated vocabulary — §5.2; per key: required | preferred | optional
-    scheduler: preferred       # preferred ⇒ install proceeds degraded if absent (§5.5)
+    cron: preferred            # preferred ⇒ install proceeds degraded if absent (§5.5)
     messaging.inbound: required
 
 schedules:
@@ -147,7 +147,7 @@ schedules:
     cron: "0 23 * * *"         # neutral cron; installing LLM translates per cheat-sheet
     agent: drainer
     prompt_ref: skills/drain/drain-prompt.md
-    degraded: manual           # manual | skip | inline — behavior when host has no scheduler
+    degraded: manual           # manual | skip | inline — behavior when host has no cron
 
 skills:                        # every shipped skill, with SCOPE — who loads it
   - id: capture
@@ -423,7 +423,7 @@ Terminology note: a capability's `adapters/<harness>/` directory holds its per-h
 
 The research finding stands — harness primitives don't rhyme — but the consequence is a **richer cheat-sheet per harness, not per-harness code**. When the wiring genuinely can't be expressed as instructions — native hooks, patches — that's the §2.4 `plugins/` escape hatch, and the cheat-sheet tells the LLM where to put them.
 
-The `depends.host` vocabulary is fixed and enumerated: `scheduler`, `messaging.inbound`, `messaging.outbound`, `voice.stt`, `voice.tts`, `calendar.read`, `calendar.write`, `email`, `secrets-store`. Adding a word requires updating every cheat-sheet — deliberate friction that keeps the neutral surface small.
+The `depends.host` vocabulary is fixed and enumerated: `cron`, `messaging.inbound`, `messaging.outbound`, `voice.stt`, `voice.tts`, `calendar.read`, `calendar.write`, `email`, `secrets-store`. Adding a word requires updating every cheat-sheet — deliberate friction that keeps the neutral surface small.
 
 ### 5.3 What the cheat-sheets direct the LLM to write
 

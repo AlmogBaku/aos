@@ -12,7 +12,7 @@ The Scout system, nearly whole: `_ops/subagents/scout/` — `sources.md`, `ecosy
 
 ## Depends
 
-`capabilities: [kb, onboarding]` · `host: scheduler: preferred` (sweeps; degraded: manual), `web: required` — note: `web` is not in the §5.2 host vocabulary yet; adding it here is the rule-of-two's first live test (importer's research needs it too → it graduates).
+`capabilities: [kb, onboarding]` · `host: cron: preferred` (sweeps; degraded: manual), `web: required` — note: `web` is not in the §5.2 host vocabulary yet; adding it here is the rule-of-two's first live test (importer's research needs it too → it graduates).
 
 ## Onboarding sketch
 
