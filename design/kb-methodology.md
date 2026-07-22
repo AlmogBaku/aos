@@ -234,11 +234,19 @@ could hold others beside. The contract:
 
 ```
 capabilities/kb/methodologies/karpathy-3layer/
-  init/                # templates kb-init scaffolds: AGENTS.md, SCHEMA.md, index.md, dir tree
-  SCHEMA.md            # the page-schema fragment (this doc §3)
-  archiver.agent.yaml  # the synthesis agent + its prompts
+  init/                # templates kb-init scaffolds: AGENTS.md, SCHEMA.md (the page-schema
+                       # fragment, this doc §3 — the template IS the fragment), index.md,
+                       # log.md, zones/*.AGENTS.md, TREE.md
+  archiver/            # the schedules' prompt bodies: promote.md, lint.md, sync.md
+  scripts/kb-sync.sh   # the rebase-only sync loop (standalone, process boundary)
   lint/SKILL.md        # the deterministic lint checks (§6)
 ```
+
+The agent spec itself lives at the capability level — `capabilities/kb/agents/archiver.agent.yaml`
+(§2.1's `agents/` convention, where `schedules[].agent` resolves; this doc's §5 already said so).
+Methodology-shipped skills (like `lint/`) are valid standalone Agent Skills folders but are *not*
+listed in the manifest `skills[]` (that bijection covers `skills/<id>/` only) — the methodology
+contract carries them, and they materialize with the archiver.
 
 A KB names its methodology in the registry (`methodology: karpathy-3layer`, kb-authorization.md
 §2.1). **v0.1 ships exactly one** — a second (say a vector-retrieval or Zettelkasten variant)

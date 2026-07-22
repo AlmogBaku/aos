@@ -146,7 +146,7 @@ schedules:
   - id: nightly-drain
     cron: "0 23 * * *"         # neutral cron; installing LLM translates per cheat-sheet
     agent: drainer
-    prompt_ref: skills/capture/drain-prompt.md
+    prompt_ref: skills/drain/drain-prompt.md
     degraded: manual           # manual | skip | inline — behavior when host has no scheduler
 
 skills:                        # every shipped skill, with SCOPE — who loads it
@@ -232,7 +232,7 @@ answers:
   min_block: 45m
   calendar: work-google
 secrets:
-  google_token: {store: hermes-auth, key: gog.oauth}   # reference only — never the value
+  google_token: {store: hermes-env, key: GOG_OAUTH_TOKEN}   # reference only — never the value
 ---
 Never schedule over kids pickup (17:30). Prefer batching calls on Tue/Thu.
 ```
@@ -429,13 +429,13 @@ The `depends.host` vocabulary is fixed and enumerated: `scheduler`, `messaging.i
 
 | Artifact | **Hermes** | **OpenClaw** | **NanoClaw** |
 |---|---|---|---|
-| skill | `~/.hermes/skills/<id>/` (native SKILL.md) | workspace `skills/<id>/` | group workspace `skills/` + reference in group context file |
-| agent | profile dir `~/.hermes/profiles/<name>/` + entry in `config.yaml` | agent dir + workspace files (`AGENTS.md`, `SOUL.md`) | group in `groups/<name>/` |
-| schedule | entry in `~/.hermes/cron/jobs.json`, tagged `origin: aos:<cap>@<ver>` | cron job or `HEARTBEAT.md` block | jobs/heartbeat mechanism |
-| context block | profile `workspace/AGENTS.md` | `AGENTS.md` / `USER.md` / `HEARTBEAT.md` | group `CLAUDE.md` |
-| secret | `auth.json` / profile env | `credentials/` | `data/env` |
+| skill | `~/.hermes/skills/<id>/` or `profiles/<p>/skills/<id>/` per `used_by` (native SKILL.md) | workspace `skills/<id>/` | group workspace `skills/` + reference in group context file |
+| agent | profile dir `~/.hermes/profiles/<name>/` (directory-defined — `hermes profile create`; no `config.yaml` registry entry exists) | agent dir + workspace files (`AGENTS.md`, `SOUL.md`) | group in `groups/<name>/` |
+| schedule | cron job via `hermes cron create` in the owning profile's home — provenance = `aos:<cap>:<id>` name prefix + job id in the lockfile (never a hand-written `jobs.json` field: the file is scheduler-owned and its `origin` key already means chat provenance) | cron job or `HEARTBEAT.md` block | jobs/heartbeat mechanism |
+| context block | profile `SOUL.md` (identity) / `workspace/AGENTS.md` (working-dir instructions), inside `<!-- aos:… -->` markers | `AGENTS.md` / `USER.md` / `HEARTBEAT.md` | group `CLAUDE.md` |
+| secret | `.env` (root or profile — `auth.json` is Hermes's own provider-credential state, never written by installs) | `credentials/` | `data/env` |
 
-Every artifact written during install is tagged with its origin (a frontmatter key, a JSON field, or a marker comment) so `doctor`, `remove`, and the round-trip (§3.3) can attribute it. Claude Code and OpenCode cheat-sheets are explicitly **later**: when they land, the Claude Code one points the LLM at the native plugin/marketplace machinery (userConfig, plugin data dirs) rather than rebuilding it.
+Every artifact written during install is tagged with its origin (a frontmatter key, a marker comment, or — where the file is harness-owned, like Hermes `jobs.json` — a name prefix plus the lockfile record) so `doctor`, `remove`, and the round-trip (§3.3) can attribute it. Claude Code and OpenCode cheat-sheets are explicitly **later**: when they land, the Claude Code one points the LLM at the native plugin/marketplace machinery (userConfig, plugin data dirs) rather than rebuilding it.
 
 **Support matrix rule:** a capability lists a harness in its README support matrix only if someone runs it there. Honesty over abstraction.
 
