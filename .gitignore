@@ -3,6 +3,8 @@
 # …except the lint selftest's planted violation, which must exist in CI checkouts
 # for the overlay/state-dir check to prove itself against it
 !tools/lint/selftest/fixture/.aos/
+# …and golden snapshots, which record the rendered user side incl. its lockfile
+!tests/golden/**/.aos/
 
 # NOTE on MOD.md / kb-registry.yaml (the overlay family): whether users track them
 # in a private fork or gitignore them is RFC-005 — deliberately NOT decided here.
