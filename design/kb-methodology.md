@@ -1,5 +1,5 @@
 ---
-title: "aos — Knowledge-Base Methodology (karpathy-3layer), Concrete Design"
+title: "aos — Knowledge-Base Methodology (karpathy-llm-wiki), Concrete Design"
 status: draft-for-group-review
 date: 2026-07-17
 implements: ../ARCHITECTURE.md §4.4
@@ -8,7 +8,7 @@ extraction-source: Almog's production KB — this methodology has run live since
 canonical-pattern: https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f — karpathy's llm-wiki.md (published 2026-04, after our extraction; alignment/divergence table in the built methodology README)
 ---
 
-# Knowledge-Base Methodology — `karpathy-3layer`
+# Knowledge-Base Methodology — `karpathy-llm-wiki`
 
 > **Scope.** This doc specifies *the knowledge model* the `kb` capability ships: the three
 > layers, the page schema, how knowledge is synthesized and retrieved, and how the whole
@@ -17,7 +17,7 @@ canonical-pattern: https://gist.github.com/karpathy/442a6bf555914893e9891c11519d
 > concern that sits on top of this one. ARCHITECTURE §4.4 is the two-paragraph summary; this
 > is the design.
 >
-> `karpathy-3layer` is the **one methodology v0.1 ships**. It is not the only possible one —
+> `karpathy-llm-wiki` is the **one methodology v0.1 ships**. It is not the only possible one —
 > §7 defines the seam a second methodology would plug into — but it is the default, and it is
 > extracted from a KB that has run this exact pattern in production since June 2026.
 
@@ -26,7 +26,7 @@ canonical-pattern: https://gist.github.com/karpathy/442a6bf555914893e9891c11519d
 ## 1. The core idea: knowledge has three tempos
 
 A knowledge base fails when it treats a fast-changing status note and an immutable meeting
-transcript the same way. `karpathy-3layer` (after Karpathy's LLM-wiki pattern) splits a KB
+transcript the same way. `karpathy-llm-wiki` (after Karpathy's LLM-wiki pattern) splits a KB
 into **three layers by write-tempo**:
 
 ```mermaid
@@ -230,11 +230,11 @@ link-and-structure based, because it needs nothing but files and git.)
 
 ## 8. Packaging: methodology as a swappable directory contract
 
-`karpathy-3layer` ships inside the `kb` capability as a **methodology** — a directory the kit
+`karpathy-llm-wiki` ships inside the `kb` capability as a **methodology** — a directory the kit
 could hold others beside. The contract:
 
 ```
-capabilities/kb/methodologies/karpathy-3layer/
+capabilities/kb/methodologies/karpathy-llm-wiki/
   init/                # templates kb-init scaffolds: AGENTS.md, SCHEMA.md (the page-schema
                        # fragment, this doc §3 — the template IS the fragment), index.md,
                        # log.md, zones/*.AGENTS.md, TREE.md
@@ -249,7 +249,7 @@ Methodology-shipped skills (like `lint/`) are valid standalone Agent Skills fold
 listed in the manifest `skills[]` (that bijection covers `skills/<id>/` only) — the methodology
 contract carries them, and they materialize with the archiver.
 
-A KB names its methodology in the registry (`methodology: karpathy-3layer`, kb-authorization.md
+A KB names its methodology in the registry (`methodology: karpathy-llm-wiki`, kb-authorization.md
 §2.1). **v0.1 ships exactly one** — a second (say a vector-retrieval or Zettelkasten variant)
 plugs into the same four-part contract, but none ships until someone actually brings one
 (rule-of-two: standardize the default, keep the substrate pluggable). This is ARCHITECTURE §4.4's

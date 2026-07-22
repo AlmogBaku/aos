@@ -8,7 +8,7 @@
 
 ## Scope
 
-The knowledge-base infrastructure capability: multi-KB registry (`kb-registry.yaml`), the routing skill (rules → confidence-gated LLM → default inbox), the authorization rules (shared KBs never accept LLM-routed writes), and one shipped methodology — `karpathy-3layer` — behind the pluggable methodology seam. The methodology is explicitly two pillars (ARCHITECTURE §4.4): **the Karpathy KB methodology** (immutable raw → synthesized wiki with wikilinks) **plus a rolling-window current-state mechanism** (`state/` — frequently rewritten "what's going on right now", so any agent can cold-start into current reality without replaying history). Ships the Archiver agent spec plus sync/lint/promotion schedules. `kb init` creates and registers; `kb adopt` registers an existing KB and lint-reports divergence without rewriting.
+The knowledge-base infrastructure capability: multi-KB registry (`kb-registry.yaml`), the routing skill (rules → confidence-gated LLM → default inbox), the authorization rules (shared KBs never accept LLM-routed writes), and one shipped methodology — `karpathy-llm-wiki` — behind the pluggable methodology seam. The methodology is explicitly two pillars (ARCHITECTURE §4.4): **the Karpathy KB methodology** (immutable raw → synthesized wiki with wikilinks) **plus a rolling-window current-state mechanism** (`state/` — frequently rewritten "what's going on right now", so any agent can cold-start into current reality without replaying history). Ships the Archiver agent spec plus sync/lint/promotion schedules. `kb init` creates and registers; `kb adopt` registers an existing KB and lint-reports divergence without rewriting.
 
 ## What exists today (extraction sources — in Almog's live setup, the first wrap target)
 

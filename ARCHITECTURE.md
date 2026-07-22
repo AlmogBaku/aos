@@ -311,7 +311,7 @@ kbs:
     remote: git@...
     sync: rebase-5min          # rebase-5min | manual | none
     audience: shared           # shared | private — drives authorization (§4.3)
-    methodology: karpathy-3layer
+    methodology: karpathy-llm-wiki
     purpose: >
       Acme company knowledge: product, customers, marketing, engineering.
     routing:                   # deterministic hints, evaluated before any LLM call
@@ -320,7 +320,7 @@ kbs:
   - name: personal
     path: ~/personal-kb
     audience: private
-    methodology: karpathy-3layer
+    methodology: karpathy-llm-wiki
     purpose: Personal ops, relationships, life admin, drafts.
     routing:
       channels: ["whatsapp:*", "telegram:*"]
@@ -372,7 +372,7 @@ Normative rules in v0.1:
 
 ### 4.4 The default methodology, and the pluggable seam
 
-v0.1 ships **exactly one** KB methodology: `karpathy-3layer` — the production-proven stack extracted from the maintainers' live KB. It rests on two named pillars:
+v0.1 ships **exactly one** KB methodology: `karpathy-llm-wiki` — the production-proven stack extracted from the maintainers' live KB. It rests on two named pillars:
 
 1. **The Karpathy knowledge-base methodology** (LLM-wiki): immutable `raw/` sources with sha256 dedup → a synthesized semantic layer with `[[wikilinks]]` + frontmatter schema. Knowledge accumulates; it is never edited in place at the source layer.
 2. **A rolling-window current-state mechanism**: `state/` — high-churn files holding *what is going on right now* (current status, priorities, pipeline, north star). Unlike the knowledge layers, state is a rolling window: frequently rewritten, always current, never an archive. This is what lets any agent cold-start into "where things stand" without replaying history.
@@ -518,7 +518,7 @@ kb and onboarding are built together (the installer needs both); the importer la
 | Upgrades | LLM merge guided by MOD.md, backup + diff-reviewed | §3.4 |
 | Multi-KB | Registry + rules-first routing, LLM only above confidence bar, uncertain → default inbox | §4.1–4.2 |
 | KB authorization | Shared KBs never accept LLM-routed writes; ACL model shared with future permission gate | §4.3 |
-| KB substrate | One shipped methodology (karpathy-3layer) behind a pluggable directory contract | §4.4 |
+| KB substrate | One shipped methodology (karpathy-llm-wiki) behind a pluggable directory contract | §4.4 |
 | Cross-harness | Per-harness cheat-sheets (knowledge, not code) + support-matrix honesty; no portable hook fiction | §5.2 |
 | Importer | First-class in v0.1; drafts only, never installs | §6 |
 | Concept name | "capability" (a capability *contains* skills; "skill"/"plugin"/"recipe" are ecosystem-reserved) | §1.2 |

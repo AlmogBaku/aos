@@ -33,7 +33,7 @@ Every moving part, what it physically is, where it lives, who executes it.
 | 3 | **Authz check** | A sub-step of the router skill + a standalone skill `kb/skills/authz-check/` (so non-routed direct writes can call it too). A table lookup, nothing more. | Kit repo. | The writing agent, immediately before any KB write. |
 | 4 | **Zone/grant table** | A machine-readable markdown table inside each KB's `AGENTS.md` (§4.4 "maintainer-zone table", evolved — format in §2.2 below). Human-first, lint-parsed. | **Each KB repo**, in its `AGENTS.md`. | Read by router/authz-check and lint; appended by install-time zone registration; the user edits it freely. |
 | 5 | **Archiver agent** | `capabilities/kb/agents/archiver.agent.yaml` (neutral spec) — materialized per harness as a real scheduled agent. Live reference: the production Archiver profile. | Spec in kit repo; the running instance in the **harness**. | The harness scheduler: nightly drain (23:00), weekly lint, 5-min git sync. |
-| 6 | **Lint** | A skill — `kb/skills/lint/SKILL.md` — whose checks are all deterministic (schema validation, glob checks, log/diff audit). Prime RFC-004 helper-tool candidate; until then, trivially-checkable LLM execution. | Kit repo (part of the `karpathy-3layer` methodology contract, §4.4). | Archiver on schedule; also invoked one-shot by `kb adopt` and after zone registration. |
+| 6 | **Lint** | A skill — `kb/skills/lint/SKILL.md` — whose checks are all deterministic (schema validation, glob checks, log/diff audit). Prime RFC-004 helper-tool candidate; until then, trivially-checkable LLM execution. | Kit repo (part of the `karpathy-llm-wiki` methodology contract, §4.4). | Archiver on schedule; also invoked one-shot by `kb adopt` and after zone registration. |
 | 7 | **Review / drain queue** | Two markdown files per KB: `ops/inbox.md` (uncertain-routed captures) and `_ops/needs-review.md` (judgment calls, authz refusals, lint criticals — generalizes the live `the production needs-review queue file`). | Each KB repo. | Archiver appends; the **user** (or their chief-of-staff agent) drains; Archiver never resolves its own judgment calls. |
 | 8 | **`log.md` append** | A convention, not a component: one appended line per mutation, format fixed by SCHEMA (§2.5 below). | Each KB repo root. | Every writer, as the last step of every write. Lint audits it. |
 | 9 | **`kb init` / `kb adopt`** | Skills. `init` = template scaffold + registry append + grant-table seed. `adopt` = registry append + lint run + divergence report; **never rewrites** the existing KB (§4.4, normative). | Kit repo. | The user's main agent, on request. |
@@ -102,7 +102,7 @@ kbs:
     remote: git@github.com:you/personal-kb.git
     sync: rebase-5min            # rebase-5min | manual | none
     audience: private            # private | shared — drives §4 authorization
-    methodology: karpathy-3layer
+    methodology: karpathy-llm-wiki
     purpose: >                   # doubles as the LLM classifier's rubric — write it well
       Personal ops, relationships, life admin, drafts.
     inbox: ops/inbox.md          # (proposed) the zone `intent: inbox` and uncertain
@@ -498,7 +498,7 @@ kbs:
   - name: personal
     path: ~/personal-kb
     audience: private
-    methodology: karpathy-3layer
+    methodology: karpathy-llm-wiki
     purpose: Personal ops, relationships, life admin, drafts.
     routing:
       channels: ["whatsapp:*", "telegram:*"]
@@ -508,7 +508,7 @@ kbs:
     remote: git@github.com:acme/kb.git
     sync: rebase-5min
     audience: shared
-    methodology: karpathy-3layer
+    methodology: karpathy-llm-wiki
     purpose: >
       Acme company knowledge: product, customers, marketing, engineering.
     routing:
@@ -518,7 +518,7 @@ kbs:
   - name: mgmt
     path: ~/mgmt-kb
     audience: private
-    methodology: karpathy-3layer
+    methodology: karpathy-llm-wiki
     purpose: >
       Management notes: 1:1s, performance, compensation, hiring pipeline.
       Never shared; high sensitivity.
@@ -662,5 +662,5 @@ is the time machine.
 - **No cross-KB grant syntax, no grant delegation, no roles.** Rule-of-two: no second
   consumer exists. The moment two capabilities need any of these, it's an RFC.
 - **No second methodology.** The grant table, lint checks, and state rules above are
-  part of the `karpathy-3layer` directory contract (§4.4); a future methodology must
+  part of the `karpathy-llm-wiki` directory contract (§4.4); a future methodology must
   supply its own equivalents behind the same seam.
