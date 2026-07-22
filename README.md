@@ -6,6 +6,14 @@
 
 **The kit is two things: a protocol — the backbone — and a set of implementations.** It's not that complicated; the new software is a prompt. The protocol is the agreement on how a capability is shipped, changed, and kept updated. The implementations are the capabilities: markdown, scripts, a thin infra layer that is at bottom prompts — and where real code is needed, standalone programs behind process boundaries. Once the backbone lands, everybody just contributes implementations — that's how this does more than any of us could alone.
 
+## Install
+
+Paste into your agent:
+
+> Clone https://github.com/AlmogBaku/aos to ~/aos, read ~/aos/harnesses/&lt;your-harness&gt;/CHEATSHEET.md and ~/aos/docs/BOOTSTRAP.md, then set me up.
+
+That's the whole funnel — your harness's own agent performs the install, guided by its [cheat-sheet](harnesses/hermes/CHEATSHEET.md) (Hermes first; more to come) and [BOOTSTRAP.md](docs/BOOTSTRAP.md). No CLI, no adapter code.
+
 ## Why this is open source
 
 The harness companies — and a wave of startups on top of them — are commercializing exactly this layer: the built-in building blocks, the chief-of-staff, the second brain. We are builders. We build this anyway, for ourselves, on whatever harness we each run — and we're not going to pay rent on our own work, to them or to anyone productizing it.
