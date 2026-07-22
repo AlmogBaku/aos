@@ -7,9 +7,10 @@ export const ORIGIN_JOB_PREFIX = `${KIT_NAME}:`; // jobs.json entries: origin: a
 
 // ARCHITECTURE §3.1 — the user-owned overlay family. Upstream never contains these.
 export const OVERLAY_BASENAMES = ['MOD.md', 'kb-registry.yaml'];
-// Fixtures simulate the user clone, so overlay paths are allowed there (RFC-002
-// golden-render fixtures) — ARCHITECTURE §3.1's invariant is about *shipped* paths.
-export const OVERLAY_EXEMPT_PREFIXES = ['tests/fixtures/'];
+// Fixtures simulate the user clone and golden snapshots record the rendered user
+// side, so overlay paths are allowed there (RFC-002) — ARCHITECTURE §3.1's
+// invariant is about *shipped* paths.
+export const OVERLAY_EXEMPT_PREFIXES = ['tests/fixtures/', 'tests/golden/'];
 
 // ARCHITECTURE §5.2 — the fixed, enumerated depends.host vocabulary. Adding a
 // word requires updating every cheat-sheet; the linter enforces the closed set.

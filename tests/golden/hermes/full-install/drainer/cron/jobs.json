@@ -1,0 +1,47 @@
+{
+  "jobs": [
+    {
+      "id": "<ID>",
+      "name": "aos:gtd-capture:nightly-drain",
+      "prompt": "Run the gtd-capture drain skill over every registered KB inbox your grants cover, oldest entries first. Use verb-first next actions. Deadline items become reminders first, tasks second, delivered to whatsapp:+<ID> when due. Honor sacred time: never schedule or fire a reminder during choir practice Thursdays 19:00–21:00 Europe/Lisbon; move it to the window end. Never delete inbox lines; append #triaged only. If all inboxes are clean, output exactly DRAIN: inbox clean. and deliver nothing.",
+      "skills": [
+        "gtd-capture-drain",
+        "gtd-capture-format-entry"
+      ],
+      "skill": "gtd-capture-drain",
+      "model": null,
+      "provider": null,
+      "provider_snapshot": "bedrock",
+      "model_snapshot": "gpt-5.6-luna",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "47 23 * * *",
+        "display": "47 23 * * *"
+      },
+      "schedule_display": "47 23 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "<TIMESTAMP>",
+      "next_run_at": "<TIMESTAMP>",
+      "last_run_at": null,
+      "last_status": null,
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": null,
+      "enabled_toolsets": null,
+      "workdir": null
+    }
+  ],
+  "updated_at": "<TIMESTAMP>"
+}

@@ -1,0 +1,126 @@
+{
+  "jobs": [
+    {
+      "id": "<ID>",
+      "name": "aos:kb:nightly-promote",
+      "prompt": "Run the kb authz-check and promote pass over every registered KB. Read each KB AGENTS.md, SCHEMA.md, index.md, and log.md first. Drain #triaged entries into immutable raw storage, synthesize only mechanically, never load state/ or message the user; route judgment calls to that KB _ops/needs-review.md. Report past-tense and third-person.",
+      "skills": [
+        "kb-authz-check"
+      ],
+      "skill": "kb-authz-check",
+      "model": null,
+      "provider": null,
+      "provider_snapshot": "bedrock",
+      "model_snapshot": "gpt-5.6-luna",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 23 * * *",
+        "display": "30 23 * * *"
+      },
+      "schedule_display": "30 23 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "<TIMESTAMP>",
+      "next_run_at": "<TIMESTAMP>",
+      "last_run_at": null,
+      "last_status": null,
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": null,
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "<ID>",
+      "name": "aos:kb:weekly-lint",
+      "prompt": "Run the kb-lint skill against every registered KB. Produce the methodology lint report under each KB _ops/ directory. Check schema, structure, links, grants audit, drain SLA, and schedule liveness; surface findings without fixing contested facts.",
+      "skills": [
+        "kb-lint"
+      ],
+      "skill": "kb-lint",
+      "model": null,
+      "provider": null,
+      "provider_snapshot": "bedrock",
+      "model_snapshot": "gpt-5.6-luna",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 7 * * 6",
+        "display": "0 7 * * 6"
+      },
+      "schedule_display": "0 7 * * 6",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "<TIMESTAMP>",
+      "next_run_at": "<TIMESTAMP>",
+      "last_run_at": null,
+      "last_status": null,
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": null,
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "<ID>",
+      "name": "aos:kb:kb-sync",
+      "prompt": "",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "provider_snapshot": null,
+      "model_snapshot": null,
+      "base_url": null,
+      "script": "scripts/kb-sync-all.sh",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "*/5 * * * *",
+        "display": "*/5 * * * *"
+      },
+      "schedule_display": "*/5 * * * *",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "<TIMESTAMP>",
+      "next_run_at": "<TIMESTAMP>",
+      "last_run_at": null,
+      "last_status": null,
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": null,
+      "enabled_toolsets": null,
+      "workdir": null
+    }
+  ],
+  "updated_at": "<TIMESTAMP>"
+}

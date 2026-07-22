@@ -12,7 +12,8 @@ if (!src || !dest) {
 }
 
 const SKIP = new Set(['node_modules', '.git', 'sessions', 'logs', 'memories', 'state.db',
-  'audio_cache', 'cache', '.env', 'auth.json', 'state-snapshots', 'bin']);
+  'audio_cache', 'cache', '.env', 'auth.json', 'state-snapshots', 'bin',
+  'executions.db', '.jobs.lock', 'auth.lock']);
 const TEXT = /\.(md|ya?ml|json|txt|sh|tmpl)$/;
 
 function normalizeText(text) {
