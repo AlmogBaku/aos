@@ -70,6 +70,16 @@ Location: the **root** `MOD.md` of the user's clone when interviewing for the gl
 bootstrap (the onboarding capability itself); `capabilities/<id>/MOD.md` for any other
 capability. The overlay is user-owned — never commit it upstream, never edit shipped files.
 
+Mechanics that keep re-runs no-ops:
+
+- `onboarded_version` = the target capability's `CAPABILITY.md` `version` at interview time.
+- **Never re-serialize unchanged content.** Unchanged answers and body text are preserved
+  byte-for-byte; you edit the file, you don't regenerate it. (The re-run acceptance test
+  diffs bytes.)
+- **Empty diff ⇒ no write.** If a re-run or `--refresh` changes nothing, say so and touch
+  nothing — there is no approval prompt for a diff with no changes.
+- Body headings are emitted only when there is nuance under them — no empty sections.
+
 ## After writing
 
 Report: which questions were answered, skipped, or unchanged; where secrets went (store
