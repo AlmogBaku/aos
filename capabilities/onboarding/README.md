@@ -12,7 +12,7 @@ working hours, sacred time, red lines → the root `MOD.md`. First thing a new u
 Re-runs ask only missing or `re_ask` questions; `--refresh` re-asks everything and shows a
 diff before writing. Nothing self-deletes.
 
-Spec one-pager: [../onboarding.md](../onboarding.md)
+Spec one-pager: [onboarding.md](https://github.com/AlmogBaku/aos/blob/spec/capabilities/onboarding.md)
 
 ## Support matrix
 

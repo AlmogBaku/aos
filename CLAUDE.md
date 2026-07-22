@@ -4,23 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A spec **plus its build**: the spec docs (ARCHITECTURE, design/, one-pagers, RFCs) remain the reference-on-paper, and the **build phase** has landed its first slice — the Hermes cheat-sheet, tier-1 lint CI, and the first four capabilities (`kb`, `onboarding`, `gtd-capture`, `importer`) as real directories beside their one-pagers. The `spec` branch snapshots the pre-build spec. For a capability not yet built, its spec docs are the only source of truth. (`aos` is a placeholder name; RFC-001 picks the real one.)
+**`main` is the built kit; the spec lives on the `spec` branch.** The build phase's first slice is here — the Hermes cheat-sheet, tier-1 lint CI, and the first four capabilities (`kb`, `onboarding`, `gtd-capture`, `importer`). The spec docs (ARCHITECTURE.md, design/, capability one-pagers, RFCs, prior-art) are the reference-on-paper and live **only on the `spec` branch** — read them with `git show spec:<path>` or a `spec`-branch checkout/worktree; do not copy them back onto main. For a capability not yet built, its spec docs are the only source of truth. (`aos` is a placeholder name; RFC-001 picks the real one.)
 
 The subject matter is a protocol: a curated set of *capabilities* that install into an existing agent harness (Hermes, NanoClaw, OpenClaw first; Claude Code, OpenCode later), personalize themselves via an onboarding interview, and survive upgrades. The kit is deliberately "protocol + implementations, no runtime".
 
 ## Document map
 
-- **`ARCHITECTURE.md`** — the spec, and the only document that is normative. §1 story + atomic-design mental model, §2 capability package format, **§3 the overlay contract (declared inviolable)**, §4 KB registry/routing/authorization, §5 install via the harness LLM + cheat-sheets, §6 importer, §7 the ten reference capabilities and build order, **§8 the decision index**, Appendix A (problems→mechanism) and B (risk register).
-- **`rfcs/RFC-00N-*.md`** — the seven open decisions. Shape: Question / Options / Trade-off in one line / Recommendation / Process.
-- **`capabilities/*.md`** — one-pagers for the ten reference capabilities. Shape: header line (Tags · Build order · Seam it proves) / Scope / What exists today (extraction sources) / Depends / Onboarding sketch / v0.1 acceptance.
-- **`design/*.md`** — deep-dive *exhibits* for ARCHITECTURE contracts: `capability-anatomy.md` (gtd-capture file by file), `install-flow.md`, `kb-methodology.md`, `kb-authorization.md`.
-- `prior-art.md`, `README.md` (entry point + canonical reading order), `diagram.svg` (embedded in ARCHITECTURE §1.2).
+On the **`spec` branch** (authoritative for contracts; `git show spec:<path>`):
 
-Built artifacts (the build phase; spec docs above stay authoritative for contracts):
+- **`ARCHITECTURE.md`** — the spec, and the only document that is normative. §2 capability package format, **§3 the overlay contract (declared inviolable)**, §4 KB registry/routing/authorization, §5 install via the harness LLM + cheat-sheets, §6 importer, §7 build order, **§8 the decision index**, Appendix B (risk register).
+- **`rfcs/RFC-00N-*.md`** — the eight open decisions · **`capabilities/*.md`** — one-pagers (with each capability's v0.1 acceptance) · **`design/*.md`** — deep-dive exhibits (`capability-anatomy.md` is the worked example built capabilities mirror) · `prior-art.md`, `diagram.svg`.
+
+On **main** (this branch — the build):
 
 - **`capabilities/<id>/`** — built capability directories (§2.1 layout), beside their `<id>.md` one-pagers. `kb/methodologies/karpathy-3layer/` is the shipped methodology package.
 - **`harnesses/hermes/CHEATSHEET.md`** — the first per-harness knowledge artifact (§5.2's six sections).
-- **`docs/`** — `BOOTSTRAP.md` (the paste-block install path), `TESTING.md` (how to run everything), `BUILD-GAPS.md` (**the spec-gap ledger — every artifact↔spec mismatch gets a row; the fix lands in the same commit**), `DOGFOOD.md` (deferred live-dogfood checklist).
+- **`docs/`** — `BOOTSTRAP.md` (the paste-block install path), `TESTING.md` (how to run everything), `BUILD-GAPS.md` (**the spec-gap ledger — every artifact↔spec mismatch gets a row; artifact-side fixes land in the same main commit, spec-side fixes land on the `spec` branch and the row names them**), `DOGFOOD.md` (deferred live-dogfood checklist).
 - **`tools/`** — RFC-002 tier-1 lint (`bash tools/check.sh` runs everything CI runs) + the golden-render checker. **Run it before every commit.**
 - **`tests/`** — fixtures (Dana Fixture persona + sentinels), golden snapshots (`tests/golden/hermes/`), transcripts. The e2e is a REAL install into a disposable `aos-test` Hermes profile namespace — see `tests/golden/PROTOCOL.md`; never simulate the harness, and never touch `~/.hermes` outside `aos-*` profiles or `~/ai-kb` at all.
 
@@ -47,7 +46,7 @@ The build phase turns the spec into the artifacts it describes. The spec docs be
 - **Order is fixed — follow ARCHITECTURE §7.** Build `kb` and `onboarding` first (the installer needs both), then `gtd-capture`, then the `importer`, etc. Each step exists to prove exactly one seam; don't build ahead of it. **Hermes is the first harness**, so the first artifact that doesn't exist yet is `harnesses/hermes/CHEATSHEET.md` (its required sections are in ARCHITECTURE §5.2).
 - **What "build a capability" means, concretely:** create the directory exactly per ARCHITECTURE §2.1 — `CAPABILITY.md` (typed frontmatter + prose install narrative), `skills/<id>/SKILL.md` (valid Agent Skills spec folders — the portable core), `agents/*.agent.yaml` if it needs its own agent, `ONBOARDING.md` (frontmatter questions + interview script), `MOD.example.md` (the shipped seed), plus `kb/` and `adapters/<harness>/` as needed. The `kb` capability additionally ships `methodologies/karpathy-3layer/` (`init/` templates, `SCHEMA.md`, `archiver.agent.yaml`, `lint/SKILL.md`) — design in `design/kb-methodology.md`.
 - **Self-containment is a hard guardrail — this repo is public.** Reference capabilities are *extracted from* a live private setup (a production KB, a Hermes install), but nothing personal may land in a committed file: no real names/companies/relationships, no secrets or tokens, no actual KB content. `ONBOARDING.md` ships *questions*; `MOD.example.md` ships *placeholder* answers, never anyone's real ones. Extraction = lift the mechanism, genericize the content. When in doubt, redact.
-- **When building reveals a spec gap, fix the spec — don't diverge.** The method is "build reveals what to spec." If a contract doesn't fit reality, update ARCHITECTURE via the firm-position discipline (or open/adjust an RFC); rule-of-two still governs any new field. A capability silently inconsistent with a contract is a bug in one or the other — never something to leave standing.
+- **When building reveals a spec gap, fix the spec — don't diverge.** The method is "build reveals what to spec." If a contract doesn't fit reality, update ARCHITECTURE **on the `spec` branch** via the firm-position discipline (or open/adjust an RFC there); rule-of-two still governs any new field. A capability silently inconsistent with a contract is a bug in one or the other — never something to leave standing.
 - **Verifying with no runtime:** "does it work" = can the harness LLM, given only the capability + the harness `CHEATSHEET.md` + a fixture `MOD.example.md`, produce a correct install? That is the golden-render test (RFC-002 tier 2); dogfood it on Hermes for real. Tier-1 lint (schema / frontmatter / `used_by` / overlay-family checks) is the first CI to stand up (RFC-002).
 
 ## Conventions when adding documents

@@ -12,12 +12,12 @@ in the same session**), `adopt` (register an existing KB, report divergence, rew
 nothing).
 
 Contested core: the §4.2–4.3 routing/authorization behavior is
-[RFC-006](../../rfcs/RFC-006-multi-kb-routing.md) — artifacts here build against the spec
+[RFC-006](https://github.com/AlmogBaku/aos/blob/spec/rfcs/RFC-006-multi-kb-routing.md) — artifacts here build against the spec
 text; the replay evidence decides the confidence bar, tie precedence, and drain batching.
 
-Spec one-pager: [../kb.md](../kb.md) · Deep dives:
-[kb-methodology](../../design/kb-methodology.md) ·
-[kb-authorization](../../design/kb-authorization.md)
+Spec one-pager: [kb.md](https://github.com/AlmogBaku/aos/blob/spec/capabilities/kb.md) · Deep dives:
+[kb-methodology](https://github.com/AlmogBaku/aos/blob/spec/design/kb-methodology.md) ·
+[kb-authorization](https://github.com/AlmogBaku/aos/blob/spec/design/kb-authorization.md)
 
 ## Support matrix
 

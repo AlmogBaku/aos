@@ -8,8 +8,8 @@ promote removes).
 This is also the kit's worked example: `design/capability-anatomy.md` walks this
 capability file by file, and ARCHITECTURE §2.2's manifest example *is* this manifest.
 
-Spec one-pager: [../gtd-capture.md](../gtd-capture.md) · Anatomy:
-[capability-anatomy](../../design/capability-anatomy.md)
+Spec one-pager: [gtd-capture.md](https://github.com/AlmogBaku/aos/blob/spec/capabilities/gtd-capture.md) · Anatomy:
+[capability-anatomy](https://github.com/AlmogBaku/aos/blob/spec/design/capability-anatomy.md)
 
 ## Support matrix
 

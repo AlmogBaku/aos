@@ -1,6 +1,6 @@
 # aos — the batteries for your agent harness
 
-> `aos` is a placeholder name — [RFC-001](rfcs/RFC-001-naming.md) picks the real one.
+> `aos` is a placeholder name — [RFC-001](https://github.com/AlmogBaku/aos/blob/spec/rfcs/RFC-001-naming.md) picks the real one.
 
 **Harnesses are batteries-not-included. This kit is the batteries** — a curated set of capabilities (knowledge base, GTD capture, time blocking, daily briefing, news tracking, voice, a personal trainer someone already built…) that install into the agent harness you already run — Hermes, NanoClaw, OpenClaw first; Claude Code, OpenCode next — personalize themselves to you through an onboarding interview, and keep your personalization intact across upgrades.
 
@@ -26,13 +26,24 @@ A team member's personal-trainer capability, built in their own Hermes: they *as
 
 Note there's no CLI doing this: `aos import` / `aos install` are conversational — you ask your harness agent in plain language, and it follows the relevant capability's skill. The kit is a protocol and a set of prompts, not a program. Every contract in this repo exists to make that loop work.
 
-## Read in this order
+## What's on this branch vs the spec
 
-1. [ARCHITECTURE.md](ARCHITECTURE.md) — the spec. §1 for the story, the seven problems, and the mental model; §3 is the one inviolable contract (the overlay); §8 is the decision index: every decision is either a **firm position + rationale** or an **RFC**.
-2. [rfcs/](rfcs/) — the eight open decisions: naming, testing, governance, install bookkeeping, MOD.md persistence, multi-KB routing/authorization, permission-gate vocabulary, agent-comms opinionation. (The last three are the contested cores of the kb, permission-gate and agent-comms capabilities — their build plans proceed; their contested behavior follows the RFC.)
-3. [capabilities/](capabilities/) — one-pagers for the eleven reference capabilities and the build order.
-4. [design/](design/) — the concrete deep-dives where the spec's contracts become exhibits: [capability anatomy](design/capability-anatomy.md) (a real capability, file by file), [install flow](design/install-flow.md) (every step, deterministic vs agentic marked), [KB methodology](design/kb-methodology.md) (the 3-layer knowledge model, schema, growth stages, synthesis, retrieval), [KB authorization](design/kb-authorization.md) (routing, grant tables, sequence diagrams, worked multi-KB cases), [agent-comms](design/agent-comms.md) (agent→agent envelope, glass-box rule, transports, guards).
-5. [prior-art.md](prior-art.md) — where this sits vs gstack (closest on architecture) and PAI/LifeOS (closest on domain), and the square neither occupies.
+**`main` is the kit** — the built artifacts: [capabilities/](capabilities/) (built
+capability directories), [harnesses/](harnesses/) (per-harness cheat-sheets, Hermes
+first), [docs/](docs/) (BOOTSTRAP, TESTING, the build-gap ledger), [tools/](tools/) +
+[tests/](tests/) (tier-1 lint, golden renders, transcripts).
+
+**The [`spec` branch](https://github.com/AlmogBaku/aos/tree/spec) is the spec** — the
+reference-on-paper the kit is built against. Read in this order there:
+
+1. [ARCHITECTURE.md](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md) — the spec. §1 story + mental model; §3 the one inviolable contract (the overlay); §8 the decision index: every decision is a **firm position + rationale** or an **RFC**.
+2. [rfcs/](https://github.com/AlmogBaku/aos/tree/spec/rfcs) — the eight open decisions. (RFC-006/007/008 are the contested cores of kb, permission-gate, agent-comms — builds proceed; contested behavior follows the RFC.)
+3. [capabilities/*.md](https://github.com/AlmogBaku/aos/tree/spec/capabilities) — one-pagers for the eleven reference capabilities and the build order.
+4. [design/](https://github.com/AlmogBaku/aos/tree/spec/design) — deep-dive exhibits: capability anatomy, install flow, KB methodology, KB authorization, agent-comms.
+5. [prior-art.md](https://github.com/AlmogBaku/aos/blob/spec/prior-art.md) — vs gstack and PAI/LifeOS, and the square neither occupies.
+
+Spec corrections discovered while building land on the `spec` branch; the trail is
+[docs/BUILD-GAPS.md](docs/BUILD-GAPS.md) here.
 
 ## How to engage
 
