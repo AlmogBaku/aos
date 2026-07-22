@@ -1,4 +1,3 @@
-import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { readFrontmatter } from '../../lib/frontmatter.mjs';
 import { ORIGIN_FRONTMATTER_KEY, MAIN_AGENT } from '../../lib/constants.mjs';
@@ -9,18 +8,21 @@ import { agentNames } from './agents.mjs';
 const SKILL_KEYS = ['name', 'description', 'license', 'allowed-tools', 'metadata', 'compatibility'];
 const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-export function checkSkills({ caps, report }) {
+export function checkSkills({ caps, files, report }) {
   for (const cap of caps) {
-    const skillsDir = join(cap.dir, 'skills');
-    if (!existsSync(skillsDir)) continue;
     const manifest = readFrontmatter(join(cap.dir, 'CAPABILITY.md')).data ?? {};
     const declared = new Map((manifest.skills ?? []).map((s) => [s.id, s]));
     const agents = agentNames(cap);
 
-    for (const id of readdirSync(skillsDir).filter((n) => statSync(join(skillsDir, n)).isDirectory())) {
-      const file = `${cap.rel}/skills/${id}/SKILL.md`;
-      const path = join(skillsDir, id, 'SKILL.md');
-      if (!existsSync(path)) continue; // reported by skills/missing-dir
+    // Every SKILL.md in the capability must be a valid Agent Skills folder —
+    // including methodology-shipped ones outside skills/ (those aren't in the
+    // manifest bijection; the methodology contract carries them).
+    const skillFiles = files.filter((f) => f.startsWith(`${cap.rel}/`) && f.endsWith('/SKILL.md'));
+    for (const file of skillFiles) {
+      const parts = file.split('/');
+      const id = parts[parts.length - 2];
+      const inSkillsDir = parts[2] === 'skills' && parts.length === 5;
+      const path = join(cap.dir, ...parts.slice(2));
       const { data, body, error } = readFrontmatter(path);
       if (error || !data) {
         report('error', 'skill/parse', file, error ? error.message : 'missing frontmatter');
@@ -53,7 +55,8 @@ export function checkSkills({ caps, report }) {
       }
 
       // used_by scoping (ARCHITECTURE §2.2, normative — the anti-pollution rule).
-      const entry = declared.get(id);
+      // Only skills/<id>/ entries participate in the manifest bijection.
+      const entry = inSkillsDir ? declared.get(id) : null;
       if (entry) {
         const usedBy = entry.used_by;
         if (!Array.isArray(usedBy) || !usedBy.length) {

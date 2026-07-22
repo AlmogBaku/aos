@@ -6,9 +6,13 @@ const LINK_RE = /\[[^\]]*\]\(([^)\s]+)\)/g;
 
 // Every relative markdown link in the repo must resolve — the reading order,
 // capability cross-links, and design exhibits are all load-bearing.
+// Methodology init/ files are templates — their links resolve inside the
+// scaffolded KB, not inside this repo.
+const TEMPLATE_RE = /\/methodologies\/[^/]+\/init\//;
+
 export function checkReferences({ files, report, root }) {
   for (const rel of files) {
-    if (!rel.endsWith('.md')) continue;
+    if (!rel.endsWith('.md') || TEMPLATE_RE.test(rel)) continue;
     const abs = join(root, rel);
     const { body } = readFrontmatter(abs);
     const text = stripCodeFences(body ?? readFileSync(abs, 'utf8'));
