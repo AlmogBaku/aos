@@ -81,14 +81,13 @@ lint flags tags used <2 times for merge or removal.
 - `low` = single source / unverified (lint-surfaced weekly) · `medium` = multiple sources,
   no contradiction · `high` = user-confirmed OR ≥3 independent sources. Never silently
   upgrade — state the reason in the body or log line.
-- Contested facts: never pick a side. Both values inline, each with provenance wikilinks,
-  and a bold `Contested — flagged YYYY-MM-DD` marker. Lint surfaces contested pages weekly.
+- Contested facts: never pick a side — both values inline with provenance wikilinks and a
+  bold `Contested — flagged YYYY-MM-DD` marker. Lint surfaces them weekly.
 
 ## Empty pages
 
-Frontmatter-with-no-body is allowed only for calendar-preseeded seedling stubs (pre-seeding
-entities from calendar events before captures mention them is the cheapest sprawl-killer we
-know). Everything else needs at least one sentence.
+Frontmatter-with-no-body is allowed only for calendar-preseeded seedling stubs.
+Everything else needs at least one sentence.
 
 ## log.md
 
@@ -99,6 +98,6 @@ YYYY-MM-DDTHH:MM±TZ | <agent> | <verb> | <path> | <one-line summary>
 ```
 
 Verbs: `bootstrap | create | promote | merge | archive | flag | resolve | sync-conflict |
-lint | route | refuse`. Free-hand dialects decay (the extraction source ended at ~6% format
-compliance): compose the line mechanically, exactly this grammar — the lint validates it.
-Reads are never logged. Sync auto-commits are not logged (git history covers them).
+lint | route | refuse`. Compose the line mechanically, exactly this grammar — the lint
+validates it. Reads are never logged; sync auto-commits are not logged (git history
+covers them).

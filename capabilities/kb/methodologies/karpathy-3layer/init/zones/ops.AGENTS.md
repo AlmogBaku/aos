@@ -20,10 +20,8 @@ blocks — long content goes to a `raw/` file with a one-line pointer here):
   `#correction` that supersedes it. Append-only capture with corrective appends.
 - Capture is dumb and fast. No classification, no lookups, no questions at capture time.
 
-**Drain SLA:** the nightly promote empties everything older than 24h. "Age of oldest
-undrained entry" is a lint health metric — if it exceeds 48h the lint report's Critical
-section says so. (The KB this was extracted from grew a 20KB never-drained inbox because
-no metric watched it.)
+**Drain SLA:** the nightly promote empties everything older than 24h. Age of oldest
+undrained entry is a lint metric: >24h finding, >48h Critical.
 
 ## tasks/ & reviews/
 
@@ -32,5 +30,5 @@ no metric watched it.)
   `reviews/monthly/YYYY-MM.md`.
 - Active-project cap: {{mod: project_cap}} (default 12 total). At cap, the front agent
   surfaces "pick one to park" instead of adding.
-- Per-run status dumps, heartbeats, ticket mirrors: **not here** — agent workspaces exist
-  for that. The lint counts loose ops/ files as a pollution metric.
+- Per-run status dumps, heartbeats, ticket mirrors: **not here** — use your own agent
+  workspace (lint counts loose ops/ files as pollution).

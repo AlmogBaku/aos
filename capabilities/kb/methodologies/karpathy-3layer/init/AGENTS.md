@@ -28,13 +28,13 @@ deny: no row, no verb; unregistered agents match nothing, not even `*`.
 | subject | object | verbs | grantor | granted | via | notes |
 |---|---|---|---|---|---|---|
 | user | `**` | read write grant | — | {{today}} | — | root of authority |
-| agent:archiver | `raw/**` | write route-into | user | {{today}} | kb@0.1.0 | append-only; sha256 dedup |
-| agent:archiver | `entities/** concepts/** comparisons/** queries/**` | write | user | {{today}} | kb@0.1.0 | Layer-2 synthesis |
-| agent:archiver | `_ops/** _archive/** index.md log.md` | write | user | {{today}} | kb@0.1.0 | log is append-only |
-| agent:main | `ops/**` | write route-into | user | {{today}} | kb@0.1.0 | the live capture path |
-| agent:main | `state/**` | write | user | {{today}} | kb@0.1.0 | rewrite whole files; budgets in state/AGENTS.md |
-| `*` | `**` | read | user | {{today}} | kb@0.1.0 | registered agents read everything |
-| `*` | `drafts/**` | write | user | {{today}} | kb@0.1.0 | WIP; archiver sweeps weekly |
+| agent:archiver | `raw/**` | write route-into | user | {{today}} | kb@{{version}} | append-only; sha256 dedup |
+| agent:archiver | `entities/** concepts/** comparisons/** queries/**` | write | user | {{today}} | kb@{{version}} | Layer-2 synthesis |
+| agent:archiver | `_ops/** _archive/** index.md log.md` | write | user | {{today}} | kb@{{version}} | log is append-only |
+| agent:main | `ops/**` | write route-into | user | {{today}} | kb@{{version}} | the live capture path |
+| agent:main | `state/**` | write | user | {{today}} | kb@{{version}} | rewrite whole files; budgets in state/AGENTS.md |
+| `*` | `**` | read | user | {{today}} | kb@{{version}} | registered agents read everything |
+| `*` | `drafts/**` | write | user | {{today}} | kb@{{version}} | WIP; archiver sweeps weekly |
 
 Rules the table can't carry:
 
@@ -67,10 +67,10 @@ voice mechanical and its judgment free of the user's business.
 - **Append-only `log.md`**, canonical line format (see SCHEMA.md §log). One line per
   synthesis mutation. Never edit existing lines. Git history covers what the log doesn't.
 - **Page-or-inline**: a new page only if the concept is referenced from ≥2 places or the
-  user asked; otherwise inline in the parent. Sprawl is the death of retrieval.
+  user asked; otherwise inline in the parent.
 - **No `.backup.*` files, ever** — git history is the archive. (Lint flags them.)
-- Status narratives, heartbeats, checkpoints: **not KB content.** They go to your own
-  workspace outside this repo. The lint flags per-run status files as pollution.
+- Status narratives, heartbeats, checkpoints: **not KB content** — they go to your own
+  workspace outside this repo (lint-flagged as pollution here).
 
 ## Sync
 
@@ -81,5 +81,4 @@ the rebase, logs `sync-conflict`, and surfaces to the user's next brief.
 ## When in doubt
 
 Don't write — read, then surface the question (`_ops/needs-review.md`, with evidence and
-a stated default). A wrong write pollutes every future agent's context; an asked question
-costs one review.
+a stated default).

@@ -6,19 +6,14 @@ One line per capture, appended to the KB's `ops/inbox.md`:
 - YYYY-MM-DDTHH:MM±TZ [<channel>] (#tag #tag) : <verbatim content>
 ```
 
-- Timestamp: ISO-8601 to the minute, explicit UTC offset, the user's timezone (global
-  MOD.md).
-- `[<channel>]`: where it arrived — `[whatsapp]`, `[voice]`, `[chat]`; agent-originated
-  entries use `[<agent>|<ref>]`.
-- Tags: zero or more `#lowercase-hyphenated` in one paren group. The user's explicit
-  routing prefix ("work: …") is **consumed** — stripped from the content, recorded as its
-  tag (`#work`); "verbatim" applies to everything after the prefix. An entry the router
-  resolved with `status: uncertain` (step-4 fallback) appends `#kb-routing-uncertain`;
-  a rule- or tag-resolved entry carries no routing annotation.
-- ` : ` separates metadata from content. Content is verbatim, one line no matter how long.
-- **Long content** (transcripts, forwarded text > a paragraph): write it to the KB's
-  `raw/captures/` as its own file per the KB schema and put a one-line pointer entry here
-  instead. The inbox holds lines, never documents.
-- **Corrections are appends**: never edit an earlier entry — add a new one tagged
-  `#correction` that supersedes it.
+- Timestamp: ISO-8601, minute precision, user's timezone (global MOD.md).
+- `[<channel>]`: `[whatsapp]`, `[voice]`, `[chat]`; agent-originated: `[<agent>|<ref>]`.
+- Tags: `#lowercase-hyphenated`, one paren group; omit `()` entirely when empty.
+- A routing prefix ("work: …") is **consumed**: stripped from content, recorded as its tag
+  (`#work`). "Verbatim" applies to everything after the prefix.
+- Router `status: uncertain` → append `#kb-routing-uncertain`. Rule/tag-resolved entries
+  carry no routing annotation.
+- Long content (transcripts, forwarded text > a paragraph): write to `raw/captures/` per
+  the KB schema; put a one-line pointer entry here.
+- Corrections: never edit an entry — append a new one tagged `#correction`.
 - Nothing else goes in the inbox file: no headings, no blank-line groups, no status notes.

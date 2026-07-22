@@ -1,6 +1,6 @@
 ---
 id: gtd-capture
-version: 0.1.0
+version: 0.1.1
 tags: [usecase]
 summary: Voice/text → next-action → KB write → reminder.
 depends:
@@ -30,31 +30,24 @@ kb:
 
 # gtd-capture
 
-The first vertical: capture is dumb and fast, the drain does the thinking. A thought
-arrives on any bound channel → one line lands in the routed KB's inbox in under five
-seconds → the nightly drain turns it into next-actions, reminders, and filed knowledge.
+Capture is dumb and fast; the drain does the thinking. A thought on any bound channel →
+one line in the routed KB inbox in under five seconds → the nightly drain turns it into
+next-actions and reminders.
 
 ## Install narrative
 
-1. **Capture path.** The `capture` skill goes to the front agent only. It composes with
-   kb's `route` skill: an incoming capture is routed (explicit tag → channel/keyword rule
-   → confidence-gated LLM among private KBs → default inbox) and appended in the
-   one-line entry format. No classification, no questions, no lookups at capture time —
-   the latency budget is the whole point.
-2. **Drainer agent** (`agents/drainer.agent.yaml`): the GTD triage clerk. Its `drain`
-   skill is scoped `used_by: [drainer]` — the front agent never loads it.
-3. **Schedule.** `nightly-drain` defaults to 23:00; the user's `drain_hour` answer
-   overrides the cron at materialization. It deliberately runs *before* kb's 23:30
-   `nightly-promote`: drain triages entries into actions and reminders and marks them
-   `#triaged`; the archiver then files the same entries into `raw/` and empties the
-   inbox. Two agents, one inbox, strict order — drain never deletes lines, promote does.
-4. **Zone.** `ops/inbox.md` is registered in the target KB (template in `kb/zones/`);
-   the grant row gives the drainer `write` and the front agent's capture path
-   `route-into` (kb's install already granted `agent:main` the ops/ write).
-5. **Reminders** deliver via the harness's outbound messaging to the user's
-   `reminder_target` answer; without `messaging.outbound` they degrade to a line in the
-   drain report.
+1. **Capture path**: the `capture` skill → front agent only; it composes with kb's
+   `route` skill.
+2. **Drainer agent** (`agents/drainer.agent.yaml`): the `drain` skill is
+   `used_by: [drainer]` — the front agent never loads it.
+3. **Schedule**: default 23:00; the user's `drain_hour` answer overrides the cron at
+   materialization. Runs before kb's 23:30 `nightly-promote`: drain triages and marks
+   `#triaged`, promote files into `raw/` and empties the inbox. Drain never deletes
+   lines.
+4. **Zone**: register `ops/inbox.md` in the target KB (template in `kb/zones/`); grant
+   the drainer `write` and the capture path `route-into`.
+5. **Reminders**: outbound messaging to the `reminder_target` answer; without
+   `messaging.outbound`, degrade to a line in the drain report.
 
-The transform weaves MOD.md nuances at the `{{mod: capture_preferences}}` slot in the
-capture skill and uses `drain_hour`, `inbox_kb`, and `action_format` answers to
-materialize the schedule and drain behavior.
+Transform: fill `{{mod: capture_preferences}}` in the capture skill; use `drain_hour`,
+`inbox_kb`, `action_format` answers for the schedule and drain behavior.

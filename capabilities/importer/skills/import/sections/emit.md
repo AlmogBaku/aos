@@ -1,18 +1,17 @@
 # Stage 5 — Emit
 
-Write, under the user's clone:
+Write under the user's clone:
 
-- `capabilities/<id>-draft/` — the full §2.1 skeleton: `CAPABILITY.md` (typed
-  frontmatter + install narrative), `README.md` (support matrix listing *only this
-  harness*, this user as runner), `skills/`, `agents/`, `ONBOARDING.md`, `MOD.example.md`
-  (placeholder answers — **not** the user's), `kb/` templates as mapped.
-- `capabilities/<id>-draft/MOD.md` — the draft overlay holding the user's actual nuances
-  (overlay family: stays theirs, never in a PR).
-- `capabilities/<id>-draft/GAP.md` — see [gap-report.md](gap-report.md).
+- `capabilities/<id>-draft/` — full §2.1 skeleton: `CAPABILITY.md`, `README.md` (support
+  matrix: this harness only, this user as runner), `skills/`, `agents/`, `ONBOARDING.md`,
+  `MOD.example.md` (invented placeholder answers, zero personal data), `kb/` templates.
+- `capabilities/<id>-draft/MOD.md` — the user's actual nuances (overlay family: never in
+  a PR).
+- `capabilities/<id>-draft/GAP.md` — per [gap-report.md](gap-report.md).
 
-Then: run the repo's tier-1 lint over the draft if `tools/` exists (the `-draft` suffix
-relaxes nothing — a draft that lints is an hour from a PR); print the author's punch
-list (GAP items + lint findings + the rename from `<id>-draft` to `<id>`); and remind
-them what a PR must not contain (their MOD.md, any secret, any personal KB content).
+Then:
+1. Run the repo's tier-1 lint over the draft if `tools/` exists.
+2. Print the punch list: GAP items, lint findings, the `<id>-draft` → `<id>` rename.
+3. State what a PR must not contain: their MOD.md, any secret, any personal KB content.
 
-You never open the PR. The author reviews, genericizes further if needed, and submits.
+Never open the PR yourself.
