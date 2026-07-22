@@ -76,7 +76,7 @@ their install steps are carried here inline (this breaks the chicken-and-egg):
 4. [D] Diff gate → write → record in lockfile.
 
 **kb** (`capabilities/kb/`):
-1. [D] Read its `CAPABILITY.md`; host check (`scheduler: preferred` — if absent, note the
+1. [D] Read its `CAPABILITY.md`; host check (`cron: preferred` — if absent, note the
    degraded mode for each schedule, per cheat-sheet).
 2. [A] Transform its skills (route, authz-check, init, adopt) with `MOD.md` +
    `kb-registry.yaml` context.

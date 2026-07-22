@@ -5,7 +5,7 @@ tags: [infra]
 summary: Multi-KB infrastructure — registry, routing, authorization, and one shipped methodology (karpathy-3layer) with its Archiver agent.
 depends:
   host:
-    scheduler: preferred
+    cron: preferred
 skills:
   - id: route
     used_by: [main]

@@ -7,7 +7,7 @@ depends:
   capabilities: [does-not-exist]
   host:
     teleportation: required
-    scheduler: sometimes
+    cron: sometimes
 schedules:
   - id: dup
     cron: "0 23 * * *"

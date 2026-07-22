@@ -124,7 +124,7 @@ Verify by re-running Introspection: no `aos:<capability>` job names, no
 
 | `depends.host` | status | notes |
 |---|---|---|
-| `scheduler` | ✓ | `hermes cron` (cron/interval/once) |
+| `cron` | ✓ | `hermes cron` (cron/interval/once kinds) |
 | `messaging.inbound` | ✓ | WhatsApp, Slack, Telegram, Discord, Signal, Mattermost, Matrix; channel→agent binding via `profile_routes` + `gateway.multiplex_profiles: true` |
 | `messaging.outbound` | ✓ | cron `--deliver origin|local|<platform>:<chat_id>`; agent sends via messaging toolset |
 | `voice.stt` / `voice.tts` | ✓ | `stt`/`tts`/`voice` config sections |

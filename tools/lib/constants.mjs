@@ -15,7 +15,7 @@ export const OVERLAY_EXEMPT_PREFIXES = ['tests/fixtures/', 'tests/golden/'];
 // ARCHITECTURE §5.2 — the fixed, enumerated depends.host vocabulary. Adding a
 // word requires updating every cheat-sheet; the linter enforces the closed set.
 export const HOST_FEATURES = [
-  'scheduler',
+  'cron',
   'messaging.inbound',
   'messaging.outbound',
   'voice.stt',

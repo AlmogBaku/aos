@@ -45,7 +45,7 @@ kbs:
 6. **Schedules — required.** Create the archiver's three jobs (nightly-promote,
    weekly-lint, kb-sync) per the harness cheat-sheet; single-owner rule applies. kb-sync
    uses `methodologies/karpathy-3layer/scripts/kb-sync.sh` (no-agent script job where
-   supported). No scheduler → materialize each prompt as an invocable skill and tell the
+   supported). No cron host feature → materialize each prompt as an invocable skill and tell the
    user what to run and when.
 7. **[D]** Verify: run the methodology lint once (must pass clean on a fresh tree).
    Report: tree, grants, registry, schedules (or degraded modes).

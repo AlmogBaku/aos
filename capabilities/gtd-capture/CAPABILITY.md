@@ -6,7 +6,7 @@ summary: Voice/text → next-action → KB write → reminder.
 depends:
   capabilities: [kb, onboarding]
   host:
-    scheduler: preferred
+    cron: preferred
     messaging.inbound: required
 schedules:
   - id: nightly-drain
