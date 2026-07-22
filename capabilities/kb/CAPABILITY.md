@@ -1,6 +1,6 @@
 ---
 id: kb
-version: 0.1.1
+version: 0.1.2
 tags: [infra]
 summary: Multi-KB infrastructure — registry, routing, authorization, and one shipped methodology (karpathy-3layer) with its Archiver agent.
 depends:

@@ -78,6 +78,12 @@ voice mechanical and its judgment free of the user's business.
 (the methodology's `kb-sync` schedule). Conflicts are never auto-resolved: the sync aborts
 the rebase, logs `sync-conflict`, and surfaces to the user's next brief.
 
+## Query discipline
+
+Answer from the semantic layer, citing pages with `[[wikilinks]]`; fall back to `raw/`
+only where the wiki is silent (and queue the gap). A synthesis worth keeping becomes a
+page (page-or-inline applies) — not chat ephemera.
+
 ## When in doubt
 
 Don't write — read, then surface the question (`_ops/needs-review.md`, with evidence and
