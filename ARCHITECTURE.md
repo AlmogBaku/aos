@@ -146,7 +146,7 @@ schedules:
   - id: nightly-drain
     cron: "0 23 * * *"         # neutral cron; installing LLM translates per cheat-sheet
     agent: drainer
-    prompt_ref: skills/capture/drain-prompt.md
+    prompt_ref: skills/drain/drain-prompt.md
     degraded: manual           # manual | skip | inline — behavior when host has no scheduler
 
 skills:                        # every shipped skill, with SCOPE — who loads it

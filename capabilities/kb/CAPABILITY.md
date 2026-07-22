@@ -17,7 +17,7 @@ skills:
     used_by: [main]
 schedules:
   - id: nightly-promote
-    cron: "0 23 * * *"
+    cron: "30 23 * * *"
     agent: archiver
     prompt_ref: methodologies/karpathy-3layer/archiver/promote.md
     degraded: manual
@@ -67,7 +67,9 @@ exactly one methodology — `karpathy-3layer` — behind the pluggable methodolo
    context, never messages the user directly, and its messaging tools are excluded at the
    harness level, not by instruction (see the agent spec).
 3. **Schedules** belong to the archiver and are created **in the same session as any KB
-   tree** — a fully-specified-but-never-scheduled maintainer is the single biggest failure
+   tree**. `nightly-promote` runs at 23:30 — deliberately *after* gtd-capture's 23:00
+   drain, so GTD triage (actions, reminders) happens before the librarian files the same
+   entries into `raw/` — a fully-specified-but-never-scheduled maintainer is the single biggest failure
    mode observed in the live setup this was extracted from. `kb-sync` materializes as a
    no-agent script job where the harness supports it (the methodology ships the script);
    `nightly-promote` and `weekly-lint` are agent jobs with their prompts in the methodology
