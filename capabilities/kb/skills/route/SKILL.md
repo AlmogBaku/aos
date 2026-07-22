@@ -18,8 +18,9 @@ grant, not a candidate.
 
 ## Resolution order — stop at the first match
 
-1. **[D] Explicit tag wins.** A user prefix ("work: …") or a capability-supplied hint names
-   the KB directly. Record `method: explicit`.
+1. **[D] Explicit tag wins.** A user prefix ("work: …") or a capability-supplied hint
+   names the KB directly — matched against each registry entry's `tag:` alias or `name`.
+   Record `method: explicit`. (A prefix matching neither is content, not a tag.)
 2. **[D] Deterministic rules.** First channel/agent binding (`routing.channels` in the
    registry — the channel the capture arrived on), then keyword/entity match
    (`routing.keywords`). String matching only, no model call. Record `method: rule`.

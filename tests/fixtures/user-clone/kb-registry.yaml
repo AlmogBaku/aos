@@ -2,6 +2,7 @@ default: personal-kb
 confidence_bar: 0.7
 kbs:
   - name: personal-kb
+    tag: personal
     path: ~/aos/tests/.sandbox/kb/personal-kb
     remote: null
     sync: none
@@ -15,6 +16,7 @@ kbs:
       channels: ["whatsapp:+000000000000"]
       keywords: ["choir", "family", "home"]
   - name: acme-kb
+    tag: work
     path: ~/aos/tests/.sandbox/kb/acme-kb
     remote: null
     sync: none

@@ -35,6 +35,7 @@ default: <name-of-default-kb>
 confidence_bar: 0.7   # RFC-006 — expect this to move
 kbs:
   - name: <name>
+    tag: <short-alias>   # what "…:" prefix routes here explicitly (e.g. work, personal)
     path: <path>
     remote: <url or null>
     sync: rebase-5min | manual | none
