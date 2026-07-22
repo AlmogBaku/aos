@@ -1,6 +1,6 @@
 # weekly-lint
 
-For each registered karpathy-3layer KB:
+For each registered karpathy-llm-wiki KB:
 
 1. Run every check in `lint/SKILL.md`. Write `_ops/lint-report-YYYY-WW.md`
    (`## Critical` rollup first).

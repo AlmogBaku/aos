@@ -4,4 +4,4 @@
 > <summary>`. Verbs and grammar in SCHEMA.md §log. Never edit existing lines. Nothing
 > above this header but this header.
 
-{{today}}T00:00+00:00 | kb-init | bootstrap | . | KB scaffolded from karpathy-3layer@0.1.0
+{{today}}T00:00+00:00 | kb-init | bootstrap | . | KB scaffolded from karpathy-llm-wiki@0.1.0

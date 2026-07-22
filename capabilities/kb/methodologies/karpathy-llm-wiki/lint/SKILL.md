@@ -1,6 +1,6 @@
 ---
 name: lint
-description: The karpathy-3layer methodology's deterministic KB checks. Use when running the weekly lint schedule, when adopt needs a divergence report, or when the user asks for a KB health check.
+description: The karpathy-llm-wiki methodology's deterministic KB checks. Use when running the weekly lint schedule, when adopt needs a divergence report, or when the user asks for a KB health check.
 ---
 
 # lint

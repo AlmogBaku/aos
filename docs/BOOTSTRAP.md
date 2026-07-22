@@ -58,7 +58,7 @@ Ask the user about their knowledge bases:
   (`capabilities/kb/skills/adopt/SKILL.md`): register it in `~/aos/kb-registry.yaml` and
   lint-report divergence from its methodology — **never rewrite the user's KB**.
 - **No KB yet** → run the `init` skill: `kb init personal` scaffolds a private default KB
-  from `capabilities/kb/methodologies/karpathy-3layer/init/` and registers it.
+  from `capabilities/kb/methodologies/karpathy-llm-wiki/init/` and registers it.
 
 Either way this writes `~/aos/kb-registry.yaml` (user-owned, overlay family).
 

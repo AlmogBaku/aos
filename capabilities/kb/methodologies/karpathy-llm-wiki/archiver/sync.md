@@ -1,7 +1,7 @@
 # kb-sync
 
 For each registered KB with `sync: rebase-5min`: run
-`methodologies/karpathy-3layer/scripts/kb-sync.sh <kb-path>`.
+`methodologies/karpathy-llm-wiki/scripts/kb-sync.sh <kb-path>`.
 
 The script stages, commits if dirty, `git pull --rebase` (aborts on conflict, logs
 `sync-conflict`, exits non-zero), pushes. You never resolve a sync conflict — a

@@ -1,4 +1,4 @@
-# karpathy-3layer
+# karpathy-llm-wiki
 
 The one methodology v0.1 ships (ARCHITECTURE §4.4). The pluggable directory contract a
 second methodology would also satisfy:

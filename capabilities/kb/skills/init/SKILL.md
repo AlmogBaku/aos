@@ -12,7 +12,7 @@ an undrained inbox and an unenforced contract.
 1. **[D]** Confirm (usually answered in the kb interview): name, path (default
    `~/<name>-kb`), remote (optional), `audience: private | shared` (default private),
    one-paragraph `purpose` (doubles as the router's LLM rubric), channel bindings.
-2. **[D]** Scaffold from `methodologies/karpathy-3layer/init/`: root contract set
+2. **[D]** Scaffold from `methodologies/karpathy-llm-wiki/init/`: root contract set
    (`AGENTS.md`, `SCHEMA.md`, `index.md`, `log.md`), zone `AGENTS.md` files, directory
    tree per `init/TREE.md`. Fill `{{kb_name}}`, `{{today}}`, `{{version}}`, `{{mod: …}}` slots.
 3. **[D]** Git: `git init`; configure per-agent git identity (each agent commits under
@@ -33,7 +33,7 @@ kbs:
     remote: <url or null>
     sync: rebase-5min | manual | none
     audience: private | shared
-    methodology: karpathy-3layer
+    methodology: karpathy-llm-wiki
     purpose: >
       <one paragraph — the router's classification rubric>
     inbox: ops/inbox.md
@@ -44,7 +44,7 @@ kbs:
 
 6. **Schedules — required.** Create the archiver's three jobs (nightly-promote,
    weekly-lint, kb-sync) per the harness cheat-sheet; single-owner rule applies. kb-sync
-   uses `methodologies/karpathy-3layer/scripts/kb-sync.sh` (no-agent script job where
+   uses `methodologies/karpathy-llm-wiki/scripts/kb-sync.sh` (no-agent script job where
    supported). No cron host feature → materialize each prompt as an invocable skill and tell the
    user what to run and when.
 7. **[D]** Verify: run the methodology lint once (must pass clean on a fresh tree).

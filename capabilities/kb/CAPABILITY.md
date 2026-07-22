@@ -1,8 +1,8 @@
 ---
 id: kb
-version: 0.1.2
+version: 0.1.3
 tags: [infra]
-summary: Multi-KB infrastructure — registry, routing, authorization, and one shipped methodology (karpathy-3layer) with its Archiver agent.
+summary: Multi-KB infrastructure — registry, routing, authorization, and one shipped methodology (karpathy-llm-wiki) with its Archiver agent.
 depends:
   host:
     cron: preferred
@@ -19,17 +19,17 @@ schedules:
   - id: nightly-promote
     cron: "30 23 * * *"
     agent: archiver
-    prompt_ref: methodologies/karpathy-3layer/archiver/promote.md
+    prompt_ref: methodologies/karpathy-llm-wiki/archiver/promote.md
     degraded: manual
   - id: weekly-lint
     cron: "0 7 * * 6"
     agent: archiver
-    prompt_ref: methodologies/karpathy-3layer/archiver/lint.md
+    prompt_ref: methodologies/karpathy-llm-wiki/archiver/lint.md
     degraded: manual
   - id: kb-sync
     cron: "*/5 * * * *"
     agent: archiver
-    prompt_ref: methodologies/karpathy-3layer/archiver/sync.md
+    prompt_ref: methodologies/karpathy-llm-wiki/archiver/sync.md
     degraded: manual
 kb:
   zones:
@@ -53,7 +53,7 @@ kb:
 
 The root infrastructure capability. Other capabilities declare abstract `kb.writes`
 intents; this capability's router resolves them. Ships one methodology,
-`karpathy-3layer`, behind the pluggable methodology seam (ARCHITECTURE §4.4).
+`karpathy-llm-wiki`, behind the pluggable methodology seam (ARCHITECTURE §4.4).
 
 ## Install narrative
 

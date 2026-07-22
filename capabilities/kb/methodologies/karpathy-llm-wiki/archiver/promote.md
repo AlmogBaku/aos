@@ -1,7 +1,7 @@
 # nightly-promote
 
 Re-read the KB's `AGENTS.md` and `SCHEMA.md` first — every run. Process each registered
-KB with `methodology: karpathy-3layer`.
+KB with `methodology: karpathy-llm-wiki`.
 
 ## 1. Drain the inbox
 
