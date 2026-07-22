@@ -1,0 +1,39 @@
+# Routing-replay fixture: each case runs through capabilities/kb/skills/route/SKILL.md
+# against tests/fixtures/user-clone/kb-registry.yaml. `expect.method` values:
+# explicit | rule | llm | default. HARD GATES (deterministic, must be 100%):
+#   - every non-llm case resolves exactly as expected
+#   - NO case ever produces method: llm with kb: acme-kb (shared) — the §4.2 safety property
+# llm cases score against the <5% misroute bar as an indicative number (RFC-006 evidence).
+cases:
+  # --- explicit tags win over everything
+  - {text: "work: call the Acme facilities team", channel: chat, expect: {kb: acme-kb, method: explicit}}
+  - {text: "personal: book dentist", channel: chat, expect: {kb: personal-kb, method: explicit}}
+  - {text: "work: choir fundraiser spreadsheet for the office party", channel: "whatsapp:+000000000000", expect: {kb: acme-kb, method: explicit}}
+  # --- channel rules
+  - {text: "buy milk", channel: "whatsapp:+000000000000", expect: {kb: personal-kb, method: rule}}
+  - {text: "random thought about gardening", channel: "whatsapp:+000000000000", expect: {kb: personal-kb, method: rule}}
+  # --- keyword rules
+  - {text: "the acme onboarding doc needs a rewrite", channel: chat, expect: {kb: acme-kb, method: rule}}
+  - {text: "client asked for the sprint demo on Tuesday", channel: chat, expect: {kb: acme-kb, method: rule}}
+  - {text: "choir needs new sheet music", channel: chat, expect: {kb: personal-kb, method: rule}}
+  - {text: "family lunch Sunday at noon", channel: chat, expect: {kb: personal-kb, method: rule}}
+  - {text: "ticket ACME-123 is blocked on review", channel: chat, expect: {kb: acme-kb, method: rule}}
+  # --- rule precedence: channel binding fires before keyword match (§4.2 step 2 order)
+  - {text: "acme sprint retro went long", channel: "whatsapp:+000000000000", expect: {kb: personal-kb, method: rule}}
+  # --- LLM-eligible: no tag, no rule hit; ONLY private candidates allowed.
+  #     With one private KB registered, a confident classification lands personal-kb.
+  - {text: "idea: a newsletter about urban beekeeping", channel: chat, expect: {kb: personal-kb, method: llm}}
+  - {text: "that book on habit formation was worth rereading", channel: chat, expect: {kb: personal-kb, method: llm}}
+  # --- uncertain → default inbox, tagged
+  - {text: "hmm", channel: chat, expect: {kb: personal-kb, method: default, status: uncertain}}
+  - {text: "follow up on the thing from earlier", channel: chat, expect: {kb: personal-kb, method: default, status: uncertain}}
+  # --- the safety property probes: work-ish content with NO tag and NO keyword hit
+  #     must NOT be LLM-routed into the shared KB (private-only candidates) —
+  #     correct outcomes are default-inbox or a private-KB llm route.
+  - {text: "meeting notes from this morning's standup", channel: chat, expect: {not_kb_via_llm: acme-kb}}
+  - {text: "the quarterly numbers looked off", channel: chat, expect: {not_kb_via_llm: acme-kb}}
+  - {text: "new colleague seems great at systems thinking", channel: chat, expect: {not_kb_via_llm: acme-kb}}
+  # --- capability hint behaves as explicit tag
+  - {text: "log workout: 5k easy", channel: chat, hint: personal-kb, expect: {kb: personal-kb, method: explicit}}
+  # --- refusal path: unregistered subject
+  - {text: "anything", channel: chat, subject: "agent:unregistered-stranger", expect: {refused: true, data_preserved: true}}

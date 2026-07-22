@@ -52,7 +52,9 @@ Then materialize inside `~/.hermes/profiles/<name>/`:
 
 **2. Skills → skills dirs, scoped by `used_by`.** Copy each `skills/<id>/` folder into the
 skills dir of **every profile named in its `used_by`** (`main` = `~/.hermes/skills/`,
-agent name = `~/.hermes/profiles/<name>/skills/`). Nowhere else — that scoping is what keeps
+agent name = `~/.hermes/profiles/<name>/skills/`), as **`<capability>-<id>/`** (e.g.
+`gtd-capture-capture/`) so two capabilities' skills never collide; the frontmatter `name`
+stays as shipped (Hermes doesn't require name==dir). Nowhere else — that scoping is what keeps
 N capabilities from becoming N×skills in every agent's context (§2.2). After personalizing
 skill text with MOD.md nuances (the `{{mod: …}}` slots), add the provenance key to the
 materialized copy's frontmatter (shipped originals never carry it):

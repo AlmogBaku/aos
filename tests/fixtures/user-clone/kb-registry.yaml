@@ -1,0 +1,29 @@
+default: personal-kb
+confidence_bar: 0.7
+kbs:
+  - name: personal-kb
+    path: ~/aos/tests/.sandbox/kb/personal-kb
+    remote: null
+    sync: none
+    audience: private
+    methodology: karpathy-3layer
+    purpose: >
+      Dana's personal knowledge: life admin, ideas, people they know personally,
+      hobbies (choir, reading), household, health. When in doubt, it goes here.
+    inbox: ops/inbox.md
+    routing:
+      channels: ["whatsapp:+000000000000"]
+      keywords: ["choir", "family", "home"]
+  - name: acme-kb
+    path: ~/aos/tests/.sandbox/kb/acme-kb
+    remote: null
+    sync: none
+    audience: shared
+    methodology: karpathy-3layer
+    purpose: >
+      Acme Corp's shared work KB: clients, projects, tickets, meeting notes. Shared
+      with colleagues — only explicit or rule-matched writes.
+    inbox: ops/inbox.md
+    routing:
+      channels: []
+      keywords: ["acme", "client", "ticket", "sprint"]

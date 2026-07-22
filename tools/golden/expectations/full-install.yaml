@@ -1,0 +1,53 @@
+# Structural expectations for the full kb+onboarding+gtd-capture install into the
+# aos-test profile namespace. Roots resolved by check.mjs:
+#   front  = ~/.hermes/profiles/aos-test
+#   <agent>= ~/.hermes/profiles/aos-<agent>
+#   clone  = ~/aos/tests/.sandbox/aos-clone
+agents: [drainer, archiver]
+
+expect_files:
+  # onboarding (used_by: main)
+  - "front:skills/onboarding-interview/SKILL.md"
+  # kb main-scoped skills
+  - "front:skills/kb-route/SKILL.md"
+  - "front:skills/kb-authz-check/SKILL.md"
+  - "front:skills/kb-init/SKILL.md"
+  - "front:skills/kb-adopt/SKILL.md"
+  # kb archiver-scoped (incl. the methodology-shipped lint skill)
+  - "archiver:skills/kb-authz-check/SKILL.md"
+  - "archiver:skills/kb-lint/SKILL.md"
+  - "archiver:SOUL.md"
+  # gtd-capture scoping
+  - "front:skills/gtd-capture-capture/SKILL.md"
+  - "front:skills/gtd-capture-format-entry/SKILL.md"
+  - "drainer:skills/gtd-capture-drain/SKILL.md"
+  - "drainer:skills/gtd-capture-format-entry/SKILL.md"
+  - "drainer:SOUL.md"
+  # bookkeeping
+  - "clone:.aos/installs.lock.yaml"
+
+forbid_files:
+  # used_by placement — the anti-pollution rule, §2.2
+  - "front:skills/gtd-capture-drain/SKILL.md"
+  - "drainer:skills/gtd-capture-capture/SKILL.md"
+  - "archiver:skills/gtd-capture-capture/SKILL.md"
+  - "archiver:skills/gtd-capture-drain/SKILL.md"
+
+# every materialized SKILL.md under these roots must carry the origin tag
+origin_tag_roots: ["front:skills", "drainer:skills", "archiver:skills"]
+
+# cron jobs in aos-* profile homes must use the aos:<cap>:<id> name prefix;
+# expected schedules with their owning profile:
+schedules:
+  - {profile: drainer, name_prefix: "aos:gtd-capture:nightly-drain"}
+  - {profile: archiver, name_prefix: "aos:kb:nightly-promote"}
+  - {profile: archiver, name_prefix: "aos:kb:weekly-lint"}
+  - {profile: archiver, name_prefix: "aos:kb:kb-sync"}
+
+sentinels:
+  - {text: "🦜", in: "front:skills/gtd-capture-capture/SKILL.md"}
+  # drain_hour 23:47 → cron expression "47 23 * * *" in the drainer's jobs
+  - {text: "47 23", in_dir: "drainer:cron"}
+  - {text: "choir practice Thursdays 19:00-21:00", in_dir: "drainer:"}
+
+lockfile_capabilities: [kb, onboarding, gtd-capture]
