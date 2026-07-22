@@ -1,0 +1,9 @@
+{
+  "name": "aos-tools",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic build tooling for the aos repo (RFC-002 tier-1 lint + golden-render checks). Not an installer — see ARCHITECTURE §5.1.",
+  "dependencies": {
+    "yaml": "^2.5.0"
+  }
+}

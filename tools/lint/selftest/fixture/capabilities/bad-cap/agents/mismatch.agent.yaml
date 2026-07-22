@@ -1,0 +1,7 @@
+name: drainer
+purpose: ""
+model_class: enormous
+tools: [fs.read, quantum.compute]
+workspace: borrowed
+context_files: [does/not/exist.md]
+temperature: 0.7
