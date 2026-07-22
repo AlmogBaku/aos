@@ -1,0 +1,18 @@
+# Scripted answers for the interview round-trip test (WP5): a "fixture user"
+# subagent answers the global bootstrap interview with exactly these, and the
+# resulting root MOD.md must structurally match tests/fixtures/user-clone/MOD.md.
+answers:
+  user_name: Dana
+  timezone: Europe/Lisbon
+  working_hours: "9:00-18:00 weekdays, quiet Fridays"
+  sacred_time:
+    - "choir practice Thursdays 19:00-21:00"
+  red_lines:
+    - "never send messages as me without showing me the draft"
+    - "never spend money"
+  diff_review: always-review
+asides:
+  # Volunteered mid-interview — must land as body prose, not as answers.
+  - "mornings are deep work, nothing interactive before noon"
+  - "bullet points over prose"
+  - "choir is non-negotiable even in crunch weeks"
