@@ -22,7 +22,7 @@ config_keys:
   value: gpt-5.6-luna
 capabilities:
   kb:
-    version: 0.1.0
+    version: 0.1.3
     profiles:
     - aos-test
     - aos-archiver
@@ -44,12 +44,12 @@ capabilities:
     - acme-kb
     degraded_modes: []
   onboarding:
-    version: 0.1.0
+    version: 0.1.1
     profiles:
     - aos-test
     schedules_owned: []
   gtd-capture:
-    version: 0.1.0
+    version: 0.1.1
     profiles:
     - aos-test
     - aos-drainer
@@ -120,6 +120,8 @@ artifacts:
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/_archive/captures/.gitkeep
   sha256: <SHA256>
+- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/_ops/.gitkeep
+  sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/_ops/AGENTS.md
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/comparisons/.gitkeep
@@ -172,6 +174,8 @@ artifacts:
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/raw/meetings/.gitkeep
   sha256: <SHA256>
+- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/state/.gitkeep
+  sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/state/AGENTS.md
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/.gitattributes
@@ -183,6 +187,8 @@ artifacts:
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/SCHEMA.md
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/_archive/captures/.gitkeep
+  sha256: <SHA256>
+- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/_ops/.gitkeep
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/_ops/AGENTS.md
   sha256: <SHA256>
@@ -235,6 +241,8 @@ artifacts:
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/raw/emails/.gitkeep
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/raw/meetings/.gitkeep
+  sha256: <SHA256>
+- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/state/.gitkeep
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/state/AGENTS.md
   sha256: <SHA256>

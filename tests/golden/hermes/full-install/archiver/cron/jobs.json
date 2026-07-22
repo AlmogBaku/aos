@@ -93,7 +93,7 @@
       "provider_snapshot": null,
       "model_snapshot": null,
       "base_url": null,
-      "script": "scripts/kb-sync-all.sh",
+      "script": "kb-sync-all.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {

@@ -1,7 +1,7 @@
 ---
 name: route
 description: Resolves a write intent to a target knowledge base using the registry. Use when any capability captures or files content and the destination KB is not explicit — rules first, LLM only above a confidence bar, never blocking the capture.
-x-aos-origin: kb@0.1.0
+x-aos-origin: kb@0.1.3
 ---
 
 # route
@@ -11,41 +11,29 @@ You are resolving one write (usually a capture) to one KB from `kb-registry.yaml
 never ask the user "work or personal?" synchronously. Wrong-but-cheap beats slow-but-sure —
 misroutes into private KBs are corrected asynchronously by the nightly drain.
 
-## Candidate set (authorization shapes routing)
+**Candidate set**: only KBs where the writing subject holds a `route-into` grant
+(`authz-check` against each KB's `## Grants` table).
 
-Before anything: the candidate KBs are only those the writing subject holds a `route-into`
-grant for (check with the `authz-check` skill against each KB's `## Grants` table). No
-grant, not a candidate.
+Resolution order — stop at the first match:
 
-## Resolution order — stop at the first match
-
-1. **[D] Explicit tag wins.** A user prefix ("work: …") or a capability-supplied hint names
-   the KB directly. Record `method: explicit`.
-2. **[D] Deterministic rules.** First channel/agent binding (`routing.channels` in the
-   registry — the channel the capture arrived on), then keyword/entity match
-   (`routing.keywords`). String matching only, no model call. Record `method: rule`.
-3. **[A] LLM classification** — allowed **only if every remaining candidate is
-   `audience: private`**. Shared KBs are excluded from this step by a list filter, not a
-   threshold: no path leads from a classifier into a shared KB, ever (§4.2 normative).
-   One cheap call using each candidate's `purpose` field as the rubric, returning
-   `{kb, confidence}`. Accept iff `confidence >= confidence_bar` from the registry.
+1. **[D] Explicit tag.** User prefix ("work: …") or capability hint, matched against each
+   registry entry's `tag:` or `name`. No match → it's content, not a tag.
+   Record `method: explicit`.
+2. **[D] Rules.** Channel binding (`routing.channels`) first, then keyword match
+   (`routing.keywords`): case-insensitive substring, no stemming, no synonyms, no model
+   call. Record `method: rule`.
+3. **[A] LLM classification** — only if **every remaining candidate is
+   `audience: private`** (shared KBs are excluded by list filter, not threshold — no path
+   leads from a classifier into a shared KB, ever). One call, each candidate's `purpose`
+   as rubric, returns `{kb, confidence}`. Accept iff `confidence >= confidence_bar`.
    Record `method: llm`.
-4. **[D] Fallback.** Write to the **default KB's inbox**, tagged in the entry with
-   `kb_routing: uncertain`. The nightly drain re-routes with review: moves into a private
-   KB may auto-apply (logged, reversible); moves into a shared KB are **proposed to the
-   user, never auto-applied**.
+4. **[D] Fallback.** Default KB's inbox, entry tagged `kb_routing: uncertain`. The
+   nightly drain re-routes: into a private KB → may auto-apply (logged, reversible);
+   into a shared KB → proposed to the user, never auto-applied.
 
-## Deferred to RFC-006
+Zero candidates (no grants): do not drop the payload — hand it back to the caller tagged
+`kb_routing: refused`, append a `refuse` line to the default KB's `log.md` and a block to
+its `_ops/needs-review.md`.
 
-The `confidence_bar` value (registry default 0.7), tie-breaking when two rules match, and
-how drain re-route approvals are batched are contested — follow the registry values and
-current spec text, and expect them to change with RFC-006's replay evidence. What is NOT
-contested and never changes without a spec amendment: shared KBs take only explicit-tagged
-or rule-matched writes.
-
-## On refusal
-
-If authorization leaves zero candidates, do not drop the payload: hand it back to the
-caller for the default inbox with `kb_routing: refused`, and append a `refuse` line to the
-default KB's `log.md` plus a block to `_ops/needs-review.md` (data is preserved; latency is
-preserved; a human decides later).
+RFC-006 owns: `confidence_bar` value, tie-breaking between rules, drain-approval
+batching. Not contested: shared KBs take only explicit-tagged or rule-matched writes.
