@@ -4,3 +4,7 @@
 # NOTE on MOD.md / kb-registry.yaml (the overlay family): whether users track them
 # in a private fork or gitignore them is RFC-005 — deliberately NOT decided here.
 # Upstream CI rejects overlay-family paths in PRs either way.
+
+# build tooling + scratch test area
+tools/node_modules/
+tests/.sandbox/
