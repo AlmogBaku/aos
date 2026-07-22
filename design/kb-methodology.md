@@ -5,6 +5,7 @@ date: 2026-07-17
 implements: ../ARCHITECTURE.md §4.4
 sibling: kb-authorization.md (routing + access control — a different concern)
 extraction-source: Almog's production KB — this methodology has run live since June 2026 (AGENTS.md 3-layer contract, SCHEMA.md)
+canonical-pattern: https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f — karpathy's llm-wiki.md (published 2026-04, after our extraction; alignment/divergence table in the built methodology README)
 ---
 
 # Knowledge-Base Methodology — `karpathy-3layer`
