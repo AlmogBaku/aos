@@ -11,8 +11,10 @@ One line per capture, appended to the KB's `ops/inbox.md`:
 - `[<channel>]`: where it arrived — `[whatsapp]`, `[voice]`, `[chat]`; agent-originated
   entries use `[<agent>|<ref>]`.
 - Tags: zero or more `#lowercase-hyphenated` in one paren group. The user's explicit
-  routing prefix ("work: …") becomes the routing tag; uncertain routing appends
-  `#kb-routing-uncertain`.
+  routing prefix ("work: …") is **consumed** — stripped from the content, recorded as its
+  tag (`#work`); "verbatim" applies to everything after the prefix. An entry the router
+  resolved with `status: uncertain` (step-4 fallback) appends `#kb-routing-uncertain`;
+  a rule- or tag-resolved entry carries no routing annotation.
 - ` : ` separates metadata from content. Content is verbatim, one line no matter how long.
 - **Long content** (transcripts, forwarded text > a paragraph): write it to the KB's
   `raw/captures/` as its own file per the KB schema and put a one-line pointer entry here

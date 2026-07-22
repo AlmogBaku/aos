@@ -22,8 +22,10 @@ grant, not a candidate.
    names the KB directly — matched against each registry entry's `tag:` alias or `name`.
    Record `method: explicit`. (A prefix matching neither is content, not a tag.)
 2. **[D] Deterministic rules.** First channel/agent binding (`routing.channels` in the
-   registry — the channel the capture arrived on), then keyword/entity match
-   (`routing.keywords`). String matching only, no model call. Record `method: rule`.
+   registry — the channel the capture arrived on), then keyword match
+   (`routing.keywords`): **case-insensitive substring** against the text — no stemming,
+   no synonyms, no model call ("kids" does not match `family`; that's what step 3 is
+   for). Record `method: rule`.
 3. **[A] LLM classification** — allowed **only if every remaining candidate is
    `audience: private`**. Shared KBs are excluded from this step by a list filter, not a
    threshold: no path leads from a classifier into a shared KB, ever (§4.2 normative).
