@@ -11,16 +11,16 @@ expect_files:
   - "front:skills/onboarding-interview/SKILL.md"
   # kb main-scoped skills — entry skill travels with its bundled assets
   - "front:skills/kb-kb/SKILL.md"
-  - "front:skills/kb-kb/scripts/base.py"
   - "front:skills/kb-kb/reference/lifecycle.md"
   - "front:skills/kb-route/SKILL.md"
   - "front:skills/kb-recall/SKILL.md"
   - "front:skills/kb-init/SKILL.md"
   - "front:skills/kb-init/templates/BASE.yaml"
   - "front:skills/kb-adopt/SKILL.md"
+  - "front:skills/kb-import/SKILL.md"
+  - "front:skills/kb-import/reference/v1-migration.md"
   # kb archiver-scoped: the entry skill (map + tool); lint is a tool verb now
   - "archiver:skills/kb-kb/SKILL.md"
-  - "archiver:skills/kb-kb/scripts/base.py"
   - "archiver:SOUL.md"
   # gtd-capture scoping (legacy anatomy)
   - "front:skills/gtd-capture-capture/SKILL.md"
@@ -60,6 +60,6 @@ sentinels:
   - {text: "47 23", in_dir: "drainer:cron"}
   - {text: "choir practice Thursdays 19:00-21:00", in_dir: "drainer:"}
   # exec schedule: the sync job's command must invoke the tool, not an agent prompt
-  - {text: "base.py sync --all", in_dir: "archiver:cron"}
+  - {text: "base sync --all", in_dir: "archiver:cron"}
 
 lockfile_capabilities: [kb, onboarding, gtd-capture]

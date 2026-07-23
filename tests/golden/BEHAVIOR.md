@@ -6,7 +6,7 @@ outcome is a failure. Deterministic steps use the tool directly; agent steps dri
 installed profiles with `hermes -p <profile> -z`. Transcript → `tests/transcripts/`.
 
 Env for tool steps: `AOS_REGISTRY=<sandbox>/aos-clone/kb-registry.yaml`,
-`AOS_AGENT=agent:main`, tool = `uv run <sandbox>/aos-clone/capabilities/kb/skills/kb/scripts/base.py`.
+`AOS_AGENT=agent:main`, tool = the installed `base` command (or `uvx --from <sandbox>/aos-clone/capabilities/kb/tool base`).
 
 | # | Step | Expected observable outcome |
 |---|---|---|
@@ -18,6 +18,7 @@ Env for tool steps: `AOS_REGISTRY=<sandbox>/aos-clone/kb-registry.yaml`,
 | 6 | Authz probe (tool): `grants check --subject capability:sideload-x --verb write --path state.yaml` on both bases; plus recall must not read a base with no read grant row | DENIED / exit 1; ungranted base absent from recall's scope |
 | 7 | Sync conflict (tool, scratch clone of personal-kb with a bare remote) | Exit 3, rebase aborted clean, `sync-conflict` log line, `_ops/needs-review.md` block; `git status` shows no rebase in progress; **no Hermes agent invocation appears in any profile log during the sync** |
 | 8 | Removal per cheat-sheet (PROTOCOL.md step 6) | Profiles/cron/skills gone; lockfile cleared; **base trees under `tests/.sandbox/kb/` untouched** (user data never deleted); prestate matches |
+| 9 | Import (fixture): `base import survey tests/fixtures/import-src-v1` → agree a mini mapping → one agent batch transforms the two wiki pages + copies raw/assets per the import skill | Survey says `shape: old-methodology`; transformed pages carry `origin:` + `source_sha256` + vouched `verified`, links rewritten; re-running the batch imports nothing new; **the fixture tree is byte-identical after everything** (the skill's invariant) |
 
 Steps 1, 5, 6, 7 are deterministic (also covered per-verb by tier-0 — here they prove
 the *installed* wiring). Steps 3–4 are the agentic seam the golden snapshot can't

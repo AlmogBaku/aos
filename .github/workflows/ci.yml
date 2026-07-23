@@ -20,7 +20,7 @@ jobs:
       - name: tier-0 base tool tests + example-base fixture
         run: |
           uv run --quiet tests/tool/test_base.py
-          uv run --quiet capabilities/kb/skills/kb/scripts/base.py \
+          uv run --quiet --project capabilities/kb/tool base \
             --base tests/fixtures/example-base lint | tee /tmp/example-lint.txt
           grep -q "Critical (0)" /tmp/example-lint.txt
           grep -q "Findings (0)" /tmp/example-lint.txt

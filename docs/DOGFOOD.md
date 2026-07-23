@@ -12,8 +12,8 @@ starts on purpose; none runs from CI or from an implementation agent's own initi
       count incidents.
 - [ ] Full **removal** after any dogfood install that isn't kept (cheatsheet Removal section);
       `doctor`-style check that nothing is orphaned.
-- [ ] **Live base migration**: migrate the production KB to the redesigned engine
-      (BASE.yaml, state.yaml, inbox-as-view) — `base adopt` divergence report is the map;
-      owner-approved, never bulk-rewritten.
+- [ ] **Live base migration** — run the kb `import` skill on the production KB (survey →
+      agreement → sample → batches; source read-only; the state conversation seeds the
+      real attention window). The skill exists for exactly this session.
 - [ ] **State cap + eviction tuning**: dogfood `state.max_items` (default 20) and the
       42-day staleness window against real attention churn.

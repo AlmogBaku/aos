@@ -11,7 +11,7 @@ fi
 # (template/example/tool drift breaks the build here, before anything else runs)
 if command -v uv >/dev/null 2>&1; then
   uv run --quiet tests/tool/test_base.py
-  uv run --quiet capabilities/kb/skills/kb/scripts/base.py \
+  uv run --quiet --project capabilities/kb/tool base \
     --base tests/fixtures/example-base lint | tee /tmp/example-base-lint.txt
   grep -q "Critical (0)" /tmp/example-base-lint.txt
   grep -q "Findings (0)" /tmp/example-base-lint.txt

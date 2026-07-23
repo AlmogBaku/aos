@@ -3,7 +3,7 @@
 # requires-python = ">=3.9"
 # dependencies = ["pyyaml>=6.0"]
 # ///
-"""Tier-0 tests for the kb capability's `base` tool.
+"""Tier-0 tests for the kb capability's `base` tool (capabilities/kb/tool).
 
 Pattern (per the spec's testing doctrine): black-box subprocess invocation against
 throwaway bases — the report/stdout text is the contract; no imports of tool
@@ -18,14 +18,15 @@ import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-TOOL = REPO / "capabilities/kb/skills/kb/scripts/base.py"
+TOOL_DIR = REPO / "capabilities/kb/tool"
 TEMPLATES = REPO / "capabilities/kb/skills/init/templates"
 
 
 def run(args, env_extra=None, cwd=None):
     env = dict(os.environ)
     env.update(env_extra or {})
-    return subprocess.run([sys.executable, str(TOOL), *args],
+    return subprocess.run(["uv", "run", "--quiet", "--project", str(TOOL_DIR),
+                           "base", *args],
                           capture_output=True, text=True, env=env, cwd=cwd)
 
 
@@ -269,6 +270,51 @@ class BaseToolTest(unittest.TestCase):
         idx = (self.root / "index.md").read_text()
         self.assertIn("[[concepts/idea]]", idx)
         self.assertIn("Big Idea page", idx)
+
+
+    # -- LFS (workstream B) ------------------------------------------------
+    def test_init_scaffolds_gitattributes(self):
+        ga = self.root / ".gitattributes"
+        self.assertTrue(ga.exists())
+        self.assertIn("filter=lfs", ga.read_text())
+
+    def test_lint_flags_large_binary_dodging_lfs(self):
+        big = self.root / "concepts" / "video.xyz"
+        big.parent.mkdir(exist_ok=True)
+        big.write_bytes(b"x" * (1024 * 1024 + 10))
+        self.assertIn("not matching any LFS pattern", self.b("lint").stdout)
+        tracked = self.root / "concepts" / "clip.mp4"
+        tracked.write_bytes(b"x" * (1024 * 1024 + 10))
+        out = self.b("lint").stdout
+        self.assertNotIn("clip.mp4", out.split("not matching")[0].rsplit(chr(10), 1)[-1]
+                         if "not matching" in out else out)
+        self.assertNotIn("clip.mp4: large non-text", out)
+
+    # -- import (workstream A) ---------------------------------------------
+    FIXTURE = REPO / "tests/fixtures/import-src-v1"
+
+    def _tree_hash(self, root):
+        import hashlib as h
+        acc = h.sha256()
+        for p in sorted(root.rglob("*")):
+            if p.is_file():
+                acc.update(p.relative_to(root).as_posix().encode())
+                acc.update(p.read_bytes())
+        return acc.hexdigest()
+
+    def test_import_survey_shapes(self):
+        r = run(["import", "survey", str(self.FIXTURE)], self.env)
+        self.assertIn("shape: old-methodology", r.stdout)
+        self.assertIn("markdown files:", r.stdout)
+        r = run(["import", "survey", str(self.root)], self.env)
+        self.assertIn("shape: base-v2", r.stdout)
+        self.assertIn("adopt", r.stdout)
+
+    def test_import_survey_is_read_only(self):
+        before = self._tree_hash(self.FIXTURE)
+        run(["import", "survey", str(self.FIXTURE)], self.env)
+        run(["import", "survey", str(self.FIXTURE), "--json"], self.env)
+        self.assertEqual(before, self._tree_hash(self.FIXTURE))
 
     # -- sync conflict -----------------------------------------------------
     def test_sync_conflict_aborts_clean_and_surfaces(self):

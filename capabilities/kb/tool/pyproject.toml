@@ -1,0 +1,16 @@
+[project]
+name = "aos-base"                # kit name is RFC-001's; command below is what matters
+version = "0.3.0"                # tracks the kb capability version
+description = "Deterministic executor for aos kb bases (capability-shipped tool, ARCHITECTURE §2.4)"
+requires-python = ">=3.9"
+dependencies = ["pyyaml>=6.0"]
+
+[project.scripts]
+base = "aos_base.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aos_base"]

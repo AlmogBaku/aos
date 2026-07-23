@@ -87,9 +87,12 @@ function checkSchedules(schedules, cap, file, report, agents) {
     if (hasExec && hasAgent) {
       report('error', 'schedules/exec-xor-agent', file, `schedule "${s.id}": exec and agent/prompt_ref are mutually exclusive`);
     } else if (hasExec) {
-      const execPath = String(s.exec).split(' ')[0];
-      if (!existsSync(join(cap.dir, execPath))) {
-        report('error', 'schedules/exec-ref', file, `schedule "${s.id}": exec "${execPath}" does not resolve inside the capability`);
+      // First token: a capability-relative path (must resolve) or a bare command
+      // (no slash) provided by the capability's tool install (§2.4 — the briefing
+      // documents the install; the cheat-sheet wires the degraded form).
+      const execTok = String(s.exec).split(' ')[0];
+      if (execTok.includes('/') && !existsSync(join(cap.dir, execTok))) {
+        report('error', 'schedules/exec-ref', file, `schedule "${s.id}": exec "${execTok}" does not resolve inside the capability`);
       }
     } else {
       if (s.agent !== MAIN_AGENT && !agents.includes(s.agent)) {

@@ -16,7 +16,8 @@ Multi-base knowledge infrastructure (ARCHITECTURE §4). A KB instance is a **bas
 
 Skills: `kb` (entry — the runtime face), `route` (write path), `recall` (read path
 with citations + gap admission), `init` (interview → BASE.yaml → scaffold), `adopt`
-(register + divergence report, zero writes). The kb capability *is* the methodology
+(register + divergence report, zero writes), `import` (interactive bulk import of an
+existing KB — source read-only always; the ~/ai-kb migration path). The kb capability *is* the methodology
 (Karpathy-LLM-wiki lineage, extended — see the spec's lineage table); no pluggable
 seam in v0.1.
 

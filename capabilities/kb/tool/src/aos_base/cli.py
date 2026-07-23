@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-# /// script
-# requires-python = ">=3.9"
-# dependencies = ["pyyaml>=6.0"]
-# ///
 """base — the kb capability's deterministic executor.
 
 Deterministic operations ONLY: this tool never calls an LLM and never invokes an
@@ -34,7 +29,7 @@ from pathlib import Path
 
 import yaml
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 LAYOUT = 1
 LOG_VERBS = {
     "create", "promote", "merge", "archive", "flag", "resolve", "sync-conflict",
@@ -129,10 +124,9 @@ def find_clone_root() -> Path:
     env = os.environ.get("AOS_CLONE")
     if env:
         return Path(env).expanduser()
-    # tool lives at <clone>/capabilities/kb/skills/kb/scripts/base.py
-    here = Path(__file__).resolve()
-    for p in here.parents:
-        if (p / "kb-registry.yaml").exists() or (p / "capabilities").is_dir():
+    # installed tool: discover the clone from cwd upward, else ~/aos
+    for p in [Path.cwd(), *Path.cwd().parents]:
+        if (p / "kb-registry.yaml").exists() or (p / "capabilities" / "kb").is_dir():
             return p
     return Path.home() / "aos"
 
@@ -306,7 +300,7 @@ def cmd_init(args):
     if (root / "BASE.yaml").exists():
         die(f"{root} already has a BASE.yaml")
     tpl = Path(args.templates).expanduser() if args.templates else \
-        Path(__file__).resolve().parent.parent.parent / "init" / "templates"
+        find_clone_root() / "capabilities" / "kb" / "skills" / "init" / "templates"
     if not (tpl / "BASE.yaml").exists():
         die(f"templates not found at {tpl} (pass --templates)")
     root.mkdir(parents=True, exist_ok=True)
@@ -336,8 +330,17 @@ def cmd_init(args):
             (root / zone / sub).mkdir(exist_ok=True)
     (root / "raw" / "captures").mkdir(parents=True, exist_ok=True)
     (root / ".gitignore").write_text(".base/\n", encoding="utf-8")
+    if (tpl / "gitattributes").exists():
+        render(tpl / "gitattributes", root / ".gitattributes")
 
     subprocess.run(["git", "init", "-q"], cwd=root, check=False)
+    lfs = subprocess.run(["git", "lfs", "version"], capture_output=True, check=False)
+    if lfs.returncode == 0:
+        subprocess.run(["git", "lfs", "install", "--local"], cwd=root,
+                       capture_output=True, check=False)
+    else:
+        print("note: git-lfs not installed — large non-text files won't be "
+              "LFS-tracked until it is (`git lfs install --local` later).")
     subprocess.run(["git", "config", "user.name", agent_subject(args)],
                    cwd=root, check=False)
     subprocess.run(["git", "config", "user.email", "agents@localhost"],
@@ -418,6 +421,37 @@ def cmd_adopt(args):
               "then re-run `base lint`. Nothing was written into the tree.")
 
 
+def _do_capture(base: Base, content: str, title: str, source: str, agent: str,
+                quiet: bool = False):
+    """Core capture: dedup + frontmatter + log. Returns dest Path or None (dup)."""
+    sha = hashlib.sha256(content.encode("utf-8")).hexdigest()
+    cap_dir = base.root / "raw" / "captures"
+    cap_dir.mkdir(parents=True, exist_ok=True)
+    now = _dt.datetime.now().timestamp()
+    for p in (base.root / "raw").rglob("*.md"):
+        pfm, _ = read_frontmatter(p)
+        if pfm and pfm.get("source_sha256") == sha:
+            if not quiet:
+                age_min = (now - p.stat().st_mtime) / 60
+                kind = "duplicate (window)" if age_min <= DEDUP_WINDOW_MIN else "duplicate"
+                print(f"{kind}: matches {base.rel(p)} — dropped.")
+            return None
+    slug = slugify(title)
+    dst = cap_dir / f"{today()}-{slug}.md"
+    n = 2
+    while dst.exists():
+        dst = cap_dir / f"{today()}-{slug}-{n}.md"
+        n += 1
+    fm = {"title": title, "type": "capture", "created": today(),
+          "timestamp": today(), "source": source,
+          "source_sha256": sha,
+          "captured_at": now_ts(), "captured_by": agent,
+          "triage": "pending", "verified": False}
+    write_frontmatter(dst, fm, content if content.endswith("\n") else content + "\n")
+    base.log(agent, "capture", base.rel(dst), f"pending: {title[:50]}")
+    return dst
+
+
 def cmd_capture(args):
     base = resolve_base(args)
     if args.file:
@@ -431,36 +465,10 @@ def cmd_capture(args):
         title = args.title or (content.strip().splitlines() or ["capture"])[0][:60]
     if not content.strip():
         die("empty capture")
-
-    sha = hashlib.sha256(content.encode("utf-8")).hexdigest()
-    cap_dir = base.root / "raw" / "captures"
-    cap_dir.mkdir(parents=True, exist_ok=True)
-    # dedup: identical content within the window anywhere in raw/ -> drop
-    now = _dt.datetime.now().timestamp()
-    for p in (base.root / "raw").rglob("*.md"):
-        fm, _ = read_frontmatter(p)
-        if fm and fm.get("source_sha256") == sha:
-            age_min = (now - p.stat().st_mtime) / 60
-            if age_min <= DEDUP_WINDOW_MIN:
-                print(f"duplicate (window): matches {base.rel(p)} — dropped.")
-                return
-            print(f"duplicate: content already captured as {base.rel(p)} — dropped.")
-            return
-
-    slug = slugify(title)
-    dst = cap_dir / f"{today()}-{slug}.md"
-    n = 2
-    while dst.exists():
-        dst = cap_dir / f"{today()}-{slug}-{n}.md"
-        n += 1
-    fm = {"title": title, "type": "capture", "created": today(),
-          "timestamp": today(), "source": args.source or "manual",
-          "source_sha256": sha,
-          "captured_at": now_ts(), "captured_by": agent_subject(args),
-          "triage": "pending", "verified": False}
-    write_frontmatter(dst, fm, content if content.endswith("\n") else content + "\n")
-    base.log(agent_subject(args), "capture", base.rel(dst), f"pending: {title[:50]}")
-    print(f"captured: {base.rel(dst)} (triage: pending)")
+    dst = _do_capture(base, content, title, args.source or "manual",
+                      agent_subject(args))
+    if dst:
+        print(f"captured: {base.rel(dst)} (triage: pending)")
 
 
 def cmd_inbox(args):
@@ -749,12 +757,25 @@ def cmd_lint(args):
         if "source_sha256" not in fm:
             findings.append(f"{rel}: missing source_sha256 (dedup key)")
 
-    # backups
+    # backups + LFS dodgers
+    lfs_patterns = []
+    ga = base.root / ".gitattributes"
+    if ga.exists():
+        for line in ga.read_text(encoding="utf-8").splitlines():
+            if "filter=lfs" in line and not line.strip().startswith("#"):
+                lfs_patterns.append(line.split()[0])
     for p in base.root.rglob("*"):
-        if ".git" in p.parts or ".base" in p.parts:
+        if ".git" in p.parts or ".base" in p.parts or not p.is_file():
             continue
         if p.name.endswith(".bak") or ".backup." in p.name:
             critical.append(f"{base.rel(p)}: backup file — git history is the archive")
+        if p.suffix not in (".md", ".yaml", ".yml", ".txt", ".json", "") \
+                and p.stat().st_size > 1024 * 1024:
+            import fnmatch
+            if not any(fnmatch.fnmatch(p.name, pat) for pat in lfs_patterns):
+                findings.append(f"{base.rel(p)}: large non-text file "
+                                f"({p.stat().st_size // 1024}KB) not matching any "
+                                f"LFS pattern in .gitattributes")
 
     # state checks
     sp = base.state_path()
@@ -947,6 +968,85 @@ def cmd_verify(args):
     print(f"{base.rel(p)}: verified")
 
 
+# -- import survey (design §6.7) -----------------------------------------
+# Import itself is an AGENT procedure (the import skill) — transform-on-import
+# means every page passes through agent judgment, so there is no apply engine.
+# The tool contributes exactly one deterministic piece: the survey (inventory +
+# shape detection), so the agent never burns a context walking a big tree.
+# The source is READ-ONLY, always.
+
+IMPORT_SKIP_DEFAULT = ["**/.git/**", "**/.obsidian/**", "**/node_modules/**",
+                       "**/.base/**", "**/*.backup.*", "**/*.bak"]
+
+
+def _src_files(src: Path, skips):
+    import fnmatch
+    for p in sorted(src.rglob("*")):
+        if not p.is_file():
+            continue
+        rel = p.relative_to(src).as_posix()
+        if any(fnmatch.fnmatch(rel, s) or fnmatch.fnmatch("/" + rel, s)
+               for s in skips):
+            continue
+        yield rel, p
+
+
+def cmd_import_survey(args):
+    src = Path(args.src).expanduser().resolve()
+    if not src.is_dir():
+        die(f"{src} is not a directory")
+    # shape detection
+    if (src / "BASE.yaml").exists():
+        shape = "base-v2"
+    elif (src / "SCHEMA.md").exists() and ((src / "state").is_dir()
+                                           or (src / "ops" / "inbox.md").exists()):
+        shape = "old-methodology"
+    elif (src / ".obsidian").is_dir():
+        shape = "obsidian"
+    else:
+        shape = "plain"
+
+    by_dir, by_ext, fm_fields = {}, {}, {}
+    links = md = big = 0
+    big_files = []
+    for rel, p in _src_files(src, IMPORT_SKIP_DEFAULT):
+        top = rel.split("/")[0] if "/" in rel else "."
+        by_dir[top] = by_dir.get(top, 0) + 1
+        ext = p.suffix or "(none)"
+        by_ext[ext] = by_ext.get(ext, 0) + 1
+        if p.suffix == ".md":
+            md += 1
+            fm, body = read_frontmatter(p)
+            for k in (fm or {}):
+                fm_fields[k] = fm_fields.get(k, 0) + 1
+            links += len(WIKILINK_RE.findall(body))
+        elif p.stat().st_size > 1024 * 1024:
+            big += 1
+            big_files.append(rel)
+
+    if args.json:
+        print(json.dumps({"shape": shape, "by_dir": by_dir, "by_ext": by_ext,
+                          "md_files": md, "wikilinks": links,
+                          "frontmatter_fields": fm_fields,
+                          "large_binaries": big_files}, indent=2))
+        return
+    print(f"# import survey — {src}\n")
+    print(f"shape: {shape}"
+          + ("  (has BASE.yaml — use `base adopt`, not import)"
+             if shape == "base-v2" else ""))
+    print(f"markdown files: {md} · wikilinks: {links} · large binaries: {big}")
+    print("\nby top-level dir:")
+    for d, n in sorted(by_dir.items(), key=lambda x: -x[1]):
+        print(f"  {d:24} {n}")
+    print("\nfrontmatter fields seen (count):")
+    for k, n in sorted(fm_fields.items(), key=lambda x: -x[1]):
+        print(f"  {k:24} {n}")
+    if big_files:
+        print("\nlarge binaries (candidates for LFS-tracked attachment sets):")
+        for rel in big_files[:20]:
+            print(f"  {rel}")
+
+
 # ---------------------------------------------------------------- main
 
 def main():
@@ -1042,6 +1142,14 @@ def main():
     p = sub.add_parser("verify", help="flip a page to verified: true (user-confirmed)")
     p.add_argument("page")
     p.set_defaults(func=cmd_verify)
+
+    p = sub.add_parser("import", help="bulk import of a foreign KB (source is "
+                       "READ-ONLY, always; design §6.7)")
+    imp = p.add_subparsers(dest="import_cmd", required=True)
+    ps = imp.add_parser("survey", help="inventory + shape detection of a source tree")
+    ps.add_argument("src")
+    ps.add_argument("--json", action="store_true")
+    ps.set_defaults(func=cmd_import_survey)
 
     args = ap.parse_args()
     args.func(args)

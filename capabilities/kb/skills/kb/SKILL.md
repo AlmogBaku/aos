@@ -35,11 +35,11 @@ base's state writer): `base state bump --note <substring>`.
 
 ## The tool
 
-`uv run <clone>/capabilities/kb/skills/kb/scripts/base.py --help` — deterministic
+`base --help` (installed at capability install: `uv tool install --from <clone>/capabilities/kb/tool aos-base`; one-off: `uvx --from <clone>/capabilities/kb/tool base`) — deterministic
 verbs; every write logs itself. Key ones: `capture` (never hand-write into raw/),
 `inbox` (pending view), `state add|bump|drop|check`, `search` (check before creating
 ANY page — `EXISTS` means stop), `links`, `lint`, `grants check`, `index rebuild`,
-`sync`, `verify` (user confirmed a page → flips `verified: true`). Degraded mode (no
+`sync`, `verify` (user confirmed a page → flips `verified: true`), `import survey` (inventory + shape detection of a foreign tree — the import skill's mechanical first step). Degraded mode (no
 uv/python): perform the same contracts by hand per each base's AGENTS.md — slower,
 same rules.
 
@@ -51,6 +51,7 @@ same rules.
 | Answer "what do I know about X?" | `recall` |
 | Create a new base | `init` |
 | Register an existing tree | `adopt` |
+| Migrate/import an existing KB's content | `import` (interactive — never autonomous) |
 | Contract details (grants, page schema, lifecycle) | `reference/` here |
 
 ## Authority

@@ -28,10 +28,12 @@ owner-approved BASE.yaml edits):
 ## 2. Scaffold [D]
 
 ```
-uv run <clone>/capabilities/kb/skills/kb/scripts/base.py \
-  init <name> --path <path> --audience <a> --sync <s> --purpose "<p>" \
-  [--remote <url>] [--default] --templates <clone>/capabilities/kb/skills/init/templates
+base init <name> --path <path> --audience <a> --sync <s> --purpose "<p>" \
+  [--remote <url>] [--default]
 ```
+
+(Templates default to the clone's `capabilities/kb/skills/init/templates`;
+override with `--templates` when running from elsewhere.)
 
 The tool renders templates (BASE.yaml, AGENTS.md + Grants seed, index, log,
 state.yaml, zone AGENTS files), git-inits with per-agent identity, registers in

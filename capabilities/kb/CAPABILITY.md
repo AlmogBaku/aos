@@ -1,6 +1,6 @@
 ---
 id: kb
-version: 0.2.0
+version: 0.3.0
 tags: [infra]
 summary: Multi-base knowledge infrastructure — registry, routing, the base engine (store · curation · state), the deterministic `base` tool, and one Archiver agent across all bases.
 depends:
@@ -17,6 +17,8 @@ skills:
     used_by: [main]
   - id: adopt
     used_by: [main]
+  - id: import
+    used_by: [main]
 schedules:
   - id: nightly-promote
     cron: "30 23 * * *"
@@ -30,7 +32,7 @@ schedules:
     degraded: manual
   - id: sync
     cron: "*/5 * * * *"
-    exec: skills/kb/scripts/base.py sync --all
+    exec: base sync --all
     degraded: manual
 kb:
   zones:
@@ -63,15 +65,21 @@ The root infrastructure capability: every base (KB instance, `base == repo`) a u
 has, plus the machinery around them — registry, routing, grants, the three-pillar
 engine (store: raw + current-truth wiki pages; curation: capture → skeptical
 promotion → lint; state: one capped attention window per base), the deterministic
-`base` tool (bundled in the entry skill's `scripts/`), and one Archiver agent that
+`base` tool (an installable uv package under `tool/`), and one Archiver agent that
 serves all bases. Other capabilities declare abstract `kb.writes` intents; the route
 skill resolves them.
 
 ## What you materialize, and why
 
+0. **The tool — first.** Install the capability's deterministic executor so `base`
+   is on PATH for every agent and cron:
+   `uv tool install --from <clone>/capabilities/kb/tool aos-base`
+   (record in the lockfile under the capability; removal = `uv tool uninstall
+   aos-base`). No uv on the host → degraded: skills fall back to prose execution and
+   exec schedules to manual run-cards.
 1. **Skills** per `used_by`: the `kb` entry skill goes to the front agent AND the
-   archiver — it carries the map and the tool, so everyone who touches bases has both.
-   `route`/`recall`/`init`/`adopt` are front-agent judgment skills. Skill directories
+   archiver — it carries the map; the tool is on PATH for both.
+   `route`/`recall`/`init`/`adopt`/`import` are front-agent judgment skills. Skill directories
    are copied whole (reference/, scripts/, templates/ travel with them).
 2. **The archiver agent** (`agents/archiver.agent.yaml`): create per the cheat-sheet.
    One archiver for all bases — cross-base re-routing is its point. It must have no
@@ -80,8 +88,8 @@ skill resolves them.
 3. **Schedules — in the same session as any base, never deferred.** `nightly-promote`
    (23:30, after gtd-capture's 23:00 drain) and `weekly-lint` are agent jobs on the
    archiver. **`sync` is an exec job**: wire the harness cron to run
-   `uv run <clone>/capabilities/kb/skills/kb/scripts/base.py sync --all` directly —
-   deterministic-only, no LLM wakes up; optionally compose the harness's notifier
+   `base sync --all` directly (the installed command) — deterministic-only, no LLM
+   wakes up; optionally compose the harness's notifier
    around it (`… || notify`). All degrade to `manual` run-cards without cron.
 4. **Zones**: the `kb.zones` above are the archiver's maintenance surface in each
    base — grant rows appended to that base's `AGENTS.md` at install (user-approved

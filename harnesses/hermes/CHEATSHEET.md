@@ -56,12 +56,15 @@ line, and the full diff is shown to the user **before** anything lands.
 
    (`main` ⇒ no `-p`.) **Exec-type entries (`exec:`)** are script-only jobs — no agent,
    no LLM: materialize with Hermes's script job form
-   (`hermes cron create '<cron>' --script "uv run <clone>/<exec-path-and-args>"
+   (`hermes cron create '<cron>' --script "<exec command>"
    --no-agent --name 'aos:<capability>:<schedule-id>'`; if this Hermes build lacks
    script jobs, a system crontab line with the same command and a `# aos:<cap>:<id>`
-   comment is the fallback — record whichever was used in the lockfile). Optionally
-   compose surfacing: `… || hermes notify …`. The `base` tool needs `uv`
-   (one-line install) — verify with `uv --version` before wiring.
+   comment is the fallback — record whichever was used in the lockfile). A bare
+   exec command (e.g. kb's `base sync --all`) is provided by the capability's tool
+   install (its briefing's install step — e.g. `uv tool install --from
+   <clone>/capabilities/kb/tool aos-base`); a path-form exec runs as
+   `uv run <clone>/<path-and-args>`. Optionally compose surfacing:
+   `… || hermes notify …`. Verify `uv --version` before wiring.
    Provenance = the `aos:<capability>:<schedule-id>` name prefix + the returned job id
    in the lockfile under `schedules_owned`. Never write an `origin:` field into
    jobs.json (Hermes uses it for chat provenance). Single-owner (§5.5): `hermes cron
