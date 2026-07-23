@@ -98,6 +98,12 @@ prose → AGENTS.md); `state/` the directory no longer exists (the rolling windo
 §7; slow identity documents are ordinary wiki pages in `profile/`); `ops/` no longer exists —
 **the inbox is a view, not a place** (§6.1).
 
+**Large non-text files ride git-LFS** (practice-learned): `base init` scaffolds a
+`.gitattributes` with the common binary patterns (images, audio, video, PDFs, archives)
+and wires `git lfs install --local` where LFS is available (degraded: a note, nothing
+breaks). The linter flags large binaries that dodge LFS. Knowledge stays reviewable
+markdown; heavyweight attachments stay out of the object store's way.
+
 ---
 
 ## 3. BASE.yaml — the base's machine configuration
@@ -344,6 +350,34 @@ decides, per the pattern's original modality): filed through route like any capt
 without bypassing curation; for shared bases the offer lands in the review queue like every
 other agent write.
 
+### 6.7 Import — bulk deliberate ingest
+
+Importing an existing knowledge base (an old-layout KB, an Obsidian vault, a notes
+repo) is deliberate ingest at bulk scale, and it is **interactive by design** — the
+user owns the mapping and the vouching; it is never fully autonomous. The invariant,
+stated first: **the source is read-only, always.** Import writes only into the target
+base; the source tree is never edited, moved, or cleaned up — a production KB stays
+byte-intact beside its replacement until the user flips the registry.
+
+Five stages, user checkpoints between: (1) **survey** — `base import survey <src>`:
+deterministic inventory + shape detection (old-methodology / obsidian / plain; a tree
+with a BASE.yaml is redirected to `adopt`); (2) **mapping conversation** — target
+base, folder→zone/type map, frontmatter map, skips, per-set `verified` vouch (the
+user vouches for their own curated sets — logged), attachment destinations — recorded
+as a **plan file** (`_ops/import-plan-<src>.yaml` in the target), the reviewable
+contract; (3) **sample pass** — a small first batch, reviewed with the user, plan
+adjusted; (4) **execute** — `base import apply <plan>` performs everything mechanical
+(copies, hashes, frontmatter transforms, link rewrites, bookkeeping) and **emits a
+transform queue** for wiki-bound pages; **subagents drain the queue in bounded
+batches**, each rewriting its pages into current-truth shape (transform-on-import —
+costly by nature, so: checkpoint report + lint after every batch, the user can stop
+anytime, re-runs resume); (5) **report** — counts, a GAP section for unmappable
+constructs, leftovers in the review queue, and the target lints clean. Idempotency
+rides the existing trust fields: every imported item carries `origin:` (source path)
++ `source_sha256`, so re-running imports nothing twice. The queue directory is the
+coordination point — files as the message bus; any executor (harness one-shots,
+sub-agents, sequential inline as the degraded mode) can drain it.
+
 ---
 
 ## 7. State: the attention window
@@ -453,6 +487,8 @@ language is a build-time choice, not spec — the contract is the verb set and b
 | `grants check` | subject × object × verb lookup | kb-authorization.md |
 | `index rebuild` | regenerate index.md from tree + descriptions | |
 | `sync` | rebase-pull/push per registry | conflict → safe state + review block + exit≠0 |
+| `import survey <src>` | inventory + shape detection of a foreign tree | read-only on the source, always |
+| `import apply <plan>` | execute a mapping plan's mechanical part; emit the transform queue | judgment is queued, never guessed (§6.7) |
 
 **The boundary (absolute):** deterministic operations only; the tool never calls an LLM and
 never invokes an agent. Skills call the tool; the tool answers in exit codes, stdout, and
