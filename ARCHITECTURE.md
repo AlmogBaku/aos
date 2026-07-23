@@ -104,12 +104,17 @@ Two ecosystem facts (researched, mid-2026) constrain everything:
 
 ```
 capabilities/<id>/
-  CAPABILITY.md              # manifest: typed frontmatter + prose install narrative — §2.2
+  CAPABILITY.md              # manifest: typed frontmatter + prose install briefing — §2.2
   README.md                  # for humans & PR review: what it does, support matrix
-  skills/<skill-id>/         # Agent Skills spec folders — the portable core
+  skills/<id>/               # the ENTRY SKILL (same name as the capability) — §2.5
+    SKILL.md                 #   the capability's runtime face: a short map
+    reference/               #   on-demand depth, one level from SKILL.md
+    scripts/                 #   bundled executables (run, never loaded) — §2.4
+  skills/<skill-id>/         # further Agent Skills folders — the portable core
     SKILL.md
-    ...
+    templates/ | scripts/    #   skills bundle their own assets (Agent Skills pattern)
   agents/<name>.agent.yaml   # neutral sub-agent/profile spec — §2.3 (only if it needs its own agent)
+  agents/<name>/             #   that agent's prompt bodies, co-located with its spec
   ONBOARDING.md              # frontmatter = typed questions (id, prompt, type, required,
                              #   secret, re_ask) — ALSO validates MOD.md frontmatter (§3.1);
                              #   body = the conversational interview script. Same file-shape as
@@ -121,6 +126,8 @@ capabilities/<id>/
 ```
 
 **Normative:** every `skills/<id>/` folder MUST be a valid Agent Skills folder on its own — a harness with nothing but skill support can still consume the atoms. Everything outside `skills/` and `adapters/` MUST be harness-neutral. If a capability's `adapters/` content outweighs its neutral core, the linter flags it: that is a sign the "neutral" design is fictional and the capability should say so honestly in its support matrix.
+
+**Skill packaging (normative, per the Agent Skills best-practices):** a SKILL.md body stays under 500 lines; anything deeper moves to files the skill references **one level deep** (no reference chains); deterministic assets — templates, scripts — ship *inside* the skill directory (scripts are **executed, never loaded into context**); descriptions are third-person and carry concrete triggers (activities, literal user phrases, proper nouns). Skills state their one load-bearing invariant up front, and mark each section's authority explicitly: may auto-fix, report-only, or ask-first.
 
 ### 2.2 The manifest: `CAPABILITY.md` — markdown + frontmatter, minimal by rule-of-two
 
@@ -145,9 +152,16 @@ depends:
 schedules:
   - id: nightly-drain
     cron: "0 23 * * *"         # neutral cron; installing LLM translates per cheat-sheet
-    agent: drainer
+    agent: drainer             # judgment work: an agent wakes with a prompt…
     prompt_ref: skills/drain/drain-prompt.md
     degraded: manual           # manual | skip | inline — behavior when host has no cron
+  - id: sync
+    cron: "*/5 * * * *"
+    exec: skills/kb/scripts/base.py sync --all   # …or mechanical work: the harness cron runs a
+    degraded: manual           # program directly. `exec` and `agent`+`prompt_ref` are mutually
+                               # exclusive per entry (lint-enforced). exec programs are
+                               # deterministic-only — they never call an LLM (§2.4); failures
+                               # surface via files/exit codes, not by summoning an agent
 
 skills:                        # every shipped skill, with SCOPE — who loads it
   - id: capture
@@ -194,10 +208,20 @@ The contract:
 
 - **Shipped software is standalone.** A capability's code is an encapsulated, self-contained program invoked across a **process boundary** (CLI, stdin/stdout, exit codes) — never linked into the harness. Write your gate in Python; when it installs into OpenClaw (TypeScript), the OpenClaw hook is a thin shim that *calls* your program. Language is the author's business; the protocol is the interface. A plugin that only works linked into one harness's runtime has failed this rule and says so in its support matrix.
 - Harness-native shims live in `adapters/<harness>/plugins/`, installed only on that harness (the cheat-sheet tells the installing LLM where it goes). The neutral part of such a capability (the *policy* — rules format, onboarding that captures them, docs — and the standalone program itself) stays harness-neutral; only the thin hook/shim is per-harness.
-- **Hook where possible, patch where necessary.** If the harness exposes a hook/middleware surface, the plugin uses it. If not, the capability may carry a **maintained patch** against the harness — with the standing obligation to upstream it as a PR and delete the patch when it merges. Patches are declared in the adapter dir (`patches/` + the upstream PR link), so `doctor` can warn when the harness version drifts from what the patch targets.
+- **Hook where possible, patch where necessary.** If the harness exposes a hook/middleware surface, the plugin uses it. If not, the capability may carry a **maintained patch** against the harness — with the standing obligation to upstream it as a PR and delete the patch when it merges. Patches are declared in the adapter dir (`patches/` + the upstream PR link), so `doctor` can warn when the harness version drifts from what the patch targets. A patch may also be **agentically applied**: the install briefing can instruct the installing LLM to add a missing harness function (e.g. a gateway verb the capability needs) rather than shipping a static diff — the same upstream-PR obligation and drift-warning discipline apply.
+- **Capability tools — the canonical deterministic executor.** A capability whose skills contain deterministic checklists (schema validation, glob matching, table lookups, index maintenance) SHOULD ship them as one bundled tool (inside its entry skill's `scripts/`, run via the ecosystem's zero-install runner) rather than prose-executing them per skill: prose-executed glob math is what LLMs fumble silently, and one discoverable `--help` beats five checklists. The boundary is absolute: **the tool performs deterministic operations only — it never calls an LLM and never invokes an agent.** The dependency arrow points one way (skills call the tool); the tool reports back through exit codes, stdout, and files — files are the async message bus (a conflict becomes a review-queue block, not a callback). Per-harness variance is **composition at install time** — the cheat-sheet tells the installing LLM how to wire the cron line, env, and an optional notify wrapper around the call — never a plugin API inside the tool. There is deliberately no kit-level helper tool (RFC-004): tools belong to capabilities.
 - The capability's README carries a **support matrix** — the honesty rule: a capability claims a harness only if someone actually runs it there, and marks each harness `hook` / `patched` / `unsupported` so users know what they're installing.
 
 No portable hook contract exists in v0.1, deliberately: the ecosystems' hook models are incompatible (§1.3), and an abstraction over them today would be fiction.
+
+### 2.5 The capability lifecycle: briefing, then building blocks
+
+A capability is the composition of **five building blocks** around one use case or infrastructure need: **skills** (knowledge agents load), **agents** (personas that run scheduled or delegated work), **tools/scripts** (deterministic executables, §2.4), **crons** (schedules, agent-type or exec-type), and **patches** (harness modifications, §2.4). The capability directory is how they ship together; after installation, only the building blocks exist in the harness.
+
+Two lifecycle roles follow:
+
+- **`CAPABILITY.md` is the installer's briefing.** The installing LLM (§5) consumes it to materialize the building blocks *with understanding* — why each agent exists and how it should be shaped on this harness, why each cron runs when it does, which agents get which skills. Once materialization is done, the document's job is done: it is not loaded at runtime, and operator knowledge does not belong in it.
+- **The entry skill is the runtime face.** Every capability ships a skill named after itself (`skills/<id>/`) — deliberately small: the philosophy in a few lines, where things live, the mechanics map, and pointers to the focused skills and tool verbs for each job. Its description is the capability's broad front door (any intent in the capability's domain that doesn't match a narrower skill); the focused skills keep narrow triggers. This matters most for infrastructure capabilities, which have no obvious user-facing verb: the entry skill is the one thing an agent can always "hold" to understand how the pieces play together. Cheat-sheets (§5.2) point at it as "start here."
 
 ---
 
@@ -297,7 +321,7 @@ flowchart LR
 
 ## 4. Knowledge bases: registry, routing, authorization
 
-The KB is the most load-bearing infrastructure capability: nearly every use-case capability reads or writes one. v0.1 supports **multiple KBs per user** — a KB is a repo (`kb == repo`): work, personal, management, per-client…
+The KB is the most load-bearing infrastructure capability: nearly every use-case capability reads or writes one. v0.1 supports **multiple KBs per user** — a KB instance is called a **base**, and a base is a repo (`base == repo`): work, personal, management, per-client… (The capability id stays `kb`; "base" is the noun for one instance.)
 
 ### 4.1 The registry: `kb-registry.yaml`
 
@@ -327,6 +351,8 @@ kbs:
 ```
 
 Capabilities never name KBs directly; they declare abstract write intents (`kb.writes: [inbox]` in the manifest) and the **router** resolves them.
+
+The registry is the *user-side* registration of a base (path, sync mode, routing hints, which one is default). The *base-side* machine configuration — its zones, types, state cap, layout version — lives in the base's own `BASE.yaml` and travels with the repo (design/kb-methodology.md). One field exists on both sides deliberately: **`audience` is declared in `BASE.yaml`** (so a shared base's shared-ness is visible to every member pulling it) **and mirrored in the registry; the effective audience is the more restrictive of the two.** A user may treat a base as more shared than it declares, never less.
 
 ### 4.2 Routing: rules first, LLM above a confidence bar, never block capture
 
@@ -370,18 +396,19 @@ Normative rules in v0.1:
 - Zone ownership (the maintainer-zone table each KB's `AGENTS.md` carries — §4.4) is authorization data: a capability's declared `kb.zones` are grants, appended at install time, revoked at removal.
 - The **permission-gate capability** (build 9, §7) implements this same model at the messaging/tool-call layer — one live implementation already exists (the Hermes WhatsApp gate). This section defines the shared vocabulary so KB routing and inbound gating don't grow two incompatible ACLs.
 
-### 4.4 The default methodology, and the pluggable seam
+### 4.4 The base engine: store, curation, state
 
-v0.1 ships **exactly one** KB methodology: `karpathy-llm-wiki` — the production-proven stack extracted from the maintainers' live KB. It rests on two named pillars:
+A base is a **governed file system with a lifecycle**, organized around three pillars — the engine contract the kb capability provides:
 
-1. **The Karpathy knowledge-base methodology** (LLM-wiki): immutable `raw/` sources with sha256 dedup → a synthesized semantic layer with `[[wikilinks]]` + frontmatter schema. Knowledge accumulates; it is never edited in place at the source layer.
-2. **A rolling-window current-state mechanism**: `state/` — high-churn files holding *what is going on right now* (current status, priorities, pipeline, north star). Unlike the knowledge layers, state is a rolling window: frequently rewritten, always current, never an archive. This is what lets any agent cold-start into "where things stand" without replaying history.
+1. **Store** — the structured knowledge itself: immutable `raw/` sources (sha256 dedup) and the **wiki pages** (entities, concepts, projects…) with `[[wikilinks]]` and frontmatter, plus the grants and schema that govern them. The doctrine of the wiki pages is **current truth only**: a page states what is true *now*; when a fact changes, the line changes — history is git, and a page's `## Timeline` (added only when a page needs one) is an append-only ledger of *events that happened*, never a museum of old facts. The one unresolved-state marker is `Contested` (a recorded disagreement *is* current truth).
+2. **Curation** — the loop that keeps the store trustworthy: capture → catalog (mechanical, instant) → skeptical promotion into wiki pages (**default-empty**: promotion writes nothing without a logged justification), plus lint hygiene and the answers-filed-back loop from recall. Curation has two named write modes: *fast capture* (raw now, promote async — capture latency is sacred, §4.2) and *deliberate ingest* (synchronous, user-invoked).
+3. **State** — one small, hard-capped, rewritten-in-place `state.yaml` per base: the rolling **attention window** ("where is my head on this subject") — one-line items pointing into the wiki pages, never bodies. It exists because attention is the one thing a scan of the files cannot recompute. Any agent cold-starts by reading the state of the bases it is registered into, private first.
 
-Around the pillars: a maintainer-zone table in `AGENTS.md` (one writer per zone; also the zone-registration mechanism other capabilities append to), append-only `log.md`, `_ops/` lint + review queues, and an Archiver agent with sync/lint/promotion schedules.
+Around the pillars: `BASE.yaml` (the base's machine-readable configuration — types, zones, caps, layout version — which the capability's `base` tool reads and enforces), the grants table in `AGENTS.md` (§4.3; also the zone-registration mechanism other capabilities append to), append-only `log.md`, `_ops/` review queues, one Archiver agent serving all of a user's bases (it must see across bases to propose cross-base moves; shared-base writes remain review-gated), and the **`base` tool** — the capability-shipped deterministic executor (§2.4) for catalog/state/lint/search/sync operations.
 
-The seam is a directory contract — a methodology is `init/` templates + `lint/` skill + archiver prompt + schema fragment — so a second methodology *can* exist, but none ships until someone actually brings one (rule-of-two again: standardize the default, keep the substrate pluggable). The full knowledge-model design — the three layers, the page schema, growth stages, the synthesis loop, and retrieval — is in [design/kb-methodology.md](design/kb-methodology.md); the routing + access-control layer that sits on top is in [design/kb-authorization.md](design/kb-authorization.md).
+**The kb capability *is* the methodology** (lineage: Karpathy's LLM-wiki pattern, extended). v0.1 ships no pluggable methodology seam — that abstraction was speculative machinery this spec's own rule-of-two forbids; the `methodology: karpathy-llm-wiki` registry field remains as one line of forward-compatibility, and a genuine second methodology is an RFC-level event that pays for the seam when it is real. The full engine design — the base tree, page schema, lifecycle, curation loop, state mechanics, retrieval — is in [design/kb-methodology.md](design/kb-methodology.md); the routing + access-control layer on top is in [design/kb-authorization.md](design/kb-authorization.md).
 
-`kb init <name>` creates + registers a KB from the methodology templates. `kb adopt <path>` registers an **existing** KB, runs the linter, and reports divergence — it never rewrites anyone's live knowledge base.
+`kb init <name>` interviews, writes `BASE.yaml`, scaffolds, and registers a base. `kb adopt <path>` registers an **existing** tree, runs the linter, and reports divergence — it never rewrites anyone's live knowledge base. Honest scoping note: for a single user with a single private base, the routing and grants layers are the degenerate case — plain ownership prose; they earn their machinery exactly when bases multiply or an audience shares one. And a known ceiling, stated plainly: structure-navigation plus BM25 over files carries a curated base to roughly ten thousand pages; past that, the sanctioned escape is **rebuildable derived caches** (`.base/`, gitignored — delete it and lose nothing), never a store that outranks the files.
 
 ## 5. Installation: the harness installs the batteries
 
@@ -484,7 +511,7 @@ Eleven capabilities ship as v0.1's reference set (one-page specs in `capabilitie
 
 | # | Capability | Tags | New seam it proves |
 |---|---|---|---|
-| 1 | **kb** | infra | The whole neutral contract + first cheat-sheet, Hermes (registry, router, methodology, Archiver agent) |
+| 1 | **kb** | infra | The whole neutral contract + first cheat-sheet, Hermes (registry, router, base engine: store/curation/state, `base` tool, Archiver agent, entry skill) |
 | 2 | **onboarding** | infra | Interview engine → MOD.md; re-runnable diffs; secret references |
 | 3 | **gtd-capture** | usecase | First vertical composing on kb + schedules; first real routing traffic |
 | 4 | **importer** | infra | Cheat-sheet-guided introspection + the generic/personal split; format's stress test via GAP reports |
@@ -510,6 +537,10 @@ kb and onboarding are built together (the installer needs both); the importer la
 | Distribution | Batteries-included: one repo, curated composing set; external capability sources out of scope for v1 | §1.1 |
 | Simplicity | The kit = **protocol (backbone) + implementations** — no runtime, no framework; "the new software is a prompt" | §1.1 |
 | Shipped software | Standalone programs behind a process boundary; per-harness hooks are thin shims that call them | §2.4 |
+| Capability tools | Deterministic-executor tools ship inside capabilities (entry-skill `scripts/`), never as a kit-level helper; [D]-only, never call an LLM; files+exit codes are the interface (RFC-004 resolved) | §2.4 |
+| Capability anatomy | Five building blocks (skills · agents · tools · crons · patches); CAPABILITY.md = installer briefing, dead after install; entry skill named after the capability = runtime face | §2.5 |
+| Skill packaging | ≤500-line SKILL.md, one-level references, assets bundled in skills (scripts executed, never loaded), trigger-rich third-person descriptions | §2.1 |
+| Schedules | `exec:` (mechanical, deterministic-only) xor `agent`+`prompt_ref` (judgment) per entry | §2.2 |
 | Capability format | Agent Skills superset + minimal manifest as `CAPABILITY.md` (md + typed frontmatter — one format everywhere), rule-of-two growth | §2 |
 | Layering | One package kind + tags; harness code is an adapter concern | §1.2, §2.4 |
 | Overlay | Co-located `MOD.md`, markdown + typed frontmatter, inviolable invariant | §3.1 |
@@ -518,7 +549,8 @@ kb and onboarding are built together (the installer needs both); the importer la
 | Upgrades | LLM merge guided by MOD.md, backup + diff-reviewed | §3.4 |
 | Multi-KB | Registry + rules-first routing, LLM only above confidence bar, uncertain → default inbox | §4.1–4.2 |
 | KB authorization | Shared KBs never accept LLM-routed writes; ACL model shared with future permission gate | §4.3 |
-| KB substrate | One shipped methodology (karpathy-llm-wiki) behind a pluggable directory contract | §4.4 |
+| KB substrate | The kb capability IS the methodology (three-pillar base engine: store / curation / state; current-truth doctrine; `base` tool + BASE.yaml). No pluggable seam in v0.1 — `methodology:` field kept as forward-compat; a second methodology is an RFC-level event | §4.4 |
+| KB trust model | Two fields: `verified: true\|false` (agent-written pages start false; user confirmation flips) + `origin:` back-pointer; one skill rule — don't build conclusions solely on unverified pages | §4.4, design/kb-methodology.md |
 | Cross-harness | Per-harness cheat-sheets (knowledge, not code) + support-matrix honesty; no portable hook fiction | §5.2 |
 | Importer | First-class in v0.1; drafts only, never installs | §6 |
 | Concept name | "capability" (a capability *contains* skills; "skill"/"plugin"/"recipe" are ecosystem-reserved) | §1.2 |
@@ -530,11 +562,12 @@ kb and onboarding are built together (the installer needs both); the importer la
 | [RFC-001](rfcs/RFC-001-naming.md) | Project name (replaces `aos` placeholder) |
 | [RFC-002](rfcs/RFC-002-testing-quality.md) | How a capability proves it works before merge |
 | [RFC-003](rfcs/RFC-003-governance.md) | Decision process, merge policy, cadence |
-| [RFC-004](rfcs/RFC-004-installer.md) | Install bookkeeping: small helper tool, or prose all the way down |
+| [RFC-004](rfcs/RFC-004-installer.md) | **Decided 2026-07-23:** no kit-level helper tool; capabilities ship their own deterministic tools per §2.4 (kb's `base` tool is the first instance) |
 | [RFC-005](rfcs/RFC-005-overlay-persistence.md) | MOD.md versioning: tracked in private fork vs gitignored + backup |
 | [RFC-006](rfcs/RFC-006-multi-kb-routing.md) | Multi-KB routing & authorization: does §4.2–4.3 hold? (kb's contested core; decided by replay evidence) |
 | [RFC-007](rfcs/RFC-007-permission-gate-vocabulary.md) | Permission-gate policy vocabulary (inventory the group's existing gates first) |
 | [RFC-008](rfcs/RFC-008-agent-comms-opinionation.md) | Agent-to-agent comms: how opinionated? (normative envelope + glass-box rule vs advisory pattern) |
+| [RFC-009](rfcs/RFC-009-capability-composition.md) | Cross-capability skill dependency: can capability B's agents use capability A's skills? (`used_by` can't cross capabilities; `provides` graph deferred; gtd-capture→kb is real consumer #1) |
 
 ## Appendix A: Problems A–G → mechanism
 
@@ -558,3 +591,5 @@ kb and onboarding are built together (the installer needs both); the importer la
 | 4 | **Round-trip discipline** — user edits to rendered installs don't make it back to MOD.md, overlay rots | `doctor` drift reports trending up over weeks of live use | Make renders read-only-by-convention + route all tweaks through a `mod` skill |
 | 5 | **Spec-before-use** — contracts here that no build validates | Every § names its consuming build step (§7); a § no reference capability exercises by build 9 gets cut | Rule-of-two applies to the spec itself |
 | 6 | **Duplicate schedules across harnesses** — same drain installed twice violates one-writer | `doctor` duplicate-schedule check across the lockfile | Single-owner rule (§5.5); worst case, schedules become explicitly harness-pinned in MOD.md |
+| 7 | **File-retrieval ceiling** — structure + BM25 degrade on bases past ~10K pages | Dogfood: recall quality on the largest live base; complaints of missed hits with confirmed on-disk answers | Rebuildable derived caches in `.base/` (gitignored, delete-and-lose-nothing) — never a store that outranks the files (§4.4) |
+| 8 | **Authorization read-surface leaks** — a grant honored on the write path but not by search/list/graph surfaces | e2e probes leakage explicitly (ungranted reads via every surface), not just happy-path routing | Any surface that reads a base must consult grants; a surface that can't is documented as such in the capability README |

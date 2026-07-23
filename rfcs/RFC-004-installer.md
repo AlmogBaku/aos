@@ -1,25 +1,24 @@
 # RFC-004: Install bookkeeping — helper tool or prose all the way down?
 
-**Status:** open · **Decides:** whether the install/upgrade bookkeeping gets a small helper tool
+**Status:** decided (2026-07-23) · **Decision:** no kit-level helper tool; capabilities ship their own deterministic tools
 
 ## Settled (not this RFC)
 
 ARCHITECTURE §5.1–5.2 is firm: **the harness's own LLM installs capabilities**, guided by the capability's declarative manifest and a per-harness cheat-sheet. There is no installer program, no code adapters. §5.4 is also firm: every mutation is diff-previewed, recorded in `installs.lock.yaml`, backed up before upgrades, and auditable via `doctor`.
 
-## Question
+## Decision
 
-Who carries the bookkeeping mechanics — hashing artifacts, maintaining the lockfile, rendering diffs, snapshotting backups? The LLM *can* do all of it by following the playbook; the question is whether it *should*.
+**No kit-level helper tool — at least for now.** The deterministic-mechanics problem is real (prose-executed hashing, glob math, and table parsing are what LLMs fumble silently), but the right home for the answer is **per-capability tools**, not a kit binary:
 
-## Options
+- A capability whose skills contain deterministic checklists ships them as **one bundled tool** inside its entry skill's `scripts/` (ARCHITECTURE §2.4 "Capability tools"), run via the ecosystem's zero-install runner. The kb capability's `base` tool is the first instance: catalog, state, lint, search, grants lookup, sync — every [D] operation its skills would otherwise prose-execute.
+- The boundary from the original recommendation is kept and generalized: *judgment in the LLM, mechanics in the tool* — a capability tool performs deterministic operations only, never calls an LLM, never invokes an agent, and communicates back through exit codes, stdout, and files.
+- Install/upgrade bookkeeping itself (lockfile, hashes, backups) **stays prose for now** — the cheat-sheet playbook. It is exactly the kind of mechanics a tool should own, but no capability needs it machine-shared yet (rule-of-two); when a second harness's install flow visibly drifts the lockfile format, the bookkeeping verbs join a capability tool or this RFC reopens for a scoped `doctor` tool.
 
-1. **Small bookkeeping helper (recommended):** a tiny CLI or script set (shipped in the repo, e.g. `bin/aos-lock`, `aos-diff`, `aos-backup`) that the LLM *calls* during install. It contains zero capability knowledge and zero judgment — pure mechanics. Pros: hashes don't lie, lockfile format stays consistent across harnesses and models, drift detection is trustworthy. Cons: a dependency (needs a shell), a small thing to maintain.
-2. **Prose all the way down:** the cheat-sheet playbook instructs the LLM to compute hashes, edit the lockfile, and take backups itself. Pros: zero dependencies, pure-markdown kit. Cons: bookkeeping fidelity depends on prompt adherence — a skipped backup or a hand-waved hash is invisible until it hurts; different models will drift the lockfile format.
-3. **Per-harness native mechanisms:** lean on whatever each harness has (git history, its own state dirs), no unified lockfile. Pros: least invention. Cons: `doctor`, drift detection, and the round-trip contract (§3.3) lose their shared substrate.
+## Why not a kit-level tool
 
-## Recommendation
+One kit binary would centralize what capabilities can ship independently, create a versioning coupling between the kit and every capability, and grow opinions (the failure mode the original recommendation warned about). Capability-shipped tools version with their capability, travel with its skills, and die with its removal.
 
-Option 1. The line to hold: *judgment in the LLM, mechanics in the helper* — the moment the helper grows an opinion about capabilities, it has failed this RFC.
+## Consequences
 
-## Process
-
-Auto-accept per RFC-003 window.
+- ARCHITECTURE §2.4 carries the capability-tool contract (this RFC's normative outcome); §8 lists it as a firm position.
+- kb's `base` tool is the reference implementation; its verb set and test pattern (black-box subprocess, report-is-the-interface) are the template for future capability tools.

@@ -2,6 +2,8 @@
 
 *Companion to ARCHITECTURE §2. This is the worked example — every file of a real capability (gtd-capture), what reads it, when, and who executes what. Where ARCHITECTURE is the contract, this is the exhibit.*
 
+> **Anatomy note (2026-07-23):** ARCHITECTURE §2 has since gained the entry-skill convention, the five-building-blocks lifecycle (§2.5), skill-bundled assets, and `exec:` schedules. The **kb capability is the first conforming example** (design/kb-methodology.md §10); gtd-capture as shown here is legacy anatomy pending its migration — this exhibit will be updated when it migrates.
+
 ## 1. The whole repo, from the top
 
 What a user's clone actually looks like (their machine, after installing two capabilities):

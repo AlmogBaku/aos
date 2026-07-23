@@ -4,7 +4,7 @@ status: draft-for-group-review
 date: 2026-07-17
 implements: ../ARCHITECTURE.md §3–§4 (esp. §4.1–4.4), §5
 informs: ../rfcs/RFC-006-multi-kb-routing.md, ../rfcs/RFC-007-permission-gate-vocabulary.md
-extraction-source: Almog's production KB — this pattern has run live since June 2026 (AGENTS.md zone table, SCHEMA.md, _ops/, state/, log.md)
+extraction-source: Almog's production KB — this pattern has run live since June 2026 (AGENTS.md zone table, _ops/, log.md; state/ and SCHEMA.md since redesigned — see kb-methodology.md)
 ---
 
 # KB & Authorization Layer — Concrete Design
@@ -29,17 +29,17 @@ Every moving part, what it physically is, where it lives, who executes it.
 | # | Component | What it physically is | Lives in | Executed / consumed by |
 |---|---|---|---|---|
 | 1 | `kb-registry.yaml` | A user-owned YAML file (§4.1). Data, not code. | Root of the **user's clone**, next to global `MOD.md`. Upstream never touches it (overlay-family invariant). | Read by the router skill on every routed write; written by `kb init`/`kb adopt` and by the user directly. |
-| 2 | **Router** | A skill — `capabilities/kb/skills/route/SKILL.md`. Steps 1–2 and 4 of §4.2 are deterministic instructions (RFC-004 helper candidate); step 3 is one cheap LLM call. There is **no router daemon**. | Kit repo (skill); runs inside whatever agent is performing the capture. | The writing agent, inline in the capture path. |
+| 2 | **Router** | A skill — `capabilities/kb/skills/route/SKILL.md`. Steps 1–2 and 4 of §4.2 are deterministic — executed via the `base` tool (grants lookup, registry parse, capture write); step 3 is one cheap LLM call. There is **no router daemon**. | Kit repo (skill); runs inside whatever agent is performing the capture. | The writing agent, inline in the capture path. |
 | 3 | **Authz check** | A sub-step of the router skill + a standalone skill `kb/skills/authz-check/` (so non-routed direct writes can call it too). A table lookup, nothing more. | Kit repo. | The writing agent, immediately before any KB write. |
 | 4 | **Zone/grant table** | A machine-readable markdown table inside each KB's `AGENTS.md` (§4.4 "maintainer-zone table", evolved — format in §2.2 below). Human-first, lint-parsed. | **Each KB repo**, in its `AGENTS.md`. | Read by router/authz-check and lint; appended by install-time zone registration; the user edits it freely. |
 | 5 | **Archiver agent** | `capabilities/kb/agents/archiver.agent.yaml` (neutral spec) — materialized per harness as a real scheduled agent. Live reference: the production Archiver profile. | Spec in kit repo; the running instance in the **harness**. | The harness scheduler: nightly drain (23:00), weekly lint, 5-min git sync. |
-| 6 | **Lint** | A skill — `kb/skills/lint/SKILL.md` — whose checks are all deterministic (schema validation, glob checks, log/diff audit). Prime RFC-004 helper-tool candidate; until then, trivially-checkable LLM execution. | Kit repo (part of the `karpathy-llm-wiki` methodology contract, §4.4). | Archiver on schedule; also invoked one-shot by `kb adopt` and after zone registration. |
-| 7 | **Review / drain queue** | Two markdown files per KB: `ops/inbox.md` (uncertain-routed captures) and `_ops/needs-review.md` (judgment calls, authz refusals, lint criticals — generalizes the live `the production needs-review queue file`). | Each KB repo. | Archiver appends; the **user** (or their chief-of-staff agent) drains; Archiver never resolves its own judgment calls. |
+| 6 | **Lint** | A verb of the `base` tool (`base lint`) — deterministic checks driven by each base's BASE.yaml (methodology §6.4); report-only. | Kit repo (bundled in the entry skill, `skills/kb/scripts/base.py`). | Archiver on schedule; also invoked one-shot by `base adopt` and after zone registration. |
+| 7 | **Review / drain queue** | Two markdown files per KB: the pending-capture view (`base inbox` over `raw/captures/` — uncertain-routed captures) and `_ops/needs-review.md` (judgment calls, authz refusals, lint criticals — generalizes the live `the production needs-review queue file`). | Each KB repo. | Archiver appends; the **user** (or their chief-of-staff agent) drains; Archiver never resolves its own judgment calls. |
 | 8 | **`log.md` append** | A convention, not a component: one appended line per mutation, format fixed by SCHEMA (§2.5 below). | Each KB repo root. | Every writer, as the last step of every write. Lint audits it. |
 | 9 | **`kb init` / `kb adopt`** | Skills. `init` = template scaffold + registry append + grant-table seed. `adopt` = registry append + lint run + divergence report; **never rewrites** the existing KB (§4.4, normative). | Kit repo. | The user's main agent, on request. |
-| 10 | **`state/` rolling-window maintenance** | A convention (single writer per file, §7) + a lint staleness check + per-capability declarations in the manifest (proposed, §7.2). | Each KB repo (`state/`). | The declared single-writer agent per file; lint backstops. |
+| 10 | **`state.yaml` rolling-window maintenance** | Tool-managed verbs (`base state add|bump|drop|check`) + cap enforcement + the state_stale lint check. Full mechanics: methodology §7. | Each base repo (`state.yaml`). | The base's single writer agent via the tool; Archiver proposes evictions; lint backstops. |
 | 11 | **Zone registration (install-time)** | Part of the §5 agentic install: the installing LLM renders `kb/` zone templates into the target KB and appends grant rows — with user approval per row. | Capability `kb/` dirs; results land in KB repos. | The harness's installing LLM; user approves grants. |
-| 12 | **RFC-004 helper (candidate)** | *If* RFC-004 lands a tool: a tiny CLI doing exactly the [D] set — registry parse, grant-table parse, glob match, schema validation, log/diff audit, log append. No routing judgment ever. | Kit repo. | Called by the skills above instead of prose-executing the same checks. |
+| 12 | **The `base` tool** | The capability-shipped deterministic executor (RFC-004 decided; ARCHITECTURE §2.4): registry parse, grant-table parse, glob match, schema validation, capture/catalog, state verbs, lint, search, log append, sync. No routing judgment ever; never calls an LLM. | Kit repo — `skills/kb/scripts/base.py`. | Called by the skills; runs exec-scheduled for sync. |
 | 13 | **Git sync** | The existing 5-min rebase-only cron, per KB, honoring the registry `sync:` field. | Each KB repo / harness cron. | Harness scheduler. Conflicts surface in the morning brief, never auto-resolved. |
 
 The load-bearing observation: **there is no enforcement daemon and no service anywhere in
@@ -61,10 +61,10 @@ flowchart TB
     end
     subgraph kbrepo["Each KB repo"]
       GR["AGENTS.md ## Grants<br/>subjects × objects × verbs"]
-      INB["ops/inbox.md<br/>capture + uncertain"]
+      INB["raw/captures/ pending<br/>capture + uncertain"]
       NR["_ops/needs-review.md<br/>refusals · judgment calls"]
       LOG["log.md<br/>append-only audit"]
-      DATA["raw/ · semantic layer · state/"]
+      DATA["raw/ · wiki pages · state.yaml"]
     end
     WA(["writing agent<br/>(capture path)"]) --> RT
     RT --> REG
@@ -105,8 +105,9 @@ kbs:
     methodology: karpathy-llm-wiki
     purpose: >                   # doubles as the LLM classifier's rubric — write it well
       Personal ops, relationships, life admin, drafts.
-    inbox: ops/inbox.md          # (proposed) the zone `intent: inbox` and uncertain
-                                 # routings resolve to; default ops/inbox.md
+                                 # note: there is no inbox file — the `intent: inbox`
+                                 # and uncertain routings land in raw/captures/ with
+                                 # triage: pending; `base inbox` is the view (methodology §6.1)
     routing:
       channels: ["whatsapp:*", "telegram:*"]
       keywords: []
@@ -151,9 +152,9 @@ space-separated globs); `verbs` space-separated from the closed set
 | agent:archiver         | raw/**                                    | write            | user    | 2026-06-30 | kb@0.1.0         | immutable layer; promote-only |
 | agent:archiver         | entities/** concepts/** comparisons/** queries/** | write    | user    | 2026-06-30 | kb@0.1.0         | Layer-2 synthesis |
 | agent:archiver         | _ops/** _archive/** index.md log.md       | write            | user    | 2026-06-30 | kb@0.1.0         | scaffolding + append-only log |
-| agent:main           | state/STATE.md ops/**                     | write            | user    | 2026-06-30 | —                | live write path |
-| agent:main           | state/SOUL.md state/NORTH_STAR.md state/PIPELINE.md state/LEARNINGS.md state/CAREER.md | write | user | 2026-06-30 | — | high-stakes; surface changes to the user |
-| capability:gtd-capture | ops/inbox.md                              | write route-into | user    | 2026-07-20 | gtd-capture@0.1.0 | requested at install; drains nightly |
+| agent:main           | state.yaml                                | write            | user    | 2026-06-30 | —                | the single state writer (methodology §7) |
+| agent:main           | profile/**                                | write            | user    | 2026-06-30 | — | high-stakes slow-tempo pages; surface changes to the user |
+| capability:gtd-capture | raw/captures/**                           | write route-into | user    | 2026-07-20 | gtd-capture@0.1.0 | requested at install; drains nightly |
 | capability:kb          | log.md _ops/needs-review.md               | write            | user    | 2026-06-30 | kb@0.1.0         | so refusals/flags can be recorded by the router itself |
 ```
 
@@ -170,7 +171,7 @@ What changed vs. the live table, and why:
 kb:
   writes: [inbox]                # abstract intents the router resolves
   zones:
-    - path: ops/inbox.md         # zone this capability asks the target KB to register
+    - path: raw/captures/        # zone this capability asks the target base to register
       owner_agent: drainer
       verbs: [write, route-into] # (proposed) explicit verbs requested; default [write]
 ```
@@ -281,7 +282,7 @@ sequenceDiagram
 
     Cap->>Reg: resolve KB (explicit name, or default) [D]
     Cap->>Gr: read grant? (usually the `* / ** / read` row) [D]
-    Cap->>KB: honor the KB's required reading order (AGENTS.md → SCHEMA.md → index.md → log.md tail) [D checklist]
+    Cap->>KB: honor the KB's required reading order (AGENTS.md → index.md → log.md tail) [D checklist]
     Cap->>KB: read [D]
 ```
 
@@ -343,8 +344,8 @@ agent, the capability, or the pair is an open question for RFC-007 (§8 Q2).
 ### 4.2 Objects
 
 Three granularities, all expressed as the `object` glob: a whole **KB** (`**`), a
-**zone** (`raw/**`, `state/`), a **file pattern** (`state/STATE.md`,
-`ops/tasks/projects/*.md`). Grants live per-KB, so the KB itself is identified by which
+**zone** (`raw/**`, `profile/**`), a **file pattern** (`state.yaml`,
+`projects/*.md`). Grants live per-KB, so the KB itself is identified by which
 `AGENTS.md` the row sits in — there is no cross-KB grant syntax and none is needed.
 
 ### 4.3 Verbs
@@ -353,7 +354,7 @@ Three granularities, all expressed as the `object` glob: a whole **KB** (`**`), 
 |---|---|---|
 | `read` | Read files under the object glob. | Broadly granted within a KB via the `*` row; never assumed without a row. |
 | `write` | Create/modify files under the glob, directly (subject names the path). | Zone ownership from the live maintainer map is `write`. |
-| `route-into` | The router may resolve this subject's abstract intents *into* this zone. | Distinct from `write`: a capability granted `route-into ops/inbox.md` cannot write `state/STATE.md` even via a clever "intent". Router requires it (or `write`) on the resolved target. |
+| `route-into` | The router may resolve this subject's abstract intents *into* this zone. | Distinct from `write`: a capability granted `route-into raw/captures/**` cannot write `state.yaml` even via a clever "intent". Router requires it (or `write`) on the resolved target. |
 | `grant` | Append/modify rows in the Grants table itself. | **v0.1: `user` only.** Capabilities *request* grants at install; the user approves (§3.3). No delegation, no admin agents. |
 
 ### 4.4 Where grants live, default posture
@@ -446,7 +447,7 @@ harness-level sandboxing, which no markdown table provides — and we say so.
 
 | Operation | Executor | D/A | Why this side of the line | Backstop |
 |---|---|---|---|---|
-| Registry parse | writing agent (router skill / RFC-004 helper) | D | YAML with a schema | lint validates registry schema |
+| Registry parse | writing agent (router skill via `base` tool) | D | YAML with a schema | lint validates registry schema |
 | Explicit-tag detection (step 1) | router | D | prefix string match | decision record; drain sees mistakes |
 | Channel/keyword rule eval (step 2) | router | D | glob + string match, first-match per tier | rule_id stamped; RFC-006 replay measures rule quality |
 | Rule-tie resolution | router | D | fixed precedence; cross-KB tie → LLM iff all-private, else default | tie events logged; replay counts them |
@@ -474,7 +475,7 @@ harness-level sandboxing, which no markdown table provides — and we say so.
 | `kb init` scaffold | kb skill | D | template copy | lint runs clean on fresh KB (acceptance) |
 | `kb init` purpose/audience interview | onboarding | **A** | eliciting a good routing rubric is conversation | re-runnable, diffable (§3.2) |
 | `kb adopt` | kb skill | D (lint + report) | must never rewrite a live KB (§4.4) | it only reports; user acts |
-| `state/` file rewrite | the declared single writer | **A** (content) + D (single-writer check) | state synthesis is judgment | §7: writer check, staleness lint, git history is the archive |
+| `state.yaml` rewrite | the base's single writer via `base state` | **A** (content) + D (cap + grammar + writer check) | attention synthesis is judgment | methodology §7: cap enforced by tool, state_stale lint, git history is the archive |
 
 Reading of the table: **every [A] row has a [D] or [H] row directly downstream of it.**
 That is the design rule, not a coincidence — judgment is allowed wherever a deterministic
@@ -531,7 +532,7 @@ kbs:
 **Case 1 — work item arrives on a personal channel.** WhatsApp voice note: *"Dana says
 the Acme pipeline number needs updating before the board deck."*
 Step 2, channel tier: `personal/channel[whatsapp:*]` matches. Keyword tier is never
-reached (channel tier wins — §2.1 precedence). → written to `~/personal-kb/ops/inbox.md`,
+reached (channel tier wins — §2.1 precedence). → written to `~/personal-kb/raw/captures/ (triage: pending)`,
 `method: rule`. Nightly drain [A] re-reads it, recognizes work content — but work is
 **shared**, so it *proposes* the move in `_ops/needs-review.md`; the user approves next
 morning; the move executes as `method: explicit`. **Net effect: a work item captured in
@@ -543,15 +544,15 @@ deterministic knob, not more LLM.)
 **Case 2 — ambiguous item.** Typed directly to the main agent (no channel binding):
 *"call the accountant about the invoices."* No rule hit. Step 3: classifier candidates =
 {personal, mgmt} (work excluded — shared). Returns `{kb: personal, confidence: 0.58}` —
-below 0.7. Step 4: → `~/personal-kb/ops/inbox.md`, `method: default, status: uncertain,
+below 0.7. Step 4: → `~/personal-kb/raw/captures/ (triage: pending)`, `method: default, status: uncertain,
 confidence: 0.58`. Drain handles it at leisure. Capture cost: one cheap call, no prompt.
 
 **Case 3 — explicit tag.** *"work: pricing objection from the TailorMade call — log
 it."* Step 1 fires. Work is shared, but explicit writes to shared KBs are allowed
 (§4.3: "rule-matched **or explicitly tagged** writes only"). Authz: the capturing
-capability holds `route-into ops/inbox.md` in *work's* grant table (requested at
+capability holds `route-into raw/captures/**` in *work's* grant table (requested at
 install; a colleague reviewing the shared repo can see exactly that grant row and who
-approved it). → `~/work-kb/ops/inbox.md`, `method: explicit`.
+approved it). → `~/work-kb/raw/captures/`, `method: explicit`.
 
 **Case 4 — obviously-work item, no rule match, high LLM confidence.** *"Note: the
 cohort analysis should use 90-day windows."* No channel binding, no keyword hit. The
@@ -565,64 +566,34 @@ machine-classified content into a repo other people pull.*
 
 **Case 5 — unknown capability writes to an ungranted zone.** A freshly-sideloaded
 capability (never installed via §3.3, so no grant rows) tries to write
-`~/mgmt-kb/state/PIPELINE.md`. Authz lookup: no row → **refused**. `capability:kb`
-appends to mgmt's `log.md`: `2026-07-17T15:02+03:00 | kb | refuse | state/PIPELINE.md |
+`~/mgmt-kb/state.yaml`. Authz lookup: no row → **refused**. `capability:kb`
+appends to mgmt's `log.md`: `2026-07-17T15:02+03:00 | kb | refuse | state.yaml |
 capability:sideload-x via agent:main — no grant; parked` and a block in
 `_ops/needs-review.md` with the attempted payload's summary. The user sees it in the
 next brief and either installs the capability properly (grants via §3.3) or removes it.
 If the capability *ignores the skill contract and writes anyway* (the cooperative
 model's limit): the weekly lint's git-diff audit finds a commit touching
-`state/PIPELINE.md` by an author with no matching grant → violation flagged, user
+`state.yaml` by an author with no matching grant → violation flagged, user
 alerted. Caught after the fact — which is exactly what §4.5 promises, no more.
 
 ---
 
-## 7. `state/` rolling-window mechanics
+## 7. State — moved
 
-### 7.1 What state files are (normative, §4.4 pillar 2)
+State mechanics live in the engine design now: **[kb-methodology.md §7](kb-methodology.md)**
+(one capped `state.yaml` per base — the rolling attention window; single logical writer;
+bump-on-use; Archiver-proposed evictions; the `state_stale` lint predicate; cold-start
+composition across bases, private first). What remains authorization-relevant here:
 
-High-churn files holding *what is going on right now* — the production set: `STATE.md`,
-`PIPELINE.md`, `NORTH_STAR.md`, `SOUL.md`, `LEARNINGS.md`, `CAREER.md`, plus ephemeral
-per-effort files. Unlike `raw/` (append-only) and Layer 2 (accumulating), state is
-**rewritten in place** — always current, never an archive. The archive of state *is git
-history*: no `.backup` files (the `STATE.md.backup.*` artifacts observed in the live KB
-are exactly the anti-pattern lint flags), no dated copies; `git log -p state/STATE.md`
-is the time machine.
-
-### 7.2 Rules
-
-1. **Single writer per state file** — exactly one subject, whoever holds the narrowest
-   matching `write` grant (the production table already does this: `state/STATE.md →
-   agent:main`). Lint enforces: two distinct authors touching one state file inside a
-   lint window → violation. This is the file-level version of the production "one writer
-   per file per minute" rule, made structural where it matters most.
-2. **Whole-file rewrite, not append** — state files don't grow; they are re-synthesized.
-   Anything worth keeping long-term is *promoted* to Layer 2 by the writer before it
-   rotates out of the window (log verb `promote`).
-3. **Capabilities declare state usage** — **(proposed)** manifest extension; plausibly
-   already meets rule-of-two (gtd-capture reads STATE.md context; time-blocking reads
-   working-hours state; personal-trainer writes its own state file), but graduates only
-   when the second in-repo consumer is real:
-
-   ```yaml
-   kb:
-     writes: [inbox]
-     state:
-       reads: [state/STATE.md]        # cold-start context this capability loads
-       owns:
-         - file: state/gym-log.md     # a state file this capability's agent maintains
-           writer: trainer            # must match an agents/*.agent.yaml name
-           stale_after: 7d            # lint flags if not rewritten within window
-   ```
-
-   `owns` entries become `write` grant-row requests at install (§3.3), giving the
-   single-writer rule its subject for free.
-4. **Staleness [D]** — every state file carries `updated:` frontmatter; lint compares
-   against `stale_after` (default **(proposed)**: 14d) and flags stale state to
-   `_ops/needs-review.md`. Readers' contract: a stale flag means *treat as advisory,
-   verify before acting* — a stale STATE.md silently believed is how an agent
-   confidently acts on last month's reality, which is the failure mode this whole pillar
-   exists to prevent.
+- The **single writer** is named by the narrowest matching `write` grant on `state.yaml`
+  (the table in §2.2 does this: `agent:main`). Two distinct authors touching it inside a
+  lint window → violation.
+- Slow-tempo identity documents (north star, principles, career) are ordinary wiki pages
+  in `profile/` — high-stakes grants apply (`profile/**` row in §2.2), and changes are
+  surfaced to the user.
+- The former per-capability `kb.state` manifest extension remains **(proposed)** and
+  deferred by rule-of-two: capabilities that read state for cold-start context do so via
+  the ordinary read grant; a capability *owning* a state item has no consumer yet.
 
 ---
 
@@ -641,11 +612,9 @@ is the time machine.
 3. **Does drain-approval batch? (RFC-006.)** Is *batch* approval ("approve all 7 pending
    work moves") acceptable, or does the trust-terminating stake require per-item review?
    Queue ergonomics vs. the whole point of the review gate.
-4. **Where does the [D] set physically run? (RFC-004.)** Grant-table parse, glob match,
-   git-diff zone audit, log-format checks — prose-executed by LLMs, or the helper tool?
-   The zone audit is the strongest backstop in §4.5 and the weakest candidate for prose
-   execution (glob math over git history is exactly what LLMs fumble silently). If
-   RFC-004 lands *any* tool, this audit should be in it.
+4. ~~Where does the [D] set physically run?~~ **Answered (RFC-004, 2026-07-23):** in the
+   capability-shipped `base` tool — grant-table parse, glob match, git-diff zone audit,
+   log-format checks are tool verbs; prose execution is the documented degraded mode.
 5. **Grant afterlife on capability removal.** Removal deletes `via`-matched rows — but
    the zone's *data* remains. Does the departing capability's zone lose its writer
    (frozen, read-only, lint-flagged orphan) or transfer to `user`? Proposed default:
