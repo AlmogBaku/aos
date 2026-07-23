@@ -61,8 +61,26 @@ function runExpectations(expName, roots) {
   }
   for (const ref of exp.origin_tag_roots ?? []) {
     const dir = resolveRef(roots, ref);
-    for (const f of walk(dir ?? '')) {
+    if (!dir) continue;
+    // Harness-owned bundled skills (seeded by `hermes profile create`, listed in the
+    // profile's own .bundled_manifest) are pre-existing content, not aos artifacts —
+    // the origin-tag rule applies to what the INSTALL materialized.
+    const bundled = new Set();
+    const manifest = join(dir, '.bundled_manifest');
+    if (existsSync(manifest)) {
+      for (const line of readFileSync(manifest, 'utf8').split('\n')) {
+        const name = line.split(':')[0].trim();
+        if (name) bundled.add(name);
+      }
+    }
+    for (const f of walk(dir)) {
       if (!f.endsWith('SKILL.md')) continue;
+      const relParts = f.slice(dir.length + 1).split('/');
+      // aos materializes skills as top-level `<capability>-<id>/` dirs (cheat-sheet
+      // rule); anything nested deeper is harness-owned category content. Bundled
+      // names from the manifest are exempt either way.
+      if (relParts.length !== 2) continue;
+      if (bundled.has(relParts[0]) || relParts[0] === '.hub') continue;
       if (!readFileSync(f, 'utf8').includes(`${ORIGIN_FRONTMATTER_KEY}:`)) {
         fail('golden/origin-tag', `${expName}: ${f} lacks ${ORIGIN_FRONTMATTER_KEY}`);
       }

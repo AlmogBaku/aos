@@ -16,7 +16,7 @@ methodology KB (the pre-redesign layout). `base import survey` detects this shap
 | v1 source | v2 destination | treatment |
 |---|---|---|
 | `SCHEMA.md` TYPES vocabulary | `BASE.yaml types` | seed the target's types at init |
-| `raw/**` | `raw/**` (same subpaths) | verbatim copy — already provenanced (sha preserved); never rewrite |
+| `raw/**` | `raw/**` (same subpaths) | copy — already provenanced (`source_sha256` preserved); content never rewritten. One field translates: legacy `triage` values map `capture`→`pending`, `promoted`/`archived`/`dropped`→`done` (v2 vocabulary) |
 | `entities/ concepts/ comparisons/ queries/ projects/ domains/` | wiki zones per agreement | **transform** (rules below) |
 | `ops/inbox.md` list lines | pending captures | one `base capture` per line |
 | `state/STATE.md`, `PIPELINE.md` | `state.yaml` | **the state conversation** (below) |

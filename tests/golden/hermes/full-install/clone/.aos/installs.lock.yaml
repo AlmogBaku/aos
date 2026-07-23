@@ -1,188 +1,361 @@
-version: 1
-harness: hermes
-install_home: /home/anakin/.hermes/profiles/aos-test
-overlay_sources:
-- /home/anakin/aos/tests/.sandbox/aos-clone/MOD.md
-- /home/anakin/aos/tests/.sandbox/aos-clone/kb-registry.yaml
-- /home/anakin/aos/tests/.sandbox/aos-clone/capabilities/kb/MOD.md
-- /home/anakin/aos/tests/.sandbox/aos-clone/capabilities/gtd-capture/MOD.md
-created_profiles:
-- aos-test
-- aos-archiver
-- aos-drainer
-config_keys:
-- profile: aos-test
-  key: model.default
-  value: gpt-5.6-luna
-- profile: aos-archiver
-  key: model.default
-  value: gpt-5.6-luna
-- profile: aos-drainer
-  key: model.default
-  value: gpt-5.6-luna
-capabilities:
-  kb:
-    version: 0.2.0
-    profiles:
-    - aos-test
-    - aos-archiver
-    schedules_owned:
-    - profile: aos-archiver
-      id: nightly-promote
-      job_id: <ID>
-      name: aos:kb:nightly-promote
-    - profile: aos-archiver
-      id: weekly-lint
-      job_id: <ID>
-      name: aos:kb:weekly-lint
-    - profile: aos-archiver
-      id: sync
-      job_id: <ID>
-      name: aos:kb:sync
-    kbs_initialized:
-    - personal-kb
-    - acme-kb
-    degraded_modes: []
-  onboarding:
-    version: 0.1.1
-    profiles:
-    - aos-test
-    schedules_owned: []
-  gtd-capture:
-    version: 0.1.1
-    profiles:
-    - aos-test
-    - aos-drainer
-    schedules_owned:
-    - profile: aos-drainer
-      id: nightly-drain
-      job_id: <ID>
-      name: aos:gtd-capture:nightly-drain
-    degraded_modes:
-    - 'messaging.outbound: reminders use local delivery/reporting because the namespaced
-      profiles have no outbound messaging'
-artifacts:
-- path: /home/anakin/.hermes/profiles/aos-archiver/SOUL.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-archiver/config.yaml
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-archiver/cron/jobs.json
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-archiver/scripts/kb-sync-all.sh
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-archiver/skills/kb-kb/SKILL.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-archiver/skills/kb-kb/reference/grants.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-archiver/skills/kb-kb/reference/lifecycle.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-archiver/skills/kb-kb/reference/wiring.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-archiver/skills/kb-kb/scripts/base.py
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-drainer/SOUL.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-drainer/config.yaml
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-drainer/cron/jobs.json
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-drainer/skills/gtd-capture-drain/SKILL.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-drainer/skills/gtd-capture-drain/drain-prompt.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-drainer/skills/gtd-capture-format-entry/SKILL.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/SOUL.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/config.yaml
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/gtd-capture-capture/SKILL.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/gtd-capture-capture/sections/entry-format.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/gtd-capture-format-entry/SKILL.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-adopt/SKILL.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/SKILL.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/BASE.yaml
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/index.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/log.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/state.yaml
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/zones/_ops.AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/zones/entities.AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/zones/profile.AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/zones/raw.AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-kb/SKILL.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-kb/reference/grants.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-kb/reference/lifecycle.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-kb/reference/wiring.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-kb/scripts/base.py
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-recall/SKILL.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-route/SKILL.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/onboarding-interview/SKILL.md
-  sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/onboarding-interview/sections/answer-validation.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/.gitignore
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/BASE.yaml
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/_ops/AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/entities/AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/index.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/log.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/ops/inbox.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/profile/AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/raw/AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/state.yaml
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/.gitignore
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/BASE.yaml
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/_ops/AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/entities/AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/index.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/log.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/ops/inbox.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/profile/AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/raw/AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/state.yaml
-  sha256: <SHA256>
+{
+  "version": 1,
+  "harness": "hermes",
+  "install_home": "/home/anakin/.hermes/profiles/aos-test",
+  "overlay_sources": [
+    "/home/anakin/aos/tests/.sandbox/aos-clone/MOD.md",
+    "/home/anakin/aos/tests/.sandbox/aos-clone/kb-registry.yaml",
+    "/home/anakin/aos/tests/.sandbox/aos-clone/capabilities/kb/MOD.md",
+    "/home/anakin/aos/tests/.sandbox/aos-clone/capabilities/gtd-capture/MOD.md"
+  ],
+  "created_profiles": [
+    "aos-test",
+    "aos-archiver",
+    "aos-drainer"
+  ],
+  "config_keys": [
+    {
+      "profile": "aos-test",
+      "key": "model.default",
+      "value": "gpt-5.6-luna"
+    },
+    {
+      "profile": "aos-archiver",
+      "key": "model.default",
+      "value": "gpt-5.6-luna"
+    },
+    {
+      "profile": "aos-drainer",
+      "key": "model.default",
+      "value": "gpt-5.6-luna"
+    }
+  ],
+  "tool_installs": [
+    {
+      "command": "uv tool install --from /home/anakin/aos/tests/.sandbox/aos-clone/capabilities/kb/tool aos-base",
+      "package": "aos-base==0.3.0",
+      "executable": "base"
+    }
+  ],
+  "capabilities": {
+    "kb": {
+      "version": "0.3.0",
+      "profiles": [
+        "aos-test",
+        "aos-archiver"
+      ],
+      "schedules_owned": [
+        {
+          "profile": "aos-archiver",
+          "id": "nightly-promote",
+          "job_id": "<ID>",
+          "name": "aos:kb:nightly-promote"
+        },
+        {
+          "profile": "aos-archiver",
+          "id": "weekly-lint",
+          "job_id": "<ID>",
+          "name": "aos:kb:weekly-lint"
+        },
+        {
+          "profile": "aos-archiver",
+          "id": "sync",
+          "job_id": "<ID>",
+          "name": "aos:kb:sync"
+        }
+      ],
+      "kbs_initialized": [
+        "personal-kb",
+        "acme-kb"
+      ],
+      "degraded_modes": []
+    },
+    "onboarding": {
+      "version": "0.1.1",
+      "profiles": [
+        "aos-test"
+      ],
+      "schedules_owned": []
+    },
+    "gtd-capture": {
+      "version": "0.1.1",
+      "profiles": [
+        "aos-test",
+        "aos-drainer"
+      ],
+      "schedules_owned": [
+        {
+          "profile": "aos-drainer",
+          "id": "nightly-drain",
+          "job_id": "<ID>",
+          "name": "aos:gtd-capture:nightly-drain"
+        }
+      ],
+      "degraded_modes": [
+        "messaging.outbound: reminders use local delivery/reporting because the namespaced profiles have no outbound messaging"
+      ]
+    }
+  },
+  "artifacts": [
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-archiver/SOUL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-archiver/config.yaml",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-archiver/cron/jobs.json",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-archiver/scripts/kb-sync-all.sh",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-archiver/skills/kb-kb/SKILL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-archiver/skills/kb-kb/reference/grants.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-archiver/skills/kb-kb/reference/lifecycle.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-archiver/skills/kb-kb/reference/wiring.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-drainer/SOUL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-drainer/config.yaml",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-drainer/cron/jobs.json",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-drainer/skills/gtd-capture-drain/SKILL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-drainer/skills/gtd-capture-drain/drain-prompt.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-drainer/skills/gtd-capture-format-entry/SKILL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/SOUL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/config.yaml",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/gtd-capture-capture/SKILL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/gtd-capture-capture/sections/entry-format.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/gtd-capture-format-entry/SKILL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-adopt/SKILL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-import/SKILL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-import/reference/v1-migration.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-init/SKILL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/BASE.yaml",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/gitattributes",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/index.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/log.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/state.yaml",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/zones/_ops.AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/zones/entities.AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/zones/profile.AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/zones/raw.AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-kb/SKILL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-kb/reference/grants.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-kb/reference/lifecycle.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-kb/reference/wiring.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-recall/SKILL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/kb-route/SKILL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/onboarding-interview/SKILL.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/.hermes/profiles/aos-test/skills/onboarding-interview/sections/answer-validation.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/acme-kb/.gitattributes",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/acme-kb/.gitignore",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/acme-kb/AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/acme-kb/BASE.yaml",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/acme-kb/_ops/AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/acme-kb/entities/AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/acme-kb/index.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/acme-kb/log.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/acme-kb/ops/inbox.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/acme-kb/profile/AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/acme-kb/raw/AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/acme-kb/state.yaml",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/personal-kb/.gitattributes",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/personal-kb/.gitignore",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/personal-kb/AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/personal-kb/BASE.yaml",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/personal-kb/_ops/AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/personal-kb/entities/AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/personal-kb/index.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/personal-kb/log.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/personal-kb/ops/inbox.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/personal-kb/profile/AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/personal-kb/raw/AGENTS.md",
+      "sha256": "<SHA256>"
+    },
+    {
+      "path": "/home/anakin/aos/tests/.sandbox/kb/personal-kb/state.yaml",
+      "sha256": "<SHA256>"
+    }
+  ]
+}

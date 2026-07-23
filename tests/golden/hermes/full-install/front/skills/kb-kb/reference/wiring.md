@@ -11,7 +11,7 @@
 |---|---|---|---|
 | `nightly-promote` | agent (archiver) | 23:30 | drain pending captures → skeptical promotion (after gtd-capture's 23:00 drain) |
 | `weekly-lint` | agent (archiver) | Sat 07:00 | `base lint --write-report` per base + judgment surfacing |
-| `sync` | **exec** | */5 min | `base.py sync --all` — script-direct, **no LLM wakes up** |
+| `sync` | **exec** | */5 min | `base sync --all` — script-direct, **no LLM wakes up** |
 
 Single-owner rule: each schedule runs in exactly one harness at a time.
 
@@ -21,10 +21,12 @@ The tool is harness-blind (registry/BASE.yaml in; files + exit codes out). Per-h
 variance is **composition in the wrapper the installing LLM writes**, per the
 cheat-sheet:
 
-- Invocation: `uv run <clone>/capabilities/kb/skills/kb/scripts/base.py …`
-  (uvx/pipx fallback; `uv` is a one-line install if missing).
-- Cron: e.g. Hermes `hermes cron create … -- uv run …/base.py sync --all` as a
-  script-only job.
+- The tool: installed once at capability install — `uv tool install --from
+  <clone>/capabilities/kb/tool aos-base` → the `base` command on PATH (lockfile
+  records it; removal uninstalls). One-off/degraded: `uvx --from
+  <clone>/capabilities/kb/tool base …`; `uv` itself is a one-line install.
+- Cron: e.g. Hermes `hermes cron create … -- base sync --all` as a script-only
+  job.
 - Surfacing: optionally compose a notifier around the exec call:
   `… sync --all || <harness-notify "base sync needs attention">`. The file bus
   (`_ops/needs-review.md`, `log.md`, exit codes) is the portable interface either way.

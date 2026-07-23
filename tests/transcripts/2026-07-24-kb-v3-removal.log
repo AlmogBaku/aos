@@ -1,0 +1,27 @@
+Removed the aos installation as requested.
+
+Removed:
+- Profiles:
+  - `aos-test`
+  - `aos-drainer`
+  - `aos-archiver`
+- 4 recorded cron jobs:
+  - `aos:kb:nightly-promote`
+  - `aos:kb:weekly-lint`
+  - `aos:kb:sync`
+  - `aos:gtd-capture:nightly-drain`
+- All materialized skills, context markers, scripts, and profile config from those profiles.
+- Recorded tool install: `uv tool uninstall aos-base` (`base` removed).
+- Lockfile: `/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+
+Preserved:
+- All overlay sources, including `MOD.md` and `kb-registry.yaml`.
+- KB trees under `/home/anakin/aos/tests/.sandbox/kb/`.
+- Root `~/.hermes/config.yaml`, verified byte-for-byte by SHA-256.
+- Other uv tools (`awscli`, `localstack`, `markdown`, `nano-pdf`, `yad2`).
+
+Verification:
+- All three target profile directories are absent.
+- No remaining `aos-test`, `aos-drainer`, or `aos-archiver` profile.
+- `aos-base` is absent from `uv tool list`.
+- `.aos/` contains no remaining files.

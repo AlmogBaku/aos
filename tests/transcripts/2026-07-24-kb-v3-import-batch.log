@@ -1,0 +1,30 @@
+Batch complete.
+
+Target:
+`/tmp/claude-1002/-home-anakin-aos/af74abc6-b33e-45a6-8fb7-afa4f12fd282/scratchpad/e2e-import/target`
+
+Completed:
+- Copied `raw/**` and `assets/*` per agreement.
+- Verified copied hashes match source:
+  - `raw/captures/2026-06-01-note.md`
+  - `raw/attachments/logo.png`
+- Transformed:
+  - `entities/people/robin-old.md`
+  - `concepts/fundraiser.md`
+- Added `timestamp`, `description`, `origin`, `source_sha256`, and `verified: true`.
+- Rewrote links to target paths.
+- Ticked both progress checklist entries.
+- Rebuilt `index.md`.
+
+Commands:
+- `base --base <target> lint` — exit 0
+- `base --base <target> index rebuild` — exit 0
+- Post-rebuild lint — exit 0
+
+Lint:
+- Critical: 0
+- Remaining finding: preserved raw file has `triage: promoted`, while lint allows `done`, `failed`, or `pending`.
+- Index drift findings resolved by rebuild.
+
+Source invariant:
+- `git diff --quiet -- tests/fixtures/import-src-v1` — unchanged, exit 0.

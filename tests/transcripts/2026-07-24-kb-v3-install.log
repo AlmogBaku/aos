@@ -1,0 +1,40 @@
+Installed successfully.
+
+Profiles:
+- `aos-test` — front agent
+- `aos-archiver` — KB archiver, model copied from `aos-test`
+- `aos-drainer` — GTD drainer, model copied from `aos-test`
+
+Capabilities:
+- `onboarding` → front agent
+- `kb` → front agent + archiver
+- `gtd-capture` → front agent + drainer
+
+KBs initialized:
+- `/home/anakin/aos/tests/.sandbox/kb/personal-kb`
+- `/home/anakin/aos/tests/.sandbox/kb/acme-kb`
+
+Tool install performed and recorded:
+- `aos-base==0.3.0`
+- Executable: `base`
+
+Schedules:
+- `aos:gtd-capture:nightly-drain` — drainer, `47 23 * * *`, job `ee8ba458b3fe`
+- `aos:kb:nightly-promote` — archiver, `30 23 * * *`, job `96021c733288`
+- `aos:kb:weekly-lint` — archiver, `0 7 * * 6`, job `01be85dec172`
+- `aos:kb:sync` — archiver, `*/5 * * * *`, deterministic no-agent script, job `40ca6de715d4`
+
+Lockfile:
+`/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+
+Verification passed:
+- Required materialized files present
+- Forbidden cross-profile skills absent
+- All lockfile hashes match
+- All three capabilities recorded
+- Both KBs pass `base lint`
+- Sync script executes successfully
+- Schedule ownership and names verified
+- Personalized sentinels present (`🦜`, `23:47`, sacred-time rule, `base sync --all`)
+
+The repository’s live golden checker still reports failures because `aos-test` already contained unrelated bundled skills without `x-aos-origin` tags. Those are pre-existing profile contents; the installed AOS artifacts themselves pass the targeted checks.

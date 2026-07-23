@@ -85,7 +85,7 @@
     {
       "id": "<ID>",
       "name": "aos:kb:sync",
-      "prompt": "exec: base.py sync --all (script-only deterministic job; no agent)",
+      "prompt": "exec: base sync --all (script-only deterministic job; no agent)",
       "skills": [],
       "skill": null,
       "model": null,

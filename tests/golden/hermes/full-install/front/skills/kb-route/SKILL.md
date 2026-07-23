@@ -1,7 +1,7 @@
 ---
 name: route
 description: "Resolves a write intent to a target base (knowledge base) using the registry. Use when any capability captures or files content and the destination base is not explicit — rules first, LLM only above a confidence bar, never blocking the capture."
-x-aos-origin: kb@0.2.0
+x-aos-origin: kb@0.3.0
 ---
 
 # route

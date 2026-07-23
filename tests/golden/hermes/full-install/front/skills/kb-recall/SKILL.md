@@ -1,7 +1,7 @@
 ---
 name: recall
 description: "Answers questions from the user's bases (knowledge bases) with citations. Use when asked 'what do I know about X', 'where do things stand with Y', when a capability needs stored knowledge or user context, or before research — check the bases first."
-x-aos-origin: kb@0.2.0
+x-aos-origin: kb@0.3.0
 ---
 
 # recall
