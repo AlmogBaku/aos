@@ -479,9 +479,11 @@ create**.
 
 ## 9. The `base` tool
 
-The capability-shipped deterministic executor (ARCHITECTURE §2.4), bundled in the entry
-skill (`skills/kb/scripts/base.py`, single file, PEP 723 inline deps, run via `uv run`;
-language is a build-time choice, not spec — the contract is the verb set and boundary).
+The capability-shipped deterministic executor (ARCHITECTURE §2.4) — an installable
+package under `capabilities/kb/tool/` (`uv tool install --from <clone>/capabilities/kb/tool
+aos-base` at capability install → the `base` command on PATH; one-off/degraded:
+`uvx --from <clone>/capabilities/kb/tool base`). Language and packaging are build-time
+choices, not spec — the contract is the verb set and boundary.
 
 | Verb | Does | Notes |
 |---|---|---|
@@ -515,8 +517,9 @@ subdirectory:
 ```
 capabilities/kb/
   CAPABILITY.md  README.md  ONBOARDING.md  MOD.example.md
+  tool/            # the `base` tool — installable uv package (pyproject + src/)
   skills/
-    kb/            # ENTRY skill (used_by: main + archiver): the map + reference/ + scripts/base.py
+    kb/            # ENTRY skill (used_by: main + archiver): the map + reference/
     route/         # write-path judgment (kb-authorization.md §4.2)
     recall/        # read-path judgment (§8)
     init/          # interview → BASE.yaml → `base init`; templates/ bundled
