@@ -13,7 +13,7 @@ For each untriaged entry (no `#triaged` tag), oldest first:
 
 1. `#correction` entries first: apply to whatever they supersede.
 2. Actionable, < 2 min of agent work → do it now, note the outcome.
-3. Actionable task → write/update the next-action per the user's `action_format` answer (verb-first):
+3. Actionable task → write/update the next-action per the user's `action_format` answer:
    the owning `projects/` page's `next_action` frontmatter, or the tasks list for
    standalone items. Deadline phrasing → set a reminder.
 4. Not actionable (reference, idea, fact) → leave it; promote files knowledge.
@@ -24,7 +24,8 @@ For each untriaged entry (no `#triaged` tag), oldest first:
 7. `#kb-routing-uncertain` entries: obvious private-KB home → note the re-route for the
    archiver. Shared-KB home → propose in `_ops/needs-review.md`, never auto.
 
-Constraints from the global MOD.md: timezone Europe/Lisbon; working hours 9:00–18:00 weekdays, quiet Fridays. A reminder never fires inside choir practice Thursdays 19:00–21:00 — move it to the window's end. Never send messages as the user without showing a draft; never spend money.
+Constraints from the global MOD.md: a reminder never fires inside a sacred-time window —
+move it to the window's end. Red lines apply.
 
 Close with the drain report (actions created, reminders set, two-minute items done),
 delivered per the schedule. Nothing untriaged → output exactly `DRAIN: inbox clean.` and

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-set -u
-status=0
-for kb in personal-kb acme-kb; do
-  /home/anakin/.hermes/profiles/aos-archiver/scripts/kb-sync.sh "/home/anakin/aos/tests/.sandbox/kb/$kb" || status=$?
-done
-exit "$status"
+set -euo pipefail
+cd /home/anakin/aos/tests/.sandbox/aos-clone
+export AOS_REGISTRY=/home/anakin/aos/tests/.sandbox/aos-clone/kb-registry.yaml
+export AOS_AGENT=archiver
+exec uv run /home/anakin/aos/tests/.sandbox/aos-clone/capabilities/kb/skills/kb/scripts/base.py sync --all

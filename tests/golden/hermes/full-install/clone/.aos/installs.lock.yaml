@@ -22,7 +22,7 @@ config_keys:
   value: gpt-5.6-luna
 capabilities:
   kb:
-    version: 0.1.3
+    version: 0.2.0
     profiles:
     - aos-test
     - aos-archiver
@@ -36,9 +36,9 @@ capabilities:
       job_id: <ID>
       name: aos:kb:weekly-lint
     - profile: aos-archiver
-      id: kb-sync
+      id: sync
       job_id: <ID>
-      name: aos:kb:kb-sync
+      name: aos:kb:sync
     kbs_initialized:
     - personal-kb
     - acme-kb
@@ -59,8 +59,8 @@ capabilities:
       job_id: <ID>
       name: aos:gtd-capture:nightly-drain
     degraded_modes:
-    - 'messaging.outbound: reminders use local schedule delivery and are reported
-      when outbound delivery is unavailable'
+    - 'messaging.outbound: reminders use local delivery/reporting because the namespaced
+      profiles have no outbound messaging'
 artifacts:
 - path: /home/anakin/.hermes/profiles/aos-archiver/SOUL.md
   sha256: <SHA256>
@@ -70,11 +70,15 @@ artifacts:
   sha256: <SHA256>
 - path: /home/anakin/.hermes/profiles/aos-archiver/scripts/kb-sync-all.sh
   sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-archiver/scripts/kb-sync.sh
+- path: /home/anakin/.hermes/profiles/aos-archiver/skills/kb-kb/SKILL.md
   sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-archiver/skills/kb-authz-check/SKILL.md
+- path: /home/anakin/.hermes/profiles/aos-archiver/skills/kb-kb/reference/grants.md
   sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-archiver/skills/kb-lint/SKILL.md
+- path: /home/anakin/.hermes/profiles/aos-archiver/skills/kb-kb/reference/lifecycle.md
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-archiver/skills/kb-kb/reference/wiring.md
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-archiver/skills/kb-kb/scripts/base.py
   sha256: <SHA256>
 - path: /home/anakin/.hermes/profiles/aos-drainer/SOUL.md
   sha256: <SHA256>
@@ -100,9 +104,37 @@ artifacts:
   sha256: <SHA256>
 - path: /home/anakin/.hermes/profiles/aos-test/skills/kb-adopt/SKILL.md
   sha256: <SHA256>
-- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-authz-check/SKILL.md
-  sha256: <SHA256>
 - path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/SKILL.md
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/AGENTS.md
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/BASE.yaml
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/index.md
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/log.md
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/state.yaml
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/zones/_ops.AGENTS.md
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/zones/entities.AGENTS.md
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/zones/profile.AGENTS.md
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-init/templates/zones/raw.AGENTS.md
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-kb/SKILL.md
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-kb/reference/grants.md
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-kb/reference/lifecycle.md
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-kb/reference/wiring.md
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-kb/scripts/base.py
+  sha256: <SHA256>
+- path: /home/anakin/.hermes/profiles/aos-test/skills/kb-recall/SKILL.md
   sha256: <SHA256>
 - path: /home/anakin/.hermes/profiles/aos-test/skills/kb-route/SKILL.md
   sha256: <SHA256>
@@ -110,139 +142,47 @@ artifacts:
   sha256: <SHA256>
 - path: /home/anakin/.hermes/profiles/aos-test/skills/onboarding-interview/sections/answer-validation.md
   sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/.gitattributes
-  sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/.gitignore
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/AGENTS.md
   sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/SCHEMA.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/_archive/captures/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/_ops/.gitkeep
+- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/BASE.yaml
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/_ops/AGENTS.md
   sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/comparisons/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/concepts/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/domains/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/drafts/.gitkeep
-  sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/entities/AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/entities/communities/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/entities/companies/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/entities/people/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/entities/products/.gitkeep
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/index.md
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/log.md
   sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/ops/AGENTS.md
-  sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/ops/inbox.md
   sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/ops/reviews/closeouts/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/ops/reviews/monthly/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/ops/reviews/weekly/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/ops/tasks/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/projects/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/queries/.gitkeep
+- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/profile/AGENTS.md
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/raw/AGENTS.md
   sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/raw/calendar/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/raw/captures/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/raw/clippings/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/raw/emails/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/raw/meetings/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/state/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/state/AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/.gitattributes
+- path: /home/anakin/aos/tests/.sandbox/kb/acme-kb/state.yaml
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/.gitignore
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/AGENTS.md
   sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/SCHEMA.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/_archive/captures/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/_ops/.gitkeep
+- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/BASE.yaml
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/_ops/AGENTS.md
   sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/comparisons/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/concepts/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/domains/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/drafts/.gitkeep
-  sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/entities/AGENTS.md
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/entities/communities/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/entities/companies/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/entities/people/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/entities/products/.gitkeep
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/index.md
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/log.md
   sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/ops/AGENTS.md
-  sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/ops/inbox.md
   sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/ops/reviews/closeouts/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/ops/reviews/monthly/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/ops/reviews/weekly/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/ops/tasks/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/projects/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/queries/.gitkeep
+- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/profile/AGENTS.md
   sha256: <SHA256>
 - path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/raw/AGENTS.md
   sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/raw/calendar/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/raw/captures/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/raw/clippings/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/raw/emails/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/raw/meetings/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/state/.gitkeep
-  sha256: <SHA256>
-- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/state/AGENTS.md
+- path: /home/anakin/aos/tests/.sandbox/kb/personal-kb/state.yaml
   sha256: <SHA256>

@@ -347,15 +347,24 @@ def cmd_init(args):
                        cwd=root, check=False)
 
     reg = load_registry(args)
-    if any(k.get("name") == args.name for k in reg["kbs"]):
-        die(f"base {args.name!r} already registered")
-    entry = {"name": args.name, "tag": args.tag or args.name,
-             "path": str(root), "remote": args.remote,
-             "sync": args.sync, "audience": args.audience,
-             "methodology": "karpathy-llm-wiki",
-             "purpose": (args.purpose or "").strip(),
-             "routing": {"channels": [], "keywords": []}}
-    reg["kbs"].append(entry)
+    existing = next((k for k in reg["kbs"] if k.get("name") == args.name), None)
+    if existing:
+        # A pre-seeded registry entry (interview ran first) is fine iff it points at
+        # this path and the tree doesn't exist yet — init fills it in. Anything else
+        # is a genuine duplicate.
+        if Path(existing.get("path", "")).expanduser().resolve() != root:
+            die(f"base {args.name!r} already registered at a different path")
+        existing.setdefault("tag", args.tag or args.name)
+        if (args.purpose or "").strip():
+            existing["purpose"] = args.purpose.strip()
+    else:
+        entry = {"name": args.name, "tag": args.tag or args.name,
+                 "path": str(root), "remote": args.remote,
+                 "sync": args.sync, "audience": args.audience,
+                 "methodology": "karpathy-llm-wiki",
+                 "purpose": (args.purpose or "").strip(),
+                 "routing": {"channels": [], "keywords": []}}
+        reg["kbs"].append(entry)
     if args.default or not reg.get("default"):
         reg["default"] = args.name
     reg.setdefault("confidence_bar", 0.7)

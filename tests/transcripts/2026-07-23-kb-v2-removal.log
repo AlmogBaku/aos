@@ -1,0 +1,36 @@
+Removed per the CHEATSHEET Removal order:
+
+- Cron jobs via Hermes CLI:
+  - `aos:kb:nightly-promote` (`cf2ef119f973`)
+  - `aos:kb:weekly-lint` (`fbd300ec9c0d`)
+  - `aos:kb:sync` (`488a4d0e933f`)
+  - `aos:gtd-capture:nightly-drain` (`f73941169672`)
+- No cron output artifacts existed.
+- Materialized capability skills from the three target profiles:
+  - `kb-kb`
+  - `kb-adopt`, `kb-init`, `kb-recall`, `kb-route`
+  - `gtd-capture-capture`, `gtd-capture-drain`, `gtd-capture-format-entry`
+  - `onboarding-interview`
+- Recorded script: `aos-archiver/scripts/kb-sync-all.sh`
+- Capability marker blocks from the three profile `SOUL.md` files.
+- Recorded `model.default` config keys from all three profiles.
+- Deleted the created profiles:
+  - `aos-test`
+  - `aos-drainer`
+  - `aos-archiver`
+
+Updated:
+
+`/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+
+Its `created_profiles`, `config_keys`, `capabilities`, and `artifacts` entries are now empty. Overlay source paths remain recorded.
+
+Verified:
+
+- All three target profiles are absent.
+- No target cron output directories or capability references remain.
+- Root `~/.hermes/config.yaml` and `~/.hermes/SOUL.md` hashes are unchanged.
+- Clone overlays remain intact.
+- KB trees were not deleted:
+  - `personal-kb`: 54 files
+  - `acme-kb`: 51 files

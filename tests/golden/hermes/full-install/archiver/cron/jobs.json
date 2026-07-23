@@ -3,14 +3,14 @@
     {
       "id": "<ID>",
       "name": "aos:kb:nightly-promote",
-      "prompt": "Run the kb authz-check and promote pass over every registered KB. Read each KB AGENTS.md, SCHEMA.md, index.md, and log.md first. Drain #triaged entries into immutable raw storage, synthesize only mechanically, never load state/ or message the user; route judgment calls to that KB _ops/needs-review.md. Report past-tense and third-person.",
+      "prompt": "Run the kb archiver promote pass over every registered KB: drain pending captures, promote skeptically, and write all uncertain judgments to each base's _ops/needs-review.md. Use the kb skill and base tool. Never message the user.",
       "skills": [
-        "kb-authz-check"
+        "kb-kb"
       ],
-      "skill": "kb-authz-check",
+      "skill": "kb-kb",
       "model": null,
       "provider": null,
-      "provider_snapshot": "bedrock",
+      "provider_snapshot": null,
       "model_snapshot": "gpt-5.6-luna",
       "base_url": null,
       "script": null,
@@ -44,14 +44,14 @@
     {
       "id": "<ID>",
       "name": "aos:kb:weekly-lint",
-      "prompt": "Run the kb-lint skill against every registered KB. Produce the methodology lint report under each KB _ops/ directory. Check schema, structure, links, grants audit, drain SLA, and schedule liveness; surface findings without fixing contested facts.",
+      "prompt": "Run the kb weekly lint pass over every registered KB with the base tool. Report findings to the review queue; do not silently rewrite user content and never message the user.",
       "skills": [
-        "kb-lint"
+        "kb-kb"
       ],
-      "skill": "kb-lint",
+      "skill": "kb-kb",
       "model": null,
       "provider": null,
-      "provider_snapshot": "bedrock",
+      "provider_snapshot": null,
       "model_snapshot": "gpt-5.6-luna",
       "base_url": null,
       "script": null,
@@ -84,8 +84,8 @@
     },
     {
       "id": "<ID>",
-      "name": "aos:kb:kb-sync",
-      "prompt": "",
+      "name": "aos:kb:sync",
+      "prompt": "exec: base.py sync --all (script-only deterministic job; no agent)",
       "skills": [],
       "skill": null,
       "model": null,

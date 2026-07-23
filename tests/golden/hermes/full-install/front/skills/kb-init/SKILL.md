@@ -1,52 +1,52 @@
 ---
 name: init
-description: Creates a new knowledge base from a methodology's init templates and registers it. Use when the user wants a fresh KB ("kb init personal"), including during bootstrap when no KB exists yet.
-x-aos-origin: kb@0.1.3
+description: "Creates a new base (knowledge base) — interview, BASE.yaml, scaffold, register, schedule. Use when the user wants a fresh base ('create a work base', 'kb init personal'), including during bootstrap when no base exists yet."
+x-aos-origin: kb@0.2.0
 ---
 
 # init
 
-`kb init <name>` — scaffold, register, schedule. Init is not done until the archiver's
-schedules exist (or their degraded mode is materialized): an unscheduled maintainer means
-an undrained inbox and an unenforced contract.
+**Invariant: init is not done until the schedules exist** (or their degraded mode is
+materialized) — an unscheduled maintainer means an undrained inbox and an unenforced
+contract.
 
-1. **[D]** Confirm (usually answered in the kb interview): name, path (default
-   `~/<name>-kb`), remote (optional), `audience: private | shared` (default private),
-   one-paragraph `purpose` (doubles as the router's LLM rubric), channel bindings.
-2. **[D]** Scaffold from `methodologies/karpathy-llm-wiki/init/`: root contract set
-   (`AGENTS.md`, `SCHEMA.md`, `index.md`, `log.md`), zone `AGENTS.md` files, directory
-   tree per `init/TREE.md`. Fill `{{kb_name}}`, `{{today}}`, `{{version}}`, `{{mod: …}}` slots.
-3. **[D]** Git: `git init`; configure per-agent git identity (each agent commits under
-   its own `user.name` — the grants audit depends on it); commit `bootstrap`; wire the
-   remote if given. Append the `bootstrap` line to `log.md`.
-4. **[D]** Seed the `## Grants` table: archiver maintenance rows (from this capability's
-   `kb.zones`), the user root-of-authority row, the `*` registered-agents read row.
-   Include in the install diff.
-5. **[D]** Register in `~/aos/kb-registry.yaml` (create from this shape if missing):
+## 1. The structure interview [A→H]
 
-```yaml
-default: <name-of-default-kb>
-confidence_bar: 0.7   # RFC-006
-kbs:
-  - name: <name>
-    tag: <short-alias>   # "…:" prefix that routes here explicitly
-    path: <path>
-    remote: <url or null>
-    sync: rebase-5min | manual | none
-    audience: private | shared
-    methodology: karpathy-llm-wiki
-    purpose: >
-      <one paragraph — the router's classification rubric>
-    inbox: ops/inbox.md
-    routing:
-      channels: []
-      keywords: []
+Ask once, design once — the user is never bothered about structure again (afterwards
+the agent operates autonomously inside the frozen zone set; zone changes are
+owner-approved BASE.yaml edits):
+
+- **Name, path** (default `~/<name>-base`), **remote** (optional), **audience**
+  (`private` default | `shared`), **sync** (`rebase-5min` needs a remote; adopted
+  defaults stay manual).
+- **Purpose** — one paragraph; it is the router's AND recall's rubric. Write it well.
+- **Theme → zones and types.** An engineering base wants different zones/types than a
+  family or self base. Start from the template defaults (entities/concepts/projects/
+  profile) and adjust WITH the user; put the result in BASE.yaml (`zones:`, `types:`).
+  Anything they say about *what belongs where* is routing gold — it becomes `purpose`
+  text and `routing.keywords`.
+
+## 2. Scaffold [D]
+
+```
+uv run <clone>/capabilities/kb/skills/kb/scripts/base.py \
+  init <name> --path <path> --audience <a> --sync <s> --purpose "<p>" \
+  [--remote <url>] [--default] --templates <clone>/capabilities/kb/skills/init/templates
 ```
 
-6. **Schedules — required.** Create the archiver's three jobs (nightly-promote,
-   weekly-lint, kb-sync) per the harness cheat-sheet; single-owner rule applies. kb-sync
-   uses `methodologies/karpathy-llm-wiki/scripts/kb-sync.sh` (no-agent script job where
-   supported). No cron host feature → materialize each prompt as an invocable skill and tell the
-   user what to run and when.
-7. **[D]** Verify: run the methodology lint once (must pass clean on a fresh tree).
-   Report: tree, grants, registry, schedules (or degraded modes).
+The tool renders templates (BASE.yaml, AGENTS.md + Grants seed, index, log,
+state.yaml, zone AGENTS files), git-inits with per-agent identity, registers in
+`kb-registry.yaml`, logs `bootstrap`, commits. Then apply the interview's zone/type
+adjustments to BASE.yaml + matching directories, and show the user the diff.
+
+## 3. Schedules [D]
+
+Create per the cheat-sheet (see the kb skill's `reference/wiring.md`): nightly-promote
++ weekly-lint as archiver agent jobs, sync as a **script-only exec job** — no LLM in
+the loop. Single-owner rule applies. No cron host feature → materialize run-cards and
+tell the user what to run when.
+
+## 4. Verify [D]
+
+`base lint` must run clean on the fresh tree. Report: tree, grants, registry entry,
+schedules (or degraded modes).

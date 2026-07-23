@@ -36,6 +36,12 @@ the fixtures and snapshots they operate on:
     node tests/golden/normalize.mjs ~/.hermes/profiles/aos-test tests/golden/hermes/full-install/front
     # … then removal per the cheat-sheet, and prestate must match again
 
+After the install e2e, the behavioral e2e ([`tests/golden/BEHAVIOR.md`](../tests/golden/BEHAVIOR.md) —
+"a week in the life": capture burst w/ duplicate + injection sentinel, default-empty
+promote, recall w/ citations + gap admission, state cap/staleness, authz probes,
+sync-conflict with zero agent invocations, removal) runs against the same namespace;
+each step has an observable expected outcome.
+
 Committed snapshots under `tests/golden/hermes/` are re-checked deterministically in CI
 (`node tests/golden/check.mjs`); the snapshot commit diff is the reviewable render.
 Equivalence judging for re-renders: [`tests/golden/RUBRIC.md`](../tests/golden/RUBRIC.md).

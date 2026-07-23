@@ -1,0 +1,39 @@
+Installed from the clone:
+
+- kb
+- onboarding
+- gtd-capture
+
+Profiles:
+
+- ~/.hermes/profiles/aos-test
+- ~/.hermes/profiles/aos-archiver
+- ~/.hermes/profiles/aos-drainer
+
+Created schedules:
+
+- aos:kb:nightly-promote — archiver — 30 23 * * *
+- aos:kb:weekly-lint — archiver — 0 7 * * 6
+- aos:kb:sync — archiver — every 5 minutes, script-only
+- aos:gtd-capture:nightly-drain — drainer — 47 23 * * *
+
+Initialized KBs:
+
+- /home/anakin/aos/tests/.sandbox/kb/personal-kb
+- /home/anakin/aos/tests/.sandbox/kb/acme-kb
+
+Lockfile:
+
+/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml
+
+Verification passed:
+
+- Golden structural check: 0 failures
+- Lockfile verification: 62/62 artifact hashes valid
+- KB lint: 0 critical findings, 0 findings on both KBs
+- Sync script executed successfully
+
+Degraded mode:
+
+- Outbound messaging is unavailable in the disposable profiles, so reminders use local delivery/reporting.
+- Hermes doctor reports no `openai-api` credentials in the disposable profiles; model configuration is present and copied from `aos-test`.

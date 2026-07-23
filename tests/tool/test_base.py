@@ -55,6 +55,17 @@ class BaseToolTest(unittest.TestCase):
         self.assertIn("name: b", self.reg.read_text())
         self.assertIn("default: b", self.reg.read_text())
 
+    def test_init_fills_preseeded_registry_entry(self):
+        # interview-first flow: registry entry exists, tree doesn't -> init fills it
+        pre = self.dir / "pre"
+        self.reg.write_text(
+            f"default: p\nkbs:\n- name: p\n  path: {pre}\n  audience: private\n")
+        r = run(["init", "p", "--path", str(pre), "--purpose", "preseeded",
+                 "--templates", str(TEMPLATES)], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue((pre / "BASE.yaml").exists())
+        self.assertEqual(self.reg.read_text().count("name: p"), 1)  # no duplicate
+
     def test_init_refuses_double(self):
         r = run(["init", "b2", "--path", str(self.root),
                  "--templates", str(TEMPLATES)], self.env)
