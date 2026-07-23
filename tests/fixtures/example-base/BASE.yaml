@@ -1,0 +1,27 @@
+layout: 1                      # format generation — tools fail loudly on mismatch
+name: example
+audience: private         # private | shared — mirrored in the registry; effective = most restrictive
+methodology: karpathy-llm-wiki
+purpose: >
+  Dana Fixture's example base — shipped as the CI golden fixture. Sentinel: parrot-🦜
+
+types: [person, company, product, concept, project, meeting, capture, clipping, note]
+# Closed per-base vocabulary. Adding a type = edit this file FIRST (owner approval on
+# shared bases), commit, then use.
+
+zones:
+  raw:      {kind: raw}
+  entities: {kind: wiki, subdirs: [people, companies]}
+  concepts: {kind: wiki}
+  projects: {kind: wiki}
+  profile:  {kind: wiki}
+  _ops:     {kind: machinery}
+  _archive: {kind: archive}
+# Zone changes are schema changes (owner-approved). Deeper subdirectories are free —
+# create them as needed, updating index.md in the same commit.
+
+state:
+  max_items: 20                # hard cap on state.yaml items; adding when full = evict first
+
+frontmatter:
+  extensions: []               # per-base fields; a meta: field used by 2+ docs graduates here

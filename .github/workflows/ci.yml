@@ -15,7 +15,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - uses: astral-sh/setup-uv@v5
       - run: npm ci --no-audit --no-fund
+      - name: tier-0 base tool tests + example-base fixture
+        run: |
+          uv run --quiet tests/tool/test_base.py
+          uv run --quiet capabilities/kb/skills/kb/scripts/base.py \
+            --base tests/fixtures/example-base lint | tee /tmp/example-lint.txt
+          grep -q "Critical (0)" /tmp/example-lint.txt
+          grep -q "Findings (0)" /tmp/example-lint.txt
       - name: tier-1 lint
         run: |
           BASE=""

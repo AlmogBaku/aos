@@ -3,21 +3,26 @@
 #   front  = ~/.hermes/profiles/aos-test
 #   <agent>= ~/.hermes/profiles/aos-<agent>
 #   clone  = ~/aos/tests/.sandbox/aos-clone
+# Anatomy v2 (kb redesigned; gtd-capture/onboarding legacy pending migration).
 agents: [drainer, archiver]
 
 expect_files:
   # onboarding (used_by: main)
   - "front:skills/onboarding-interview/SKILL.md"
-  # kb main-scoped skills
+  # kb main-scoped skills — entry skill travels with its bundled assets
+  - "front:skills/kb-kb/SKILL.md"
+  - "front:skills/kb-kb/scripts/base.py"
+  - "front:skills/kb-kb/reference/lifecycle.md"
   - "front:skills/kb-route/SKILL.md"
-  - "front:skills/kb-authz-check/SKILL.md"
+  - "front:skills/kb-recall/SKILL.md"
   - "front:skills/kb-init/SKILL.md"
+  - "front:skills/kb-init/templates/BASE.yaml"
   - "front:skills/kb-adopt/SKILL.md"
-  # kb archiver-scoped (incl. the methodology-shipped lint skill)
-  - "archiver:skills/kb-authz-check/SKILL.md"
-  - "archiver:skills/kb-lint/SKILL.md"
+  # kb archiver-scoped: the entry skill (map + tool); lint is a tool verb now
+  - "archiver:skills/kb-kb/SKILL.md"
+  - "archiver:skills/kb-kb/scripts/base.py"
   - "archiver:SOUL.md"
-  # gtd-capture scoping
+  # gtd-capture scoping (legacy anatomy)
   - "front:skills/gtd-capture-capture/SKILL.md"
   - "front:skills/gtd-capture-format-entry/SKILL.md"
   - "drainer:skills/gtd-capture-drain/SKILL.md"
@@ -32,22 +37,29 @@ forbid_files:
   - "drainer:skills/gtd-capture-capture/SKILL.md"
   - "archiver:skills/gtd-capture-capture/SKILL.md"
   - "archiver:skills/gtd-capture-drain/SKILL.md"
+  # dead artifacts from the pre-redesign anatomy — must not be materialized
+  - "front:skills/kb-authz-check/SKILL.md"
+  - "archiver:skills/kb-authz-check/SKILL.md"
+  - "archiver:skills/kb-lint/SKILL.md"
 
 # every materialized SKILL.md under these roots must carry the origin tag
 origin_tag_roots: ["front:skills", "drainer:skills", "archiver:skills"]
 
 # cron jobs in aos-* profile homes must use the aos:<cap>:<id> name prefix;
-# expected schedules with their owning profile:
+# expected schedules with their owning profile. `sync` is an exec schedule —
+# a script-only cron job (no agent invocation; the job runs base.py directly).
 schedules:
   - {profile: drainer, name_prefix: "aos:gtd-capture:nightly-drain"}
   - {profile: archiver, name_prefix: "aos:kb:nightly-promote"}
   - {profile: archiver, name_prefix: "aos:kb:weekly-lint"}
-  - {profile: archiver, name_prefix: "aos:kb:kb-sync"}
+  - {profile: archiver, name_prefix: "aos:kb:sync"}
 
 sentinels:
   - {text: "🦜", in: "front:skills/gtd-capture-capture/SKILL.md"}
   # drain_hour 23:47 → cron expression "47 23 * * *" in the drainer's jobs
   - {text: "47 23", in_dir: "drainer:cron"}
   - {text: "choir practice Thursdays 19:00-21:00", in_dir: "drainer:"}
+  # exec schedule: the sync job's command must invoke the tool, not an agent prompt
+  - {text: "base.py sync --all", in_dir: "archiver:cron"}
 
 lockfile_capabilities: [kb, onboarding, gtd-capture]

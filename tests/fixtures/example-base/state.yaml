@@ -1,0 +1,6 @@
+# state.yaml — rolling attention window. One-line items pointing into the wiki pages.
+# Managed via `base state ...`; capped by BASE.yaml state.max_items; git history is the archive.
+items:
+- note: Choir fundraiser planning — helping Robin
+  ref: entities/people/robin-sable
+  since: '2026-07-23'

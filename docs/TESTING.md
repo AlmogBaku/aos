@@ -2,6 +2,14 @@
 
 How a capability proves it works (implements RFC-002).
 
+## Tier 0 — capability tool tests (blocking)
+
+`bash tools/check.sh` first runs the kb `base` tool's unit suite
+(`uv run tests/tool/test_base.py` — black-box subprocess tests; the report text is the
+contract) and lints the shipped example base (`tests/fixtures/example-base/` must pass
+`base lint` with zero criticals/findings — template/example/tool drift breaks the build
+here). Requires `uv`; skipped locally with a warning if absent, always on in CI.
+
 ## Tier 1 — deterministic lint (blocking)
 
     bash tools/check.sh

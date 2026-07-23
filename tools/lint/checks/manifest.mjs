@@ -81,11 +81,23 @@ function checkSchedules(schedules, cap, file, report, agents) {
     if (!s.id || seen.has(s.id)) report('error', 'schedules/id', file, `schedule id "${s.id}" missing or duplicate`);
     seen.add(s.id);
     if (!CRON.test(String(s.cron ?? ''))) report('error', 'schedules/cron', file, `schedule "${s.id}": cron "${s.cron}" is not a 5-field expression`);
-    if (s.agent !== MAIN_AGENT && !agents.includes(s.agent)) {
-      report('error', 'schedules/agent', file, `schedule "${s.id}": agent "${s.agent}" is neither "${MAIN_AGENT}" nor a declared agents/*.agent.yaml name`);
-    }
-    if (!s.prompt_ref || !existsSync(join(cap.dir, s.prompt_ref))) {
-      report('error', 'schedules/prompt-ref', file, `schedule "${s.id}": prompt_ref "${s.prompt_ref}" does not resolve inside the capability`);
+    // §2.2: exec (mechanical, deterministic-only) XOR agent+prompt_ref (judgment).
+    const hasExec = s.exec != null;
+    const hasAgent = s.agent != null || s.prompt_ref != null;
+    if (hasExec && hasAgent) {
+      report('error', 'schedules/exec-xor-agent', file, `schedule "${s.id}": exec and agent/prompt_ref are mutually exclusive`);
+    } else if (hasExec) {
+      const execPath = String(s.exec).split(' ')[0];
+      if (!existsSync(join(cap.dir, execPath))) {
+        report('error', 'schedules/exec-ref', file, `schedule "${s.id}": exec "${execPath}" does not resolve inside the capability`);
+      }
+    } else {
+      if (s.agent !== MAIN_AGENT && !agents.includes(s.agent)) {
+        report('error', 'schedules/agent', file, `schedule "${s.id}": agent "${s.agent}" is neither "${MAIN_AGENT}" nor a declared agents/*.agent.yaml name`);
+      }
+      if (!s.prompt_ref || !existsSync(join(cap.dir, s.prompt_ref))) {
+        report('error', 'schedules/prompt-ref', file, `schedule "${s.id}": prompt_ref "${s.prompt_ref}" does not resolve inside the capability`);
+      }
     }
     if (!DEGRADED_MODES.includes(s.degraded)) {
       report('error', 'schedules/degraded', file, `schedule "${s.id}": degraded "${s.degraded}" must be one of {${DEGRADED_MODES.join(', ')}}`);

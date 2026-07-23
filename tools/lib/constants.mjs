@@ -31,11 +31,16 @@ export const HOST_LEVELS = ['required', 'preferred', 'optional'];
 export const CAPABILITY_TAGS = ['infra', 'usecase'];
 export const MANIFEST_KEYS = ['id', 'version', 'tags', 'summary', 'depends', 'schedules', 'skills', 'kb'];
 export const DEPENDS_KEYS = ['capabilities', 'host'];
-export const SCHEDULE_KEYS = ['id', 'cron', 'agent', 'prompt_ref', 'degraded'];
+export const SCHEDULE_KEYS = ['id', 'cron', 'agent', 'prompt_ref', 'exec', 'degraded'];
 export const DEGRADED_MODES = ['manual', 'skip', 'inline'];
 export const SKILL_ENTRY_KEYS = ['id', 'used_by'];
 export const KB_KEYS = ['writes', 'zones'];
 export const KB_ZONE_KEYS = ['path', 'owner_agent'];
+// ARCHITECTURE §2.5 — entry-skill convention. Capabilities not yet migrated to the
+// new anatomy (entry skill, bundled assets, installer-briefing manifest) are listed
+// here and tolerated with a warning; the list shrinks in the migration session and
+// the check flips to strict per capability as it migrates.
+export const LEGACY_ANATOMY_CAPS = ['onboarding', 'gtd-capture', 'importer'];
 export const MAIN_AGENT = 'main'; // §2.2: `main` = the front agent
 
 // ARCHITECTURE §2.3 — neutral agent spec

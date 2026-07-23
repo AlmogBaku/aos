@@ -4,7 +4,7 @@ onboarded_version: 0.1.0
 answers:
   existing_kbs: []
   create_default: true
-  default_kb: personal-kb
+  default_base: personal-kb
   sync_mode: manual
 ---
 

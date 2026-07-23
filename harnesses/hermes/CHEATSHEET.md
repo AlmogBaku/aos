@@ -38,25 +38,35 @@ line, and the full diff is shown to the user **before** anything lands.
    `workspace: shared` → skip profile creation, wire into the default profile.
 2. **Skills, scoped by `used_by`.** Copy each `skills/<id>/` folder into the skills dir
    of every profile in its `used_by` — as **`<capability>-<id>/`** (collision-proof;
-   frontmatter `name` stays as shipped). Nowhere else. After filling `{{mod: …}}` slots,
+   frontmatter `name` stays as shipped). Copy the folder **whole**: bundled assets
+   (`reference/`, `scripts/`, `templates/`) travel with the skill — scripts are
+   executed, never loaded as context. Nowhere else. After filling `{{mod: …}}` slots,
    add to the materialized copy's frontmatter:
 
    ```yaml
    x-aos-origin: <capability>@<version>
    ```
 
-3. **Schedules.**
+3. **Schedules.** Agent-type entries (`agent` + `prompt_ref`):
 
    ```
    hermes -p <agent-profile> cron create '<cron>' "<personalized prompt_ref content>" \
      --name 'aos:<capability>:<schedule-id>' [--skill <id> …] [--deliver <target>]
    ```
 
-   (`main` ⇒ no `-p`.) Provenance = the `aos:<capability>:<schedule-id>` name prefix +
-   the returned job id in the lockfile under `schedules_owned`. Never write an `origin:`
-   field into jobs.json (Hermes uses it for chat provenance). Single-owner (§5.5):
-   `hermes cron list` across profiles first; existing schedule elsewhere → ask the user
-   to reassign, never duplicate.
+   (`main` ⇒ no `-p`.) **Exec-type entries (`exec:`)** are script-only jobs — no agent,
+   no LLM: materialize with Hermes's script job form
+   (`hermes cron create '<cron>' --script "uv run <clone>/<exec-path-and-args>"
+   --no-agent --name 'aos:<capability>:<schedule-id>'`; if this Hermes build lacks
+   script jobs, a system crontab line with the same command and a `# aos:<cap>:<id>`
+   comment is the fallback — record whichever was used in the lockfile). Optionally
+   compose surfacing: `… || hermes notify …`. The `base` tool needs `uv`
+   (one-line install) — verify with `uv --version` before wiring.
+   Provenance = the `aos:<capability>:<schedule-id>` name prefix + the returned job id
+   in the lockfile under `schedules_owned`. Never write an `origin:` field into
+   jobs.json (Hermes uses it for chat provenance). Single-owner (§5.5): `hermes cron
+   list` across profiles first; existing schedule elsewhere → ask the user to reassign,
+   never duplicate.
 4. **Context blocks** → marker-delimited appends to `SOUL.md` / `workspace/AGENTS.md`:
 
    ```
