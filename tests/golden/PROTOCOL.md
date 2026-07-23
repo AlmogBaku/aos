@@ -20,7 +20,7 @@ Everything the run creates is identifiable and disposable:
 ## Run
 
 1. **Pre-state**: record `sha256(config.yaml)`, the profile list, root `skills/` listing,
-   and root cron job ids (`tools/golden/prestate.sh` → `tests/.sandbox/prestate.txt`).
+   and root cron job ids (`tests/golden/prestate.sh` → `tests/.sandbox/prestate.txt`).
 2. `hermes profile create aos-test`.
 3. **Install** — tell the agent (`hermes -p aos-test -z "<prompt>"`, falling back to the
    default profile with the same prompt if the fresh profile has no credentials):
@@ -36,10 +36,10 @@ Everything the run creates is identifiable and disposable:
 
    The installer gets **no other context** — capability + cheat-sheet + overlay must
    suffice; that is the test.
-4. **Check**: `node tools/golden/check.mjs --live` runs the structural checks against the
-   materialized tree (expectations in `tools/golden/expectations/*.yaml`), plus the
+4. **Check**: `node tests/golden/check.mjs --live` runs the structural checks against the
+   materialized tree (expectations in `tests/golden/expectations/*.yaml`), plus the
    canary check against the pre-state snapshot.
-5. **Snapshot**: `node tools/golden/normalize.mjs <paths>` → commit under
+5. **Snapshot**: `node tests/golden/normalize.mjs <paths>` → commit under
    `tests/golden/hermes/<cap>/`. The commit diff is the reviewable render (RFC-002).
    Save the run transcript to `tests/transcripts/`.
 6. **Remove**: tell the agent to remove per the cheat-sheet Removal section; verify with

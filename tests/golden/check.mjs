@@ -8,8 +8,8 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { parse } from 'yaml';
-import { REPO_ROOT } from '../lib/repo.mjs';
-import { ORIGIN_FRONTMATTER_KEY } from '../lib/constants.mjs';
+import { REPO_ROOT } from '../../tools/lib/repo.mjs';
+import { ORIGIN_FRONTMATTER_KEY } from '../../tools/lib/constants.mjs';
 
 const args = process.argv.slice(2);
 const live = args.includes('--live');
@@ -49,7 +49,7 @@ function* walk(dir) {
 }
 
 function runExpectations(expName, roots) {
-  const exp = parse(readFileSync(join(REPO_ROOT, 'tools', 'golden', 'expectations', `${expName}.yaml`), 'utf8'));
+  const exp = parse(readFileSync(join(REPO_ROOT, 'tests', 'golden', 'expectations', `${expName}.yaml`), 'utf8'));
 
   for (const ref of exp.expect_files ?? []) {
     const p = resolveRef(roots, ref);
@@ -111,26 +111,26 @@ function runExpectations(expName, roots) {
   }
 }
 
-// Canary check lives in the protocol, not here: re-run tools/golden/prestate.sh to a
+// Canary check lives in the protocol, not here: re-run tests/golden/prestate.sh to a
 // second file and `diff` it against the pre-install one — byte-equal or the install
 // touched something it must not.
 
 if (live) {
   for (const name of names.length ? names : ['full-install']) {
-    const exp = parse(readFileSync(join(REPO_ROOT, 'tools', 'golden', 'expectations', `${name}.yaml`), 'utf8'));
+    const exp = parse(readFileSync(join(REPO_ROOT, 'tests', 'golden', 'expectations', `${name}.yaml`), 'utf8'));
     runExpectations(name, liveRoots(exp));
   }
 } else {
   const goldenDir = join(REPO_ROOT, 'tests', 'golden', 'hermes');
   const snaps = existsSync(goldenDir) ? readdirSync(goldenDir) : [];
   for (const snap of snaps) {
-    const expPath = join(REPO_ROOT, 'tools', 'golden', 'expectations', `${snap}.yaml`);
+    const expPath = join(REPO_ROOT, 'tests', 'golden', 'expectations', `${snap}.yaml`);
     if (!existsSync(expPath)) continue;
     const exp = parse(readFileSync(expPath, 'utf8'));
     runExpectations(snap, snapshotRoots(exp, join(goldenDir, snap)));
   }
   if (!snaps.length) {
-    console.log('golden: no committed snapshots yet (first render lands in WP5)');
+    console.log('golden: no committed snapshots yet');
     process.exit(0);
   }
 }

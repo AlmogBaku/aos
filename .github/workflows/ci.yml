@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm ci --prefix tools --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
       - name: tier-1 lint
         run: |
           BASE=""
@@ -26,9 +26,4 @@ jobs:
       - name: lint selftest
         run: node tools/lint/selftest/run.mjs
       - name: golden structural checks
-        run: |
-          if [ -f tools/golden/check.mjs ]; then
-            node tools/golden/check.mjs
-          else
-            echo "golden checker not built yet (lands in WP5)"
-          fi
+        run: node tests/golden/check.mjs

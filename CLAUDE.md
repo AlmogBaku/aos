@@ -20,8 +20,8 @@ On **main** (this branch — the build):
 - **`capabilities/<id>/`** — built capability directories (§2.1 layout), beside their `<id>.md` one-pagers. `kb/methodologies/karpathy-llm-wiki/` is the shipped methodology package.
 - **`harnesses/hermes/CHEATSHEET.md`** — the first per-harness knowledge artifact (§5.2's six sections).
 - **`docs/`** — `BOOTSTRAP.md` (the paste-block install path), `TESTING.md` (how to run everything), `BUILD-GAPS.md` (**the spec-gap ledger — every artifact↔spec mismatch gets a row; artifact-side fixes land in the same main commit, spec-side fixes land on the `spec` branch and the row names them**), `DOGFOOD.md` (deferred live-dogfood checklist).
-- **`tools/`** — RFC-002 tier-1 lint (`bash tools/check.sh` runs everything CI runs) + the golden-render checker. **Run it before every commit.**
-- **`tests/`** — fixtures (Dana Fixture persona + sentinels), golden snapshots (`tests/golden/hermes/`), transcripts. The e2e is a REAL install into a disposable `aos-test` Hermes profile namespace — see `tests/golden/PROTOCOL.md`; never simulate the harness, and never touch `~/.hermes` outside `aos-*` profiles or `~/ai-kb` at all.
+- **`tools/`** — the RFC-002 tier-1 lint (`lint/`, schema/contract validator — useful for authoring any capability, not just testing) + `lib/` (shared code). `bash tools/check.sh` runs everything CI runs. **Run it before every commit.**
+- **`tests/`** — fixtures (Dana Fixture persona + sentinels), the golden-render machinery (`tests/golden/`: `check.mjs`/`normalize.mjs`/`prestate.sh` — test-only, so they live here rather than in `tools/` — plus snapshots under `tests/golden/hermes/`), transcripts. The e2e is a REAL install into a disposable `aos-test` Hermes profile namespace — see `tests/golden/PROTOCOL.md`; never simulate the harness, and never touch `~/.hermes` outside `aos-*` profiles or `~/ai-kb` at all.
 
 ## Firm position vs. open RFC — check before changing any decision
 

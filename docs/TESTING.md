@@ -6,26 +6,30 @@ How a capability proves it works (implements RFC-002).
 
     bash tools/check.sh
 
-Runs `tools/lint/aos-lint.mjs` (17 check families over the §2/§3/§5 contracts), the lint
-selftest (`tools/lint/selftest/run.mjs` — every check must fire on a planted-violation
-fixture), and the golden structural checker. CI runs the same on every push/PR.
+Runs `tools/lint/aos-lint.mjs` (17 check families over the §2/§3/§5 contracts — the
+schema/contract linter, useful any time you're authoring a capability, not just for
+testing), the lint selftest (`tools/lint/selftest/run.mjs` — every check must fire on a
+planted-violation fixture), and the golden structural checker. CI runs the same on every
+push/PR.
 
 ## Tier 2 — golden render (the e2e)
 
 **No simulated harness.** The e2e is a real install into a disposable Hermes profile
-namespace — see [`tests/golden/PROTOCOL.md`](../tests/golden/PROTOCOL.md):
+namespace — see [`tests/golden/PROTOCOL.md`](../tests/golden/PROTOCOL.md). The checker,
+normalizer, and prestate script are test-only and live under `tests/golden/` alongside
+the fixtures and snapshots they operate on:
 
-    bash tools/golden/prestate.sh tests/.sandbox/prestate-before.txt
+    bash tests/golden/prestate.sh tests/.sandbox/prestate-before.txt
     hermes profile create aos-test
     # tell the agent to install (PROTOCOL.md carries the exact prompt)
-    node tools/golden/check.mjs --live full-install
-    bash tools/golden/prestate.sh tests/.sandbox/prestate-after.txt
+    node tests/golden/check.mjs --live full-install
+    bash tests/golden/prestate.sh tests/.sandbox/prestate-after.txt
     diff tests/.sandbox/prestate-before.txt tests/.sandbox/prestate-after.txt  # canaries
-    node tools/golden/normalize.mjs ~/.hermes/profiles/aos-test tests/golden/hermes/full-install/front
+    node tests/golden/normalize.mjs ~/.hermes/profiles/aos-test tests/golden/hermes/full-install/front
     # … then removal per the cheat-sheet, and prestate must match again
 
 Committed snapshots under `tests/golden/hermes/` are re-checked deterministically in CI
-(`node tools/golden/check.mjs`); the snapshot commit diff is the reviewable render.
+(`node tests/golden/check.mjs`); the snapshot commit diff is the reviewable render.
 Equivalence judging for re-renders: [`tests/golden/RUBRIC.md`](../tests/golden/RUBRIC.md).
 
 ## Scenario runs (tier-3-flavored, non-blocking)

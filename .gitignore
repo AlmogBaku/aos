@@ -11,5 +11,5 @@
 # Upstream CI rejects overlay-family paths in PRs either way.
 
 # build tooling + scratch test area
-tools/node_modules/
+node_modules/
 tests/.sandbox/
