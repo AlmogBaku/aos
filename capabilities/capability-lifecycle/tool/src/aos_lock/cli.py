@@ -242,11 +242,23 @@ def readlink_or_fail(path):
     return link_target(p)
 
 
+def artifact_path(arg):
+    """Artifacts are files; symlinks belong in --link (they are verified structurally,
+    and hashing through one would silently record the target's identity instead)."""
+    p = Path(arg).expanduser()
+    if p.is_symlink():
+        fail(16, f"symlink passed as --artifact (use --link): {arg}")
+    return p.resolve()
+
+
 def link_target(p):
-    """Recorded/compared as an absolute path so relative and absolute links
-    that point at the same place compare equal."""
+    """Absolute + lexically normalized, identically for relative and absolute links, so
+    the two spellings of one destination compare equal. Deliberately NOT resolve(): a
+    household under a symlinked path must not read as drift."""
     target = os.readlink(p)
-    return str(Path(target) if os.path.isabs(target) else (p.parent / target).resolve())
+    if not os.path.isabs(target):
+        target = os.path.join(str(Path(p).parent.absolute()), target)
+    return os.path.normpath(target)
 
 
 def cmd_init(args):
@@ -265,8 +277,8 @@ def cmd_record(args):
     entry = {
         "version": args.version,
         "source_root": args.source_root,
-        "artifacts": {str(Path(a).expanduser().resolve()): sha256(Path(a).expanduser().resolve()) for a in args.artifact},
-        "links": {str(Path(l).expanduser().absolute()): readlink_or_fail(l) for l in args.link},
+        "artifacts": {str(artifact_path(a)): sha256(artifact_path(a)) for a in args.artifact},
+        "links": {os.path.normpath(str(Path(l).expanduser().absolute())): readlink_or_fail(l) for l in args.link},
         "schedules_owned": list(args.job),
         "config_keys": list(args.config_key),
         "env_lines": list(args.env_line),
@@ -288,6 +300,9 @@ def cmd_rehash(args):
             kept[path] = sha256(path)
         else:
             dropped.append(path)
+    if dropped and not kept:
+        fail(16, f"{args.capability}: every recorded artifact is gone — that is a broken "
+                 f"install, not a rehash. Re-install, or `aos-lock remove` the entry.")
     entry["artifacts"] = kept
     save_lock(root, lock)
     for path in dropped:
@@ -339,6 +354,10 @@ def cmd_show(args):
     _, entry = get_entry(root, args.capability)
     json.dump(entry, sys.stdout, indent=2, default=str)
     print()
+
+
+def cmd_home(args):
+    print(find_home(args))
 
 
 def cmd_list(args):
@@ -398,6 +417,8 @@ def main():
     s = sub.add_parser("show", help="print a capability's entry as JSON")
     s.add_argument("capability")
     s.set_defaults(fn=cmd_show)
+
+    sub.add_parser("home", help="print the resolved household root (exit 15 if none)").set_defaults(fn=cmd_home)
 
     sub.add_parser("list", help="installed capabilities + versions").set_defaults(fn=cmd_list)
 

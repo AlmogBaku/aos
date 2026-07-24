@@ -23,6 +23,9 @@ Everything the run creates is identifiable and disposable:
 
 1. **Pre-state**: record `sha256(config.yaml)`, the profile list, root `skills/` listing,
    and root cron job ids (`tests/golden/prestate.sh` → `tests/.sandbox/prestate.txt`).
+   Also clear leftovers from a previous run inside the `aos-*` namespace (e.g. a renamed
+   `scripts/aos-kb-sync.sh.unused` in a profile) — a sentinel must test what *this*
+   install wrote, never debris that survived the last one.
 2. `hermes profile create aos-test`.
 3. **Install** — tell the agent (`hermes -p aos-test -z "<prompt>"`, falling back to the
    default profile with the same prompt if the fresh profile has no credentials):

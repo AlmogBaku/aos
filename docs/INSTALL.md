@@ -22,7 +22,8 @@ expect, what you'll be asked, and what ends up where.
 
 Paste into your agent:
 
-> Clone https://github.com/AlmogBaku/aos to ~/aos, read ~/aos/BOOTSTRAP.md, then set me up.
+> Fork and clone https://github.com/AlmogBaku/aos to ~/aos/upstream (a plain clone
+> works too), read ~/aos/upstream/BOOTSTRAP.md, then set me up.
 
 ## What happens next
 
@@ -51,7 +52,7 @@ Paste into your agent:
    the briefing, personalizes the skills with your MOD.md, and materializes them per the
    cheat-sheet — skills into the right agents, the archiver agent created, its schedules
    registered, kb's `base` tool installed
-   (`uv tool install --from ~/aos/capabilities/kb/tool aos-base`).
+   (`uv tool install --from ~/aos/upstream/capabilities/kb/tool aos-base`).
 7. **Done.** The agent tells you what was installed, where, and any degraded modes in
    effect — specifically, not vaguely.
 

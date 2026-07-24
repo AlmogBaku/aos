@@ -22,8 +22,13 @@ diff in the user's own repo.
    Migration note: overlay files found *inside* the clone (a pre-household install) →
    offer the one-time move into `personal/` before anything else.
 3. Per capability needing work:
-   a. **[D]** `aos-lock verify <id>` — drift (the user's hand-edits) → **[A]** fold each
-      into MOD.md first per `reference/overlay.md` ("you changed X — keeping it"). A
+   a. **[D]** `aos-lock verify <id>` — two classes, two responses. *Artifact drift*
+      (a render file's hash changed = the user's hand-edit) → **[A]** fold each into
+      MOD.md first per `reference/overlay.md` ("you changed X — keeping it").
+      *Link damage* (`MISSING LINK`, `NOT A LINK (copies are banned)`, `RELINKED`,
+      `DANGLING LINK`) is not a hand-edit and never folds: re-create the link from the
+      lockfile's recorded target, say what you repaired, and stop if the target itself
+      is gone (that is a broken install, not an upgrade). A
       fold that reaches beyond the `{{mod}}` slots is mechanism-shaped — note it for
       the promotion judgment (overlay.md, Promote and retire), end of conversation.
    b. **[A]** Re-render: fresh upstream × MOD.md — the same transform as install

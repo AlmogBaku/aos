@@ -82,6 +82,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   household path into renders (same pass as `{{mod}}`), and scheduled commands get
   `--home`/`AOS_HOME` baked the same way. The lifecycle capability's own skills are
   render-stable (no `{{mod}}` slots) and keep the placeholder — resolve it at use time
-  via `aos-lock`'s household discovery.
+  with `aos-lock --home <path> home` (or bare `aos-lock home` from inside the
+  household; exit 15 when there is none), never by guessing `~/aos`.
 - Harness-owned files (e.g. Hermes `config.yaml`, `cron/jobs.json`) are touched only
   through the harness's own CLI, per the cheat-sheet.

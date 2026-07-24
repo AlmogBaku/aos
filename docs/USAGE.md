@@ -54,7 +54,7 @@ base inbox [--failed]          # the pending view (the "inbox" is a view, not a 
 base search <term>             # ALWAYS before creating a page — EXISTS means stop
 base state add|bump|drop|check # the attention window
 base lint                      # the health report (report-only)
-base sync                      # pull/push all bases
+base sync --all                # pull/push every base (bare `base sync` needs a --base)
 base --help                    # the rest: links, grants, index, verify, import survey
 ```
 
@@ -64,8 +64,8 @@ base --help                    # the rest: links, grants, index, verify, import 
   everything and shows you the diff before writing.
 - **Hand-edit anything materialized** — normal. The agent captures your edits back into
   `MOD.md` when it notices them, so the next upgrade preserves them.
-- **`update`** after a `git pull` re-applies your MOD.md ledger to the new capability
-  versions — your hand-edits get folded into the ledger first; diff-gated, backed up.
+- **`update`** pulls fresh upstream for you, then re-applies your MOD.md ledger to the new capability
+  versions — your hand-edits get folded into the ledger first; diff-gated, and every render is a commit in your `personal/` repo (revert = rollback).
 - **Corrections beat re-capture**: told it something wrong? Say so — the page is fixed
   in place (current truth), and git remembers the old state.
 

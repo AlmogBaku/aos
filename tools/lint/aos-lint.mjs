@@ -21,6 +21,10 @@ const base = args.includes('--base') ? args[args.indexOf('--base') + 1] : null;
 // user's personal root so a freshly built package is actually linted (not the kit).
 const rootArg = args.includes('--root') ? args[args.indexOf('--root') + 1] : null;
 const root = rootArg ? resolve(rootArg) : REPO_ROOT;
+// Linting a root other than this checkout means linting a user's personal root
+// (capability-builder's post-build gate): the overlay family lives there legitimately,
+// dependencies may resolve into the kit, and the kit's git history says nothing about it.
+const personalRoot = root !== REPO_ROOT;
 
 const findings = [];
 const report = (severity, code, file, message) => findings.push({ severity, code, file, message });
@@ -30,7 +34,9 @@ const ctx = {
   files: walkRepo(root),
   caps: listCapabilities(root),
   report,
-  base,
+  base: personalRoot ? null : base,   // version-bump diffs the kit's history, not a personal root's
+  personalRoot,
+  depRoots: personalRoot ? [REPO_ROOT] : [],
 };
 
 for (const check of [

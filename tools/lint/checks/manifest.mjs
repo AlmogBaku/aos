@@ -10,7 +10,7 @@ import { agentNames } from './agents.mjs';
 const SEMVER = /^\d+\.\d+\.\d+$/;
 const CRON = /^\S+ \S+ \S+ \S+ \S+$/;
 
-export function checkManifests({ caps, report, root }) {
+export function checkManifests({ caps, report, root, depRoots = [] }) {
   for (const cap of caps) {
     const file = `${cap.rel}/CAPABILITY.md`;
     const { data, error } = readFrontmatter(join(cap.dir, 'CAPABILITY.md'));
@@ -33,7 +33,7 @@ export function checkManifests({ caps, report, root }) {
     }
     if (typeof data.summary !== 'string' || !data.summary.trim()) report('error', 'manifest/summary', file, 'summary is required (one line)');
 
-    checkDepends(data.depends, file, report, root);
+    checkDepends(data.depends, file, report, root, depRoots);
     const agents = agentNames(cap);
     checkSchedules(data.schedules, cap, file, report, agents);
     checkSkillsBijection(data.skills, cap, file, report);
@@ -51,13 +51,16 @@ export function checkManifests({ caps, report, root }) {
   }
 }
 
-function checkDepends(depends, file, report, root) {
+function checkDepends(depends, file, report, root, depRoots = []) {
   if (depends == null) return;
   for (const key of Object.keys(depends)) {
     if (!DEPENDS_KEYS.includes(key)) report('error', 'depends/unknown-key', file, `unknown depends key "${key}"`);
   }
   for (const dep of depends.capabilities ?? []) {
-    if (!existsSync(join(root, 'capabilities', dep, 'CAPABILITY.md'))) {
+    // Household resolution (§3.1): a personal capability may depend on a shipped one,
+    // so a dependency counts if it exists in the linted root OR the kit root.
+    const roots = [root, ...depRoots];
+    if (!roots.some((r) => existsSync(join(r, 'capabilities', dep, 'CAPABILITY.md')))) {
       report('error', 'depends/capability', file, `depends on "${dep}" but capabilities/${dep}/CAPABILITY.md does not exist`);
     }
   }

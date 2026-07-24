@@ -24,10 +24,11 @@ adds your harness's half. Derive it yourself:
    generic knowledge, not personalization — the clone stays pristine on `main`, and the
    draft is born contribution-shaped.
 3. **[D]** Diff gate: show the user the full draft before writing it.
-4. **Switch the clone back to `main`** once the draft is committed on its branch
-   (`git -C <home>/upstream switch main`) — the branch keeps the work, and a clone left
+4. Proceed with the operation using your draft (it is in the working tree on that
+   branch — do not switch away yet, or the file you are following disappears), telling
+   the user the mappings are self-authored and unverified.
+5. **When the operation is done, switch the clone back to `main`**
+   (`git -C <home>/upstream switch main`): the branch keeps the draft, and a clone left
    on a feature branch stops receiving upstream changes (the upgrader skips the pull
-   there by design). Then proceed with the operation using your draft, telling the user
-   the mappings are self-authored and unverified. After a verified install, it is a ready-made
-   contribution (§5.2): *offer* to open the PR per
-   `<home>/upstream/CONTRIBUTING.md` — and only on the user's explicit yes.
+   there by design). After a verified install, it is a ready-made contribution (§5.2): *offer* to open the
+   PR per `<home>/upstream/CONTRIBUTING.md` — and only on the user's explicit yes.

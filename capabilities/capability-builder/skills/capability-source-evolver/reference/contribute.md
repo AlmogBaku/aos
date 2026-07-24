@@ -2,7 +2,7 @@
 
 One workflow for everyone: maintainers and first-timers differ only in where their
 branches live. Everything below drafts and *offers*; nothing leaves the machine —
-no PR, no issue, no +1, no push — without the user's explicit yes (the invariant in
+no PR, no issue, no +1, no push, no fork, no branch on a remote — without the user's explicit yes (the invariant in
 this skill and the install contract).
 
 ## The ledger search (before judging generality alone)
@@ -31,7 +31,9 @@ PRs need an accepted issue first. Show the draft; file only on explicit yes.
 1. **Preflight**: `git -C <home>/upstream status` clean, on `main`; canonical remote
    reachable (`upstream` remote, or `origin` on a plain clone); a PR-capable remote
    available — the user's public fork, or canonical itself with push rights. Neither
-   and a PR is the goal → offer `gh repo fork --remote` (one command, never a gate).
+   and a PR is the goal → *offer* `gh repo fork --remote` (one command — but a fork
+   creates a repo on their account and a public fork event, so it runs only on their
+   explicit yes, like every other outward write).
 2. **Branch from canonical main** (`git fetch <canonical-remote> && git switch -c
    <topic> <canonical-remote>/main`) — never from a possibly-stale local main. One
    change per branch.

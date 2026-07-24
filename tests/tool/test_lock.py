@@ -314,6 +314,46 @@ class LockToolTest(unittest.TestCase):
         self.assertIn("not a symlink", r.stderr)
         self.assertNotIn("Traceback", r.stderr)
 
+    def test_home_verb_prints_resolved_root(self):
+        self.init()
+        r = self.lock("home")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout.strip(), str(self.home))
+        bare = Path(self.tmp.name) / "nohome"
+        bare.mkdir()
+        r = run(["home"], cwd=str(bare))
+        self.assertEqual(r.returncode, 15)
+
+    def test_relative_and_absolute_links_compare_equal(self):
+        self.init()
+        link, target = self.make_link()
+        self.lock("record", "democap", "--version", "1.2.3", "--link", str(link))
+        link.unlink()
+        # same destination, relative spelling — must NOT read as drift
+        link.symlink_to(os.path.relpath(target, link.parent))
+        v = self.lock("verify", "democap")
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+
+    def test_symlink_as_artifact_rejected(self):
+        self.init()
+        f = self.home / "real.md"
+        f.write_text("x\n")
+        ln = self.home / "link-to-file.md"
+        ln.symlink_to(f)
+        r = self.lock("record", "democap", "--version", "1.2.3", "--artifact", str(ln))
+        self.assertEqual(r.returncode, 16)
+        self.assertIn("--link", r.stderr)
+
+    def test_rehash_refuses_to_empty_an_entry(self):
+        self.init()
+        self.record()
+        self.a1.unlink()
+        self.a2.unlink()
+        r = self.lock("rehash", "democap")
+        self.assertEqual(r.returncode, 16)
+        entry = json.loads(self.lock("show", "democap").stdout)
+        self.assertEqual(len(entry["artifacts"]), 2)   # entry left intact
+
     def test_source_root_defaults_and_records(self):
         self.init()
         self.record()
