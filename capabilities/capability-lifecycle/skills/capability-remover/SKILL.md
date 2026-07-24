@@ -12,10 +12,12 @@ contract, and the Experience rules.
    capability's tool binary, recorded as an artifact), `schedules_owned`, config keys,
    env variable names, scripts.
 2. **[D]** Scope: removing the capability entirely, or *from one harness* while it
-   stays installed elsewhere? Per-harness removal: drop only that harness's links and
-   native artifacts, re-`record` the reduced set (start from `aos-lock show`), leave the
-   render and the lockfile entry standing — steps 3–5 then apply to that harness only.
-   Whole removal continues below.
+   stays installed elsewhere? **Per-harness removal**: run step 4 for that harness only
+   and skip its render deletion (the render is shared — it stays), then re-`record` the
+   reduced set (start from `aos-lock show`, drop that harness's links/artifacts/jobs,
+   keep everything else), then step 6's verify scoped to that harness. The lockfile
+   entry and the MOD ledger both stay. Skip steps 3 and 5. **Whole removal** continues
+   below.
 3. **[D]** Dependents check: another entry in `aos-lock list` whose manifest
    `depends.capabilities` names this one → say so; stop unless the user insists (then
    remove dependents first).
