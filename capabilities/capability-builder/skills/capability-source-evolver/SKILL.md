@@ -71,4 +71,4 @@ calibrate against, not a checklist to satisfy mechanically.
 - Report-only: what changed and where, for small edits.
 - Ask first: anything classified major (research/design/approval before it applies,
   same gate as a new capability's Build stage) — and **every** write that leaves the
-  machine toward upstream: PRs, issues, +1s, pushes. No exceptions.
+  machine toward upstream: PRs, issues, +1s, pushes, forks, remote branches. No exceptions.

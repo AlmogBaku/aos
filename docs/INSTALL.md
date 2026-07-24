@@ -98,5 +98,5 @@ installing anyway is fine, silently pretending is not:
 Hand-editing materialized artifacts is fine — the agent folds your edits back into
 MOD.md when it notices (see [USAGE.md](USAGE.md)). Everything yours lives in
 `~/aos/personal` — one private repo your agent commits for you; add a private remote
-and a new machine is `clone + clone + relink` away. Nothing personal ever enters the
+and a new machine is `clone + clone + re-install` away (the lockfile is machine-local, so the install re-creates the links). Nothing personal ever enters the
 kit clone or any public remote.

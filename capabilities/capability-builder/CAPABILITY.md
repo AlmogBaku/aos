@@ -76,7 +76,7 @@ change actually touches.
   the contribute question fires only when the generality judgment passes (niche
   builds get a soft "say *contribute it* anytime"); the graduation flow's PR opens
   only on the user's explicit confirm — never any upstream write (PR, issue, +1,
-  push) without explicit approval. Evolve's small path is the one exception by design:
+  push, fork, remote branch) without explicit approval. Evolve's small path is the one exception by design:
   it adjusts the user's own overlay answers (through the onboarding skill, the only
   MOD.md writer) and syncs the live artifact those answers personalize — the §3.3
   round-trip, not an install.

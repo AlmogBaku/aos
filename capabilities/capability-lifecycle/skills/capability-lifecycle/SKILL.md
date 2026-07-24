@@ -12,7 +12,7 @@ the pristine kit clone, `personal/` the user's private repo (their MOD ledgers, 
 pinned renders harnesses symlink to, their private capabilities), `.aos/` machine
 state. The diff gate is never optional. `MOD.md` is the user's ledger of
 personalization: you re-apply it, you never overwrite it — and you never write anything
-to upstream (PR, issue, +1) without the user's explicit approval. The full rules:
+to upstream (PR, issue, +1, push, fork) without the user's explicit approval. The full rules:
 `reference/contract.md`. The overlay doctrine (interviews, transform, capture,
 promote/retire, persist): `reference/overlay.md`.
 

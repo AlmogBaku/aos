@@ -31,9 +31,9 @@ Original skills × MOD.md → the pinned render in
   into scheduled commands).
 - Upgrade is the same transform with fresh upstream, written into `personal/`'s working
   tree: the current install is a drift *source*, never a merge input — and the review
-  gate is a *staged* diff — `git -C <home>/personal add -A` then
-  `git diff --staged`, so files the re-render added are visible too (commit = accept,
-  revert = rollback).
+  gate is a *staged, capability-scoped* diff — `git add -A -- capabilities/<id>` then
+  `git diff --staged -- capabilities/<id>`, so files the re-render added are visible too
+  (commit = accept, revert = rollback; the contract has the decline commands).
 
 ## Capture and fold (the ledger's write side)
 
