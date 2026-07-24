@@ -4,7 +4,7 @@
 
 ## Settled (not this RFC)
 
-ARCHITECTURE §5.1–5.2 is firm: **the harness's own LLM installs capabilities**, guided by the capability's declarative manifest and a per-harness cheat-sheet. There is no installer program, no code adapters. §5.4 is also firm: every mutation is diff-previewed, recorded in `installs.lock.yaml`, backed up before upgrades, and auditable via `doctor`.
+ARCHITECTURE §5.1–5.2 is firm: **the harness's own LLM installs capabilities**, guided by the capability's declarative manifest and, where present, a per-harness cheat-sheet (aid, never gate — §5.2). There is no installer program, no code adapters. §5.4 is also firm: every mutation is diff-previewed, recorded in `installs.lock.yaml`, backed up before upgrades, and auditable via `doctor`.
 
 ## Decision
 
@@ -12,7 +12,7 @@ ARCHITECTURE §5.1–5.2 is firm: **the harness's own LLM installs capabilities*
 
 - A capability whose skills contain deterministic checklists ships them as **one bundled tool** inside its entry skill's `scripts/` (ARCHITECTURE §2.4 "Capability tools"), run via the ecosystem's zero-install runner. The kb capability's `base` tool is the first instance: catalog, state, lint, search, grants lookup, sync — every [D] operation its skills would otherwise prose-execute.
 - The boundary from the original recommendation is kept and generalized: *judgment in the LLM, mechanics in the tool* — a capability tool performs deterministic operations only, never calls an LLM, never invokes an agent, and communicates back through exit codes, stdout, and files.
-- Install/upgrade bookkeeping itself (lockfile, hashes, backups) **stays prose for now** — the cheat-sheet playbook. It is exactly the kind of mechanics a tool should own, but no capability needs it machine-shared yet (rule-of-two); when a second harness's install flow visibly drifts the lockfile format, the bookkeeping verbs join a capability tool or this RFC reopens for a scoped `doctor` tool.
+- Install/upgrade bookkeeping itself (lockfile, hashes, backups) was decided as **prose for now**, with a named reopen path: "when the bookkeeping visibly drifts, the verbs join a capability tool." **Outcome (2026-07-24): that path was taken** — a real e2e showed the LLM hand-computing 158 artifact hashes, and the bookkeeping verbs joined the `capability-lifecycle` capability's `aos-lock` tool (manifest parse/validate, lockfile init/record/verify/show/list/remove). The decision itself stands unreversed: there is still no kit-level tool — `aos-lock` is a capability tool per §2.4, and the lockfile is now the tool's file (agents call verbs, never edit the YAML). A scoped `doctor` verb remains this RFC's next reopen candidate.
 
 ## Why not a kit-level tool
 

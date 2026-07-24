@@ -22,12 +22,13 @@ aos/                              # the user's clone (private fork or plain clon
 │   ├── installs.lock.yaml        # what's installed, where, versions, artifact hashes
 │   ├── backups/                  # pre-upgrade snapshots
 │   └── conflicts/                # parked diffs when hand-edits collide with re-renders
-├── harnesses/
-│   ├── hermes.md                 # per-harness cheat-sheets, flat, named for the
-│   ├── nanoclaw.md               #   harness runtime (§5.2)
-│   ├── openclaw.md
-│   └── nanobot.md
+├── BOOTSTRAP.md                  # the agent's door: warm stub — prereqs, clone,
+│                                 #   one inline install, hand-over (install-flow §1)
 ├── capabilities/
+│   ├── capability-lifecycle/
+│   │   └── harnesses/            # per-harness cheat-sheets, flat, named for the
+│   │       ├── hermes.md         #   harness runtime (§5.2) — shipped inside the
+│   │       └── …                 #   capability that uses them
 │   ├── kb/ …
 │   └── gtd-capture/              # ↓ dissected below
 │       └── MOD.md                # ★ USER-OWNED: this user's gtd nuances
@@ -84,7 +85,7 @@ tag-append rules — is now the `base capture` tool's frontmatter, for free).
 | Install (interview) | onboarding capability | ONBOARDING.md, MOD.example.md | MOD.md, harness secret store |
 | Runtime (capture) | main agent | rendered capture skill (which embeds MOD.md nuances) | a raw file in the routed KB's `raw/captures/`, via kb's `base capture` (sha256 dedup, `triage: pending` come free) |
 | Runtime (drain, 23:00) | drainer agent | rendered drain skill; kb's pending view (`base inbox` / `base inbox --failed`) | next-actions (a project's `next_action` field, or `_ops/next-actions.md`), reminders, `meta.gtd_triaged` on the capture — never the capture's own `triage` field, which stays kb's archiver's call at its later 23:30 promote step |
-| Upgrade | harness LLM (merge role) | new upstream files, current render, MOD.md | new render (diff-reviewed), lockfile, backups |
+| Upgrade | harness LLM (re-render role) | new upstream files, MOD.md (the ledger; current render is a drift source only, §3.4) | new render (diff-reviewed), lockfile, backups |
 | Lint/CI | repo CI | everything except overlay family | PR status |
 
 ## 3. Template vs page: the same skill, before and after
@@ -101,7 +102,8 @@ description: Instant capture, no classification. Use when the user fires off a t
    — frontmatter, sha256 dedup, `triage: pending`, and the log line come free from the
    tool. Content verbatim — no cleanup, no summarizing.
 3. A correction to something already captured is a new capture, never an edit — see
-   [../gtd-capture/reference/entry-format.md](../gtd-capture/reference/entry-format.md).
+   the `gtd-capture` entry skill's `reference/entry-format.md` (cross-skill references
+   are by name — §2.1; the materialized dir is renamed).
 4. Apply the user's capture preferences from MOD.md: {{mod: capture_preferences}}
 5. Confirm with a single emoji. No echo, no follow-up questions.
 ```
@@ -118,7 +120,7 @@ x-aos-origin: gtd-capture@0.2.0        # attribution tag — doctor/remove/round
 2. Write it: `base --base <name> capture --text <verbatim content> --source <channel>`
    — frontmatter, sha256 dedup, `triage: pending`, and the log line come free from the tool.
 3. A correction to something already captured is a new capture, never an edit — see
-   [../gtd-capture/reference/entry-format.md](../gtd-capture/reference/entry-format.md).
+   the `gtd-capture` entry skill's `reference/entry-format.md`.
 4. User preferences (from MOD.md): voice notes get transcribed then captured raw; anything
    mentioning the company or clients hints work-KB; captures after 22:00 default to personal.
 5. Confirm with 👍 only — the user hates chatty confirmations.

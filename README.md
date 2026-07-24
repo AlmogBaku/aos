@@ -2,7 +2,7 @@
 
 > `aos` is a placeholder name — [RFC-001](rfcs/RFC-001-naming.md) picks the real one.
 
-**Harnesses are batteries-not-included. This kit is the batteries** — a curated set of capabilities (knowledge base, GTD capture, time blocking, daily briefing, news tracking, voice, a personal trainer someone already built…) that install into the agent harness you already run — Hermes, NanoClaw, OpenClaw first; Claude Code, OpenCode next — personalize themselves to you through an onboarding interview, and keep your personalization intact across upgrades.
+**Harnesses are batteries-not-included. This kit is the batteries** — a curated set of capabilities (knowledge base, GTD capture, time blocking, daily briefing, news tracking, voice, a personal trainer someone already built…) that install into the agent harness you already run — Hermes, NanoClaw, OpenClaw, Nanobot first; Claude Code, OpenCode next — personalize themselves to you through an onboarding interview, and keep your personalization intact across upgrades.
 
 **The kit is two things: a protocol — the backbone — and a set of implementations.** It's not that complicated; the new software is a prompt. The protocol is the agreement on how a capability is shipped, changed, and kept updated. The implementations are the capabilities: markdown, scripts, a thin infra layer that is at bottom prompts — and where real code is needed, standalone programs behind process boundaries. Once the backbone lands, everybody just contributes implementations — that's how this does more than any of us could alone.
 
@@ -22,7 +22,7 @@ Note there's no CLI doing this: `aos import` / `aos install` are conversational 
 
 1. [ARCHITECTURE.md](ARCHITECTURE.md) — the spec. §1 for the story, the seven problems, and the mental model; §3 is the one inviolable contract (the overlay); §8 is the decision index: every decision is either a **firm position + rationale** or an **RFC**.
 2. [rfcs/](rfcs/) — the open decisions: naming, testing, governance, MOD.md persistence, multi-KB routing/authorization, permission-gate vocabulary, agent-comms opinionation, capability composition (RFC-009). RFC-004 (install bookkeeping) is decided: no kit-level helper; capabilities ship their own deterministic tools. (RFC-006/007/008 are the contested cores of the kb, permission-gate and agent-comms capabilities — their build plans proceed; their contested behavior follows the RFC.)
-3. [capabilities/](capabilities/) — one-pagers for the twelve reference capabilities and the build order.
+3. [capabilities/](capabilities/) — one-pagers for the thirteen reference capabilities and the build order.
 4. [design/](design/) — the concrete deep-dives where the spec's contracts become exhibits: [capability anatomy](design/capability-anatomy.md) (a real capability, file by file), [install flow](design/install-flow.md) (every step, deterministic vs agentic marked), [the base engine](design/kb-methodology.md) (store · curation · state: the base tree, BASE.yaml, current-truth doctrine, the curation loop, the state attention window, recall, the `base` tool), [KB authorization](design/kb-authorization.md) (routing, grant tables, sequence diagrams, worked multi-base cases), [agent-comms](design/agent-comms.md) (agent→agent envelope, glass-box rule, transports, guards).
 5. [prior-art.md](prior-art.md) — where this sits vs gstack (closest on architecture) and PAI/LifeOS (closest on domain), and the square neither occupies.
 
