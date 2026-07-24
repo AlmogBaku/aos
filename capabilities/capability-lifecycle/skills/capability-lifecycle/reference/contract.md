@@ -6,7 +6,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   seen the full diff of what you are about to write and approved it (§5.4). The three
   phases are explicit: **STAGE** (compute every artifact's content and the exact native
   command plan — touch nothing), **GATE** (show contents + plan), **EXECUTE** (run it).
-  Nothing touches the harness before the gate.
+  Nothing touches the harness before the gate. Where the harness has a native
+  plan/read-only mode (cheat-sheet Primitive mapping, `plan mode` row), STAGE runs
+  inside it and the GATE approval is the exit.
 - **You never write** any `MOD.md` except through `capability-evolver` or an interview,
   and you never edit shipped capability files in the clone — personalization lives only
   in the overlay (§3.1) and the materialized artifacts.

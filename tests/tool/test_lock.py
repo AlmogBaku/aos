@@ -218,6 +218,43 @@ class LockToolTest(unittest.TestCase):
         self.assertIn("prompt_ref", r.stderr)    # agent form needs prompt_ref
         self.assertIn("degraded", r.stderr)      # degraded required
 
+    def test_manifest_malformed_shapes_exit_12(self):
+        cap = self.clone / "capabilities" / "democap" / "CAPABILITY.md"
+        cap.write_text(VALID_MANIFEST.replace("skills:",
+            "depends: [not, a, mapping]\nschedules: [oops]\nskills:"))
+        r = self.lock("manifest", str(cap.parent))
+        self.assertEqual(r.returncode, 12)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertIn("mapping", r.stderr)
+
+    def test_manifest_accepts_all_shipped_capabilities(self):
+        # drift guard: the tool must accept every in-repo manifest the lint accepts
+        for cap in sorted((REPO / "capabilities").iterdir()):
+            if (cap / "CAPABILITY.md").is_file():
+                r = run(["--clone", str(self.clone), "manifest", str(cap)])
+                self.assertEqual(r.returncode, 0, f"{cap.name}: {r.stderr}")
+
+    def test_init_over_existing_lockfile_errors(self):
+        self.init()
+        r = self.lock("init")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("already exists", r.stderr)
+
+    def test_verify_unknown_capability(self):
+        self.init()
+        r = self.lock("verify", "nope")
+        self.assertEqual(r.returncode, 14)
+
+    def test_record_env_lines_and_scripts_roundtrip(self):
+        self.init()
+        r = self.lock("record", "democap", "--version", "1.2.3",
+                      "--artifact", str(self.a1),
+                      "--env-line", "MY_TOKEN_NAME", "--script", str(self.a2))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        entry = json.loads(self.lock("show", "democap").stdout)
+        self.assertIn("MY_TOKEN_NAME", entry["env_lines"])
+        self.assertEqual(len(entry["scripts"]), 1)
+
     # -- clone discovery ---------------------------------------------------
     def test_discovery_walks_up_from_cwd(self):
         self.init()

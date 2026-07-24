@@ -19,6 +19,7 @@ mutation goes through the `hermes` CLI.
 | schedule | cron job owned by exactly one profile (mapping is by directory, not a field) | `hermes -p <profile> cron create '<cron>' '<prompt>' --name … --skill …` |
 | context block | `SOUL.md` = identity; `workspace/AGENTS.md` = working-dir instructions | inside the profile dir |
 | secret | `.env` line | see Secrets |
+| plan mode | none native — prompt-enforced | declare "planning — no writes until approval" and hold it; the diff gate is the exit |
 
 Files Hermes consumes — anything else you write is inert: `SOUL.md`,
 `AGENTS.md`/`CLAUDE.md`/`.cursorrules` (per working dir), `memories/MEMORY.md`,

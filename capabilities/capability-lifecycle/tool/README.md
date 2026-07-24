@@ -12,9 +12,10 @@ uvx --from <clone>/capabilities/capability-lifecycle/tool aos-lock --help
 ```
 
 Verbs: `manifest <dir>` · `init` · `record <cap> --version … --artifact …× --job …× --config-key …× --env-line …× --script …×` ·
-`verify [<cap>]` · `show <cap>` · `list` · `remove <cap>`. Clone discovery: `--clone` >
-`$AOS_CLONE` > cwd-upward search for `.aos/`. Exit codes: 0 ok · 12 manifest invalid ·
-13 drift · 14 no such entry · 15 no clone.
+`rehash <cap>` (refresh recorded hashes in place) · `verify [<cap>]` · `show <cap>` · `list` · `remove <cap>`. Clone discovery: `--clone` >
+`$AOS_CLONE` > cwd-upward search for `.aos/`. Exit codes: 0 ok · 1 generic
+(init over an existing lockfile) · 12 manifest invalid · 13 drift · 14 no such entry ·
+15 no clone · 16 artifact missing.
 
 Lockfile entry fields (written only by `record`): `version`, `artifacts` (path → sha256),
 `schedules_owned` (job ids), `config_keys`, `env_lines` (variable *names*, never values),

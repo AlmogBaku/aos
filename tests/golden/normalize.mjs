@@ -35,14 +35,14 @@ function copy(s, d) {
     if (SKIP.has(s.split('/').pop())) return;
     mkdirSync(d, { recursive: true });
     // A skills/ dir with a .bundled_manifest is a harness-managed skill store:
-    // snapshot only what the INSTALL materialized (top-level dirs whose SKILL.md
-    // carries x-aos-origin) plus the store's own metadata — bundled harness
-    // content is noise and trips the public-repo lints.
+    // snapshot ONLY what the INSTALL materialized (top-level dirs whose SKILL.md
+    // carries x-aos-origin) — bundled harness content and the store's own metadata
+    // (.bundled_manifest, .hub) are run-varying noise.
     if (existsSync(join(s, '.bundled_manifest'))) {
       for (const name of readdirSync(s)) {
         const child = join(s, name);
-        if (!statSync(child).isDirectory()) { copy(child, join(d, name)); continue; }
-        if (name === '.hub') { copy(child, join(d, name)); continue; }
+        if (!statSync(child).isDirectory()) { continue; }
+        if (name === '.hub') { continue; }
         const skillMd = join(child, 'SKILL.md');
         if (existsSync(skillMd) &&
             readFileSync(skillMd, 'utf8').includes('x-aos-origin:')) {

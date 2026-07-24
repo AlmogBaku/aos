@@ -5,7 +5,8 @@ Two jobs, no judgment:
   init/record/verify/show/list/remove  own the lockfile (.aos/installs.lock.yaml)
 
 The lockfile is THIS TOOL'S file: agents call verbs, never edit the YAML.
-Exit codes: 0 ok · 12 manifest invalid · 13 drift · 14 no such entry · 15 no clone · 16 artifact missing.
+Exit codes: 0 ok · 1 generic (e.g. init over an existing lockfile) · 12 manifest
+invalid · 13 drift · 14 no such entry · 15 no clone · 16 artifact missing.
 """
 import argparse
 import hashlib
@@ -92,10 +93,17 @@ def cmd_manifest(args):
         errs.append("summary must be a non-empty string")
 
     depends = data.get("depends") or {}
+    if not isinstance(depends, dict):
+        errs.append("depends must be a mapping")
+        depends = {}
     for key in depends:
         if key not in ("capabilities", "host"):
             errs.append(f"depends: unknown key '{key}'")
-    for feat, level in (depends.get("host") or {}).items():
+    host = depends.get("host") or {}
+    if not isinstance(host, dict):
+        errs.append("depends.host must be a mapping")
+        host = {}
+    for feat, level in host.items():
         if feat not in HOST_FEATURES:
             errs.append(f"depends.host: unknown feature '{feat}'")
         if level not in HOST_LEVELS:
@@ -117,6 +125,9 @@ def cmd_manifest(args):
         errs.append("ONBOARDING.md without MOD.example.md (presence-paired)")
     seen_sched = set()
     for s in data.get("schedules") or []:
+        if not isinstance(s, dict):
+            errs.append(f"schedules: entry {s!r} must be a mapping")
+            continue
         for key in s:
             if key not in SCHEDULE_KEYS:
                 errs.append(f"schedules[{s.get('id')}]: unknown key '{key}'")
@@ -151,6 +162,9 @@ def cmd_manifest(args):
 
     declared = set()
     for entry in data.get("skills") or []:
+        if not isinstance(entry, dict):
+            errs.append(f"skills: entry {entry!r} must be a mapping")
+            continue
         for key in entry:
             if key not in SKILL_ENTRY_KEYS:
                 errs.append(f"skills[{entry.get('id')}]: unknown key '{key}'")
@@ -172,10 +186,16 @@ def cmd_manifest(args):
                 errs.append(f"skills: on-disk skill '{d.name}' is not declared in skills[]")
 
     kb = data.get("kb") or {}
+    if not isinstance(kb, dict):
+        errs.append("kb must be a mapping")
+        kb = {}
     for key in kb:
         if key not in KB_KEYS:
             errs.append(f"kb: unknown key '{key}'")
     for zone in (kb.get("zones") or []):
+        if not isinstance(zone, dict):
+            errs.append(f"kb.zones: entry {zone!r} must be a mapping")
+            continue
         for key in zone:
             if key not in ("path", "owner_agent"):
                 errs.append(f"kb.zones: unknown key '{key}'")

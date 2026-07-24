@@ -27,6 +27,7 @@ does not exist — the config file is `openclaw.json` (JSON5).
 | schedule | Gateway-hosted cron job (fires only while the Gateway runs; jobs persist) | `openclaw cron add …` (see Materialization); store `~/.openclaw/cron/jobs.json` |
 | context block | workspace bootstrap files, auto-injected each session | always: `AGENTS.md`, `SOUL.md`, `USER.md`, `IDENTITY.md`, `TOOLS.md`. **Sub-agent sessions get only `AGENTS.md` + `TOOLS.md`** — capability context for sub-agents goes there |
 | secret | `~/.openclaw/.env` line (+ SecretRef in config) | see Secrets |
+| plan mode | none native — prompt-enforced | declare "planning — no writes until approval" and hold it; the diff gate is the exit |
 
 Files OpenClaw consumes — anything else you write is inert: workspace `AGENTS.md`,
 `SOUL.md`, `USER.md`, `IDENTITY.md`, `TOOLS.md`; conditionally `HEARTBEAT.md` (heartbeats

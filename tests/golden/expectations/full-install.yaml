@@ -78,7 +78,7 @@ sentinels:
   - {text: "aos:onboarding", in: "front:SOUL.md"}
   # the sync wrapper must pin the clone's registry — a bare `base sync` silently no-ops
   - {text: "kb-registry.yaml", in_dir: "archiver:scripts"}
-  # drain_hour 23:47 → cron expression "47 23 * * *" in the drainer's jobs
+  # drain_hour 22:47 → cron expression "47 22 * * *" in the drainer's jobs
   - {text: "47 22", in_dir: "drainer:cron"}
   - {text: "choir practice Thursdays 19:00-21:00", in_dir: "drainer:"}
   # exec schedule: the sync job's command must invoke the tool, not an agent prompt

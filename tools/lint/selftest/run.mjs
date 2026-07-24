@@ -32,7 +32,7 @@ const EXPECTED = [
   'onboarding/type', 'onboarding/flag',
   'overlay/shipped', 'overlay/state-dir', 'overlay/answer-key', 'overlay/answer-missing', 'overlay/secret-ref',
   'refs/dead',
-  'cheatsheet/section',
+  'cheatsheet/section', 'structure/harnesses-dir',
   'secrets/token', 'secrets/jwt', 'secrets/phone', 'secrets/whatsapp-jid',
   'kb/zone-key', 'kb/owner-agent',
 ];
@@ -50,6 +50,14 @@ for (const check of [
 }
 
 const fired = new Set(findings.map((f) => f.code));
+// the cheat-sheet section check must fire from BOTH sanctioned locations
+const cheatFiles = new Set(findings.filter((f) => f.code === 'cheatsheet/section').map((f) => f.file));
+for (const want of ['harnesses/badharness.md', 'capabilities/bad-cap/harnesses/bad.md']) {
+  if (![...cheatFiles].some((f) => f.endsWith(want))) {
+    console.error(`selftest FAILED — cheatsheet/section did not fire on ${want}`);
+    process.exit(1);
+  }
+}
 const missing = EXPECTED.filter((code) => !fired.has(code));
 const unexpected = [...fired].filter((code) => !EXPECTED.includes(code) && !code.startsWith('structure/') && code !== 'skill/description-when' && code !== 'skill/name-dir' && code !== 'skill/all-main');
 

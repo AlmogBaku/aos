@@ -30,6 +30,7 @@ The workspace is the first `--config` path (`nanobot run ./my-config/`; default
 | schedule | DB-backed scheduled task — created at runtime via the `createScheduledTask` tool, never via config files | 5-field cron, timezone-aware; only daily/weekly/monthly/one-time shapes (dom+dow combined is rejected). Firing starts a **new** chat thread with the stored prompt, so prompts must be self-contained. Referenced by `task:///` URI — record it in the lockfile |
 | context block | the agent's md body (its `instructions`) | **no auto-loaded context file exists (no CLAUDE.md/AGENTS.md equivalent) — do not invent one.** Append inside aos markers in `agents/<id>.md` |
 | secret | `env:` map in `nanobot.yaml` (mark `sensitive: true`); values in `nanobot.env` | `${VAR}` interpolation anywhere in config; see Secrets |
+| plan mode | none native — prompt-enforced | declare "planning — no writes until approval" and hold it; the diff gate is the exit |
 
 Files Nanobot consumes — anything else you write is inert: `nanobot.yaml`, `agents/*.md`
 (`agents/README.md` is ignored), `skills/*/SKILL.md` and flat `skills/*.md`,

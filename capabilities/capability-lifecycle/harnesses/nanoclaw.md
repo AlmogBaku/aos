@@ -36,6 +36,7 @@ settles it.
 | schedule | DB-driven **task**, host sweep every 60 s — NOT OS cron | v2: `ncl tasks create` → per-session `messages_in` rows (kind `task`, `recurrence` cron string, `series_id`). v1: `scheduled_tasks` table (cron\|interval\|once) via the main agent. Cron parsed by cron-parser in instance `TZ`; precision ±60 s + container cold start |
 | context block | v2: `groups/<f>/instructions.prepend.md` (standing instructions) + `groups/<f>/memory/` — both composed into the generated `CLAUDE.md` at spawn. v1: `groups/<f>/CLAUDE.md` directly; global memory `groups/global/CLAUDE.md` (main writes, all read) | no `SOUL.md`, no `AGENTS.md` in either version — do not invent files |
 | secret | `.env` line at checkout root; v2 optionally the OneCLI Agent Vault | see Secrets |
+| plan mode | none native — prompt-enforced | declare "planning — no writes until approval" and hold it (v2's approval-gated config mutations are adjacent machinery, not a plan mode) |
 
 Files NanoClaw consumes — anything else you write is inert:
 `groups/<f>/instructions.prepend.md` (v2), `groups/<f>/memory/**` (v2),

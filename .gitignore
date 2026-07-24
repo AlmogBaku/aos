@@ -16,3 +16,8 @@ tests/.sandbox/
 __pycache__/
 *.pyc
 *.swp
+
+# local harness/tooling state — never kit content
+.agents/
+.claude/
+skills-lock.json

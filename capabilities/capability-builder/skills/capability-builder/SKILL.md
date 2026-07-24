@@ -28,7 +28,11 @@ Feedback on a capability that's already installed is a different signal — that
 
 ## If the user agrees: the procedure
 
-Copy this checklist and work the stages in order — **stop for the user between each**:
+**Enter plan mode first** — if your harness has a native plan/read-only mode (your
+cheat-sheet's Primitive mapping, `plan mode` row), enter it now; if not, enforce it as
+prose: no writes anywhere until the Design approval gate. Exit plan mode only at that
+gate. Then copy this checklist and work the stages in order — **stop for the user
+between each**:
 
 ```
 - [ ] 1. Intake    — reference/intake.md
