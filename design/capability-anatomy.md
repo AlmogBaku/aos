@@ -23,9 +23,10 @@ aos/                              # the user's clone (private fork or plain clon
 │   ├── backups/                  # pre-upgrade snapshots
 │   └── conflicts/                # parked diffs when hand-edits collide with re-renders
 ├── harnesses/
-│   ├── hermes/CHEATSHEET.md      # per-harness install knowledge (§5.2)
-│   ├── nanoclaw/CHEATSHEET.md
-│   └── openclaw/CHEATSHEET.md
+│   ├── hermes.md                 # per-harness cheat-sheets, flat, named for the
+│   ├── nanoclaw.md               #   harness runtime (§5.2)
+│   ├── openclaw.md
+│   └── nanobot.md
 ├── capabilities/
 │   ├── kb/ …
 │   └── gtd-capture/              # ↓ dissected below

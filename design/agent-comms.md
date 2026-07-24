@@ -67,7 +67,7 @@ The kit's established pattern — *one opinionated default behind a thin seam* �
 - **The envelope + guarantees (the protocol).** A message format and a small set of rules.
   This is a named, agreed format, in the same spirit as `SOUL.md`/`CAPABILITY.md`: an agreement,
   not a runtime.
-- **The wire (the transport).** Pluggable, per-harness knowledge in the `CHEATSHEET.md`, exactly
+- **The wire (the transport).** Pluggable, per-harness knowledge in the cheat-sheet (`harnesses/<harness-runtime>.md`), exactly
   like install. Ship one recommended default plus a zero-dep fallback.
 
 *(How firm layer 1 is — normative for all capabilities, or advisory — is RFC-008.)*

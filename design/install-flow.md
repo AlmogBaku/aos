@@ -6,11 +6,13 @@
 
 There is no installer binary to download. The kit's README opens with a paste-block (the gstack lesson — paste-to-install is the whole funnel — minus their Bun/bash dependency):
 
-> Paste into your agent: *"Clone https://…/aos to ~/aos, read ~/aos/harnesses/<your-harness>/CHEATSHEET.md and ~/aos/BOOTSTRAP.md, then set me up."*
+> Paste into your agent: *"Clone https://…/aos to ~/aos, read ~/aos/BOOTSTRAP.md, then set me up."*
+
+One file, on purpose: `BOOTSTRAP.md` carries the shared install contract and tells the agent when to load its harness runtime's cheat-sheet (`harnesses/<harness-runtime>.md`, §5.2) — the human never has to name their harness.
 
 Bootstrap sequence the agent then follows (from `BOOTSTRAP.md`, at the clone root beside the README — the human's door and the agent's door side by side):
 
-1. **[D]** Clone; verify the harness has a cheat-sheet; create `.aos/` + empty lockfile.
+1. **[D]** Clone; check `harnesses/<harness-runtime>.md` exists (none → BOOTSTRAP's no-cheat-sheet path: generic mapping contract, self-drafted sheet, diff-gated — never a stop); create `.aos/` + empty lockfile.
 2. **[A]** **Global interview** (the onboarding capability's bootstrap script): identity, timezone, working hours, sacred time, red lines → writes root `MOD.md`.
 3. **[A]** **KB setup**: existing KBs → `kb adopt` each (register + lint-report, never rewrite); none → `kb init personal`. Writes `kb-registry.yaml`.
 4. **[D]** Install the two root capabilities — kb, onboarding — per §2 below (they have no interviews beyond what just ran; chicken-and-egg is broken by BOOTSTRAP.md carrying their install steps inline).

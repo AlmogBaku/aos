@@ -27,7 +27,7 @@ A shared, open-source layer of **capabilities** — packaged personal-ops use ca
 
 **And it is not that complicated. The kit is two things: a protocol — the backbone — and a set of implementations.** (Kickoff consensus — the counterintuitive argument that won the room: keep it simple and stupid; the new software is a prompt.) The **protocol** is the agreement on how you ship a capability, change it, and keep it updated — the contracts in this document. The **implementations** are the capabilities themselves: markdown files, scripts, the thin infra layer (which is, at bottom, prompts). There is no runtime, no framework, no machinery to maintain.
 
-What does a protocol even look like in the prompt era? **`SOUL.md` is the existence proof.** A file with an agreed name and agreed semantics that any agent, on any harness, knows how to read — that *is* a protocol now, the way a wire format used to be. The harness world already runs on this species (`SOUL.md`, `AGENTS.md`, `HEARTBEAT.md`); this kit's backbone is simply more members of it: `CAPABILITY.md`, `MOD.md`, `CHEATSHEET.md`, `kb-registry.yaml`, the `## Grants` table, the `log.md` line.
+What does a protocol even look like in the prompt era? **`SOUL.md` is the existence proof.** A file with an agreed name and agreed semantics that any agent, on any harness, knows how to read — that *is* a protocol now, the way a wire format used to be. The harness world already runs on this species (`SOUL.md`, `AGENTS.md`, `HEARTBEAT.md`); this kit's backbone is simply more members of it: `CAPABILITY.md`, `MOD.md`, the cheat-sheet (`harnesses/<harness-runtime>.md`), `kb-registry.yaml`, the `## Grants` table, the `log.md` line.
 
 That is also why this unlocks more than we could build before: once the backbone lands, *everybody just contributes implementations* — the system evolves by contribution, not by anyone building a platform. Every section of this document should be read against that bar: anything that smells like a system rather than a protocol is a bug.
 
@@ -426,7 +426,7 @@ The install is then a conversation the harness agent has with the capability's d
 flowchart LR
     CAP["Capability<br/>neutral declarations<br/>(skills · agents · schedules · zones)"] --> LLM(("harness LLM<br/>installs"))
     MOD["MOD.md<br/>your nuances"] --> LLM
-    CS["CHEATSHEET.md<br/>for this harness<br/>(knowledge, not code)"] --> LLM
+    CS["cheat-sheet<br/>harnesses/&lt;harness-runtime&gt;.md<br/>(knowledge, not code)"] --> LLM
     LLM --> H1["<b>Hermes</b><br/>profile · cron/jobs.json<br/>· AGENTS.md block"]
     LLM --> H2["<b>NanoClaw</b><br/>group · workspace skills<br/>· CLAUDE.md block"]
     LLM --> H3["<b>OpenClaw</b><br/>agent · HEARTBEAT.md<br/>· workspace md"]
@@ -438,7 +438,7 @@ flowchart LR
 
 ### 5.2 Cheat-sheets: the adapter is knowledge, not code
 
-`harnesses/<harness>/CHEATSHEET.md` is the kit's per-harness knowledge artifact. Required sections (a contract of *content*, not an API):
+`harnesses/<harness-runtime>.md` is the kit's per-harness knowledge artifact — the *cheat-sheet*. The **harness runtime** is the agent program hosting the install, and the file is named after it: Hermes → `harnesses/hermes.md` · NanoClaw → `harnesses/nanoclaw.md` · OpenClaw → `harnesses/openclaw.md` · Nanobot → `harnesses/nanobot.md` · Claude Code → `harnesses/claude-code.md` · OpenCode → `harnesses/opencode.md`. (The kit itself has no runtime — §1.1; `<harness-runtime>` always names the harness's.) Required sections (a contract of *content*, not an API):
 
 - **Primitive mapping** — what "agent" means here (Hermes: profile · NanoClaw: group · OpenClaw: agent + workspace · Claude Code: sub-agent), what "schedule" means, what "context block" means, with file locations and formats.
 - **Materialization guide** — where each artifact kind is written and how (the §5.3 table, in prose the LLM can follow).
@@ -446,6 +446,12 @@ flowchart LR
 - **Secrets** — the native store and how references resolve.
 - **Removal** — how to cleanly take a capability back out.
 - **Feature notes** — which `depends.host` features exist here, and the degraded-mode translation when they don't.
+
+Three rules govern how the cheat-sheet is used:
+
+- **Aid, never gate.** Capabilities are self-describing prompts; the harness LLM can interpret them directly. The cheat-sheet only saves it re-deriving the mapping to its own primitives. A harness without one is still installable: the installer follows `BOOTSTRAP.md`'s generic mapping contract, introspects its harness, and may draft `harnesses/<harness-runtime>.md` itself (diff-gated like any write) — a self-drafted sheet verified by a real install is a ready-made contribution.
+- **Loaded per operation, never standing context.** The installer loads the cheat-sheet at the steps that make mapping decisions — capability install, capability onboarding, secrets handling, removal — not up front for the whole session.
+- **Lean: the harness half only.** The aos-side install invariants (provenance formats, the lockfile, marker blocks, secret references, degraded-mode meanings, removal discipline — §3.2, §5.4) are defined once and operationalized in `BOOTSTRAP.md`; a cheat-sheet translates them to native primitives and must not restate them.
 
 Terminology note: a capability's `adapters/<harness>/` directory holds its per-harness *content* (override patches, native plugins); the kit-level translation lives in the cheat-sheet. **There are no adapter programs anywhere.**
 
@@ -463,7 +469,7 @@ The `depends.host` vocabulary is fixed and enumerated: `cron`, `messaging.inboun
 | context block | profile `SOUL.md` (identity) / `workspace/AGENTS.md` (working-dir instructions), inside `<!-- aos:… -->` markers | `AGENTS.md` / `USER.md` / `HEARTBEAT.md` | group `CLAUDE.md` |
 | secret | `.env` (root or profile — `auth.json` is Hermes's own provider-credential state, never written by installs) | `credentials/` | `data/env` |
 
-Every artifact written during install is tagged with its origin (a frontmatter key, a marker comment, or — where the file is harness-owned, like Hermes `jobs.json` — a name prefix plus the lockfile record) so `doctor`, `remove`, and the round-trip (§3.3) can attribute it. Claude Code and OpenCode cheat-sheets are explicitly **later**: when they land, the Claude Code one points the LLM at the native plugin/marketplace machinery (userConfig, plugin data dirs) rather than rebuilding it.
+Every artifact written during install is tagged with its origin (a frontmatter key, a marker comment, or — where the file is harness-owned, like Hermes `jobs.json` — a name prefix plus the lockfile record) so `doctor`, `remove`, and the round-trip (§3.3) can attribute it. The NanoClaw (one sheet covering v1 and v2), OpenClaw, and Nanobot cheat-sheets ship **research-drafted** — a shipped sheet is not a verified harness; the support-matrix rule below governs. Claude Code and OpenCode cheat-sheets are explicitly **later** (until then `BOOTSTRAP.md`'s no-cheat-sheet path covers them): when they land, the Claude Code one points the LLM at the native plugin/marketplace machinery (userConfig, plugin data dirs) rather than rebuilding it.
 
 **Support matrix rule:** a capability lists a harness in its README support matrix only if someone runs it there. Honesty over abstraction.
 
