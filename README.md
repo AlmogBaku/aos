@@ -51,12 +51,16 @@ Planned next, in [build order](https://github.com/AlmogBaku/aos/blob/spec/ARCHIT
 
 Paste into your agent:
 
-> Clone https://github.com/AlmogBaku/aos to ~/aos, read ~/aos/BOOTSTRAP.md, then set me up.
+> Fork and clone https://github.com/AlmogBaku/aos to ~/aos/upstream (a plain clone works
+> too), read ~/aos/upstream/BOOTSTRAP.md, then set me up.
 
 That's the whole funnel — there is no installer binary. Your harness's own agent performs
 the install: it interviews you (identity, timezone, sacred time, red lines), writes your
-answers to a `MOD.md` overlay it will never overwrite, materializes skills/agents/schedules
-per its cheat-sheet, and records every artifact in a lockfile so removal is exact.
+answers to a `MOD.md` it will never overwrite — in `~/aos/personal`, your own private
+repo, alongside every rendered skill and any capability you build for yourself —
+materializes skills/agents/schedules per its cheat-sheet, and records every artifact in a
+lockfile so removal is exact. The fork is the default because every user is one branch
+away from being a contributor; it's never a gate.
 
 > [!IMPORTANT]
 > Nothing lands in your harness without your approval: the installer shows the full diff

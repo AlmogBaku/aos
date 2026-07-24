@@ -2,11 +2,12 @@
 
 Two jobs, no judgment:
   manifest  parse + validate a CAPABILITY.md -> JSON on stdout
-  init/record/verify/show/list/remove  own the lockfile (.aos/installs.lock.yaml)
+  init/record/verify/show/list/remove  own the lockfile
+  (<home>/.aos/installs.lock.yaml — the aos household root, e.g. ~/aos)
 
 The lockfile is THIS TOOL'S file: agents call verbs, never edit the YAML.
 Exit codes: 0 ok · 1 generic (e.g. init over an existing lockfile) · 12 manifest
-invalid · 13 drift · 14 no such entry · 15 no clone · 16 artifact missing.
+invalid · 13 drift · 14 no such entry · 15 no home · 16 artifact missing.
 """
 import argparse
 import hashlib
@@ -39,20 +40,20 @@ def fail(code, msg):
     sys.exit(code)
 
 
-def find_clone(args, require_existing=True):
-    if args.clone:
-        root = Path(args.clone)
-    elif os.environ.get("AOS_CLONE"):
-        root = Path(os.environ["AOS_CLONE"])
+def find_home(args, require_existing=True):
+    if args.home:
+        root = Path(args.home)
+    elif os.environ.get("AOS_HOME"):
+        root = Path(os.environ["AOS_HOME"])
     elif not require_existing:
-        fail(15, "init creates state — name the clone explicitly (--clone or AOS_CLONE)")
+        fail(15, "init creates state — name the household explicitly (--home or AOS_HOME)")
     else:
         cur = Path.cwd()
         for cand in [cur, *cur.parents]:
             if (cand / ".aos").is_dir():
                 return cand
-        fail(15, "no clone found: no .aos/ directory from cwd upward "
-                 "(pass --clone or set AOS_CLONE)")
+        fail(15, "no household found: no .aos/ directory from cwd upward "
+                 "(pass --home or set AOS_HOME)")
     if require_existing and not (root / ".aos").is_dir():
         fail(15, f"no .aos/ directory under {root}")
     return root
@@ -234,8 +235,15 @@ def sha256(path):
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
 
+def readlink_or_fail(path):
+    p = Path(path)
+    if not p.is_symlink():
+        fail(16, f"not a symlink: {path}")
+    return os.readlink(p)
+
+
 def cmd_init(args):
-    root = find_clone(args, require_existing=False)
+    root = find_home(args, require_existing=False)
     path = root / LOCK_REL
     if path.is_file():
         fail(1, f"{path} already exists")
@@ -245,11 +253,13 @@ def cmd_init(args):
 
 
 def cmd_record(args):
-    root = find_clone(args)
+    root = find_home(args)
     lock = load_lock(root)
     entry = {
         "version": args.version,
+        "source_root": args.source_root,
         "artifacts": {str(Path(a).resolve()): sha256(Path(a).resolve()) for a in args.artifact},
+        "links": {str(Path(l).absolute()): readlink_or_fail(l) for l in args.link},
         "schedules_owned": list(args.job),
         "config_keys": list(args.config_key),
         "env_lines": list(args.env_line),
@@ -258,11 +268,12 @@ def cmd_record(args):
     lock["installs"][args.capability] = entry
     save_lock(root, lock)
     print(f"recorded {args.capability}@{args.version}: "
-          f"{len(entry['artifacts'])} artifacts, {len(entry['schedules_owned'])} schedules")
+          f"{len(entry['artifacts'])} artifacts, {len(entry['links'])} links, "
+          f"{len(entry['schedules_owned'])} schedules")
 
 
 def cmd_rehash(args):
-    root = find_clone(args)
+    root = find_home(args)
     lock, entry = get_entry(root, args.capability)
     entry["artifacts"] = {path: sha256(path) for path in entry.get("artifacts", {})}
     save_lock(root, lock)
@@ -277,7 +288,7 @@ def get_entry(root, capability):
 
 
 def cmd_verify(args):
-    root = find_clone(args)
+    root = find_home(args)
     lock = load_lock(root)
     caps = [args.capability] if args.capability else sorted(lock["installs"])
     drift = []
@@ -290,6 +301,14 @@ def cmd_verify(args):
                 drift.append(f"{cap}: MISSING {path}")
             elif sha256(p) != sha:
                 drift.append(f"{cap}: DRIFT {path}")
+        for path, target in lock["installs"][cap].get("links", {}).items():
+            p = Path(path)
+            if not p.is_symlink():
+                drift.append(f"{cap}: MISSING LINK {path}")
+            elif os.readlink(p) != target:
+                drift.append(f"{cap}: RELINKED {path} -> {os.readlink(p)} (recorded: {target})")
+            elif not p.exists():
+                drift.append(f"{cap}: DANGLING LINK {path} -> {target}")
     if drift:
         for line in drift:
             print(line)
@@ -298,23 +317,24 @@ def cmd_verify(args):
 
 
 def cmd_show(args):
-    root = find_clone(args)
+    root = find_home(args)
     _, entry = get_entry(root, args.capability)
     json.dump(entry, sys.stdout, indent=2, default=str)
     print()
 
 
 def cmd_list(args):
-    root = find_clone(args)
+    root = find_home(args)
     lock = load_lock(root)
     for cap, entry in sorted(lock["installs"].items()):
         print(f"{cap}  {entry.get('version', '?')}  "
               f"{len(entry.get('artifacts', {}))} artifacts  "
+              f"{len(entry.get('links', {}))} links  "
               f"{len(entry.get('schedules_owned', []))} schedules")
 
 
 def cmd_remove(args):
-    root = find_clone(args)
+    root = find_home(args)
     lock, _ = get_entry(root, args.capability)
     del lock["installs"][args.capability]
     save_lock(root, lock)
@@ -326,7 +346,7 @@ def main():
         prog="aos-lock",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--clone", help="clone root (else $AOS_CLONE, else cwd-upward .aos/ search)")
+    p.add_argument("--home", help="household root, e.g. ~/aos (else $AOS_HOME, else cwd-upward .aos/ search)")
     sub = p.add_subparsers(dest="verb", required=True)
 
     s = sub.add_parser("manifest", help="parse + validate a CAPABILITY.md -> JSON")
@@ -339,6 +359,10 @@ def main():
     s.add_argument("capability")
     s.add_argument("--version", required=True)
     s.add_argument("--artifact", action="append", default=[], help="repeatable file path")
+    s.add_argument("--link", action="append", default=[],
+                   help="repeatable harness symlink path (target read from the link itself)")
+    s.add_argument("--source-root", default="upstream",
+                   help="which household root shipped the capability (upstream|personal|<org>)")
     s.add_argument("--job", action="append", default=[], help="repeatable schedule/job id")
     s.add_argument("--config-key", action="append", default=[])
     s.add_argument("--env-line", action="append", default=[], help="env var NAME added (never the value)")

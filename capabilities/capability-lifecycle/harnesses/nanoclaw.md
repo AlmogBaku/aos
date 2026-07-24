@@ -32,7 +32,7 @@ settles it.
 |---|---|---|
 | agent | **agent group** — a per-group Docker container | v2: `ncl groups create --name <n> --folder <f>` (DB row + `container_configs`; `groups/<f>/` materializes on first message). v1: `registered_groups` DB row keyed by chat JID, folder `{channel}_{group-name}` — register via the main agent |
 | front agent (`main`) | v2: no privileged tier ("privilege lives on users") — treat the setup wizard's first group as `main`. v1: the `is_main=1` group (no trigger word, sole writer of global memory, can register groups and schedule for any group) | default assistant name `Andy` (`ASSISTANT_NAME`) |
-| skill | Agent Skills folder in the checkout's `.claude/skills/<name>/` | auto-registered as `/<name>`, no build; agent containers see skills mounted read-only at `/app/skills` (v2 — v1 mount path unverified). `used_by` scoping: v2 per-group `skills` field in `ncl groups config` (default `"all"`) |
+| skill | Agent Skills folder in the checkout's `.claude/skills/<name>/` — a **symlink** to the pinned render in `<home>/personal` | auto-registered as `/<name>`, no build; agent containers see skills mounted read-only at `/app/skills` (v2 — v1 mount path unverified). **Container mount requirement**: links resolve inside containers only if `<home>/personal` is mounted read-only into the group (`ncl groups config add-mount --ro <home>/personal`) — do this once per group at first aos install, before any skill link; without it, stop and say so (never fall back to copying). `used_by` scoping: v2 per-group `skills` field in `ncl groups config` (default `"all"`) |
 | schedule | DB-driven **task**, host sweep every 60 s — NOT OS cron | v2: `ncl tasks create` → per-session `messages_in` rows (kind `task`, `recurrence` cron string, `series_id`). v1: `scheduled_tasks` table (cron\|interval\|once) via the main agent. Cron parsed by cron-parser in instance `TZ`; precision ±60 s + container cold start |
 | context block | v2: `groups/<f>/instructions.prepend.md` (standing instructions) + `groups/<f>/memory/` — both composed into the generated `CLAUDE.md` at spawn. v1: `groups/<f>/CLAUDE.md` directly; global memory `groups/global/CLAUDE.md` (main writes, all read) | no `SOUL.md`, no `AGENTS.md` in either version — do not invent files |
 | secret | `.env` line at checkout root; v2 optionally the OneCLI Agent Vault | see Secrets |
@@ -59,7 +59,11 @@ Work top-down from `CAPABILITY.md`, under the contract (reference/contract.md).
    `pnpm run chat scout "hi"` (cold start 30–60 s). v1: ask the main agent to register the
    chat as a group. `purpose` + persona content → v2 `instructions.prepend.md` (then
    `ncl groups restart --id <id>`) · v1 `groups/<f>/CLAUDE.md`.
-2. **Skills** land in `.claude/skills/` (naming and copy rules per the contract; frontmatter
+2. **Skills**: the render lives once in
+   `<home>/personal/capabilities/<capability>/skills/<id>/` (contract); symlink it as
+   `.claude/skills/<capability>-<id>` and record the link
+   (`aos-lock record … --link`). Verify the group's `<home>/personal` ro mount first
+   (Primitive mapping). Never copy. (Naming rules per the contract; frontmatter
    `name`: lowercase `[a-z0-9-]`, ≤64 chars). Scope per `used_by` via the v2 group config `skills`
    field; v2 skills that leave artifacts ship a sibling `REMOVE.md` (no v1 `REMOVE.md`
    convention found — unverified). Channel plumbing comes from registry slash-skills (`/add-telegram`, …) —
@@ -126,8 +130,10 @@ Drive everything from the lockfile entry, in order:
 1. Tasks: v2 `ncl tasks cancel --id <series>` (keeps history) or `ncl tasks delete
    --id <series>` per `schedules_owned` id (`pause|resume` for temporary stops); v1: ask the
    main agent to remove the task, then verify the `scheduled_tasks` row is gone.
-2. Skills: run the sibling `REMOVE.md` first (v2), then delete
-   `.claude/skills/<capability>-<id>/`.
+2. Skills: run the sibling `REMOVE.md` first (v2), then delete the
+   `.claude/skills/<capability>-<id>` symlink; the render dirs in `<home>/personal` are
+   deleted via a commit (contract). The `<home>/personal` mount stays if any other aos
+   capability is installed in the group.
 3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks from v2
    `instructions.prepend.md` (then `ncl groups restart`) / v1 `groups/<f>/CLAUDE.md`.
 4. Config: v2 `ncl groups config remove-mcp-server|remove-package|remove-mount` per recorded

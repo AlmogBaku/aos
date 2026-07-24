@@ -15,7 +15,7 @@ mutation goes through the `hermes` CLI.
 |---|---|---|
 | agent | **profile** — a full parallel HERMES_HOME (own `config.yaml`, `.env`, `SOUL.md`, `skills/`, `cron/`) | `~/.hermes/profiles/<name>/`; directory-defined, no registry entry. `hermes profile create <name>`; target with `hermes -p <name> …` |
 | front agent (`main`) | the default profile | `~/.hermes/` itself |
-| skill | Agent Skills folder | `~/.hermes/skills/` (main) or `profiles/<p>/skills/` — per-profile dirs are how `used_by` scoping works |
+| skill | Agent Skills folder — a **symlink** to the pinned render in `<home>/personal` | link at `~/.hermes/skills/<capability>-<id>` (main) or `profiles/<p>/skills/<capability>-<id>` — per-profile links are how `used_by` scoping works; Hermes follows symlinks in skills dirs |
 | schedule | cron job owned by exactly one profile (mapping is by directory, not a field) | `hermes -p <profile> cron create '<cron>' '<prompt>' --name … --skill …` |
 | context block | `SOUL.md` = identity; `workspace/AGENTS.md` = working-dir instructions | inside the profile dir |
 | secret | `.env` line | see Secrets |
@@ -38,7 +38,11 @@ Work top-down from `CAPABILITY.md`, under the contract (reference/contract.md).
    `purpose` + persona content → `SOUL.md` (replace the seeded default, never leave it
    empty); `context_files` → workspace, referenced from `workspace/AGENTS.md`;
    `workspace: shared` → skip profile creation, wire into the default profile.
-2. **Skills** land in `~/.hermes/skills/` (main) or `profiles/<p>/skills/` per `used_by`.
+2. **Skills**: the render lives once in
+   `<home>/personal/capabilities/<capability>/skills/<id>/` (contract); create a symlink
+   per `used_by` — `ln -s <render-dir> ~/.hermes/skills/<capability>-<id>` (main) or
+   into `profiles/<p>/skills/`. Never copy. Record each link with
+   `aos-lock record … --link <linkpath>`.
 3. **Schedules.** Agent-type entries (`agent` + `prompt_ref`):
 
    ```
@@ -52,7 +56,8 @@ Work top-down from `CAPABILITY.md`, under the contract (reference/contract.md).
    --no-agent --name 'aos:<capability>:<schedule-id>'`; if this Hermes build lacks
    script jobs, a system crontab line with the same command and a `# aos:<cap>:<id>`
    comment is the fallback — record whichever was used in the lockfile). A path-form exec
-   runs as `uv run <clone>/<path-and-args>`. Optionally compose surfacing:
+   runs as `uv run <home>/upstream/<path-and-args>` (personal capabilities:
+   `<home>/personal/…`). Optionally compose surfacing:
    `… || hermes notify …`. Never write an `origin:` field into jobs.json (Hermes uses it
    for chat provenance). Single-owner check = `hermes cron list` across profiles.
 4. **Context blocks** → marker-delimited appends to `SOUL.md` / `workspace/AGENTS.md`.
@@ -93,8 +98,9 @@ Drive everything from the lockfile entry, in order:
 
 1. Cron jobs: `hermes -p <profile> cron remove <id>` per `schedules_owned` id; then
    delete leftover `cron/output/<id>*`.
-2. Skills: delete the materialized dir from **every** profile the lockfile lists
-   (copies, not links).
+2. Skills: delete the symlink from **every** profile the lockfile's `links` list; then
+   delete the render dirs in `<home>/personal/capabilities/<capability>/skills/` via a
+   commit (revertible — the persist hook's message says why).
 3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks.
 4. Config keys: `hermes config unset <key>` per recorded key.
 5. `.env` lines added at install: remove after asking the user.
@@ -118,8 +124,10 @@ Drive everything from the lockfile entry, in order:
 Degraded-mode wiring (meanings in reference/contract.md): `manual` ⇒ the invocable skill lands in
 the same profile the job would have owned; `inline` ⇒ append via `hermes cron edit`.
 
-Safety rails to route through: `hermes backup --quick` (pre-install), `state-snapshots/`
-(pre-update), `hermes doctor`, `hermes skills diff` (feeds the §3.3 round-trip),
+Safety rails to route through: the `personal/` git history first (renders and ledgers —
+revert = rollback), then Hermes-native: `hermes backup --quick` (pre-install),
+`state-snapshots/` (pre-update), `hermes doctor`, `hermes skills diff` (feeds the §3.3
+round-trip; note stock-vs-modified tracking sees through links to the render),
 `hermes profile export` (before risky surgery).
 
 Native seam note: Hermes has its own distribution mechanism (`hermes profile install
