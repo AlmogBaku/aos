@@ -1,6 +1,6 @@
 ---
 id: capability-builder
-version: 0.1.0
+version: 0.1.1
 tags: [infra]
 summary: Detects use-case-shaped requests mid-conversation and turns them into an intake -> research -> design -> approval -> build procedure instead of ad hoc changes; also evolves capabilities that already exist.
 depends:

@@ -1,7 +1,9 @@
 # Hermes cheat-sheet
 
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
-Hermes.
+Hermes. The aos half of the install contract — provenance, lockfile, markers, secret
+references, degraded-mode meanings, removal discipline — is `BOOTSTRAP.md` §0; this sheet
+is only the Hermes half.
 
 **Rule zero: never hand-edit `config.yaml` or `cron/jobs.json`.** Both are
 machine-rewritten (comments don't survive; jobs.json holds live scheduler state). Every
@@ -29,24 +31,13 @@ the profile's default doesn't already fit the class; never hardcode provider nam
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`. Every artifact gets provenance, every path a lockfile
-line, and the full diff is shown to the user **before** anything lands.
+Work top-down from `CAPABILITY.md`, under the BOOTSTRAP §0 contract.
 
 1. **Agents → profiles.** `hermes profile create <name>`; then inside the profile:
    `purpose` + persona content → `SOUL.md` (replace the seeded default, never leave it
    empty); `context_files` → workspace, referenced from `workspace/AGENTS.md`;
    `workspace: shared` → skip profile creation, wire into the default profile.
-2. **Skills, scoped by `used_by`.** Copy each `skills/<id>/` folder into the skills dir
-   of every profile in its `used_by` — as **`<capability>-<id>/`** (collision-proof;
-   frontmatter `name` stays as shipped). Copy the folder **whole**: bundled assets
-   (`reference/`, `scripts/`, `templates/`) travel with the skill — scripts are
-   executed, never loaded as context. Nowhere else. After filling `{{mod: …}}` slots,
-   add to the materialized copy's frontmatter:
-
-   ```yaml
-   x-aos-origin: <capability>@<version>
-   ```
-
+2. **Skills** land in `~/.hermes/skills/` (main) or `profiles/<p>/skills/` per `used_by`.
 3. **Schedules.** Agent-type entries (`agent` + `prompt_ref`):
 
    ```
@@ -59,33 +50,16 @@ line, and the full diff is shown to the user **before** anything lands.
    (`hermes cron create '<cron>' --script "<exec command>"
    --no-agent --name 'aos:<capability>:<schedule-id>'`; if this Hermes build lacks
    script jobs, a system crontab line with the same command and a `# aos:<cap>:<id>`
-   comment is the fallback — record whichever was used in the lockfile). A bare
-   exec command (e.g. kb's `base sync --all`) is provided by the capability's tool
-   install (its briefing's install step — e.g. `uv tool install --from
-   <clone>/capabilities/kb/tool aos-base`); a path-form exec runs as
-   `uv run <clone>/<path-and-args>`. Optionally compose surfacing:
-   `… || hermes notify …`. Verify `uv --version` before wiring.
-   Provenance = the `aos:<capability>:<schedule-id>` name prefix + the returned job id
-   in the lockfile under `schedules_owned`. Never write an `origin:` field into
-   jobs.json (Hermes uses it for chat provenance). Single-owner (§5.5): `hermes cron
-   list` across profiles first; existing schedule elsewhere → ask the user to reassign,
-   never duplicate.
-4. **Context blocks** → marker-delimited appends to `SOUL.md` / `workspace/AGENTS.md`:
-
-   ```
-   <!-- aos:<capability>@<version> begin -->
-   …
-   <!-- aos:<capability>@<version> end -->
-   ```
-
+   comment is the fallback — record whichever was used in the lockfile). A path-form exec
+   runs as `uv run <clone>/<path-and-args>`. Optionally compose surfacing:
+   `… || hermes notify …`. Never write an `origin:` field into jobs.json (Hermes uses it
+   for chat provenance). Single-owner check = `hermes cron list` across profiles.
+4. **Context blocks** → marker-delimited appends to `SOUL.md` / `workspace/AGENTS.md`.
 5. **Config keys**: `hermes config set <dotted.key> <value>` (`-p <profile>` for profile
    config). Verify the key exists first with `hermes config get` — a typo'd key silently
    does nothing. Record every key set in the lockfile.
 6. **Native code** (`adapters/hermes/plugins/`): hooks → profile `hooks/`; standalone
    programs stay standalone; `--script` files → `~/.hermes/scripts/`.
-
-**Lockfile** (`.aos/installs.lock.yaml` in the user's clone), per capability+harness:
-version, every artifact path + sha256, job ids under `schedules_owned`, config keys set.
 
 ## Introspection guide
 
@@ -106,10 +80,9 @@ version, every artifact path + sha256, job ids under `schedules_owned`, config k
 
 - Values → `.env` (root for `main`, the profile's for profile-scoped). Never echo values.
 - `auth.json` is Hermes's provider-credential state — installs never write it.
-- MOD.md stores references only: `{store: hermes-env, key: <ENV_VAR>}`. Resolve = read
-  that variable from the owning profile's `.env`.
-- External stores via `hermes secrets` (Bitwarden/1Password) → `{store: hermes-secrets,
-  key: …}` if the user opts in.
+- Reference stores: `{store: hermes-env, key: <ENV_VAR>}` — resolve = read that variable
+  from the owning profile's `.env`. External stores via `hermes secrets`
+  (Bitwarden/1Password) → `{store: hermes-secrets, key: …}` if the user opts in.
 - Skills needing a variable in sandboxes declare it in SKILL.md
   `required_environment_variables`.
 
@@ -121,17 +94,13 @@ Drive everything from the lockfile entry, in order:
    delete leftover `cron/output/<id>*`.
 2. Skills: delete the materialized dir from **every** profile the lockfile lists
    (copies, not links).
-3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks; never touch text
-   outside markers.
+3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks.
 4. Config keys: `hermes config unset <key>` per recorded key.
 5. `.env` lines added at install: remove after asking the user.
 6. Profiles created by this capability and used by nothing else: `hermes profile delete
    <name>`.
 7. Recorded `~/.hermes/scripts/` and `hooks/` files: delete.
-8. Remove the lockfile entry. **MOD.md is never deleted** (§3.3).
-
-Verify by re-running Introspection: no `aos:<capability>` job names, no
-`x-aos-origin: <capability>@`, no marker blocks remain.
+8. Remove the lockfile entry; verify per BOOTSTRAP §0 (re-run Introspection).
 
 ## Feature notes
 
@@ -145,10 +114,8 @@ Verify by re-running Introspection: no `aos:<capability>` job names, no
 | `email` | ⚠ via skill | same as calendar |
 | `secrets-store` | ✓ | `.env` (+ optional `hermes secrets`) |
 
-Degraded modes (§5.5): `manual` ⇒ skip the cron job, materialize the prompt as an
-invocable skill in the same profile, tell the user how to run it; `inline` ⇒ append the
-prompt (inside markers) to an existing aos-owned job via `hermes cron edit`; `skip` ⇒
-record in the lockfile so `doctor` reports it.
+Degraded-mode wiring (meanings in BOOTSTRAP §0): `manual` ⇒ the invocable skill lands in
+the same profile the job would have owned; `inline` ⇒ append via `hermes cron edit`.
 
 Safety rails to route through: `hermes backup --quick` (pre-install), `state-snapshots/`
 (pre-update), `hermes doctor`, `hermes skills diff` (feeds the §3.3 round-trip),

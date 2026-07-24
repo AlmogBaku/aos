@@ -26,8 +26,8 @@ Everything the run creates is identifiable and disposable:
    default profile with the same prompt if the fresh profile has no credentials):
 
    > You are the Hermes harness agent installing from the aos kit cloned at
-   > `<sandbox>/aos-clone`. Read `harnesses/hermes/CHEATSHEET.md` and `BOOTSTRAP.md`
-   > there and follow them exactly. The interviews already ran — the overlay files
+   > `<sandbox>/aos-clone`. Read `BOOTSTRAP.md` there and follow it exactly. The
+   > interviews already ran — the overlay files
    > (`MOD.md`, `kb-registry.yaml`, `capabilities/*/MOD.md`) are present in the clone.
    > Your install home (the "front agent") is the `aos-test` profile
    > (`~/.hermes/profiles/aos-test`); create capability agents as `aos-<name>` profiles.

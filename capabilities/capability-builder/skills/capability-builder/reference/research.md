@@ -6,8 +6,8 @@ Intake that needs looking into rather than guessing:
 - **Reuse** — does an installed capability already cover part of this? Survey
   `capabilities/*/CAPABILITY.md` summaries and entry-skill descriptions.
 - **Feasibility** — does the target harness actually support what this needs? Check
-  its `CHEATSHEET.md` primitive mapping and Feature notes table for any
-  `depends.host` item this would need.
+  its cheat-sheet (`harnesses/<harness-runtime>.md`) Primitive mapping and Feature
+  notes table for any `depends.host` item this would need.
 - **Precedent** — is there a close structural analog already built? Read it before
   inventing a new shape.
 

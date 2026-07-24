@@ -85,13 +85,19 @@ House rules the linter can't fully check:
 
 ## Contributing a harness cheat-sheet
 
-One document makes a harness supported: `harnesses/<name>/CHEATSHEET.md` with the six
-sections of
+One document adds a harness: `harnesses/<harness-runtime>.md` (flat, named for the
+harness runtime, lowercase — `hermes.md`, `nanoclaw.md`, …) with the six sections of
 [spec §5.2](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#52-cheat-sheets-the-adapter-is-knowledge-not-code)
 (primitive mapping, materialization, introspection, secrets, removal, feature notes).
-[`harnesses/hermes/CHEATSHEET.md`](harnesses/hermes/CHEATSHEET.md) is the reference.
-The bar: an LLM with only your cheat-sheet + a capability + a fixture overlay must
-produce a correct install.
+[`harnesses/hermes.md`](harnesses/hermes.md) is the reference. Keep it lean: the shared
+aos install contract lives in `BOOTSTRAP.md` §0 — a cheat-sheet carries only the
+harness's half. The bar: an LLM with only your cheat-sheet + a capability + a fixture
+overlay must produce a correct install.
+
+Your own agent may have already drafted one mid-install (BOOTSTRAP's no-cheat-sheet
+path) — a self-drafted sheet verified by a real install is a ready-made PR. A merged
+sheet is not "supported" until someone e2e-runs the harness (spec §5.3's support-matrix
+honesty); until then it ships marked research-drafted.
 
 ## Changing a decision
 

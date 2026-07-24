@@ -17,17 +17,16 @@ personalize themselves, and survive every upgrade.
 > [!NOTE]
 > `aos` is a placeholder name — [RFC-001](https://github.com/AlmogBaku/aos/blob/spec/rfcs/RFC-001-naming.md) picks the real one.
 
-Harnesses are batteries-not-included: Hermes, NanoClaw, or OpenClaw give you an agent,
+Harnesses are batteries-not-included: OpenClaw, Hermes, or NanoClaw give you an agent,
 then leave the chief-of-staff layer — knowledge base, capture, schedules, personas — for
 you to hand-roll. This kit is that layer, as a **protocol plus reference implementations**:
 markdown, prompts, and (where real code is needed) standalone tools behind process
 boundaries. No runtime, no CLI, no rent.
 
 > [!TIP]
-> **Reading this as an agent?** Your entry points are [`BOOTSTRAP.md`](BOOTSTRAP.md)
-> (the install sequence — you are the installer) and
-> [`harnesses/<your-harness>/CHEATSHEET.md`](harnesses/) (how aos concepts map to your
-> harness's primitives). Everything else here is context for your human.
+> **Reading this as an agent?** Your entry point is [`BOOTSTRAP.md`](BOOTSTRAP.md) — the
+> install sequence (you are the installer). It tells you when to load your harness
+> runtime's [cheat-sheet](harnesses/). Everything else here is context for your human.
 
 ## What's in the box
 
@@ -51,7 +50,7 @@ Planned next, in [build order](https://github.com/AlmogBaku/aos/blob/spec/ARCHIT
 
 Paste into your agent:
 
-> Clone https://github.com/AlmogBaku/aos to ~/aos, read ~/aos/harnesses/&lt;your-harness&gt;/CHEATSHEET.md and ~/aos/BOOTSTRAP.md, then set me up.
+> Clone https://github.com/AlmogBaku/aos to ~/aos, read ~/aos/BOOTSTRAP.md, then set me up.
 
 That's the whole funnel — there is no installer binary. Your harness's own agent performs
 the install: it interviews you (identity, timezone, sacred time, red lines), writes your
@@ -65,9 +64,11 @@ per its cheat-sheet, and records every artifact in a lockfile so removal is exac
 
 | Harness | Status |
 |---|---|
-| [Hermes](harnesses/hermes/) | ✅ supported — first cheat-sheet, e2e-tested for real |
-| NanoClaw, OpenClaw | 🔜 next — cheat-sheets wanted, [contribute one](CONTRIBUTING.md) |
-| Claude Code, OpenCode | 📋 planned |
+| [OpenClaw](harnesses/openclaw.md) | 🧪 cheat-sheet shipped, research-drafted — not yet e2e-verified |
+| [Hermes](harnesses/hermes.md) | ✅ supported — e2e-tested for real |
+| [NanoClaw](harnesses/nanoclaw.md) (v1 + v2) | 🧪 cheat-sheet shipped, research-drafted — not yet e2e-verified |
+| [Nanobot](harnesses/nanobot.md) | 🧪 cheat-sheet shipped, research-drafted — not yet e2e-verified |
+| Claude Code, OpenCode | 📋 planned — BOOTSTRAP's no-cheat-sheet path works today; [contribute a sheet](CONTRIBUTING.md) |
 
 New here? The human-facing walkthrough is [docs/INSTALL.md](docs/INSTALL.md).
 
@@ -102,8 +103,9 @@ Five commitments make the loop work (plain-words tour in [docs/CONCEPTS.md](docs
 - **Your personalization is untouchable.** Interviews write `MOD.md` files that upstream
   never ships or merges; a `git pull` can't eat your nuances — by construction.
 - **The adapter is knowledge, not code.** Supporting a harness means writing a
-  [cheat-sheet](harnesses/hermes/CHEATSHEET.md) that teaches its own LLM the mapping —
-  six sections, zero glue code.
+  [cheat-sheet](harnesses/hermes.md) that teaches its own LLM the mapping —
+  six sections, zero glue code. And it's an aid, not a gate: with no cheat-sheet,
+  BOOTSTRAP has the agent derive the mapping itself.
 - **Every capability has one face.** An entry skill named after the capability is the
   runtime map; depth stays one `reference/` hop away.
 - **Deterministic where it counts.** Real machinery (like kb's `base` tool) is standalone,
@@ -115,7 +117,7 @@ Five commitments make the loop work (plain-words tour in [docs/CONCEPTS.md](docs
 BOOTSTRAP.md               ← agents start here (the install sequence)
 CONTRIBUTING.md            ← humans with a PR start here
 capabilities/<id>/         ← the built capabilities (see table above)
-harnesses/<name>/          ← one CHEATSHEET.md per supported harness
+harnesses/<runtime>.md     ← one cheat-sheet per harness runtime (the program hosting your agent)
 docs/                      ← concepts, install & usage guides, testing, gap ledger
 tools/ · tests/            ← deterministic lint + golden-render checks (CI)
 ```

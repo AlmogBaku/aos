@@ -95,12 +95,15 @@ work KB your colleagues pull — all registered in your user-owned `kb-registry.
 
 ([§5](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#5-installation-the-harness-installs-the-batteries))
 There is no installer program. Your harness's own agent reads
-[`BOOTSTRAP.md`](../BOOTSTRAP.md), its harness's cheat-sheet, and each capability's
-briefing, then materializes everything itself. Three mechanisms keep that honest:
+[`BOOTSTRAP.md`](../BOOTSTRAP.md) and each capability's briefing, loading its harness
+runtime's cheat-sheet at the steps that need it, then materializes everything itself.
+Three mechanisms keep that honest:
 
-- **Cheat-sheets, not adapters.** Per-harness support is one `CHEATSHEET.md` teaching
-  the mapping (agent → Hermes profile, schedule → `hermes cron create`, secret →
-  `.env`). Knowledge, not glue code — a new harness costs one document.
+- **Cheat-sheets, not adapters.** Per-harness support is one lean doc
+  (`harnesses/<harness-runtime>.md`) teaching the mapping (agent → Hermes profile,
+  schedule → `hermes cron create`, secret → `.env`). Knowledge, not glue code — a new
+  harness costs one document, and even that is an aid, not a gate: without one, the
+  agent derives the mapping itself per BOOTSTRAP.
 - **The diff gate.** Every write is shown to you in full before it lands. Never
   optional.
 - **The lockfile.** Everything materialized is recorded in `.aos/installs.lock.yaml`
@@ -126,12 +129,13 @@ is. When building reveals the spec is wrong, the spec gets fixed — the
 | Term | Meaning |
 |---|---|
 | **harness** | The agent product you already run (Hermes, NanoClaw, OpenClaw, …) |
+| **harness runtime** | The program hosting your agent — names its cheat-sheet (`harnesses/<harness-runtime>.md`, see BOOTSTRAP.md) |
 | **capability** | An installable directory of skills/agents/tools/crons/patches |
 | **entry skill** | `skills/<id>/` — the capability's runtime face and map |
 | **overlay** | Your `MOD.md` files + `kb-registry.yaml`; user-owned, never shipped |
 | **base** | One KB instance == one git repo, registered in `kb-registry.yaml` |
 | **materialize** | The installer writing a capability's artifacts into your harness |
-| **cheat-sheet** | Per-harness knowledge doc the installing LLM follows |
+| **cheat-sheet** | `harnesses/<harness-runtime>.md` — the harness half of the mapping, loaded per operation |
 | **lockfile** | `.aos/installs.lock.yaml` — the honest record of what was installed |
 | **diff gate** | You see every write before it happens; never optional |
 | **degraded mode** | A capability's declared behavior when a host feature is absent |

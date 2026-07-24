@@ -1,16 +1,18 @@
 # Installing aos — what actually happens
 
 The guide for the *human* about to install. Your agent follows
-[`BOOTSTRAP.md`](../BOOTSTRAP.md) (the exact sequence) and its harness's
-[cheat-sheet](../harnesses/); this page tells you what to expect, what you'll be asked,
-and what ends up where.
+[`BOOTSTRAP.md`](../BOOTSTRAP.md) (the exact sequence), which loads its harness runtime's
+[cheat-sheet](../harnesses/) at the steps that need it; this page tells you what to
+expect, what you'll be asked, and what ends up where.
 
 ## Before you start
 
-- **A supported harness.** Hermes today; see the [support table](../README.md#install).
-  If your harness has no `harnesses/<name>/CHEATSHEET.md`, the installer will stop and
-  say so rather than improvise — [contributing a cheat-sheet](../CONTRIBUTING.md) is how
-  a new harness gets supported.
+- **Any harness with an agent.** There is no installer program — your own agent does the
+  installing, following BOOTSTRAP. Hermes is e2e-verified today; see the
+  [support table](../README.md#install). If your harness has no cheat-sheet yet, your
+  agent doesn't stop: BOOTSTRAP has it introspect your harness, draft its own
+  cheat-sheet, and show it to you before anything lands —
+  [contributing that sheet](../CONTRIBUTING.md) is how the next person skips the step.
 - **git** — the kit is a clone, and upgrades are `git pull`.
 - **[`uv`](https://docs.astral.sh/uv/) (optional)** — installs kb's `base` tool. Without
   it, kb still works: the skills fall back to prose procedures (slower, LLM-driven).
@@ -19,8 +21,7 @@ and what ends up where.
 
 Paste into your agent:
 
-> Clone https://github.com/AlmogBaku/aos to ~/aos, read
-> ~/aos/harnesses/&lt;your-harness&gt;/CHEATSHEET.md and ~/aos/BOOTSTRAP.md, then set me up.
+> Clone https://github.com/AlmogBaku/aos to ~/aos, read ~/aos/BOOTSTRAP.md, then set me up.
 
 ## What happens next
 
@@ -45,7 +46,7 @@ Paste into your agent:
 
 > [!IMPORTANT]
 > **You approve every write.** Before anything lands in your harness, the agent shows
-> the full diff and waits. This is the spec's diff gate — if an installer skips it,
+> the full diff and waits. This is the spec's diff gate — if your agent skips it,
 > that's a bug, not a feature.
 
 ## After bootstrap
@@ -76,10 +77,10 @@ installing anyway is fine, silently pretending is not:
 | Your answers & nuances | `~/aos/MOD.md`, `~/aos/capabilities/*/MOD.md` | **you** — upstream never ships or writes these |
 | Your KB registry | `~/aos/kb-registry.yaml` | **you** |
 | Your KBs | wherever you keep them (each base is its own git repo) | **you** |
-| Materialized skills/agents/schedules | your harness's own locations (per cheat-sheet) | the installer, tracked in the lockfile |
-| Install record | `~/aos/.aos/installs.lock.yaml` | the installer, machine-local |
+| Materialized skills/agents/schedules | your harness's own locations (per cheat-sheet) | your agent, tracked in the lockfile |
+| Install record | `~/aos/.aos/installs.lock.yaml` | your agent, machine-local |
 
 Hand-editing materialized artifacts is fine — the agent folds your edits back into
 MOD.md when it notices (see [USAGE.md](USAGE.md)). Whether to keep your overlay in a
 private fork or local-only is your call (RFC-005 tracks the recommendation); the
-installer won't decide for you.
+agent won't decide for you.
