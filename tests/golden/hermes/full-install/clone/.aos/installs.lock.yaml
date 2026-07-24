@@ -7,24 +7,24 @@ overlay_sources:
 - <HOME>/aos/tests/.sandbox/aos-clone/capabilities/kb/MOD.md
 - <HOME>/aos/tests/.sandbox/aos-clone/capabilities/gtd-capture/MOD.md
 created_profiles:
-- aos-test
 - aos-archiver
 - aos-drainer
 config_keys:
 - profile: aos-archiver
   key: model.default
-  value: global.anthropic.claude-sonnet-5
+  value: gpt-5.6-luna
 - profile: aos-archiver
   key: model.provider
-  value: bedrock
+  value: openai-api
 - profile: aos-drainer
   key: model.default
-  value: global.anthropic.claude-sonnet-5
+  value: gpt-5.6-luna
 - profile: aos-drainer
   key: model.provider
-  value: bedrock
+  value: openai-api
 tool_installs:
-- command: uv tool install --from <HOME>/aos/tests/.sandbox/aos-clone/capabilities/kb/tool aos-base
+- command: uv tool install --from <HOME>/aos/tests/.sandbox/aos-clone/capabilities/kb/tool
+    aos-base
   package: aos-base==0.3.0
   executable: base
 capabilities:
@@ -66,14 +66,15 @@ capabilities:
       job_id: <ID>
       name: aos:gtd-capture:nightly-drain
     degraded_modes:
-    - 'messaging.outbound: reminder_target is whatsapp:+<ID> but this sandbox profile has no outbound
-      messaging wired; reminders are reported in the drain close-out instead of delivered.'
+    - 'messaging.outbound: reminder_target is whatsapp:+<ID> but this sandbox
+      profile has no outbound messaging wired; reminders are reported in the drain
+      close-out instead of delivered.'
 artifacts:
 - path: <HOME>/.hermes/profiles/aos-archiver/SOUL.md
   sha256: <SHA256>
 - path: <HOME>/.hermes/profiles/aos-archiver/config.yaml
   sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-archiver/scripts/kb-sync-all.sh
+- path: <HOME>/.hermes/profiles/aos-archiver/scripts/aos-kb-sync.sh
   sha256: <SHA256>
 - path: <HOME>/.hermes/profiles/aos-archiver/skills/kb-kb/SKILL.md
   sha256: <SHA256>
@@ -94,6 +95,8 @@ artifacts:
 - path: <HOME>/.hermes/profiles/aos-drainer/skills/gtd-capture-gtd-capture/reference/entry-format.md
   sha256: <SHA256>
 - path: <HOME>/.hermes/profiles/aos-test/SOUL.md
+  sha256: <SHA256>
+- path: <HOME>/.hermes/profiles/aos-test/config.yaml
   sha256: <SHA256>
 - path: <HOME>/.hermes/profiles/aos-test/skills/gtd-capture-capture/SKILL.md
   sha256: <SHA256>

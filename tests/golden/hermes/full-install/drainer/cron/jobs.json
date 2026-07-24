@@ -3,26 +3,25 @@
     {
       "id": "<ID>",
       "name": "aos:gtd-capture:nightly-drain",
-      "prompt": "Run the gtd-capture drain skill over every registered KB inbox your grants cover, oldest pending first. Use verb-first next actions. Deadline items become reminders first, tasks second, delivered to whatsapp:+<ID> when due. Honor sacred time: never schedule or fire a reminder during choir practice Thursdays 19:00-21:00 Europe/Lisbon; move it to the window end. Close out per the drain skill's report section, including base inbox --failed counts. Output exactly DRAIN: inbox clean. and deliver nothing only when both pending and failed are empty.",
+      "prompt": "# nightly-drain\n\nRun the `drain` skill over every registered KB inbox your grants cover, oldest pending\nfirst. Close out per the skill's own close-out report section — including surfacing\n`base inbox --failed` counts. `DRAIN: inbox clean.` is only the right output when\n*both* pending and failed are empty; a night with failed-but-no-pending items still\ngets a report, never silence.",
       "skills": [
-        "gtd-capture-drain",
-        "gtd-capture-gtd-capture"
+        "gtd-capture-drain"
       ],
       "skill": "gtd-capture-drain",
       "model": null,
       "provider": null,
-      "provider_snapshot": "bedrock",
-      "model_snapshot": "global.anthropic.claude-sonnet-5",
+      "provider_snapshot": null,
+      "model_snapshot": "gpt-5.6-luna",
       "base_url": null,
       "script": null,
       "no_agent": false,
       "context_from": null,
       "schedule": {
         "kind": "cron",
-        "expr": "47 23 * * *",
-        "display": "47 23 * * *"
+        "expr": "47 22 * * *",
+        "display": "47 22 * * *"
       },
-      "schedule_display": "47 23 * * *",
+      "schedule_display": "47 22 * * *",
       "repeat": {
         "times": null,
         "completed": 0

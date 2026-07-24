@@ -32,7 +32,10 @@ At capability install: draft one row per `kb.zones` manifest entry — subject
 `agent:<owner_agent>` or `capability:<id>`, object = zone glob, verbs as declared,
 `grantor: user`, `granted: <today>`, `via: <capability>@<version>`. Rows land **only
 after the user approves the install diff**. At removal: delete rows whose `via`
-matches, append a `resolve` log line, re-run `base lint`.
+matches, append a `resolve` log line, re-run `base lint`. Expect the audit to flag
+the removed capability's *historical* writes still inside its window — revocation is
+not retroactive amnesty; the `resolve` log line is the answer, and the findings age
+out of the window.
 
 ## Enforcement, honestly
 

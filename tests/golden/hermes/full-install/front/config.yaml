@@ -1,4 +1,0 @@
-model:
-  default: global.anthropic.claude-sonnet-5
-  provider: bedrock
-  base_url: https://bedrock-runtime.eu-central-1.amazonaws.com

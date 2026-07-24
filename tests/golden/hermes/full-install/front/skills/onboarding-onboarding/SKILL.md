@@ -1,7 +1,7 @@
 ---
+x-aos-origin: onboarding@0.2.0
 name: onboarding
 description: Runs a capability's onboarding interview and writes the user's MOD.md overlay. Use when installing or re-onboarding any aos capability, when the user asks to redo/refresh their answers, or when bootstrapping the global MOD.md for a new user.
-x-aos-origin: onboarding@0.2.0
 ---
 
 # onboarding

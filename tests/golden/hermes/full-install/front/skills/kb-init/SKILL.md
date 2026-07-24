@@ -1,7 +1,7 @@
 ---
+x-aos-origin: kb@0.3.0
 name: init
 description: "Creates a new base (knowledge base) — interview, BASE.yaml, scaffold, register, schedule. Use when the user wants a fresh base ('create a work base', 'kb init personal'), including during bootstrap when no base exists yet."
-x-aos-origin: kb@0.3.0
 ---
 
 # init

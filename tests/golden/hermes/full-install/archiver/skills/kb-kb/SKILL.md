@@ -1,7 +1,7 @@
 ---
+x-aos-origin: kb@0.3.0
 name: kb
 description: "The knowledge-base system's front door — bases, capture, state, recall. Use when working with the user's knowledge bases and no narrower kb skill applies: understanding how bases work, orienting into 'where things stand', filing or finding knowledge, checking base health, running maintenance, or any mention of 'base', 'KB', 'knowledge base', 'my notes', or 'state of mind'."
-x-aos-origin: kb@0.3.0
 ---
 
 # kb — the base system, in one page

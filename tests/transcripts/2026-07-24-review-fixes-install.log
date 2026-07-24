@@ -1,14 +1,38 @@
-Blocked by a source mismatch.
+Installed into the aos-* namespace.
 
-The clone at /home/anakin/aos/tests/.sandbox/aos-clone is at commit d10e24c and contains:
+Materialized:
+- Front agent: /home/anakin/.hermes/profiles/aos-test
+  - onboarding
+  - kb skills
+  - gtd-capture skills
+  - personalized SOUL.md
+- Archiver: /home/anakin/.hermes/profiles/aos-archiver
+  - kb entry skill
+  - 3 schedules
+  - no messaging tools
+- Drainer: /home/anakin/.hermes/profiles/aos-drainer
+  - gtd-capture entry + drain skills
+  - nightly drain at 22:47
 
-- kb: 0.3.0
-- onboarding: 0.1.1
-- gtd-capture: 0.1.1
-- gtd-capture’s old `ops/inbox.md` model
-- no three drainer grant rows
-- no `BASE.yaml frontmatter.extensions` install instruction
+KB setup:
+- Created and registered:
+  - /home/anakin/aos/tests/.sandbox/kb/personal-kb
+  - /home/anakin/aos/tests/.sandbox/kb/acme-kb
+- Private base: all 3 drainer grant rows.
+- Shared base: raw/captures bookkeeping row only.
+- Added next_action to both BASE.yaml frontmatter extensions.
+- `base lint`: 0 criticals, 0 findings, 0 info on both bases.
 
-The requested three-row grant behavior and `BASE.yaml` extension instruction exist only in the uncommitted working tree at /home/anakin/aos, where gtd-capture is 0.2.0.
+Tool:
+- Installed `aos-base==0.3.0` via the documented uv tool install.
+- Verified sync script exits 0.
 
-I did not modify profiles, install the tool, or write the lockfile because doing so from the clone would contradict the installation requirements. Which source should govern: the stated 0.2.0 behavior from the working tree, or the actual 0.1.1 clone?
+Lockfile:
+- /home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml
+- 63 artifact hashes recorded.
+- Hash verification: passed.
+- Four schedule job IDs recorded.
+
+Verification:
+- `node tests/golden/check.mjs --live`: 0 failures.
+- Placement/origin/grant/extension validation: passed.

@@ -1,0 +1,48 @@
+Removed the aos installation from the requested scope.
+
+Removed:
+- Cron jobs:
+  - `aos:kb:nightly-promote`
+  - `aos:kb:weekly-lint`
+  - `aos:kb:sync`
+  - `aos:gtd-capture:nightly-drain`
+- Profiles deleted via Hermes CLI:
+  - `aos-archiver`
+  - `aos-drainer`
+- Materialized capability skills from `aos-test`:
+  - `gtd-capture-capture`
+  - `gtd-capture-gtd-capture`
+  - `kb-adopt`
+  - `kb-import`
+  - `kb-init`
+  - `kb-kb`
+  - `kb-recall`
+  - `kb-route`
+  - `onboarding-onboarding`
+- Onboarding marker block from `aos-test/SOUL.md`; text outside the marker was preserved.
+- Recorded config keys from the deleted profiles:
+  - `model.default`
+  - `model.provider`
+- Recorded tool install:
+  - `uv tool uninstall aos-base`
+  - `base` is absent from `uv tool list`.
+- Lockfile:
+  - `/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml` deleted.
+- Via-matched grant rows for `kb@0.3.0` and `gtd-capture@0.2.0` from:
+  - `tests/.sandbox/kb/personal-kb/AGENTS.md`
+  - `tests/.sandbox/kb/acme-kb/AGENTS.md`
+- Added `resolve` entries to both KB logs.
+
+Preserved:
+- `aos-test` profile.
+- All non-aos skills in `aos-test`.
+- Both KB base trees and their data.
+- Overlay files and root Hermes configuration.
+- Other Hermes profiles and uv tools.
+
+Verification:
+- Only `aos-test` remains from the target namespace.
+- `aos-test` has no scheduled jobs, aos origins, or aos marker blocks.
+- No revoked `via` rows remain.
+- Both base trees still exist.
+- `base lint` reports zero findings for `acme-kb`; `personal-kb` reports three expected historical grant-audit criticals because revoked `agent:drainer` writes remain in Git history.

@@ -1,7 +1,7 @@
 ---
+x-aos-origin: kb@0.3.0
 name: adopt
 description: "Registers an existing knowledge tree as a base and reports how it diverges — without rewriting anything. Use when the user already has a KB/notes repo ('adopt ~/my-kb', 'use my Obsidian vault'), including during bootstrap."
-x-aos-origin: kb@0.3.0
 ---
 
 # adopt

@@ -1,7 +1,7 @@
 ---
+x-aos-origin: gtd-capture@0.2.0
 name: gtd-capture
 description: "The capture-to-drain front door — fire off a thought, run tonight's GTD triage, or ask where captures/next-actions stand. Use when firing off a quick thought/task/idea to capture, running or asking about the nightly drain, or any mention of 'capture', 'inbox', 'drain', 'next-action', or GTD triage."
-x-aos-origin: gtd-capture@0.2.0
 ---
 
 # gtd-capture — capture is dumb, drain does the thinking

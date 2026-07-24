@@ -1,0 +1,17 @@
+DRAIN REPORT
+
+- Bases scanned:
+  - personal-kb: 2 pending, 0 failed
+  - acme-kb: 0 pending, 0 failed
+- Next-actions created: 1
+  - Book the choir hall for the autumn fundraiser before Friday.
+- Reminder: before Friday — not sent; outbound messaging is unavailable in degraded mode.
+- Two-minute items completed: 0
+- Non-actionable captures: 1 idea left untouched.
+- Capture markers: `meta.gtd_triaged: true` added to both captures.
+- `triage` remains `pending` on both captures; other capture frontmatter preserved.
+- Shared `acme-kb` received no judgment writes.
+- Lint: clean on both bases.
+- Commit: `32872e6` in personal-kb, authored as `agent:drainer`.
+
+No outbound messages sent.
