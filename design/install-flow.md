@@ -6,9 +6,9 @@
 
 There is no installer binary to download. The kit's README opens with a paste-block (the gstack lesson — paste-to-install is the whole funnel — minus their Bun/bash dependency):
 
-> Paste into your agent: *"Clone https://…/aos to ~/aos, read ~/aos/harnesses/<your-harness>/CHEATSHEET.md and ~/aos/docs/BOOTSTRAP.md, then set me up."*
+> Paste into your agent: *"Clone https://…/aos to ~/aos, read ~/aos/harnesses/<your-harness>/CHEATSHEET.md and ~/aos/BOOTSTRAP.md, then set me up."*
 
-Bootstrap sequence the agent then follows (from `docs/BOOTSTRAP.md`):
+Bootstrap sequence the agent then follows (from `BOOTSTRAP.md`, at the clone root beside the README — the human's door and the agent's door side by side):
 
 1. **[D]** Clone; verify the harness has a cheat-sheet; create `.aos/` + empty lockfile.
 2. **[A]** **Global interview** (the onboarding capability's bootstrap script): identity, timezone, working hours, sacred time, red lines → writes root `MOD.md`.
@@ -74,7 +74,7 @@ flowchart TB
     style W fill:#E8F5E9,stroke:#1B5E20
 ```
 
-Two honesty notes: CI requires a `version:` bump when a capability's files change (or the lockfile compares file hashes, not versions — belt and braces); and the merge is the least-trustworthy [A] step in the system, which is exactly why it is fenced by a backup before and a diff gate after. Long skills split into `sections/*.md` (gstack lesson) so merges happen per-section, not per-monolith.
+Two honesty notes: CI requires a `version:` bump when a capability's files change (or the lockfile compares file hashes, not versions — belt and braces); and the merge is the least-trustworthy [A] step in the system, which is exactly why it is fenced by a backup before and a diff gate after. Long skills split their depth into `reference/*.md` files one level from SKILL.md (gstack lesson, aligned with the §2.1 packaging law) so merges happen per-file, not per-monolith.
 
 ## 4. Removal
 
@@ -95,7 +95,7 @@ doctor verifies nothing orphaned                          [D]
 | Transform + cheat-sheet translation | A | diff gate [D] + origin tags |
 | Writing artifacts | D | hashes into lockfile |
 | Zone grant registration | A (edits a live KB file) | append-only + lint audits the table |
-| Upgrade merge | A | backup before, diff gate after, sections/ granularity |
+| Upgrade merge | A | backup before, diff gate after, reference/-file granularity |
 | Drift detection, duplicate schedules | D | `doctor` |
 
 The pattern is deliberate: **every [A] step is sandwiched between [D] checks.** The LLM is trusted with judgment, never with bookkeeping — and RFC-004 only decides whether the [D] column is enforced by a tiny helper tool or by discipline.

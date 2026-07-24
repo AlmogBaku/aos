@@ -30,16 +30,16 @@ Every moving part, what it physically is, where it lives, who executes it.
 |---|---|---|---|---|
 | 1 | `kb-registry.yaml` | A user-owned YAML file (§4.1). Data, not code. | Root of the **user's clone**, next to global `MOD.md`. Upstream never touches it (overlay-family invariant). | Read by the router skill on every routed write; written by `kb init`/`kb adopt` and by the user directly. |
 | 2 | **Router** | A skill — `capabilities/kb/skills/route/SKILL.md`. Steps 1–2 and 4 of §4.2 are deterministic — executed via the `base` tool (grants lookup, registry parse, capture write); step 3 is one cheap LLM call. There is **no router daemon**. | Kit repo (skill); runs inside whatever agent is performing the capture. | The writing agent, inline in the capture path. |
-| 3 | **Authz check** | A sub-step of the router skill + a standalone skill `kb/skills/authz-check/` (so non-routed direct writes can call it too). A table lookup, nothing more. | Kit repo. | The writing agent, immediately before any KB write. |
-| 4 | **Zone/grant table** | A machine-readable markdown table inside each KB's `AGENTS.md` (§4.4 "maintainer-zone table", evolved — format in §2.2 below). Human-first, lint-parsed. | **Each KB repo**, in its `AGENTS.md`. | Read by router/authz-check and lint; appended by install-time zone registration; the user edits it freely. |
+| 3 | **Authz check** | A verb of the `base` tool (`base grants check` — so non-routed direct writes can call it too). A table lookup, nothing more; refusals recorded via `base refuse`. | Kit repo — `capabilities/kb/tool/`. | The writing agent, immediately before any KB write. |
+| 4 | **Zone/grant table** | A machine-readable markdown table inside each KB's `AGENTS.md` (§4.4 "maintainer-zone table", evolved — format in §2.2 below). Human-first, lint-parsed. | **Each KB repo**, in its `AGENTS.md`. | Read by the router skill / `base grants check` and lint; appended by install-time zone registration; the user edits it freely. |
 | 5 | **Archiver agent** | `capabilities/kb/agents/archiver.agent.yaml` (neutral spec) — materialized per harness as a real scheduled agent. Live reference: the production Archiver profile. | Spec in kit repo; the running instance in the **harness**. | The harness scheduler: nightly drain (23:00), weekly lint, 5-min git sync. |
-| 6 | **Lint** | A verb of the `base` tool (`base lint`) — deterministic checks driven by each base's BASE.yaml (methodology §6.4); report-only. | Kit repo (bundled in the entry skill, `skills/kb/scripts/base.py`). | Archiver on schedule; also invoked one-shot by `base adopt` and after zone registration. |
-| 7 | **Review / drain queue** | Two markdown files per KB: the pending-capture view (`base inbox` over `raw/captures/` — uncertain-routed captures) and `_ops/needs-review.md` (judgment calls, authz refusals, lint criticals — generalizes the live `the production needs-review queue file`). | Each KB repo. | Archiver appends; the **user** (or their chief-of-staff agent) drains; Archiver never resolves its own judgment calls. |
+| 6 | **Lint** | A verb of the `base` tool (`base lint`) — deterministic checks driven by each base's BASE.yaml (methodology §6.4); report-only. | Kit repo — `capabilities/kb/tool/` (the installed `base` command). | Archiver on schedule; also invoked one-shot by `base adopt` and after zone registration. |
+| 7 | **Review / drain queue** | Two markdown files per KB: the pending-capture view (`base inbox` over `raw/captures/` — uncertain-routed captures) and `_ops/needs-review.md` (judgment calls, authz refusals, lint criticals — generalizes the production needs-review queue). | Each KB repo. | Archiver appends; the **user** (or their chief-of-staff agent) drains; Archiver never resolves its own judgment calls. |
 | 8 | **`log.md` append** | A convention, not a component: one appended line per mutation, format fixed by SCHEMA (§2.5 below). | Each KB repo root. | Every writer, as the last step of every write. Lint audits it. |
 | 9 | **`kb init` / `kb adopt`** | Skills. `init` = template scaffold + registry append + grant-table seed. `adopt` = registry append + lint run + divergence report; **never rewrites** the existing KB (§4.4, normative). | Kit repo. | The user's main agent, on request. |
 | 10 | **`state.yaml` rolling-window maintenance** | Tool-managed verbs (`base state add|bump|drop|check`) + cap enforcement + the state_stale lint check. Full mechanics: methodology §7. | Each base repo (`state.yaml`). | The base's single writer agent via the tool; Archiver proposes evictions; lint backstops. |
 | 11 | **Zone registration (install-time)** | Part of the §5 agentic install: the installing LLM renders `kb/` zone templates into the target KB and appends grant rows — with user approval per row. | Capability `kb/` dirs; results land in KB repos. | The harness's installing LLM; user approves grants. |
-| 12 | **The `base` tool** | The capability-shipped deterministic executor (RFC-004 decided; ARCHITECTURE §2.4): registry parse, grant-table parse, glob match, schema validation, capture/catalog, state verbs, lint, search, log append, sync. No routing judgment ever; never calls an LLM. | Kit repo — `skills/kb/scripts/base.py`. | Called by the skills; runs exec-scheduled for sync. |
+| 12 | **The `base` tool** | The capability-shipped deterministic executor (RFC-004 decided; ARCHITECTURE §2.4): registry parse, grant-table parse, glob match, schema validation, capture/catalog, state verbs, lint, search, refusal bookkeeping, log append, sync. No routing judgment ever; never calls an LLM. | Kit repo — `capabilities/kb/tool/` (installable uv package; the `base` command). | Called by the skills; runs exec-scheduled for sync. |
 | 13 | **Git sync** | The existing 5-min rebase-only cron, per KB, honoring the registry `sync:` field. | Each KB repo / harness cron. | Harness scheduler. Conflicts surface in the morning brief, never auto-resolved. |
 
 The load-bearing observation: **there is no enforcement daemon and no service anywhere in
@@ -52,7 +52,7 @@ The same table as a map — what reads what, and where it lives:
 flowchart TB
     subgraph kit["Kit repo — skills (the protocol, not a service)"]
       RT["router"]
-      AZ["authz-check"]
+      AZ["base grants check"]
       LN["lint"]
       IA["kb init / kb adopt"]
     end
@@ -385,7 +385,7 @@ flowchart LR
     end
     G3 --> ACT["agent action"]
     subgraph coop["Inside your harness — cooperative agents"]
-      G1["① Self-check at write<br/>router/authz-check reads Grants<br/><i>catches honest mistakes</i>"]
+      G1["① Self-check at write<br/>router / base grants check reads Grants<br/><i>catches honest mistakes</i>"]
       G2["② After-the-fact audit<br/>lint: git-diff × Grants + log.md<br/><i>catches violations that slipped ①</i>"]
     end
     ACT --> G1
@@ -400,7 +400,7 @@ flowchart LR
 
 The three layers, weakest to strongest:
 
-1. **Self-check at the point of write [D-executed-by-A].** The router/authz-check skill
+1. **Self-check at the point of write [D].** The router skill's `base grants check` call
    makes every writing agent do a table lookup before writing. This is an honest-agent
    control: it catches *mistakes* (the overwhelmingly common failure), not *malice*. It
    is trustworthy because the check is deterministic and cited in the contract file

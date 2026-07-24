@@ -4,7 +4,7 @@
 
 ## Scope
 
-Voice/text capture → `ops/inbox.md` in the routed KB → nightly drain promotes to next-action / KB zones / reminders. Capture is dumb and fast (no synchronous classification); the drain does the thinking. Multi-KB routing happens on the capture path via the kb router.
+Voice/text capture → a raw file in the routed KB's `raw/captures/` (kb's own engine: sha256 dedup, `triage: pending`) → nightly drain turns pending captures into next-actions, reminders, and applied corrections; kb's own archiver separately promotes captures into wiki knowledge 30 minutes later. Capture is dumb and fast (no synchronous classification); the drain does the GTD thinking, never the capture's own `triage` field. Multi-KB routing happens on the capture path via the kb router.
 
 ## What exists today (extraction sources — in Almog's live setup, the first wrap target)
 

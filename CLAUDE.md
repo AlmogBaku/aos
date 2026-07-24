@@ -10,9 +10,9 @@ The subject matter is a protocol: a curated set of *capabilities* that install i
 
 ## Document map
 
-- **`ARCHITECTURE.md`** — the spec, and the only document that is normative. §1 story + atomic-design mental model, §2 capability package format, **§3 the overlay contract (declared inviolable)**, §4 KB registry/routing/authorization, §5 install via the harness LLM + cheat-sheets, §6 importer, §7 the ten reference capabilities and build order, **§8 the decision index**, Appendix A (problems→mechanism) and B (risk register).
+- **`ARCHITECTURE.md`** — the spec, and the only document that is normative. §1 story + atomic-design mental model, §2 capability package format, **§3 the overlay contract (declared inviolable)**, §4 KB registry/routing/authorization, §5 install via the harness LLM + cheat-sheets, §6 importer, §7 the reference capabilities and build order, **§8 the decision index**, Appendix A (problems→mechanism) and B (risk register).
 - **`rfcs/RFC-00N-*.md`** — the seven open decisions. Shape: Question / Options / Trade-off in one line / Recommendation / Process.
-- **`capabilities/*.md`** — one-pagers for the ten reference capabilities. Shape: header line (Tags · Build order · Seam it proves) / Scope / What exists today (extraction sources) / Depends / Onboarding sketch / v0.1 acceptance.
+- **`capabilities/*.md`** — one-pagers for the reference capabilities. Shape: header line (Tags · Build order · Seam it proves) / Scope / What exists today (extraction sources) / Depends / Onboarding sketch / v0.1 acceptance.
 - **`design/*.md`** — deep-dive *exhibits* for ARCHITECTURE contracts: `capability-anatomy.md` (gtd-capture file by file), `install-flow.md`, `kb-methodology.md`, `kb-authorization.md`.
 - `prior-art.md`, `README.md` (entry point + canonical reading order), `diagram.svg` (embedded in ARCHITECTURE §1.2).
 

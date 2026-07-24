@@ -22,6 +22,19 @@ gtd-capture→kb is real consumer #1 (its capture flow invokes kb's routing; its
 - Does gtd-capture's drainer (or any second capability's agent) actually need a foreign skill, or is main-agent mediation sufficient in practice? (Build 3–4 will show.)
 - What do harnesses' native skill-scoping mechanisms allow — can a Hermes profile/OpenClaw agent load a skill from another capability's directory without copying?
 
+## Evidence gathered (2026-07-24, gtd-capture migration)
+
+Build 3 (gtd-capture) answered the first evidence question. Its drainer agent does need
+something from kb — but a **tool**, not a **skill**. `drain` calls `base inbox` /
+`base inbox --failed` (kb's capability-shipped executable, on PATH after kb's own
+install, §2.4) directly as a shell command; it never loads kb's `route` or `kb`
+SKILL.md content. Composition happens through the tool's process boundary, not through
+`used_by`. **No cross-agent skill need surfaced** — main-agent mediation (option 3
+above) remains sufficient in practice for this consumer, because the shared
+infrastructure is a program on PATH, not a prompt to load. The second evidence question
+(harness-native skill-scoping across profiles) is still open. This narrows what build 3
+actually needed; it does not resolve the RFC.
+
 ## Process
 
 Deferred to its own session (deliberate — raised during the kb redesign, 2026-07-23, not solved there). Decide before build 4 (importer) if gtd-capture's build surfaces a real cross-agent need; otherwise decide by build 9.

@@ -153,7 +153,7 @@ schedules:
   - id: nightly-drain
     cron: "0 23 * * *"         # neutral cron; installing LLM translates per cheat-sheet
     agent: drainer             # judgment work: an agent wakes with a prompt…
-    prompt_ref: skills/drain/drain-prompt.md
+    prompt_ref: agents/drainer/nightly-drain.md   # prompt bodies co-locate with their agent (§2.1)
     degraded: manual           # manual | skip | inline — behavior when host has no cron
   - id: sync
     cron: "*/5 * * * *"
@@ -166,17 +166,16 @@ schedules:
                                # surface via files/exit codes, not by summoning an agent
 
 skills:                        # every shipped skill, with SCOPE — who loads it
+  - id: gtd-capture
+    used_by: [main, drainer]   # the entry skill (§2.5) — everyone gets the map
   - id: capture
     used_by: [main]            # the user-facing front agent gets this one
   - id: drain
     used_by: [drainer]         # ONLY the drainer agent loads it — nobody else
-  - id: format-entry
-    used_by: [drainer, main]
 
 kb:
-  writes: [inbox]              # abstract write intents, resolved by the KB router (§4)
-  zones:
-    - path: ops/inbox.md       # zone this capability asks the target KB to register
+  zones:                       # grants requested into the target base at install (§4.3)
+    - path: "_ops/next-actions.md"
       owner_agent: drainer
 ```
 
@@ -193,7 +192,7 @@ Some capabilities need their own agent (Hermes profile ≈ NanoClaw group ≈ Op
 ```yaml
 name: drainer
 purpose: >                     # one paragraph; becomes the system-prompt seed
-  Drains ops/inbox.md nightly: classifies captures, promotes to KB zones, sets reminders.
+  Drains the pending-capture view nightly: turns captures into next-actions and reminders.
 model_class: fast | balanced | deep    # installing LLM maps to a concrete model per cheat-sheet
 tools: [fs.read, fs.write, shell, web] # neutral vocabulary; installing LLM maps or drops with a warning
 workspace: own | shared        # own ⇒ its own profile/group; shared ⇒ runs in the main agent's context
@@ -352,7 +351,7 @@ kbs:
       channels: ["whatsapp:*", "telegram:*"]
 ```
 
-Capabilities never name KBs directly; they declare abstract write intents (`kb.writes: [inbox]` in the manifest) and the **router** resolves them.
+Capabilities never name bases directly: a capturing skill invokes kb's route skill, which resolves the destination. (A manifest MAY declare abstract `kb.writes` intents as routing hints — currently unexercised by any built capability; the field stays in the schema as prose-documented, consumer-pending.)
 
 The registry is the *user-side* registration of a base (path, sync mode, routing hints, which one is default). The *base-side* machine configuration — its zones, types, state cap, layout version — lives in the base's own `BASE.yaml` and travels with the repo (design/kb-methodology.md). One field exists on both sides deliberately: **`audience` is declared in `BASE.yaml`** (so a shared base's shared-ness is visible to every member pulling it) **and mirrored in the registry; the effective audience is the more restrictive of the two.** A user may treat a base as more shared than it declares, never less.
 
@@ -509,7 +508,7 @@ Acceptance fixtures: the maintainers' existing Hermes-built trip-planning and ti
 
 ## 7. Reference capabilities & build order
 
-Eleven capabilities ship as v0.1's reference set (one-page specs in `capabilities/`). Order is chosen so each step exercises exactly one new seam; a step is done when the seam holds:
+Twelve capabilities ship as v0.1's reference set (one-page specs in `capabilities/`). Order is chosen so each step exercises exactly one new seam; a step is done when the seam holds:
 
 | # | Capability | Tags | New seam it proves |
 |---|---|---|---|
@@ -524,8 +523,9 @@ Eleven capabilities ship as v0.1's reference set (one-page specs in `capabilitie
 | 9 | **permission-gate** | infra | Capabilities-ship-code: `adapters/*/plugins/`, hook-vs-patch, the §4.3 ACL model enforced |
 | 10 | **router** | infra | Front-door persona dispatch (fixes "multiple-personality disorder"); adopt-native-router vs kit-provided per harness |
 | 11 | **agent-comms** | infra | The side doors: agent→agent envelope, the glass-box rule (no dark channels), loop/budget guards |
+| 12 | **capability-builder** | infra | The MARS building-mode boundary (§9): a structural, prompt-enforced mode-switch gated by user approval before anything durable is written |
 
-kb and onboarding are built together (the installer needs both); the importer lands as early as possible after them because its GAP reports are the fastest source of spec fixes.
+kb and onboarding are built together (the installer needs both); the importer lands as early as possible after them because its GAP reports are the fastest source of spec fixes. `capability-builder` is appended rather than resequenced next to importer (build 4), where it conceptually belongs — see its one-pager's build-order note; it was built at the maintainer's direction, out of the original sequence.
 
 ---
 
@@ -556,6 +556,7 @@ kb and onboarding are built together (the installer needs both); the importer la
 | Cross-harness | Per-harness cheat-sheets (knowledge, not code) + support-matrix honesty; no portable hook fiction | §5.2 |
 | Importer | First-class in v0.1; drafts only, never installs | §6 |
 | Concept name | "capability" (a capability *contains* skills; "skill"/"plugin"/"recipe" are ecosystem-reserved) | §1.2 |
+| Building-mode enforcement | A conversational mode-switch `main` enforces on itself via skill instructions, gated by an explicit user-approved design before anything durable is written — not a separate materialized agent/profile; no harness in scope exposes a live conversation-handoff primitive | §9 |
 
 ### Open — RFCs (group decides)
 
@@ -570,6 +571,22 @@ kb and onboarding are built together (the installer needs both); the importer la
 | [RFC-007](rfcs/RFC-007-permission-gate-vocabulary.md) | Permission-gate policy vocabulary (inventory the group's existing gates first) |
 | [RFC-008](rfcs/RFC-008-agent-comms-opinionation.md) | Agent-to-agent comms: how opinionated? (normative envelope + glass-box rule vs advisory pattern) |
 | [RFC-009](rfcs/RFC-009-capability-composition.md) | Cross-capability skill dependency: can capability B's agents use capability A's skills? (`used_by` can't cross capabilities; `provides` graph deferred; gtd-capture→kb is real consumer #1) |
+
+## 9. Capability-authoring mode
+
+The building-mode boundary from **MARS — the Mode-Aware Runtime System pattern**: a personal harness runs in two modes, *operating* (handle requests) and *building* (design and compose capabilities), and the runtime enforces the line between them rather than trusting each conversation to notice which side it's on. Personal harnesses read as chatbots, but they're runtimes — a chat message can just as easily seed a persistent, unattended artifact (a cron, a persona, a standing automation) as it can a one-off answer. Nothing about a casual conversational turn marks that moment, and agents don't reliably self-throttle on how consequential a request is — they react to what's ambiguous, not to how much a wrong assumption could cost. The `capability-builder` capability (§7, build 12) makes that boundary structural instead of leaving it to in-the-moment judgment.
+
+The detector watches for use-case-shaped requests — recurring, systemic, or defining new persistent behavior — as distinct from task-shaped ones, and interrupts before anything is built: *"should we plan this methodically?"* Decline, and operating mode continues uninterrupted. The gate is deliberately narrow — it fires on persistence, not on word choice — because gating everything trains a user to stop reading what they approve, which defeats the point.
+
+Agreeing crosses into building mode, which is a **procedural mode-switch `main` enforces on itself, not a separate materialized agent or profile** — no harness in this kit's scope exposes a live mid-conversation handoff primitive, and a hard process boundary isn't required for the boundary to hold; it only needs to be consistently enforced. The procedure:
+
+1. **Intake** — surface gaps instead of silently filling them.
+2. **Research** — subagents investigate reuse, feasibility, and precedent; report only, never write.
+3. **Design** — one proposal artifact, shaped like this document's own one-pager convention, that the user evaluates as a whole rather than absorbing one reply at a time.
+4. **Approval** — nothing proceeds without it. The moment a durable artifact would be created is exactly the moment ceremony is cheapest to add and most expensive to skip.
+5. **Build** — materializes a capability package into the user's clone. Like the importer (§6), it never installs and never opens a PR itself; the already-specified install flow (§5) picks up from there.
+
+The same capability evolves capabilities that already exist: feedback is classified small (applied directly, summarized afterward — no gate) or major (re-runs the research/design/approval shape, scaled to a diff rather than a full proposal) by agent judgment against worked examples, not a fixed checklist.
 
 ## Appendix A: Problems A–G → mechanism
 

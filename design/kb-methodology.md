@@ -338,7 +338,7 @@ YYYY-MM-DDTHH:MM±TZ | <agent> | <verb> | <path> | <one-line summary>
 ```
 
 Verbs: `create | promote | merge | archive | flag | resolve | sync-conflict | lint | route |
-refuse | capture | state | verify`. Append-only. This file plus git history are the two
+refuse | capture | state | verify | bootstrap`. Append-only. This file plus git history are the two
 audit substrates; the grants audit cross-checks them (a write without a log line *is* the
 finding). This is why log.md deliberately diverges from OKF's prose log format.
 
@@ -492,12 +492,14 @@ choices, not spec — the contract is the verb set and boundary.
 | `capture` | frontmatter + sha256 dedup + `triage: pending` + log | the fast-capture landing (§6.1) |
 | `inbox` | list pending / failed items | the inbox-as-view |
 | `state add\|bump\|drop\|check` | attention-window ops, cap-enforced | grammar guarded by the tool (§7) |
-| `search` | BM25 over the base (scopeable), exact/alias hits first | index in `.base/`, rebuildable |
+| `search` | BM25 over the base (scopeable), exact/alias hits first | rebuilt per query today; `.base/` is the sanctioned cache location |
 | `links <page>` | backlinks / neighbors / orphans | link graph maintained at catalog time |
 | `lint` | the §6.4 catalog, BASE.yaml-driven | report-only; the report is the interface |
 | `grants check` | subject × object × verb lookup | kb-authorization.md |
 | `index rebuild` | regenerate index.md from tree + descriptions | |
 | `sync` | rebase-pull/push per registry | conflict → safe state + review block + exit≠0 |
+| `verify <page>` | flip a page to `verified: true` | user-confirmed only; logged |
+| `refuse` | record a refused write | `refuse` log line + needs-review block (§4.3 twin) |
 | `import survey <src>` | inventory + shape detection of a foreign tree | the import skill's ONLY tool verb — import itself is an agent procedure (§6.7) |
 
 **The boundary (absolute):** deterministic operations only; the tool never calls an LLM and
@@ -530,7 +532,7 @@ capabilities/kb/
 ```
 
 Schedules: `nightly-promote` (agent), `weekly-lint` (agent), `sync` (**exec** — the harness
-cron runs `base.py sync --all` directly; no LLM wakes to run a shell script).
+cron runs `base sync --all` directly; no LLM wakes to run a shell script).
 
 ---
 
