@@ -21,11 +21,15 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   commonest upgrade shape), **EXECUTE** (commit the staged render with a dated message,
   create the links, run the native plan). Declined → restore that capability only,
   additions included: `git -C <home>/personal restore --staged --worktree --
-  capabilities/<id>` then `git -C <home>/personal clean -fd -- capabilities/<id>`
-  (`restore` puts tracked files back and unstages; `clean` removes the additions it
-  leaves behind as untracked). **Every one of these commands is path-scoped** — a bare
-  `add -A` or `reset --hard` would swallow or destroy unrelated work the user has in
-  `personal/`, including untracked files. Nothing touches the harness
+  capabilities/<id>`, then `git -C <home>/personal clean -fd -- capabilities/<id>` as
+  belt-and-braces (`restore` already removes the staged additions and prunes the
+  directories they created; `clean` catches anything staging missed). **Every one of
+  these commands is path-scoped** — a bare `add -A` or `reset --hard` would swallow or
+  destroy unrelated work elsewhere in `personal/`, including untracked files. One
+  caveat to state out loud before staging: `add -A -- capabilities/<id>` also picks up
+  any *pre-existing untracked* file the user keeps inside that capability's directory,
+  and declining would delete it — check `git status -- capabilities/<id>` first and say
+  what you found. Nothing touches the harness
   before the gate. Where the harness has a native plan/read-only mode (cheat-sheet
   Primitive mapping, `plan mode` row), STAGE runs inside it and the GATE approval is
   the exit.

@@ -40,11 +40,13 @@ diff in the user's own repo.
       capabilities/<id>` — the old render vs the new, per file, **including files the
       re-render added** (a bare `git diff` hides them) — plus the native plan. Approve
       → commit (dated message). Decline → `git -C <home>/personal restore --staged
-      --worktree -- capabilities/<id>` **and** `git -C <home>/personal clean -fd --
-      capabilities/<id>` (restore alone leaves the additions on disk as untracked,
-      where the next persist commit would sweep them in), stop. Keep every command
+      --worktree -- capabilities/<id>`, then `git -C <home>/personal clean -fd --
+      capabilities/<id>` as belt-and-braces (restore already removes the staged
+      additions; clean catches anything staging missed), stop. Keep every command
       path-scoped: unscoped staging or resetting would capture — or destroy —
-      unrelated work elsewhere in `personal/`.
+      unrelated work elsewhere in `personal/`. Before staging, `git status --
+      capabilities/<id>`: a pre-existing untracked file of the user's in that directory
+      would be swept in and lost on decline — name it to them first.
    d. **[D]** EXECUTE the native plan (links usually survive re-render untouched —
       verify, don't assume); `aos-lock record <id>` with the full updated set (start
       from `aos-lock show` — `record` replaces the entry wholesale, never call it with
