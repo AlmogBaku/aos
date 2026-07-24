@@ -1,6 +1,6 @@
 ---
-x-aos-origin: kb@0.3.0
 name: route
+x-aos-origin: kb@0.4.0
 description: "Resolves a write intent to a target base (knowledge base) using the registry. Use when any capability captures or files content and the destination base is not explicit — rules first, LLM only above a confidence bar, never blocking the capture."
 ---
 

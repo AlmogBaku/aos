@@ -1,6 +1,6 @@
 ---
-x-aos-origin: onboarding@0.2.0
 name: onboarding
+x-aos-origin: onboarding@0.3.0
 description: Runs a capability's onboarding interview and writes the user's MOD.md overlay. Use when installing or re-onboarding any aos capability, when the user asks to redo/refresh their answers, or when bootstrapping the global MOD.md for a new user.
 ---
 
@@ -57,8 +57,8 @@ secrets:
 <prose nuance under headings; omit headings with nothing under them>
 ```
 
-Location: root `MOD.md` for the global bootstrap (this capability's own interview);
-`capabilities/<id>/MOD.md` otherwise. Never re-serialize unchanged content — edit the
+Location: `<home>/personal/MOD.md` for the global bootstrap (this capability's own
+interview); `<home>/personal/capabilities/<id>/MOD.md` otherwise. Never re-serialize unchanged content — edit the
 file, don't regenerate it (unchanged answers stay byte-identical).
 
 ## Report

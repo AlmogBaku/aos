@@ -57,7 +57,14 @@ Everything the run creates is identifiable and disposable:
    **Evolve step (after the snapshot — it mutates install state)**: a fresh prompt —
    "change gtd-capture's drain schedule to 22:00" — must route through
    `capability-evolver`: the cron job changes, the change lands in
-   `personal/capabilities/gtd-capture/MOD.md` (auto-committed by the persist hook), and `aos-lock verify` stays clean.
+   `personal/capabilities/gtd-capture/MOD.md` (auto-committed by the persist hook), and
+   `aos-lock verify` stays clean. **Note when running via the default-profile fallback:**
+   the fallback agent does not carry the materialized skills in context, so the prompt
+   must name the skill path explicitly (`~/.hermes/profiles/aos-test/skills/
+   capability-lifecycle-capability-evolver/SKILL.md`) — otherwise it edits the cron
+   natively and skips the ledger, which is a fallback artifact, not a skill failure.
+   Capture mode is then the second half of the test: fold the existing change into the
+   ledger and confirm the persist commit.
 6. **Remove**: tell the agent to remove per the cheat-sheet Removal section; verify with
    `prestate.sh` that `~/.hermes` matches pre-state; `hermes profile delete` the test
    profiles.

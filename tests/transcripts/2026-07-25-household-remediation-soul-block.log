@@ -1,0 +1,15 @@
+
+Changed:
+- `/home/anakin/.hermes/profiles/aos-test/SOUL.md`
+  - Appended `<!-- aos:onboarding@0.3.0 begin -->` … `end` block.
+  - Included timezone, working hours, sacred time, and red lines from `personal/MOD.md`.
+  - Existing content outside the markers is unchanged.
+
+Lock updated:
+- `aos-lock --home /home/anakin/aos/tests/.sandbox/aos-home record onboarding`
+- Preserved version `0.3.0`, `source_root`, the 2 existing artifacts, the existing skill link, and empty config/env/schedule/script fields.
+- Added the SOUL artifact.
+
+Verification:
+- SOUL exact-content check: pass.
+- `aos-lock verify`: `clean: 4 entries verified`.

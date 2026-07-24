@@ -1,6 +1,6 @@
 ---
-x-aos-origin: gtd-capture@0.2.0
 name: drain
+x-aos-origin: gtd-capture@0.2.0
 description: The nightly GTD triage over pending captures — turns them into next-actions, reminders, and applied corrections. Use when the nightly-drain schedule fires or the user asks to drain the inbox now.
 ---
 
@@ -62,3 +62,10 @@ Report next-actions created, reminders set, two-minute items done, and a count f
 pending and nothing failed → output exactly `DRAIN: inbox clean.` and deliver nothing.
 If there's nothing pending but failed items remain, still surface their count — never
 go silent while a failed item is sitting there unattended.
+
+## User overlay
+
+- Next-actions are verb-first.
+- Anything with a deadline becomes a reminder first, a task second.
+- Reminder target: `whatsapp:+<ID>`; outbound delivery is unavailable in this Hermes host, so report reminders instead.
+- Never schedule a reminder during choir practice Thursdays 19:00-21:00.

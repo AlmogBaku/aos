@@ -1,6 +1,6 @@
 ---
-x-aos-origin: kb@0.3.0
 name: kb
+x-aos-origin: kb@0.4.0
 description: "The knowledge-base system's front door — bases, capture, state, recall. Use when working with the user's knowledge bases and no narrower kb skill applies: understanding how bases work, orienting into 'where things stand', filing or finding knowledge, checking base health, running maintenance, or any mention of 'base', 'KB', 'knowledge base', 'my notes', or 'state of mind'."
 ---
 
@@ -36,7 +36,7 @@ base's state writer): `base state bump --note <substring>`.
 
 ## The tool
 
-`base --help` (installed at capability install: `uv tool install --from <clone>/capabilities/kb/tool aos-base`; one-off: `uvx --from <clone>/capabilities/kb/tool base`) — deterministic
+`base --help` (installed at capability install: `uv tool install --from <HOME>/aos/tests/.sandbox/aos-home/upstream/capabilities/kb/tool aos-base`; one-off: `uvx --from <HOME>/aos/tests/.sandbox/aos-home/upstream/capabilities/kb/tool base`) — deterministic
 verbs; every write logs itself. Key ones: `capture` (never hand-write into raw/),
 `inbox` (pending view), `state add|bump|drop|check`, `search` (check before creating
 ANY page — `EXISTS` means stop), `links`, `lint`, `grants check`, `index rebuild`,

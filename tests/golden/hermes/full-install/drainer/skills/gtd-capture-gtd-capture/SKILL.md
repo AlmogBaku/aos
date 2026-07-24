@@ -1,6 +1,6 @@
 ---
-x-aos-origin: gtd-capture@0.2.0
 name: gtd-capture
+x-aos-origin: gtd-capture@0.2.0
 description: "The capture-to-drain front door — fire off a thought, run tonight's GTD triage, or ask where captures/next-actions stand. Use when firing off a quick thought/task/idea to capture, running or asking about the nightly drain, or any mention of 'capture', 'inbox', 'drain', 'next-action', or GTD triage."
 ---
 
@@ -55,3 +55,7 @@ seconds; all judgment happens later, in one nightly pass.
 
 Deep dive: [reference/entry-format.md](reference/entry-format.md) — what capture
 composes as `--text`, and the corrections rule.
+
+## User overlay
+
+Capture confirmations are a single 🦜 emoji with no echoed text. Next-actions are verb-first; deadline items become reminders before tasks.

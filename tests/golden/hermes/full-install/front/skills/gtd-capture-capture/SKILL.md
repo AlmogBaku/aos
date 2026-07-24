@@ -1,6 +1,6 @@
 ---
-x-aos-origin: gtd-capture@0.2.0
 name: capture
+x-aos-origin: gtd-capture@0.2.0
 description: Instant capture, no classification. Use when the user fires off a thought, task, idea, or voice note to capture — never classify synchronously; capture is dumb and fast.
 ---
 

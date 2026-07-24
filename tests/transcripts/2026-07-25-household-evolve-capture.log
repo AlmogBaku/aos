@@ -1,0 +1,14 @@
+Captured and persisted.
+
+- Updated `/home/anakin/aos/tests/.sandbox/aos-home/personal/capabilities/gtd-capture/MOD.md`
+- Changed typed answer:
+  - `drain_hour: "22:47"` → `drain_hour: "22:00"`
+- No dated prose line was added because `drain_hour` is an existing typed answer.
+- Persist commit:
+  - `3d84356 evolve gtd-capture: drain 22:00 — 2026-07-25`
+- Ran:
+  - `aos-lock --home /home/anakin/aos/tests/.sandbox/aos-home rehash gtd-capture`
+  - `aos-lock ... verify gtd-capture`
+- Verification: `clean: 1 entry verified`
+- Live scheduler confirms `aos:gtd-capture:nightly-drain` runs at `0 22 * * *`.
+- `personal/` worktree is clean.

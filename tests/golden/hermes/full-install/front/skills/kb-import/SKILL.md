@@ -1,6 +1,6 @@
 ---
-x-aos-origin: kb@0.3.0
 name: import
+x-aos-origin: kb@0.4.0
 description: "Imports an existing knowledge base into a base's structure — interactively, with the user. Use when the user wants to migrate, import, or bring in an existing KB, notes repo, Obsidian vault, or old-layout knowledge base ('import my vault', 'migrate ~/ai-kb'). Not for registering-in-place (that's adopt) or single documents (deliberate ingest)."
 ---
 
