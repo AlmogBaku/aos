@@ -58,7 +58,21 @@ function copy(s, d) {
     if (TEXT.test(s)) {
       let text = readFileSync(s, 'utf8');
       if (s.endsWith('.json')) {
-        try { text = JSON.stringify(JSON.parse(text), Object.keys(JSON.parse(text)).sort ? undefined : undefined, 2); } catch {}
+        // provider/model snapshots are run-varying and private — scrub before committing
+        try {
+          const scrub = (o) => {
+            if (Array.isArray(o)) o.forEach(scrub);
+            else if (o && typeof o === 'object') {
+              for (const k of Object.keys(o)) {
+                if (k === 'provider_snapshot' || k === 'model_snapshot') o[k] = null;
+                else scrub(o[k]);
+              }
+            }
+          };
+          const parsed = JSON.parse(text);
+          scrub(parsed);
+          text = JSON.stringify(parsed, undefined, 2);
+        } catch {}
       }
       writeFileSync(d, normalizeText(text));
     } else if (st.size < 64 * 1024) {

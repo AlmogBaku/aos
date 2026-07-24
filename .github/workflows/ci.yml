@@ -17,9 +17,10 @@ jobs:
           node-version: 22
       - uses: astral-sh/setup-uv@v5
       - run: npm ci --no-audit --no-fund
-      - name: tier-0 base tool tests + example-base fixture
+      - name: tier-0 capability tool tests + example-base fixture
         run: |
           uv run --quiet tests/tool/test_base.py
+          uv run --quiet tests/tool/test_lock.py
           uv run --quiet --project capabilities/kb/tool base \
             --base tests/fixtures/example-base lint | tee /tmp/example-lint.txt
           grep -q "Critical (0)" /tmp/example-lint.txt

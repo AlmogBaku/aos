@@ -10,7 +10,7 @@ Everything the run creates is identifiable and disposable:
 
 - Profiles: `aos-test` (the front agent / install home) and `aos-<agent>` for capability
   agents (e.g. `aos-drainer`, `aos-archiver`).
-- Cron jobs: the `aos:<capability>:<schedule-id>` name prefix (cheat-sheet rule).
+- Cron jobs: the `aos:<capability>:<schedule-id>` name prefix (contract rule).
 - KBs: under `tests/.sandbox/kb/` (gitignored) — never a real KB.
 - User clone: `tests/.sandbox/aos-clone/` — a clone of this repo seeded with the fixture
   overlay (`tests/fixtures/user-clone/*` copied in, `diff_review` set to `auto-accept`
@@ -31,11 +31,22 @@ Everything the run creates is identifiable and disposable:
    > (`MOD.md`, `kb-registry.yaml`, `capabilities/*/MOD.md`) are present in the clone.
    > Your install home (the "front agent") is the `aos-test` profile
    > (`~/.hermes/profiles/aos-test`); create capability agents as `aos-<name>` profiles.
-   > Install: kb, onboarding, gtd-capture. Record the lockfile at
+   > Install: onboarding, kb (gtd-capture comes later, as its own prompt — see step 3a).
+   > Record the lockfile at
    > `<clone>/.aos/installs.lock.yaml`.
 
-   The installer gets **no other context** — capability + cheat-sheet + overlay must
-   suffice; that is the test.
+   The installer gets **no other context** — BOOTSTRAP + the capability-lifecycle
+   contract + capability + cheat-sheet + overlay must suffice; that is the test.
+   Bootstrap installs capability-lifecycle, onboarding, and kb.
+
+   **Day-N step** (the seam this exists to prove): a SEPARATE, fresh prompt with no
+   bootstrap context — `hermes -p aos-test -z "install gtd-capture from the aos clone
+   at <sandbox>/aos-clone"` (default-profile fallback as above) — must trigger the
+   materialized `capability-installer` skill and complete the install.
+
+   **Evolve step**: another fresh prompt — "change gtd-capture's drain schedule to
+   22:00" — must route through `capability-evolver`: the cron job changes, the change
+   lands in `capabilities/gtd-capture/MOD.md`, and `aos-lock verify` stays clean.
 4. **Check**: `node tests/golden/check.mjs --live` runs the structural checks against the
    materialized tree (expectations in `tests/golden/expectations/*.yaml`), plus the
    canary check against the pre-state snapshot.

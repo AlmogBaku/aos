@@ -51,7 +51,8 @@ capabilities/<id>/
   skills/<skill>/         # focused skills, each a valid Agent Skills folder
   agents/<name>.agent.yaml + agents/<name>/   # only if it needs its own agent
   ONBOARDING.md + MOD.example.md              # as a pair, or neither
-  kb/ · adapters/<harness>/                   # only if needed
+  kb/ · tool/ · adapters/<harness>/           # only if needed (tool/ = an installable
+                                              #   uv package, spec §2.4)
 ```
 
 Start from the worked example: **gtd-capture** is walked file-by-file in
@@ -85,14 +86,15 @@ House rules the linter can't fully check:
 
 ## Contributing a harness cheat-sheet
 
-One document adds a harness: `harnesses/<harness-runtime>.md` (flat, named for the
-harness runtime, lowercase — `hermes.md`, `nanoclaw.md`, …) with the six sections of
+One document adds a harness: `capabilities/capability-lifecycle/harnesses/<harness-runtime>.md`
+(flat, named for the harness runtime, lowercase — `hermes.md`, `nanoclaw.md`, …) with the six sections of
 [spec §5.2](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#52-cheat-sheets-the-adapter-is-knowledge-not-code)
 (primitive mapping, materialization, introspection, secrets, removal, feature notes).
-[`harnesses/hermes.md`](capabilities/capability-lifecycle/harnesses/hermes.md) is the reference. Keep it lean: the shared
-aos install contract lives in `BOOTSTRAP.md` §0 — a cheat-sheet carries only the
-harness's half. The bar: an LLM with only your cheat-sheet + a capability + a fixture
-overlay must produce a correct install.
+[`harnesses/hermes.md`](capabilities/capability-lifecycle/harnesses/hermes.md) is the reference. Keep it lean: the shared aos
+install contract lives in the capability-lifecycle entry skill's `reference/contract.md`
+— a cheat-sheet carries only the harness's half. The bar: an LLM with only BOOTSTRAP.md
++ the contract + your cheat-sheet + a capability + a fixture overlay must produce a
+correct install.
 
 Your own agent may have already drafted one mid-install (BOOTSTRAP's no-cheat-sheet
 path) — a self-drafted sheet verified by a real install is a ready-made PR. A merged

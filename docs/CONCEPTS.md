@@ -58,8 +58,9 @@ them safe:
 1. **Upstream never ships them.** The kit ships `MOD.example.md` seeds; your real
    `MOD.md` is written only by the onboarding interview, in your clone.
 2. **Upstream never writes them.** `git pull` cannot touch a path it doesn't contain.
-3. **Upgrades merge templates *under* your overlay** — new capability version × your
-   current install × your MOD.md, diff shown before anything lands.
+3. **Upgrades re-apply your ledger** — MOD.md is re-applied to the fresh upstream
+   (your current install is only checked for uncaptured edits, which get folded in
+   first), diff shown before anything lands.
 
 Hand-editing installed artifacts is normal and expected; the agent captures your edits
 back into MOD.md when it notices them (the round-trip,
@@ -94,10 +95,11 @@ work KB your colleagues pull — all registered in your user-owned `kb-registry.
 ## Install — the LLM is the installer
 
 ([§5](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#5-installation-the-harness-installs-the-batteries))
-There is no installer program. Your harness's own agent reads
-[`BOOTSTRAP.md`](../BOOTSTRAP.md) and each capability's briefing, loading its harness
-runtime's cheat-sheet at the steps that need it, then materializes everything itself.
-Three mechanisms keep that honest:
+There is no installer program — and after bootstrap, not even a bootstrap file: the
+**capability-lifecycle** capability puts install/upgrade/remove/evolve into your harness
+as skills. [`BOOTSTRAP.md`](../BOOTSTRAP.md) only welcomes you, checks prerequisites,
+and installs that one capability; its skills do the rest, loading your harness runtime's
+cheat-sheet at the steps that need it. Three mechanisms keep it honest:
 
 - **Cheat-sheets, not adapters.** Per-harness support is one lean doc
   (`harnesses/<harness-runtime>.md`) teaching the mapping (agent → Hermes profile,
@@ -107,8 +109,10 @@ Three mechanisms keep that honest:
 - **The diff gate.** Every write is shown to you in full before it lands. Never
   optional.
 - **The lockfile.** Everything materialized is recorded in `.aos/installs.lock.yaml`
-  (paths, hashes, owned schedule ids). Removal walks it backwards; no record, no
-  artifact.
+  (paths, hashes, owned schedule ids) — written and verified by the `aos-lock` tool,
+  never by the model. Removal walks it backwards; no record, no artifact. And your
+  `MOD.md` is a *ledger*: upgrades re-apply it to fresh upstream, and the evolve skill
+  writes your changes into it so they survive.
 
 If a host feature is missing (no cron, no `uv`), the capability **degrades, declared**:
 schedules become invocable run-cards, tools fall back to prose procedures — each
@@ -129,13 +133,13 @@ is. When building reveals the spec is wrong, the spec gets fixed — the
 | Term | Meaning |
 |---|---|
 | **harness** | The agent product you already run (Hermes, NanoClaw, OpenClaw, …) |
-| **harness runtime** | The program hosting your agent — names its cheat-sheet (`harnesses/<harness-runtime>.md`, see BOOTSTRAP.md) |
+| **harness runtime** | The program hosting your agent — names its cheat-sheet (see BOOTSTRAP.md) |
 | **capability** | An installable directory of skills/agents/tools/crons/patches |
 | **entry skill** | `skills/<id>/` — the capability's runtime face and map |
 | **overlay** | Your `MOD.md` files + `kb-registry.yaml`; user-owned, never shipped |
 | **base** | One KB instance == one git repo, registered in `kb-registry.yaml` |
 | **materialize** | The installer writing a capability's artifacts into your harness |
-| **cheat-sheet** | `harnesses/<harness-runtime>.md` — the harness half of the mapping, loaded per operation |
+| **cheat-sheet** | `capabilities/capability-lifecycle/harnesses/<harness-runtime>.md` — the harness half of the mapping, loaded per operation |
 | **lockfile** | `.aos/installs.lock.yaml` — the honest record of what was installed |
 | **diff gate** | You see every write before it happens; never optional |
 | **degraded mode** | A capability's declared behavior when a host feature is absent |

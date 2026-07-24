@@ -14,8 +14,9 @@ expect, what you'll be asked, and what ends up where.
   cheat-sheet, and show it to you before anything lands —
   [contributing that sheet](../CONTRIBUTING.md) is how the next person skips the step.
 - **git** — the kit is a clone, and upgrades are `git pull`.
-- **[`uv`](https://docs.astral.sh/uv/) (optional)** — installs kb's `base` tool. Without
-  it, kb still works: the skills fall back to prose procedures (slower, LLM-driven).
+- **[`uv`](https://docs.astral.sh/uv/) (required)** — it carries the `aos-lock`
+  bookkeeping tool that owns the install record; your agent offers the official
+  installer if it's missing.
 
 ## Kick it off
 
@@ -25,24 +26,32 @@ Paste into your agent:
 
 ## What happens next
 
-1. **Clone + bookkeeping.** The agent clones to `~/aos` and creates
-   `.aos/installs.lock.yaml` — the record of everything it will ever materialize.
-2. **The global interview.** Identity, timezone, working hours, sacred time, red lines.
+1. **A welcome, first.** Before anything runs, your agent explains what aos is, what's
+   about to happen, and the two promises (your answers stay yours; nothing lands without
+   a visible diff) — and takes questions.
+2. **Prerequisites + clone.** git and `uv` verified (offered for install if missing);
+   the clone lands at `~/aos`.
+3. **The lifecycle capability installs itself.** One inline install puts the
+   install/upgrade/remove/evolve skills and the `aos-lock` tool into your harness —
+   from here on, "install X" is a skill, and the lockfile
+   (`.aos/installs.lock.yaml`, the record of everything materialized) is written by
+   the tool, never by hand.
+4. **The global interview.** Identity, timezone, working hours, sacred time, red lines.
    Your answers become `~/aos/MOD.md` — typed answers in frontmatter, your phrasing and
    nuances in prose. Anything marked secret goes to your harness's secret store; only a
    `{store, key}` reference lands in the file.
-3. **Knowledge base setup.** Have a KB already? It gets *adopted* — registered in
+5. **Knowledge base setup.** Have a KB already? It gets *adopted* — registered in
    `kb-registry.yaml` with a report of how it diverges from the kit's methodology,
    **nothing rewritten**. Starting fresh? `base init personal` scaffolds one from
    templates. Migrating a big existing KB wholesale is its own guided flow (kb's
    `import` skill) you can run later.
-4. **The two root capabilities install: kb and onboarding.** For each, the agent reads
+6. **Both installs run through the new `capability-installer` skill.** For each, the agent reads
    the briefing, personalizes the skills with your MOD.md, and materializes them per the
    cheat-sheet — skills into the right agents, the archiver agent created, its schedules
    registered, kb's `base` tool installed
    (`uv tool install --from ~/aos/capabilities/kb/tool aos-base`).
-5. **Done.** The agent tells you what was installed, where, and any degraded modes in
-   effect.
+7. **Done.** The agent tells you what was installed, where, and any degraded modes in
+   effect — specifically, not vaguely.
 
 > [!IMPORTANT]
 > **You approve every write.** Before anything lands in your harness, the agent shows
@@ -56,7 +65,8 @@ Everything else is a sentence, on demand:
 | You say | What happens |
 |---|---|
 | `install gtd-capture` | Briefing read → missing deps recursed → its interview → diff gate → materialize → lockfile |
-| `update` | After `git pull`: backup → merge (new template × your install × your MOD.md) → diff gate |
+| `update` | After `git pull`: your hand-edits folded into MOD.md → backup → fresh upstream × MOD.md re-applied → diff gate |
+| "make the drain run at 22:00" | The evolve skill: change applied AND recorded in your MOD.md — survives every upgrade |
 | `remove gtd-capture` | The lockfile entry walked backwards; your `MOD.md` survives removal |
 
 ## Degraded modes, in plain words

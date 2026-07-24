@@ -39,6 +39,7 @@ Built and passing the [three CI tiers](docs/TESTING.md) today:
 | [**gtd-capture**](capabilities/gtd-capture/) | usecase | Capture a thought in under 5 seconds; a nightly drain turns pending captures into next-actions and reminders |
 | [**importer**](capabilities/importer/) | usecase | Wrap what you already built in your harness into a shareable capability package |
 | [**capability-builder**](capabilities/capability-builder/) | infra | Notices when a chat request is really a new use case and walks it through intake → research → design → approval → build |
+| [**capability-lifecycle**](capabilities/capability-lifecycle/) | infra | Install/upgrade/remove/evolve as skills in your harness; the MOD.md ledger; the [`aos-lock`](capabilities/capability-lifecycle/tool/) bookkeeping tool; the per-harness cheat-sheets |
 
 Planned next, in [build order](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#7-reference-capabilities--build-order) — each step proves one new seam:
 **time-blocking** (calendar writes + degraded modes) · **ptt-mode** (voice) ·
@@ -116,8 +117,8 @@ Five commitments make the loop work (plain-words tour in [docs/CONCEPTS.md](docs
 ```text
 BOOTSTRAP.md               ← agents start here (the install sequence)
 CONTRIBUTING.md            ← humans with a PR start here
-capabilities/<id>/         ← the built capabilities (see table above)
-harnesses/<runtime>.md     ← one cheat-sheet per harness runtime (the program hosting your agent)
+capabilities/<id>/         ← the built capabilities (see table above); cheat-sheets live in
+                             capability-lifecycle/harnesses/<runtime>.md, one per harness runtime
 docs/                      ← concepts, install & usage guides, testing, gap ledger
 tools/ · tests/            ← deterministic lint + golden-render checks (CI)
 ```
