@@ -31,8 +31,9 @@ consent prompts.
 
 ## 1. [D] The household
 
-aos lives in one directory — **the household**, `~/aos/` (a plain directory, itself never
-a git repo). Two members, plus machine state:
+aos lives in one directory — **the household**, `~/aos/` by default (a plain directory,
+itself never a git repo; the user may name another location — every path below shifts
+with it, and `aos-lock --home` pins it). Two members, plus machine state:
 
 ```
 ~/aos/

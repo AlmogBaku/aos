@@ -2,7 +2,7 @@
 # aos-test profile namespace. Roots resolved by check.mjs:
 #   front  = ~/.hermes/profiles/aos-test
 #   <agent>= ~/.hermes/profiles/aos-<agent>
-#   clone  = ~/aos/tests/.sandbox/aos-clone
+#   home   = <repo>/tests/.sandbox/aos-home  (the household: upstream/ + personal/ + .aos/)
 # Anatomy v2 (kb, onboarding, gtd-capture, importer all migrated to the entry-skill
 # convention; importer has no install footprint so it isn't part of this fixture).
 agents: [drainer, archiver]
@@ -39,8 +39,17 @@ expect_files:
   - "drainer:skills/gtd-capture-gtd-capture/reference/entry-format.md"
   - "drainer:skills/gtd-capture-drain/SKILL.md"
   - "drainer:SOUL.md"
-  # bookkeeping
-  - "clone:.aos/installs.lock.yaml"
+  # pinned renders — the canonical artifacts in personal/ that harness links target
+  - "home:personal/capabilities/capability-lifecycle/skills/capability-lifecycle/SKILL.md"
+  - "home:personal/capabilities/kb/skills/kb/SKILL.md"
+  - "home:personal/capabilities/gtd-capture/skills/capture/SKILL.md"
+  - "home:personal/capabilities/gtd-capture/skills/drain/SKILL.md"
+  # ledgers at mirrored paths in the personal root
+  - "home:personal/MOD.md"
+  - "home:personal/kb-registry.yaml"
+  - "home:personal/capabilities/gtd-capture/MOD.md"
+  # bookkeeping — household-level lockfile
+  - "home:.aos/installs.lock.yaml"
 
 forbid_files:
   # used_by placement — the anti-pollution rule, §2.2
@@ -83,5 +92,13 @@ sentinels:
   - {text: "choir practice Thursdays 19:00-21:00", in_dir: "drainer:"}
   # exec schedule: the sync job's command must invoke the tool, not an agent prompt
   - {text: "base sync --all", in_dir: "archiver:"}
+
+# live-only: harness skill dirs must be symlinks into personal/ (§5.3 — copies banned)
+expect_links:
+  - "front:skills/capability-lifecycle-capability-installer"
+  - "front:skills/kb-kb"
+  - "front:skills/gtd-capture-capture"
+  - "drainer:skills/gtd-capture-drain"
+  - "archiver:skills/kb-kb"
 
 lockfile_capabilities: [capability-lifecycle, kb, onboarding, gtd-capture]
