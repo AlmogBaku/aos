@@ -102,8 +102,7 @@ description: Instant capture, no classification. Use when the user fires off a t
    — frontmatter, sha256 dedup, `triage: pending`, and the log line come free from the
    tool. Content verbatim — no cleanup, no summarizing.
 3. A correction to something already captured is a new capture, never an edit — see
-   the `gtd-capture` entry skill's `reference/entry-format.md` (cross-skill references
-   are by name — §2.1; the materialized dir is renamed).
+   the `gtd-capture` entry skill's `reference/entry-format.md`.
 4. Apply the user's capture preferences from MOD.md: {{mod: capture_preferences}}
 5. Confirm with a single emoji. No echo, no follow-up questions.
 ```

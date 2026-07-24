@@ -1,6 +1,6 @@
 # Design deep-dive: installation, end to end
 
-*Companion to ARCHITECTURE §3 + §5. Every flow the installer story implies: bootstrap, dependency-ordered install, upgrade, removal — with the deterministic/agentic boundary marked on every step: **[D]** = mechanical (checkable, scriptable — RFC-004 decides if a helper tool does it), **[A]** = LLM judgment.*
+*Companion to ARCHITECTURE §3 + §5. Every flow the installer story implies: bootstrap, dependency-ordered install, upgrade, removal — with the deterministic/agentic boundary marked on every step: **[D]** = mechanical (checkable, scriptable — `aos-lock` carries the bookkeeping verbs; RFC-004's reopen path, taken), **[A]** = LLM judgment.*
 
 ## 1. Bootstrap: the first five minutes
 
@@ -12,8 +12,8 @@ One file, on purpose: `BOOTSTRAP.md` is a warm stub — it defines the install *
 
 Bootstrap sequence the agent then follows (from `BOOTSTRAP.md`, at the clone root beside the README — the human's door and the agent's door side by side):
 
-0. **[D]** Prerequisites: `git` and `uv` (required — `uv` carries the bookkeeping tool; offer the official installer, refuse to continue without). The welcome — what the kit is, what will happen, questions answered — is delivered right after the silent clone, before any other action.
-1. **[D]** Clone; inline-install the **capability-lifecycle** capability (the only chicken-and-egg break): read its contract reference in full, `uv tool install … aos-lock`, `aos-lock init`, copy its five skills to the front agent per its cheat-sheet (none for this harness → its no-cheat-sheet reference: generic mapping contract, self-drafted sheet, diff-gated — never a stop), STAGE→GATE→EXECUTE, `aos-lock record`.
+0. The paste-block already cloned (silent, harmless). **Welcome first** — what the kit is, what will happen, questions answered — before any other action; then **[D]** prerequisites: `git` and `uv` (required — `uv` carries the bookkeeping tool; offer the official installer, refuse to continue without).
+1. **[D]** Verify the clone; inline-install the **capability-lifecycle** capability (the only chicken-and-egg break): read its contract reference in full, `uv tool install … aos-lock`, `aos-lock init`, copy its five skills to the front agent per its cheat-sheet (none for this harness → its no-cheat-sheet reference: generic mapping contract, self-drafted sheet, diff-gated — never a stop), STAGE→GATE→EXECUTE, `aos-lock record`.
 2. Hand over to `capability-installer`: install **onboarding** (its interview = the global one → root `MOD.md`) then **kb** (its interview + KB adopt/init → `kb-registry.yaml`) as ordinary §2 installs.
 3. Done — celebratory specific summary. Everything after is `install <capability>` on demand, triggering the materialized skills.
 
@@ -43,7 +43,7 @@ sequenceDiagram
     U->>H: approve
     H->>HA: [D] write artifacts, origin-tagged
     H->>HA: [A] register KB zones (append grant rows to target KB's AGENTS.md table)
-    H->>L: [D] record artifacts + hashes + schedules_owned (single-owner rule)
+    H->>L: [D] aos-lock record — artifacts + hashes + schedules_owned (single-owner rule)
     H->>U: installed — degraded modes listed if any
 ```
 
@@ -82,8 +82,8 @@ Two honesty notes: CI requires a `version:` bump when a capability's files chang
 
 ```
 read lockfile artifacts for <capability> on this harness  [D]
-un-write each (cheat-sheet Removal section; no sheet →    [A] (shared files need surgery, e.g. jobs.json entry)
-  reverse the lockfile's origin-tagged writes)
+un-write each (cheat-sheet Removal section;               [A] (shared files need surgery, e.g. jobs.json entry)
+  no sheet → reverse origin-tagged writes)
 revoke KB zone grants (remove rows it added)              [D]
 MOD.md is NOT deleted                                     — nuances survive reinstall; delete is the user's explicit choice
 doctor verifies nothing orphaned                          [D]
@@ -101,4 +101,4 @@ doctor verifies nothing orphaned                          [D]
 | Upgrade re-render (ledger re-apply) | A | drift-fold + backup before, diff gate after, reference/-file granularity |
 | Drift detection, duplicate schedules | D | `doctor` |
 
-The pattern is deliberate: **every [A] step is sandwiched between [D] checks.** The LLM is trusted with judgment, never with bookkeeping — and RFC-004 only decides whether the [D] column is enforced by a tiny helper tool or by discipline.
+The pattern is deliberate: **every [A] step is sandwiched between [D] checks.** The LLM is trusted with judgment, never with bookkeeping — the [D] bookkeeping column is enforced by `aos-lock` (capability-lifecycle), the outcome of RFC-004's reopen path.

@@ -27,7 +27,7 @@ A shared, open-source layer of **capabilities** — packaged personal-ops use ca
 
 **And it is not that complicated. The kit is two things: a protocol — the backbone — and a set of implementations.** (Kickoff consensus — the counterintuitive argument that won the room: keep it simple and stupid; the new software is a prompt.) The **protocol** is the agreement on how you ship a capability, change it, and keep it updated — the contracts in this document. The **implementations** are the capabilities themselves: markdown files, scripts, the thin infra layer (which is, at bottom, prompts). There is no runtime, no framework, no machinery to maintain.
 
-What does a protocol even look like in the prompt era? **`SOUL.md` is the existence proof.** A file with an agreed name and agreed semantics that any agent, on any harness, knows how to read — that *is* a protocol now, the way a wire format used to be. The harness world already runs on this species (`SOUL.md`, `AGENTS.md`, `HEARTBEAT.md`); this kit's backbone is simply more members of it: `CAPABILITY.md`, `MOD.md`, the cheat-sheet (`harnesses/<harness-runtime>.md`), `kb-registry.yaml`, the `## Grants` table, the `log.md` line.
+What does a protocol even look like in the prompt era? **`SOUL.md` is the existence proof.** A file with an agreed name and agreed semantics that any agent, on any harness, knows how to read — that *is* a protocol now, the way a wire format used to be. The harness world already runs on this species (`SOUL.md`, `AGENTS.md`, `HEARTBEAT.md`); this kit's backbone is simply more members of it: `CAPABILITY.md`, `MOD.md`, the cheat-sheet (`capabilities/capability-lifecycle/harnesses/<harness-runtime>.md`, §5.2), `kb-registry.yaml`, the `## Grants` table, the `log.md` line.
 
 That is also why this unlocks more than we could build before: once the backbone lands, *everybody just contributes implementations* — the system evolves by contribution, not by anyone building a platform. Every section of this document should be read against that bar: anything that smells like a system rather than a protocol is a bug.
 
@@ -38,7 +38,7 @@ Two consequences of "batteries", stated as firm positions:
 
 The one-story version — **the personal trainer**:
 
-> A collaborator built a personal-trainer capability inside *their* Hermes: a skill, a cron that checks in every morning, a chunk of persona prompt. They run `aos import`, which wraps it into a capability package and splits out their personal nuances into their overlay. They open a PR; it lands in the shared repo. You install it: `aos install personal-trainer`. Onboarding interviews *you* — your goals, your gym days, your injuries — and writes *your* overlay. The harness agent takes the original capability, adapts it to your overlay, and wires it into *your* harness. Six weeks later the author ships v0.2; `aos update` merges the improvements into your personalized install without touching your nuances. Neither of you rewrote anything.
+> A collaborator built a personal-trainer capability inside *their* Hermes: a skill, a cron that checks in every morning, a chunk of persona prompt. They run `aos import`, which wraps it into a capability package and splits out their personal nuances into their overlay. They open a PR; it lands in the shared repo. You install it: `aos install personal-trainer`. Onboarding interviews *you* — your goals, your gym days, your injuries — and writes *your* overlay. The harness agent takes the original capability, adapts it to your overlay, and wires it into *your* harness. Six weeks later the author ships v0.2; `aos update` re-renders your install from the new version plus your MOD.md — nuances intact by construction. Neither of you rewrote anything.
 
 Every contract in this document exists to make that loop work: **wrap → share → install → personalize → upgrade**.
 
@@ -50,7 +50,7 @@ flowchart LR
     B -->|"PR<br/><b>share</b>"| C["Shared repo"]
     C -->|"git pull · aos install<br/><b>install</b>"| D["Onboarding interview<br/>→ your MOD.md"]
     D -->|"LLM transform<br/><b>personalize</b>"| E["Your version,<br/>in your harness"]
-    C -->|"author ships next version"| F["aos update · LLM merge<br/>guided by MOD.md<br/><b>upgrade</b>"]
+    C -->|"author ships next version"| F["aos update · re-render<br/>fresh upstream × MOD.md<br/><b>upgrade</b>"]
     F --> E
 ```
 
@@ -67,7 +67,7 @@ The layering borrows from Brad Frost's atomic design, as an analogy (the spec's 
 | Pages | **The personalized install** — the template instantiated with *your* overlay in *your* harness | the GTD capture actually running in your Hermes |
 
 <p align="center">
-  <img src="diagram.svg" alt="aos architecture: skills (atoms) compose into infrastructure capabilities (molecules) and use-case capabilities (organisms); MOD.md (templates) feeds an agentic transform that per-harness cheat-sheets turn into personalized installs (pages) on Hermes, NanoClaw, and OpenClaw" width="860">
+  <img src="diagram.svg" alt="aos architecture: skills (atoms) compose into infrastructure capabilities (molecules) and use-case capabilities (organisms); MOD.md (templates) feeds an agentic transform that per-harness cheat-sheets turn into personalized installs (pages) on Hermes, NanoClaw, OpenClaw, and Nanobot" width="860">
 </p>
 
 *The whole picture: **atoms** (skills) compose into **molecules** (infra capabilities) and **organisms** (use-case capabilities); your **MOD.md** overlay feeds the agentic transform, which per-harness cheat-sheets turn into the **pages** running in your harness.*
@@ -289,7 +289,7 @@ Installation of a capability proceeds:
 
 Users will tweak their installed (rendered) capability directly — that is normal, not drift. The contract: **whenever the user changes their installed capability, the change is also captured back into `MOD.md`** — `MOD.md` is a *ledger of personalization the agent re-applies*, and the capability-lifecycle `capability-evolver` skill is the ledger's named write path (it applies the change *and* records it as part of the same edit, or captures hand-edits on demand, using the lockfile hashes to detect what changed). `MOD.md` therefore remains the single durable source of truth for personalization; the rendered install is always reconstructible from `(original × MOD.md)`.
 
-### 3.4 Upgrade flow: LLM merge, guided by the overlay
+### 3.4 Upgrade flow: re-render, guided by the ledger
 
 On `aos update` (the ledger model — kit-wide by default, per-capability on request; one procedure at two scopes):
 
@@ -313,7 +313,7 @@ flowchart LR
     M --> X
     X -->|"diff-reviewed,<br/>hashed into lockfile"| P
     P -.->|"you tweak the install →<br/>captured back (round-trip, §3.3)"| M
-    T2["<b>Template v2</b><br/>author's next release"] -->|"aos update"| Y(("LLM<br/>merge"))
+    T2["<b>Template v2</b><br/>author's next release"] -->|"aos update"| Y(("LLM<br/>re-render"))
     M --> Y
     Y -.->|"upstream fixes in,<br/>nuances preserved"| P
 
@@ -424,7 +424,7 @@ Around the pillars: `BASE.yaml` (the base's machine-readable configuration — t
 - **The harness understands part of the lingo natively** — it knows its own primitives and its own filesystem.
 - **The kit ships a per-harness cheat-sheet** that teaches the rest: how *this* harness expresses "agent", "schedule", "context injection", "secret store".
 
-The install is then a conversation the harness agent has with the capability's declarations, `MOD.md`, and the cheat-sheet — the same agentic transform as §3.2, extended to the wiring itself. One neutral capability, three harnesses, no installer code — the cheat-sheet is the only per-harness thing, and it is *knowledge*, not a program:
+The install is then a conversation the harness agent has with the capability's declarations, `MOD.md`, and the cheat-sheet — the same agentic transform as §3.2, extended to the wiring itself. One neutral capability, four first-tier harnesses, no installer code — the cheat-sheet is the only per-harness thing, and it is *knowledge*, not a program:
 
 **The lifecycle is itself a capability.** `capability-lifecycle` (build 13) ships the install/upgrade/remove/evolve skills (materialized into the harness at bootstrap, so day-N operations trigger real skills), the overlay mechanism (§3), the manifest parser, and the lockfile bookkeeping tool `aos-lock` (§5.4 — the lockfile is the tool's file; agents call verbs, never edit the YAML). `BOOTSTRAP.md` is a warm stub: prerequisites (git and `uv` — `uv` is **required**, it carries the bookkeeping tool), clone, one inline install of capability-lifecycle (the only chicken-and-egg break), hand-over. BOOTSTRAP also defines the install *experience* — welcome and explain before anything runs, tone contract in the entry skill's Experience section, the diff gate as the standing safety net rather than repeated consent prompts.
 
@@ -432,7 +432,7 @@ The install is then a conversation the harness agent has with the capability's d
 flowchart LR
     CAP["Capability<br/>neutral declarations<br/>(skills · agents · schedules · zones)"] --> LLM(("harness LLM<br/>installs"))
     MOD["MOD.md<br/>your nuances"] --> LLM
-    CS["cheat-sheet<br/>harnesses/&lt;harness-runtime&gt;.md<br/>(knowledge, not code)"] --> LLM
+    CS["cheat-sheet<br/>capability-lifecycle<br/>harnesses/&lt;harness-runtime&gt;.md<br/>(knowledge, not code)"] --> LLM
     LLM --> H1["<b>Hermes</b><br/>profile · cron/jobs.json<br/>· AGENTS.md block"]
     LLM --> H2["<b>NanoClaw</b><br/>group · workspace skills<br/>· CLAUDE.md block"]
     LLM --> H3["<b>OpenClaw</b><br/>agent · HEARTBEAT.md<br/>· workspace md"]
@@ -457,7 +457,7 @@ Three rules govern how the cheat-sheet is used:
 
 - **Aid, never gate.** Capabilities are self-describing prompts; the harness LLM can interpret them directly. The cheat-sheet only saves it re-deriving the mapping to its own primitives. A harness without one is still installable: the installer follows the **generic mapping contract** — map each §5.3 artifact kind to a native primitive by live introspection, honoring the §3.2/§5.4 invariants (operationalized in the capability-lifecycle no-cheat-sheet reference) — and may draft the sheet itself (diff-gated like any write); a self-drafted sheet verified by a real install is a ready-made contribution.
 - **Loaded per operation, never standing context.** The installer loads the cheat-sheet at the steps that make mapping decisions — e.g. capability install, capability onboarding, upgrade re-render, import introspection, secrets handling, removal — not up front for the whole session.
-- **Lean: the harness half only.** The aos-side install invariants (provenance formats, the lockfile, marker blocks, secret references, degraded-mode meanings, removal discipline) are defined once (§3.2, §5.3–§5.5) and operationalized in the capability-lifecycle capability's contract reference (`BOOTSTRAP.md` points there); a cheat-sheet translates them to native primitives and must not restate them.
+- **Lean: the harness half only.** The aos-side install invariants (provenance formats, the lockfile, marker blocks, secret references, degraded-mode meanings, removal discipline) are defined once (§3.2, §5.3–§5.5, install-flow §4) and operationalized in the capability-lifecycle capability's contract reference (`BOOTSTRAP.md` points there); a cheat-sheet translates them to native primitives and must not restate them.
 
 Terminology note: a capability's `adapters/<harness>/` directory holds its per-harness *content* (override patches, native plugins); the kit-level translation lives in the cheat-sheet. **There are no adapter programs anywhere.**
 
@@ -469,13 +469,13 @@ The `depends.host` vocabulary is fixed and enumerated: `cron`, `messaging.inboun
 
 | Artifact | **Hermes** | **OpenClaw** | **NanoClaw** | **Nanobot** |
 |---|---|---|---|---|
-| skill | `~/.hermes/skills/<id>/` or `profiles/<p>/skills/<id>/` per `used_by` (native SKILL.md) | workspace `skills/<id>/` (per-agent workspaces = `used_by` scoping) | checkout `.claude/skills/<id>/`; per-group scoping via the group config `skills` field | workspace `skills/<id>/` + each agent's `skills:` list |
+| skill | `~/.hermes/skills/<capability>-<id>/` or `profiles/<p>/skills/<capability>-<id>/` per `used_by` (dirs renamed at materialization, §2.1) | workspace `skills/<id>/` (per-agent workspaces = `used_by` scoping) | checkout `.claude/skills/<id>/`; per-group scoping via the group config `skills` field | workspace `skills/<id>/` + each agent's `skills:` list |
 | agent | profile dir `~/.hermes/profiles/<name>/` (directory-defined — `hermes profile create`; no `config.yaml` registry entry exists) | `openclaw agents add` — agent dir + own workspace (`SOUL.md`, `AGENTS.md`…) | agent group (per-group container): `ncl groups create` (v2) / registered via the main agent (v1) | `agents/<id>.md` (frontmatter + body-as-instructions) |
 | schedule | cron job via `hermes cron create` in the owning profile's home — provenance = `aos:<cap>:<id>` name prefix + job id in the lockfile (never a hand-written `jobs.json` field: the file is scheduler-owned and its `origin` key already means chat provenance) | `openclaw cron add` (Gateway-hosted; `cron/jobs.json` store) | `ncl tasks create` (DB-sweep task, v2) / `scheduled_tasks` via the main agent (v1) | `createScheduledTask` runtime tool (DB-backed; no config-file form) |
 | context block | profile `SOUL.md` (identity) / `workspace/AGENTS.md` (working-dir instructions), inside `<!-- aos:… -->` markers | workspace bootstrap files (`AGENTS.md`, `SOUL.md`, …; sub-agents receive only `AGENTS.md`+`TOOLS.md`) | `instructions.prepend.md` → composed `CLAUDE.md` (v2) / group `CLAUDE.md` (v1) | the agent md body (no auto-loaded context file exists) |
 | secret | `.env` (root or profile — `auth.json` is Hermes's own provider-credential state, never written by installs) | global `~/.openclaw/.env` (+ SecretRef; workspace `.env` blocks credentials) | checkout `.env` (+ OneCLI vault, v2) | `nanobot.env` + the config `env:` map |
 
-Every artifact written during install is tagged with its origin (a frontmatter key, a marker comment, or — where the file is harness-owned, like Hermes `jobs.json` — a name prefix plus the lockfile record) so `doctor`, `remove`, and the round-trip (§3.3) can attribute it. The NanoClaw (one sheet covering v1 and v2), OpenClaw, and Nanobot cheat-sheets ship **research-drafted** — a shipped sheet is not a verified harness; the support-matrix rule below governs. Claude Code and OpenCode cheat-sheets are explicitly **later** (until then `BOOTSTRAP.md`'s no-cheat-sheet path covers them): when they land, the Claude Code one points the LLM at the native plugin/marketplace machinery (userConfig, plugin data dirs) rather than rebuilding it.
+Every artifact written during install is tagged with its origin (a frontmatter key, a marker comment, or — where the file is harness-owned, like Hermes `jobs.json` — a name prefix plus the lockfile record) so `doctor`, `remove`, and the round-trip (§3.3) can attribute it. The NanoClaw (one sheet covering v1 and v2), OpenClaw, and Nanobot cheat-sheets ship **research-drafted** — a shipped sheet is not a verified harness; the support-matrix rule below governs. Claude Code and OpenCode cheat-sheets are explicitly **later** (until then the capability-lifecycle no-cheat-sheet reference covers them): when they land, the Claude Code one points the LLM at the native plugin/marketplace machinery (userConfig, plugin data dirs) rather than rebuilding it.
 
 **Support matrix rule:** a capability lists a harness in its README support matrix only if someone runs it there. Honesty over abstraction.
 
@@ -485,10 +485,10 @@ The installer being an LLM does not relax the discipline — it is *why* the dis
 
 - Every mutation is **diff-previewed** before it lands in a live harness.
 - Everything materialized is **recorded** in `.aos/installs.lock.yaml` (capability, version, artifact paths, hashes).
-- Every upgrade takes a **pre-merge backup**.
+- Every upgrade takes a **pre-re-render backup**.
 - `doctor` reports drift (lockfile hash ≠ on-disk artifact), degraded installs, orphaned artifacts, and patch/version mismatches (§2.4).
 
-What is *not* open: prose-driven mutation of live configs with no lockfile, no diff, and no backup — hand-mutated harness configs accumulate `.bak` graveyards. **RFC-004** (narrowed accordingly) decides whether a small helper tool carries the bookkeeping (hashing, lockfile, diff rendering) or the playbook is prose all the way down.
+What is *not* open: prose-driven mutation of live configs with no lockfile, no diff, and no backup — hand-mutated harness configs accumulate `.bak` graveyards. The bookkeeping is carried by a capability tool: **the lockfile is `aos-lock`'s file** (capability-lifecycle) — agents call verbs, never edit the YAML. That is RFC-004's named reopen path, taken; the RFC's no-kit-level-tool decision stands.
 
 ### 5.5 Degraded modes
 
@@ -520,7 +520,7 @@ Acceptance fixtures: the maintainers' existing Hermes-built trip-planning and ti
 
 ## 7. Reference capabilities & build order
 
-Twelve capabilities ship as v0.1's reference set (one-page specs in `capabilities/`). Order is chosen so each step exercises exactly one new seam; a step is done when the seam holds:
+Thirteen capabilities ship as v0.1's reference set (one-page specs in `capabilities/`). Order is chosen so each step exercises exactly one new seam; a step is done when the seam holds:
 
 | # | Capability | Tags | New seam it proves |
 |---|---|---|---|
@@ -561,7 +561,7 @@ kb and onboarding are built together (the installer needs both); the importer la
 | Overlay | Co-located `MOD.md`, markdown + typed frontmatter, inviolable invariant | §3.1 |
 | Install transform | Agentic end-to-end: the harness LLM installs, personalizes, and wires — with honest bookkeeping + diff review. The procedure is owned by the capability-lifecycle capability (skills + `aos-lock` tool); MOD.md is a ledger the agent re-applies | §3.2, §3.3, §5.1, §5.4 |
 | Personalization round-trip | User edits flow back into MOD.md; overlay is the source of truth | §3.3 |
-| Upgrades | LLM merge guided by MOD.md, backup + diff-reviewed | §3.4 |
+| Upgrades | Ledger re-render: uncaptured drift folded into MOD.md, fresh upstream × MOD.md re-applied, backup + diff-reviewed | §3.3, §3.4 |
 | Multi-KB | Registry + rules-first routing, LLM only above confidence bar, uncertain → default inbox | §4.1–4.2 |
 | KB authorization | Shared KBs never accept LLM-routed writes; ACL model shared with future permission gate | §4.3 |
 | KB substrate | The kb capability IS the methodology (three-pillar base engine: store / curation / state; current-truth doctrine; `base` tool + BASE.yaml). No pluggable seam in v0.1 — `methodology:` field kept as forward-compat; a second methodology is an RFC-level event | §4.4 |
@@ -609,7 +609,7 @@ The same capability evolves capabilities that already exist: feedback is classif
 | B. Share the verticals | The capability package: Agent Skills core + manifest + onboarding + overlay slots | §2 |
 | C. Cross-harness portability | Portable skill core + per-harness cheat-sheets read by the installing LLM + support-matrix honesty | §5 |
 | D. Preserve personalization | Co-located MOD.md, inviolable invariant, round-trip | §3.1, §3.3 |
-| E. Enable upgrades | `git pull` can't touch MOD.md; LLM merge guided by it, backup + diff review | §3.4 |
+| E. Enable upgrades | `git pull` can't touch MOD.md; the ledger re-applied to fresh upstream, backup + diff review | §3.4 |
 | F. Harness modifications | `adapters/<harness>/plugins/` in ordinary capabilities; no third layer | §2.4 |
 | G. Lower the contribution barrier | The importer: introspect → cluster → map → split → draft + GAP report | §6 |
 
@@ -617,9 +617,9 @@ The same capability evolves capabilities that already exist: feedback is classif
 
 | # | Risk | Falsifier / test | Fallback |
 |---|---|---|---|
-| 1 | **LLM merge fidelity** — upgrades silently drop personal nuances or upstream fixes | Replay an upgrade of a personalized capability against a hand-made expected result; diff | Tighten MOD.md structure (more typed frontmatter, less prose); worst case, constrain merges to marker-block regions |
+| 1 | **Re-render fidelity** — upgrades silently drop personal nuances or upstream fixes | Replay an upgrade of a personalized capability against a hand-made expected result; diff | Tighten MOD.md structure (more typed frontmatter, less prose); worst case, constrain re-renders to marker-block regions |
 | 2 | **Routing accuracy** — misroutes poison trust in multi-KB | Replay 2 weeks of real captures, hand-labeled; misroute rate must stay <5% and the review queue must drain nightly | Drop LLM routing entirely; channel-pinned KBs + explicit tags only |
-| 3 | **The "primitives rhyme" bet** — the neutral declarations + cheat-sheet translation can't express real harness needs | After porting 2 capabilities to all 3 first-tier harnesses, measure per-capability `adapters/` override volume; >~35% of neutral core falsifies the bet | Invert: portable SKILL.md core + thick per-harness packages, drop the neutral middle |
+| 3 | **The "primitives rhyme" bet** — the neutral declarations + cheat-sheet translation can't express real harness needs | After porting 2 capabilities to all 4 first-tier harnesses, measure per-capability `adapters/` override volume; >~35% of neutral core falsifies the bet | Invert: portable SKILL.md core + thick per-harness packages, drop the neutral middle |
 | 4 | **Round-trip discipline** — user edits to rendered installs don't make it back to MOD.md, overlay rots | `doctor` drift reports trending up over weeks of live use | Make renders read-only-by-convention + route all tweaks through a `mod` skill |
 | 5 | **Spec-before-use** — contracts here that no build validates | Every § names its consuming build step (§7); a § no reference capability exercises by build 9 gets cut | Rule-of-two applies to the spec itself |
 | 6 | **Duplicate schedules across harnesses** — same drain installed twice violates one-writer | `doctor` duplicate-schedule check across the lockfile | Single-owner rule (§5.5); worst case, schedules become explicitly harness-pinned in MOD.md |
