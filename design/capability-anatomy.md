@@ -148,26 +148,28 @@ Skill scoping is the load-bearing row: **`used_by` is what keeps ten capabilitie
 ## 5. What the lockfile knows
 
 ```yaml
-# ~/aos/.aos/installs.lock.yaml (machine-local, household level — spans source roots)
+# <home>/.aos/installs.lock.yaml (machine-local, household level — spans source roots)
+# One entry per capability, covering every harness it is installed into. `record`
+# replaces an entry wholesale, so a second-harness install re-records the combined set.
 installs:
   gtd-capture:
     version: 0.1.0
-    source_root: upstream              # personal/ for private capabilities
-    onboarded: 2026-07-17
-    harnesses:
-      hermes:
-        artifacts:
-          - link: ~/.hermes/skills/gtd-capture-capture
-            target: ~/aos/personal/capabilities/gtd-capture/skills/capture/
-            hash: sha256:…             # hash of the TARGET (the pinned render)
-          - path: ~/.hermes/profiles/gtd-drainer/
-            hash: sha256:…             # dir-tree hash (native injection, not a link)
-          - path: ~/.hermes/cron/jobs.json#nightly-drain   # keyed entry in a shared file
-            hash: sha256:…
-        schedules_owned: [nightly-drain]   # single-owner rule: this harness runs the drain
-      nanoclaw:
-        artifacts: [ …capture skill link only… ]   # requires the ~/aos/personal ro mount (§5.3)
-        schedules_owned: []                # installed here too, but the drain runs in Hermes
+    source_root: upstream            # which distribution shipped the package
+    artifacts:                       # path -> sha256 (render files + native artifacts)
+      <HOME>/aos/personal/capabilities/gtd-capture/skills/capture/SKILL.md: sha256:…
+      <HOME>/.hermes/profiles/gtd-drainer/SOUL.md: sha256:…
+    links:                           # harness symlink -> the pinned render it points at
+      <HOME>/.hermes/skills/gtd-capture-capture: <HOME>/aos/personal/capabilities/gtd-capture/skills/capture
+      <HOME>/.hermes/profiles/gtd-drainer/skills/gtd-capture-drain: <HOME>/aos/personal/capabilities/gtd-capture/skills/drain
+    schedules_owned: [nightly-drain]  # single-owner rule: this install runs the drain
+    config_keys: []
+    env_lines: []
+    scripts: []
 ```
 
-Hashes exist so `doctor` can tell *"you hand-edited the rendered skill"* (→ round-trip it into MOD.md, §3.3) apart from *"the render is what we wrote"* — without them, drift is invisible and the overlay rots (risk #4).
+Only *files* carry hashes (`sha256()` refuses a directory); links are recorded as
+path→target and checked structurally — `verify` reports MISSING / NOT A LINK (a copy
+where a link belongs) / RELINKED / DANGLING. Keyed entries in harness-owned files
+(a `jobs.json` job) are tracked by `schedules_owned` id, not by hash.
+
+Hashes exist so `aos-lock verify` can tell *"you hand-edited the rendered skill"* (→ round-trip it into MOD.md, §3.3) apart from *"the render is what we wrote"* — without them, drift is invisible and the overlay rots (risk #4).
