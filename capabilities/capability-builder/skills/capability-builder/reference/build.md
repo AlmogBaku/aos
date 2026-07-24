@@ -21,9 +21,10 @@ package would ship.
 capability package sitting in `personal/`; installing it into the harness is the
 already-specified install flow, a separate step.
 
-Before calling it done: run the kit linter
-(`node <home>/upstream/tools/lint/aos-lint.mjs`) — the new package must add zero
-errors — and show the user the full file tree plus a one-line summary of each new file.
+Before calling it done: run the kit linter **against the personal root** —
+`node <home>/upstream/tools/lint/aos-lint.mjs --root <home>/personal` (without
+`--root` it lints the kit and reports green on a package it never opened) — the new
+package must add zero errors — and show the user the full file tree plus a one-line summary of each new file.
 
 **Then, the contribute question — judgment-gated, never reflexive.** Run the
 generality judgment (capability-lifecycle's overlay reference, "Promote and retire":

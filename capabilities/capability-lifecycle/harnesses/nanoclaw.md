@@ -50,7 +50,7 @@ already fit the class; never hardcode provider names.
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`, under the contract (reference/contract.md).
+Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle` entry skill's `reference/contract.md`).
 
 1. **Agents → agent groups.** v2: `ncl groups create --name "Scout" --folder scout`; wire to
    a chat with `ncl messaging-groups create --channel-type <t> --platform-id <id> --name <n>
@@ -163,7 +163,7 @@ uninstall script — manual cleanup plus stopping the `launchd/` service.
 | `email` | ⚠ both | v2 `/add-gmail-tool` (read/search/send/label/draft) + `/add-resend` outbound channel; v1 `add-gmail` skill; absent ⇒ degraded mode |
 | `secrets-store` | v2 ✓ · v1 ⚠ | `.env` always; v2 optionally the OneCLI vault; v1 `.env` only |
 
-Degraded-mode wiring (meanings in reference/contract.md): `manual` ⇒ the invocable skill lands in
+Degraded-mode wiring (meanings in the entry skill's `reference/contract.md`): `manual` ⇒ the invocable skill lands in
 `.claude/skills/` scoped (v2 `skills` field) to the group that would have owned the job;
 `inline` ⇒ no verified task-edit verb exists — cancel the owning task and recreate it under
 the same `aos:` name with the appended prompt.

@@ -81,7 +81,8 @@ skill resolves them.
 1. **Skills** per `used_by`: the `kb` entry skill goes to the front agent AND the
    archiver — it carries the map; the tool is on PATH for both.
    `route`/`recall`/`init`/`adopt`/`import` are front-agent judgment skills. Skill directories
-   are copied whole (reference/, scripts/, templates/ travel with them).
+   are rendered whole into `personal/` and symlinked per agent (reference/, scripts/,
+   templates/ travel with them) — one canonical render, never per-harness copies.
 2. **The archiver agent** (`agents/archiver.agent.yaml`): create per the cheat-sheet.
    One archiver for all bases — cross-base re-routing is its point. It must have no
    messaging tools (enforce via harness tool configuration, not instructions). Its

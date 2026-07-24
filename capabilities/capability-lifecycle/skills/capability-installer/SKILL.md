@@ -40,7 +40,10 @@ the overlay doctrine, and the Experience rules. Then:
 9. **[D]** **EXECUTE** the approved plan: commit the render in `personal/` (dated
    message — the persist hook), create the symlinks, run the native plan; **[A]** `kb:`
    zones → draft grant rows into each target KB's `## Grants` table, user approves.
-10. **[D]** `aos-lock record <id> --version <v> --source-root <upstream|personal>
-    --artifact <render-file>… --link <symlink>… --job <id>… --config-key <k>…` — the
-    tool hashes files and reads link targets itself.
+10. **[D]** `aos-lock record <id> --version <v> --source-root <the root step 1 resolved
+    the capability dir in — `upstream` for shipped capabilities, `personal` for the
+    user's own> --artifact <render-file>… --link <symlink>… --job <id>… --config-key <k>…`
+    — the tool hashes files and reads link targets itself. **`record` replaces the entry
+    wholesale**: on a second-harness install, start from `aos-lock show <id>` and pass the
+    combined set (both harnesses' links), never just this harness's.
 11. Celebrate specifically: what, where, which schedules, degraded modes in effect.

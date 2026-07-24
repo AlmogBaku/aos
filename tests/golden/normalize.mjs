@@ -18,7 +18,9 @@ const SKIP = new Set(['config.yaml', 'profile.yaml',  // harness runtime state: 
   'executions.db', '.jobs.lock', 'auth.lock', 'state.db-shm', 'state.db-wal',
   '.skills_prompt_snapshot.json', '.update_check', 'context_length_cache.yaml',
   'verification_evidence.db', 'models_dev_cache.json']);
-const TEXT = /\.(md|ya?ml|json|txt|sh|tmpl)$/;
+// A trailing suffix (e.g. `.sh.unused`, left behind when a harness renames a script)
+// must still normalize — otherwise absolute developer paths land in a committed snapshot.
+const TEXT = /\.(md|ya?ml|json|txt|sh|tmpl)(\.[A-Za-z0-9_-]+)?$/;
 
 const HOME = process.env.HOME || '/home/user';
 function normalizeText(text) {

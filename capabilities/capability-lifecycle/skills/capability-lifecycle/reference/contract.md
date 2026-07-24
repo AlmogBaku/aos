@@ -26,8 +26,11 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   comment, +1, or push to upstream — or any repo the user doesn't own — without the
   user's explicit approval or request. No exceptions. Offers are cheap; writes that
   leave the machine are the user's alone to authorize.
-- **The lockfile is `aos-lock`'s file.** Everything you materialize is recorded — one
-  entry per capability+harness: version, source root, render-file paths + sha256,
+- **The lockfile is `aos-lock`'s file.** Everything you materialize is recorded — **one
+  entry per capability, covering every harness it is installed into** (`record` replaces
+  the entry wholesale, so a second-harness install must re-record the *combined* set:
+  start from `aos-lock show <id>` and add to it, never call `record` with a partial
+  list). An entry carries: version, source root, render-file paths + sha256,
   harness symlinks (`--link` — the tool reads each link's target itself), job ids under
   `schedules_owned`, config keys, `.env` variable names, scripts; a capability's
   installed tool binary is recorded as an `--artifact` (hash the command on PATH). You

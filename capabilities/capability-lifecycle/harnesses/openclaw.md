@@ -41,7 +41,7 @@ agent's default doesn't already fit the class; never hardcode provider names.
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`, under the contract (reference/contract.md).
+Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle` entry skill's `reference/contract.md`).
 
 1. **Agents.** `openclaw agents add <name> --workspace ~/.openclaw/workspace-<name>
    --non-interactive`; persona → the workspace's `SOUL.md`, identity → `IDENTITY.md` then
@@ -53,10 +53,10 @@ Work top-down from `CAPABILITY.md`, under the contract (reference/contract.md).
    the owning agent's `<workspace>/skills/<capability>-<id>` per `used_by`
    (`~/.openclaw/skills/` only for genuinely every-agent skills), record each link
    (`aos-lock record … --link`); naming rules per
-   the contract (reference/contract.md). OpenClaw takes skill identity from frontmatter, not the folder — set the
-   materialized copy's `name: <capability>-<id>`; `description` is required. `{baseDir}`
+   the install contract (the `capability-lifecycle` entry skill's `reference/contract.md`). OpenClaw takes skill identity from frontmatter, not the folder — set the
+   render's `name: <capability>-<id>`; `description` is required. `{baseDir}`
    resolves skill-local files. Do not route aos skills through
-   `openclaw skills install`/ClawHub — the clone is the source.
+   `openclaw skills install`/ClawHub — the pinned render in `<home>/personal` is the source.
 3. **Schedules.** Agent-type entries (`agent` + `prompt_ref`):
 
    ```
@@ -145,7 +145,7 @@ Drive everything from the lockfile entry, in order:
 | `email` | ⚠ via skill | `gog` (Gmail) + native Gmail PubSub hooks (`openclaw webhooks gmail setup`); absent ⇒ degraded mode |
 | `secrets-store` | ✓ | `.env` + config `env`/SecretRef (OS keyring via `gog`) |
 
-Degraded-mode wiring (meanings in reference/contract.md): `manual` ⇒ the invocable skill lands in
+Degraded-mode wiring (meanings in the entry skill's `reference/contract.md`): `manual` ⇒ the invocable skill lands in
 the workspace skills dir of the agent that would have owned the job; `inline` ⇒ no
 documented `cron edit` — recreate the target aos-owned job (`cron remove` + `cron add`,
 same name) with the appended prompt.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-export AOS_REGISTRY='/home/anakin/aos/tests/.sandbox/aos-home/personal/kb-registry.yaml'
-export AOS_HOME='/home/anakin/aos/tests/.sandbox/aos-home'
+export AOS_REGISTRY='<HOME>/aos/tests/.sandbox/aos-home/personal/kb-registry.yaml'
+export AOS_HOME='<HOME>/aos/tests/.sandbox/aos-home'
 exec base sync --all

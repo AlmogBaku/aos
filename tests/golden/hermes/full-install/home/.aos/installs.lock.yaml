@@ -22,7 +22,7 @@ installs:
       <HOME>/.hermes/profiles/aos-test/skills/capability-lifecycle-capability-upgrader: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-upgrader
     schedules_owned: []
     scripts: []
-    source_root: personal
+    source_root: upstream
     version: 0.2.0
   gtd-capture:
     artifacts:
@@ -85,7 +85,7 @@ installs:
     - <ID>
     scripts:
     - <HOME>/.hermes/scripts/aos-kb-sync.sh
-    source_root: personal
+    source_root: upstream
     version: 0.4.0
   onboarding:
     artifacts:
@@ -98,6 +98,6 @@ installs:
       <HOME>/.hermes/profiles/aos-test/skills/onboarding-onboarding: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/onboarding/skills/onboarding
     schedules_owned: []
     scripts: []
-    source_root: personal
+    source_root: upstream
     version: 0.3.0
 version: 1

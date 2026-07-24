@@ -10,7 +10,8 @@ feedback already supply the context), keep the rest, sized down:
   removed, and why. Same bar as a new capability's Design stage — one artifact, not
   scattered across replies.
 - **Approval** — nothing applies until the user signs off on the diff.
-- **Apply** — same materialization rules as `capability-builder`'s Build stage: the
+- **Apply** — same materialization rules as `capability-builder`'s Build stage (lint
+  the tree you actually wrote: `--root <home>/personal` for the user's own packages): the
   user's own package → the change lands in `personal/capabilities/<id>/`;
   upstream-shipped → the change lands on a branch in `<home>/upstream` and continues
   per [contribute.md](contribute.md). Bump the capability's `version` per semver

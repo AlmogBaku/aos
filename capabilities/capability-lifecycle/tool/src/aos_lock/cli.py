@@ -42,9 +42,9 @@ def fail(code, msg):
 
 def find_home(args, require_existing=True):
     if args.home:
-        root = Path(args.home)
+        root = Path(args.home).expanduser()
     elif os.environ.get("AOS_HOME"):
-        root = Path(os.environ["AOS_HOME"])
+        root = Path(os.environ["AOS_HOME"]).expanduser()
     elif not require_existing:
         fail(15, "init creates state — name the household explicitly (--home or AOS_HOME)")
     else:
@@ -236,10 +236,17 @@ def sha256(path):
 
 
 def readlink_or_fail(path):
-    p = Path(path)
+    p = Path(path).expanduser()
     if not p.is_symlink():
         fail(16, f"not a symlink: {path}")
-    return os.readlink(p)
+    return link_target(p)
+
+
+def link_target(p):
+    """Recorded/compared as an absolute path so relative and absolute links
+    that point at the same place compare equal."""
+    target = os.readlink(p)
+    return str(Path(target) if os.path.isabs(target) else (p.parent / target).resolve())
 
 
 def cmd_init(args):
@@ -258,8 +265,8 @@ def cmd_record(args):
     entry = {
         "version": args.version,
         "source_root": args.source_root,
-        "artifacts": {str(Path(a).resolve()): sha256(Path(a).resolve()) for a in args.artifact},
-        "links": {str(Path(l).absolute()): readlink_or_fail(l) for l in args.link},
+        "artifacts": {str(Path(a).expanduser().resolve()): sha256(Path(a).expanduser().resolve()) for a in args.artifact},
+        "links": {str(Path(l).expanduser().absolute()): readlink_or_fail(l) for l in args.link},
         "schedules_owned": list(args.job),
         "config_keys": list(args.config_key),
         "env_lines": list(args.env_line),
@@ -275,9 +282,18 @@ def cmd_record(args):
 def cmd_rehash(args):
     root = find_home(args)
     lock, entry = get_entry(root, args.capability)
-    entry["artifacts"] = {path: sha256(path) for path in entry.get("artifacts", {})}
+    kept, dropped = {}, []
+    for path in entry.get("artifacts", {}):
+        if Path(path).is_file():
+            kept[path] = sha256(path)
+        else:
+            dropped.append(path)
+    entry["artifacts"] = kept
     save_lock(root, lock)
-    print(f"rehashed {args.capability}: {len(entry['artifacts'])} artifacts")
+    for path in dropped:
+        print(f"dropped (no longer on disk): {path}")
+    print(f"rehashed {args.capability}: {len(kept)} artifacts"
+          + (f", {len(dropped)} dropped" if dropped else ""))
 
 
 def get_entry(root, capability):
@@ -304,9 +320,11 @@ def cmd_verify(args):
         for path, target in lock["installs"][cap].get("links", {}).items():
             p = Path(path)
             if not p.is_symlink():
-                drift.append(f"{cap}: MISSING LINK {path}")
-            elif os.readlink(p) != target:
-                drift.append(f"{cap}: RELINKED {path} -> {os.readlink(p)} (recorded: {target})")
+                # present-but-not-a-link is the banned copy case; absent is a plain miss
+                kind = "NOT A LINK (copies are banned)" if p.exists() else "MISSING LINK"
+                drift.append(f"{cap}: {kind} {path}")
+            elif link_target(p) != target:
+                drift.append(f"{cap}: RELINKED {path} -> {link_target(p)} (recorded: {target})")
             elif not p.exists():
                 drift.append(f"{cap}: DANGLING LINK {path} -> {target}")
     if drift:

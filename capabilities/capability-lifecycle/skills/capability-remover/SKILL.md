@@ -16,8 +16,8 @@ contract, and the Experience rules.
    remove dependents first).
 3. **[A]** Un-write per the cheat-sheet's Removal section (load
    `harnesses/<harness-runtime>.md` now), in its stated order — typically: jobs →
-   skill symlinks (delete the links; then delete the render dirs in
-   `personal/capabilities/<id>/skills/` **via a commit** — revertible, the persist
+   skill symlinks (delete the links; then delete **only** `personal/capabilities/<id>/skills/`
+   **via a commit** — never the capability directory itself and never its `MOD.md` — revertible, the persist
    hook's dated message says why) → marker blocks → config keys → `.env` lines (ask
    first) → agents this capability created and nothing else uses → scripts/hooks →
    its tool (`uv tool uninstall`).

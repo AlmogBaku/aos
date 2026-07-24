@@ -56,7 +56,7 @@ capability) plus `kb-registry.yaml` — together, the **overlay family**. Three 
 them safe:
 
 1. **Upstream never ships them.** The kit ships `MOD.example.md` seeds; your real
-   `MOD.md` is written only by the onboarding interview, in your clone.
+   `MOD.md` is written only by the onboarding interview, in your `personal/` repo.
 2. **Upstream never writes them.** `git pull` cannot touch a path it doesn't contain.
 3. **Upgrades re-apply your ledger** — MOD.md is re-applied to the fresh upstream
    (your current install is only checked for uncaptured edits, which get folded in

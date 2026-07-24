@@ -130,9 +130,27 @@ function runExpectations(expName, roots, liveMode = false) {
     if (!p || !existsSync(p)) {
       fail('golden/lockfile', `${expName}: lockfile missing`);
     } else {
-      const lock = readFileSync(p, 'utf8');
+      const lockText = readFileSync(p, 'utf8');
       for (const cap of exp.lockfile_capabilities) {
-        if (!lock.includes(cap)) fail('golden/lockfile', `${expName}: lockfile has no entry for "${cap}"`);
+        if (!lockText.includes(cap)) fail('golden/lockfile', `${expName}: lockfile has no entry for "${cap}"`);
+      }
+      // Snapshots dereference symlinks, so the lockfile's `links` map is the only
+      // deterministic residue of the symlink contract (§5.3) a committed tree can carry.
+      if (exp.lockfile_links_into_personal) {
+        const installs = parse(lockText)?.installs ?? {};
+        for (const cap of exp.lockfile_capabilities) {
+          const links = installs[cap]?.links ?? {};
+          const targets = Object.values(links);
+          if (!targets.length) {
+            fail('golden/links', `${expName}: ${cap} records no links (copies are banned — §5.3)`);
+            continue;
+          }
+          for (const t of targets) {
+            if (!String(t).includes('/personal/capabilities/')) {
+              fail('golden/links', `${expName}: ${cap} link target outside personal/: ${t}`);
+            }
+          }
+        }
       }
     }
   }

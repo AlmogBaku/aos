@@ -19,7 +19,8 @@ step routes what isn't yours. **Default fate of every change: the user's MOD, si
    - actually an upstream bug or explicitly for *everyone* → this is capability-builder's
      territory: its `capability-source-evolver` skill evolves the shipped source
      (building mode, approval-gated). Say so and hand over — nothing lands in MOD.
-3. **[A]** Apply to the pinned render in `personal/capabilities/<id>/` (and any native
+3. **[A]** Write the MOD.md change **first** (`reference/overlay.md`, Capture and fold —
+   the ledger lands before anything depends on it), then apply to the pinned render in `personal/capabilities/<id>/` (and any native
    artifacts per the cheat-sheet — load `harnesses/<harness-runtime>.md` now; native
    edit verbs where they exist), through the STAGE→GATE→EXECUTE phases.
 4. **[D]** `aos-lock rehash <id>` — refresh the recorded hashes in place so `verify`

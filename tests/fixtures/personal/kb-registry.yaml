@@ -3,7 +3,7 @@ confidence_bar: 0.7
 kbs:
   - name: personal-kb
     tag: personal
-    path: ~/aos/tests/.sandbox/kb/personal-kb
+    path: ~/aos/upstream/tests/.sandbox/kb/personal-kb
     remote: null
     sync: none
     audience: private
@@ -16,7 +16,7 @@ kbs:
       keywords: ["choir", "family", "home"]
   - name: acme-kb
     tag: work
-    path: ~/aos/tests/.sandbox/kb/acme-kb
+    path: ~/aos/upstream/tests/.sandbox/kb/acme-kb
     remote: null
     sync: none
     audience: shared

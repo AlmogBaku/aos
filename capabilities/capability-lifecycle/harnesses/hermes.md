@@ -32,7 +32,7 @@ the profile's default doesn't already fit the class; never hardcode provider nam
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`, under the contract (reference/contract.md).
+Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle` entry skill's `reference/contract.md`).
 
 1. **Agents → profiles.** `hermes profile create <name>`; then inside the profile:
    `purpose` + persona content → `SOUL.md` (replace the seeded default, never leave it
@@ -121,7 +121,7 @@ Drive everything from the lockfile entry, in order:
 | `email` | ⚠ via skill | same as calendar |
 | `secrets-store` | ✓ | `.env` (+ optional `hermes secrets`) |
 
-Degraded-mode wiring (meanings in reference/contract.md): `manual` ⇒ the invocable skill lands in
+Degraded-mode wiring (meanings in the entry skill's `reference/contract.md`): `manual` ⇒ the invocable skill lands in
 the same profile the job would have owned; `inline` ⇒ append via `hermes cron edit`.
 
 Safety rails to route through: the `personal/` git history first (renders and ledgers —

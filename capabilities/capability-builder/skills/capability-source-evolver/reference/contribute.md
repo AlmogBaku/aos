@@ -42,8 +42,10 @@ PRs need an accepted issue first. Show the draft; file only on explicit yes.
    not a tool): promoted content is genericized. No real names, companies,
    relationships; no actual KB content; `ONBOARDING.md` ships *questions*,
    `MOD.example.md` ships invented placeholders. When in doubt, redact.
-5. **Gate**: `bash tools/check.sh` green; bump the capability's `CAPABILITY.md`
-   `version` and confirm with `node tools/lint/aos-lint.mjs --base origin/main`.
+5. **Gate** (run from `<home>/upstream`): `bash tools/check.sh` green; bump the
+   capability's `CAPABILITY.md` `version` and confirm with
+   `node tools/lint/aos-lint.mjs --base <canonical-remote>/main` — on a fork,
+   `origin/main` is the fork's stale default and compares against the wrong base.
    Install output changed → the goldens note in CONTRIBUTING applies (a real
    re-render, never simulated).
 6. **Dogfood**: with the branch checked out, run a per-capability upgrade — the

@@ -15,7 +15,9 @@ diff in the user's own repo.
 2. **[D]** Kit-wide: pull `<home>/upstream` from the canonical remote (`git pull
    upstream main` when an `upstream` remote exists, else `git pull`) — it cannot touch
    `personal/`, a different repo. On a non-`main` branch (a contributor dogfooding a
-   change): skip the pull, say so, and name the branch in the report. A capability
+   change, or a self-drafted cheat-sheet branch): skip the pull, say so, name the
+   branch, and say how to resume upstream updates
+   (`git -C <home>/upstream switch main`). A capability
    needs work when its manifest version (`aos-lock manifest`) ≠ its lockfile version.
    Migration note: overlay files found *inside* the clone (a pre-household install) →
    offer the one-time move into `personal/` before anything else.

@@ -39,7 +39,7 @@ deprecated `mcp-servers.yaml|json` (don't add one; only one variant is allowed).
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`, under the contract (reference/contract.md). Config edits take
+Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle` entry skill's `reference/contract.md`). Config edits take
 effect on the next `nanobot run` — restart after materializing.
 
 1. **Agents.** Create `agents/<id>.md`: frontmatter `name:` + fields, `purpose` + persona
@@ -119,7 +119,7 @@ There is no uninstall command — drive everything from the lockfile entry, in o
 | `email` | ✗ | roadmap ⇒ degraded mode |
 | `secrets-store` | ⚠ partial | `env:` + `sensitive:` redaction, no vault — treat as env-file-grade |
 
-Degraded-mode wiring (meanings in reference/contract.md): `manual` ⇒ the invocable skill lands in
+Degraded-mode wiring (meanings in the entry skill's `reference/contract.md`): `manual` ⇒ the invocable skill lands in
 `skills/` attached to the agent that would have owned the task; `inline` ⇒
 `updateScheduledTask` appends (inside markers) to an existing aos-owned task's prompt.
 

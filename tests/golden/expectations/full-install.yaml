@@ -85,13 +85,19 @@ sentinels:
   - {text: "🦜", in: "front:skills/gtd-capture-capture/SKILL.md"}
   # onboarding's context block must land in the front agent's SOUL.md, marker-delimited
   - {text: "aos:onboarding", in: "front:SOUL.md"}
-  # the sync wrapper must pin the clone's registry — a bare `base sync` silently no-ops
+  # the sync wrapper must pin the household's registry — a bare `base sync` silently no-ops
+  # (the wrapper's canonical home is the harness scripts dir, recorded in the lockfile;
+  # the profile-level copy is what this root can see)
   - {text: "kb-registry.yaml", in_dir: "archiver:scripts"}
   # drain_hour 22:47 → cron expression "47 22 * * *" in the drainer's jobs
   - {text: "47 22", in_dir: "drainer:cron"}
   - {text: "choir practice Thursdays 19:00-21:00", in_dir: "drainer:"}
   # exec schedule: the sync job's command must invoke the tool, not an agent prompt
   - {text: "base sync --all", in_dir: "archiver:"}
+
+# every capability's lockfile entry must carry links whose targets are in personal/
+# (the snapshot-mode proxy for the symlink contract — snapshots dereference links)
+lockfile_links_into_personal: true
 
 # live-only: harness skill dirs must be symlinks into personal/ (§5.3 — copies banned)
 expect_links:

@@ -21,7 +21,7 @@ judgment is yours, mechanics are its.
 
 ## Where things live
 
-- `kb-registry.yaml` (clone root, user-owned) — every base: path, audience, purpose,
+- `kb-registry.yaml` (personal root, user-owned) — every base: path, audience, purpose,
   routing hints, which is default.
 - Each base: `BASE.yaml` (machine config — the tool enforces it), `AGENTS.md`
   (contract + Grants table — read before writing), `index.md` (the map; descriptions

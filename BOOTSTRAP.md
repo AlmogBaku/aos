@@ -77,8 +77,9 @@ private remote; only `.aos/` is machine-local.
    render into `~/aos/personal/capabilities/capability-lifecycle/skills/…`, plan the
    symlinks into your front agent's skills dir → **GATE** (show the user the plan) →
    **EXECUTE** (commit the render in `personal/`, create the links) →
-   `aos-lock record capability-lifecycle --version <manifest version> --artifact …` per
-   link/path.
+   `aos-lock record capability-lifecycle --version <manifest version> --source-root upstream
+   --artifact <render-file>… --link <symlink>…` — render files go to `--artifact` (hashed),
+   symlinks to `--link` (a symlink passed as `--artifact` fails: exit 16).
 
 ## 3. Hand over
 

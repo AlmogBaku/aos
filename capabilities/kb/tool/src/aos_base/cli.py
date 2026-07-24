@@ -118,28 +118,37 @@ def glob_to_re(pattern: str) -> re.Pattern:
     return re.compile("^" + "".join(out) + "$")
 
 
-def find_upstream_root() -> Path:
+def find_household() -> Path | None:
+    """The household root: <home>/{upstream,personal,.aos}. `.aos/` is the marker —
+    checked before any capabilities/ heuristic, so a render inside personal/ (which
+    also carries capabilities/) is never mistaken for the household or for upstream."""
     env = os.environ.get("AOS_HOME")
     if env:
-        return Path(env).expanduser() / "upstream"
+        return Path(env).expanduser()
     for p in [Path.cwd(), *Path.cwd().parents]:
-        if (p / "capabilities" / "kb").is_dir():
-            return p
         if (p / ".aos").is_dir():
-            return p / "upstream"
+            return p
+    return None
+
+
+def find_upstream_root() -> Path:
+    home = find_household()
+    if home:
+        return home / "upstream"
+    # not inside a household: a bare kit checkout is its own upstream root
+    for p in [Path.cwd(), *Path.cwd().parents]:
+        if (p / "capabilities" / "kb" / "CAPABILITY.md").is_file():
+            return p
     return Path.home() / "aos" / "upstream"
 
 
 def find_personal_root() -> Path:
-    env = os.environ.get("AOS_HOME")
-    if env:
-        return Path(env).expanduser() / "personal"
-    # installed tool: discover the household from cwd upward, else ~/aos
+    home = find_household()
+    if home:
+        return home / "personal"
     for p in [Path.cwd(), *Path.cwd().parents]:
         if (p / "kb-registry.yaml").exists():
             return p
-        if (p / "personal" / "kb-registry.yaml").exists() or (p / ".aos").is_dir():
-            return p / "personal"
     return Path.home() / "aos" / "personal"
 
 
@@ -1119,7 +1128,7 @@ def main():
                     f"(layout {LAYOUT})")
     ap.add_argument("--base", help="base name (registry) or path; default: cwd/"
                     "registry default")
-    ap.add_argument("--registry", help="kb-registry.yaml path (default: clone root)")
+    ap.add_argument("--registry", help="kb-registry.yaml path (default: <home>/personal/kb-registry.yaml)")
     ap.add_argument("--agent", help="acting subject for log lines (default "
                     "$AOS_AGENT or agent:main)")
     sub = ap.add_subparsers(dest="cmd", required=True)
