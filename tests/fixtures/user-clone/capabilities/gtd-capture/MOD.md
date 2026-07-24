@@ -4,7 +4,7 @@ onboarded_version: 0.1.0
 answers:
   capture_channels: ["whatsapp:+000000000000"]
   reminder_target: "whatsapp:+000000000000"
-  drain_hour: "23:47"
+  drain_hour: "22:47"
   action_format: "verb-first"
 ---
 

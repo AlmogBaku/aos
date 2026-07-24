@@ -8,9 +8,9 @@ Multi-base knowledge infrastructure (ARCHITECTURE §4). A KB instance is a **bas
 - the **base engine** — store (immutable `raw/` + current-truth wiki pages under a
   per-base `BASE.yaml`), curation (`base capture` → skeptical default-empty promotion
   → lint → review queue), state (one capped `state.yaml` attention window per base),
-- the deterministic **`base` tool** (bundled in the entry skill:
-  capture/inbox/state/search/links/lint/grants/index/sync/verify — never calls an
-  LLM; RFC-004's outcome),
+- the deterministic **`base` tool** ([`tool/`](tool/), a `uv`-installed Python CLI on
+  PATH as `base` — verbs: init, adopt, capture, inbox, state, search, links, lint,
+  grants, index, sync, verify, import survey; never calls an LLM; RFC-004's outcome),
 - one **Archiver** agent across all bases (cross-base re-routing is its point), on
   two agent schedules plus a script-direct **exec** sync cron.
 

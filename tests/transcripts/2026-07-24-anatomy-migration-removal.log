@@ -1,0 +1,36 @@
+The `state.db`/`state.db-wal` hits are session transcript stores (recording this conversation's text, e.g. this task description mentions "x-aos-origin"), not materialized skill files — expected noise, not a violation. All actual skill directories and files are clean.
+
+Verification complete. Summary of everything removed:
+
+**Cron jobs removed** (via `hermes -p <profile> cron remove <id>`):
+- `aos:kb:nightly-promote` (3e112d28e3a1, profile aos-archiver)
+- `aos:kb:weekly-lint` (64f0e35240ec, profile aos-archiver)
+- `aos:kb:sync` (db2c3ca1f955, profile aos-archiver)
+- `aos:gtd-capture:nightly-drain` (b634247825ec, profile aos-drainer)
+- No `cron/output/<id>*` leftovers existed for any of these (checked, none found).
+
+**Materialized skill dirs deleted:**
+- aos-archiver: `skills/kb-kb/` (+ reference/)
+- aos-drainer: `skills/gtd-capture-drain/`, `skills/gtd-capture-gtd-capture/` (+ reference/)
+- aos-test: `skills/gtd-capture-capture/`, `skills/gtd-capture-gtd-capture/`, `skills/kb-adopt/`, `skills/kb-import/`, `skills/kb-init/`, `skills/kb-kb/`, `skills/kb-recall/`, `skills/kb-route/`, `skills/onboarding-onboarding/`
+
+**SOUL.md (aos-test, the front profile):** stripped the `<!-- aos:onboarding@0.2.0 -->` and `<!-- aos:gtd-capture@0.2.0 -->` marker blocks; all text outside markers untouched (kept the base Hermes identity paragraph as-is).
+
+**Config keys unset** (`hermes config unset`):
+- aos-archiver: `model.default`, `model.provider`
+- aos-drainer: `model.default`, `model.provider`
+
+**Profiles deleted** (`hermes profile delete -y`): `aos-archiver`, `aos-drainer` — confirmed gone from `hermes profile list`.
+
+**Tool uninstalled:** `uv tool uninstall aos-base` → "Uninstalled 1 executable: base". Confirmed absent from `uv tool list`.
+
+**Recorded scripts/hooks removed:** `aos-archiver/scripts/kb-sync-all.sh` deleted explicitly (also would've been swept by the profile delete). No `hooks/` files were recorded or found.
+
+**Lockfile:** `.aos/installs.lock.yaml` deleted entirely from the aos-clone sandbox.
+
+**Verification (re-ran Introspection per CHEATSHEET §Removal):**
+- No `aos:<capability>` cron job names in any profile (default, aos-test, archiver, <live-profile>) — clean.
+- No `x-aos-origin: <capability>@` in any materialized files — the only hits were inside session transcript DBs (`state.db`/`state.db-wal`), which are conversation logs of this very task, not live artifacts — not a violation.
+- No `<!-- aos:… -->` marker blocks remain in aos-test's SOUL.md.
+
+Not touched (out of scope per the task): the `personal-kb`/`acme-kb` KB data dirs under `tests/.sandbox/kb/` and `MOD.md`/`kb-registry.yaml` overlay files — those are user-owned KB content and the overlay family, which the CHEATSHEET explicitly says is never deleted by removal.

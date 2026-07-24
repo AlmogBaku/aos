@@ -1,9 +1,10 @@
 # gtd-capture
 
-Voice/text capture → routed KB inbox in under five seconds → nightly drain turns captures
-into next-actions and reminders → the archiver files the knowledge. Capture is dumb and
-fast; the drain does the thinking; the two never fight over the inbox (drain marks,
-promote removes).
+Voice/text capture → a raw file in the routed KB's `raw/captures/` in under five seconds
+→ nightly drain turns pending captures into next-actions and reminders → the archiver
+(kb's own, 30 minutes later) files the knowledge. Capture is dumb and fast; the drain
+does the thinking; the two never fight over a capture (drain marks `meta.gtd_triaged`,
+the archiver alone flips `triage`).
 
 This is also the kit's worked example: `design/capability-anatomy.md` walks this
 capability file by file, and ARCHITECTURE §2.2's manifest example *is* this manifest.

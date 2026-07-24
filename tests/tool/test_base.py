@@ -239,6 +239,17 @@ class BaseToolTest(unittest.TestCase):
         for verb in ["capture", "state", "verify", "create", "bootstrap"]:
             self.assertRegex(log, rf"\| {verb} \|", f"missing log verb {verb}")
 
+    def test_lint_via_grammar(self):
+        am = self.root / "AGENTS.md"
+        s = am.read_text()
+        s = s.replace(
+            "| `*` | `**` | read | user |",
+            "| agent:x | `foo/**` | write | user | 2026-01-01 | kb+other@1.2.3 | bad |\n"
+            "| `*` | `**` | read | user |")
+        am.write_text(s)
+        out = self.b("lint").stdout
+        self.assertIn("doesn't parse as <capability>@<x.y.z>", out)
+
     # -- grants ------------------------------------------------------------
     def test_grants_granted_and_denied(self):
         ok = self.b("grants", "check", "--subject", "agent:main", "--verb", "write",
@@ -315,6 +326,138 @@ class BaseToolTest(unittest.TestCase):
         run(["import", "survey", str(self.FIXTURE)], self.env)
         run(["import", "survey", str(self.FIXTURE), "--json"], self.env)
         self.assertEqual(before, self._tree_hash(self.FIXTURE))
+
+
+    # -- review-sweep regression + coverage-gap tests ----------------------
+    def test_glob_boundary_no_name_suffix_match(self):
+        # `**/x.md` must not match `not-x.md` (ACL over-grant regression)
+        am = self.root / "AGENTS.md"
+        am.write_text(am.read_text().replace(
+            "| agent:archiver | `raw/**` |",
+            "| agent:x | `**/secret.md` | write | user | 2026-01-01 | — | t |\n"
+            "| agent:archiver | `raw/**` |"))
+        deep = self.b("grants", "check", "--subject", "agent:x", "--verb", "write",
+                      "--path", "a/b/secret.md")
+        self.assertEqual(deep.returncode, 0)
+        top = self.b("grants", "check", "--subject", "agent:x", "--verb", "write",
+                     "--path", "secret.md")
+        self.assertEqual(top.returncode, 0)
+        suffix = self.b("grants", "check", "--subject", "agent:x", "--verb", "write",
+                        "--path", "not-secret.md")
+        self.assertEqual(suffix.returncode, 1)
+
+    def test_sync_first_push_to_empty_remote_is_not_conflict(self):
+        remote = self.dir / "empty.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+        subprocess.run(["git", "remote", "add", "origin", str(remote)],
+                       cwd=self.root, check=True)
+        r = self.b("sync")
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+        self.assertNotRegex((self.root / "log.md").read_text(), r"\| sync-conflict \|")
+
+    def test_adopt_layout_guard_before_registry(self):
+        foreign = self.dir / "f99"
+        foreign.mkdir()
+        (foreign / "BASE.yaml").write_text("layout: 99\nname: f99\nzones: {}\n")
+        r = run(["adopt", str(foreign), "--name", "f99"], self.env)
+        self.assertEqual(r.returncode, 11)
+        self.assertNotIn("f99", self.reg.read_text())  # nothing half-registered
+
+    def test_refuse_records_log_and_review(self):
+        r = self.b("refuse", "--path", "state.yaml",
+                   "--subject", "capability:sideload-x", "--reason", "no grant")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertRegex((self.root / "log.md").read_text(), r"\| refuse \|")
+        self.assertIn("refused write",
+                      (self.root / "_ops" / "needs-review.md").read_text())
+
+    def test_inbox_failed_with_scalar_meta_survives(self):
+        self.b("capture", "--text", "will fail oddly")
+        cap = next((self.root / "raw" / "captures").glob("*.md"))
+        cap.write_text(cap.read_text()
+                       .replace("triage: pending", "triage: failed")
+                       .replace("verified: false", "verified: false\nmeta: broken"))
+        r = self.b("inbox", "--failed")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("1 failed item", r.stdout)
+
+    def test_state_exact_match_beats_substring(self):
+        self.b("state", "add", "--note", "item 2")
+        self.b("state", "add", "--note", "item 20")
+        r = self.b("state", "bump", "--note", "item 2")
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_index_drift_not_fooled_by_substring(self):
+        self._page("concepts/car.md", "Car")
+        self._page("concepts/car-search.md", "Car search")
+        self.b("index", "rebuild")
+        idx = self.root / "index.md"
+        # remove only the car.md entry; car-search remains (whose stem CONTAINS "car")
+        idx.write_text("\n".join(l for l in idx.read_text().splitlines()
+                                  if "[[concepts/car]]" not in l))
+        out = self.b("lint").stdout
+        self.assertIn("concepts/car.md not listed", out)
+
+    def test_timeline_in_code_fence_ignored(self):
+        self._page("concepts/doc.md", "Doc",
+                   body="Text.\n\n```markdown\n## Timeline\n- undated\n```\nMore.\n")
+        self.assertNotIn("timeline", self.b("lint").stdout.lower())
+
+    def test_orphan_self_link_still_orphan(self):
+        self._page("concepts/loner.md", "Loner", body="see [[concepts/loner]]")
+        self.assertIn("concepts/loner.md", self.b("links", "--orphans").stdout)
+
+    def test_lint_duplicate_title_critical(self):
+        self._page("concepts/a1.md", "Same Title")
+        self._page("concepts/a2.md", "Same Title")
+        self.assertIn("duplicate title", self.b("lint").stdout)
+
+    def test_lint_state_over_cap_critical(self):
+        sy = self.root / "state.yaml"
+        items = "items:\n" + "".join(
+            f"- note: n{i}\n  since: 2026-01-01\n" for i in range(25))
+        sy.write_text(items)
+        self.assertIn("state.yaml over cap", self.b("lint").stdout)
+
+    def test_lint_stale_seedling(self):
+        self._page("concepts/old-seed.md", "Old Seed",
+                   growth_stage="seedling")
+        p = self.root / "concepts" / "old-seed.md"
+        p.write_text(p.read_text().replace("created: 2026-01-01",
+                                           "created: 2025-01-01"))
+        self.assertIn("stale seedling", self.b("lint").stdout)
+
+    def test_lint_unverified_with_inbound_info(self):
+        self._page("concepts/hunch.md", "Hunch", verified="false")
+        self._page("concepts/citer.md", "Citer", body="builds on [[concepts/hunch]]")
+        self.assertIn("unverified pages with inbound", self.b("lint").stdout)
+
+    def test_lint_illegal_log_verb(self):
+        with open(self.root / "log.md", "a") as f:
+            f.write("2026-07-24T10:00+03:00 | agent:main | destroy | x.md | nope\n")
+        self.assertIn("illegal verb", self.b("lint").stdout)
+
+    def test_lint_invalid_triage_and_missing_frontmatter(self):
+        raw = self.root / "raw" / "captures"
+        raw.mkdir(parents=True, exist_ok=True)
+        (raw / "weird.md").write_text("no frontmatter at all\n")
+        self.b("capture", "--text", "triage test")
+        cap = next(p for p in raw.glob("*.md") if p.name != "weird.md")
+        cap.write_text(cap.read_text().replace("triage: pending", "triage: maybe"))
+        out = self.b("lint").stdout
+        self.assertIn("raw file without frontmatter", out)
+        self.assertIn("not in ['done', 'failed', 'pending']", out)
+
+    def test_lint_grants_audit_flags_ungranted_author(self):
+        def git(*a):
+            subprocess.run(["git", *a], cwd=self.root, check=True,
+                           capture_output=True)
+        (self.root / "concepts").mkdir(exist_ok=True)
+        (self.root / "concepts" / "rogue.md").write_text("---\ntitle: R\n---\nx\n")
+        git("add", "-A")
+        git("-c", "user.name=agent:rogue", "-c", "user.email=r@x",
+            "commit", "-qm", "rogue write")
+        self.assertIn("grants audit: agent:rogue", self.b("lint").stdout)
 
     # -- sync conflict -----------------------------------------------------
     def test_sync_conflict_aborts_clean_and_surfaces(self):

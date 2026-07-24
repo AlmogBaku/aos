@@ -13,3 +13,6 @@
 # build tooling + scratch test area
 node_modules/
 tests/.sandbox/
+__pycache__/
+*.pyc
+*.swp

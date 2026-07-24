@@ -1,18 +1,16 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { walkRepo } from '../../lib/repo.mjs';
-import { LEGACY_ANATOMY_CAPS } from '../../lib/constants.mjs';
 
 // Two honesty flags from ARCHITECTURE §2.1 / §5.3 — warnings, not gates —
-// plus the §2.5 entry-skill convention (dual-anatomy transition).
+// plus the §2.5 entry-skill convention.
 export function checkStructure({ caps, report }) {
   for (const cap of caps) {
     // §2.5: every capability ships an entry skill named after itself.
     const entry = join(cap.dir, 'skills', cap.id, 'SKILL.md');
     if (!existsSync(entry)) {
-      const legacy = LEGACY_ANATOMY_CAPS.includes(cap.id);
-      report(legacy ? 'warn' : 'error', 'structure/entry-skill', cap.rel,
-        `no skills/${cap.id}/SKILL.md — the §2.5 entry skill${legacy ? ' (legacy anatomy, pending migration)' : ' is required'}`);
+      report('error', 'structure/entry-skill', cap.rel,
+        `no skills/${cap.id}/SKILL.md — the §2.5 entry skill is required`);
     }
     const readme = join(cap.dir, 'README.md');
     if (existsSync(readme) && !/\|/.test(readFileSync(readme, 'utf8'))) {

@@ -11,13 +11,18 @@ if (!src || !dest) {
   process.exit(1);
 }
 
-const SKIP = new Set(['node_modules', '.git', 'sessions', 'logs', 'memories', 'state.db',
+const SKIP = new Set(['config.yaml', 'profile.yaml',  // harness runtime state: provider/model details are run-varying and private
+  'node_modules', '.git', 'sessions', 'logs', 'memories', 'state.db',
   'audio_cache', 'cache', '.env', 'auth.json', 'state-snapshots', 'bin',
-  'executions.db', '.jobs.lock', 'auth.lock']);
+  'executions.db', '.jobs.lock', 'auth.lock', 'state.db-shm', 'state.db-wal',
+  '.skills_prompt_snapshot.json', '.update_check', 'context_length_cache.yaml',
+  'verification_evidence.db', 'models_dev_cache.json']);
 const TEXT = /\.(md|ya?ml|json|txt|sh|tmpl)$/;
 
+const HOME = process.env.HOME || '/home/user';
 function normalizeText(text) {
   return text
+    .split(HOME).join('<HOME>')
     .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?([+-]\d{2}:?\d{2}|Z)?/g, '<TIMESTAMP>')
     .replace(/\d{4}-\d{2}-\d{2}/g, '<DATE>')
     .replace(/\b[0-9a-f]{64}\b/g, '<SHA256>')

@@ -36,7 +36,7 @@ Script:
    *structure interview* follows: theme → zones/types, designed once with the user,
    autonomous afterwards.
 3. **`default_base`** — explain what default means: *uncertain captures land there
-   with `triage: pending` and get sorted by the nightly drain; nothing is lost,
+   with `triage: pending` and get sorted by the archiver's nightly promote pass; nothing is lost,
    latency is never spent on asking you "work or personal?" mid-capture.*
 4. **`sync_mode`** — exactly `rebase-5min` or `manual`. `rebase-5min` needs a remote
    and runs as a script-only cron (no LLM); conflicts are never auto-resolved — they

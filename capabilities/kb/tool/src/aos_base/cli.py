@@ -41,7 +41,8 @@ RAW_FIELDS = {"source", "source_sha256", "captured_at", "triage", "kb_routing",
               "captured_by", "source_origin"}
 TRIAGE_STATES = {"pending", "done", "failed"}
 WIKILINK_RE = re.compile(r"\[\[([^\]|#\n]+?)(?:[|#][^\]]*)?\]\]")
-DEDUP_WINDOW_MIN = 10  # identical content arriving within this window is dropped
+# Dedup is GLOBAL by design (raw rule: same sha256, no new file — import/capture
+# idempotency depends on it); the flaky-client double-send is just the common case.
 
 
 # ---------------------------------------------------------------- helpers
@@ -66,30 +67,26 @@ def slugify(text: str, max_len: int = 60) -> str:
     return text[:max_len].strip("-") or "item"
 
 
+FRONTMATTER_RE = re.compile(r"^---\r?\n(.*?)\r?\n---\r?\n?", re.S)
+
+
 def read_frontmatter(path: Path):
-    """Return (frontmatter dict or None, body str). Tolerant: bad YAML -> None."""
+    """Return (frontmatter dict or None, body str). Tolerant: bad YAML -> None.
+    One parser for both halves: the same regex bounds the fm block and the body."""
     try:
         text = path.read_text(encoding="utf-8")
     except Exception:
         return None, ""
-    if not text.startswith("---"):
-        return None, text
-    parts = text.split("\n---", 2)
-    if len(parts) < 2:
+    m = FRONTMATTER_RE.match(text)
+    if not m:
         return None, text
     try:
-        fm = yaml.safe_load(parts[0][3:])
-        if not isinstance(fm, dict):
-            return None, text
+        fm = yaml.safe_load(m.group(1))
     except yaml.YAMLError:
         return None, text
-    body = parts[1]
-    if len(parts) == 3:
-        body = parts[1] + "\n---" + parts[2] if False else parts[1]
-    # body starts after the closing --- line
-    m = re.match(r"^---\n.*?\n---\n?", text, re.S)
-    body = text[m.end():] if m else text
-    return fm, body
+    if not isinstance(fm, dict):
+        return None, text
+    return fm, text[m.end():]
 
 
 def write_frontmatter(path: Path, fm: dict, body: str):
@@ -105,11 +102,12 @@ def glob_to_re(pattern: str) -> re.Pattern:
         c = pattern[i]
         if c == "*":
             if pattern[i:i + 2] == "**":
-                out.append(".*")
                 i += 2
                 if i < len(pattern) and pattern[i] == "/":
                     i += 1
-                    out.append("(?:)?")
+                    out.append("(?:.*/)?")   # any depth, but never a name suffix
+                else:
+                    out.append(".*")
                 continue
             out.append("[^/]*")
         elif c == "?":
@@ -392,6 +390,7 @@ def cmd_adopt(args):
     has_baseyaml = (root / "BASE.yaml").exists()
     audience = args.audience
     if has_baseyaml:
+        Base(root)  # layout guard first: a mismatched tree must fail BEFORE registering
         cfg = yaml.safe_load((root / "BASE.yaml").read_text(encoding="utf-8")) or {}
         # most-restrictive rule: base-side shared wins over a private claim
         if cfg.get("audience") == "shared":
@@ -427,14 +426,11 @@ def _do_capture(base: Base, content: str, title: str, source: str, agent: str,
     sha = hashlib.sha256(content.encode("utf-8")).hexdigest()
     cap_dir = base.root / "raw" / "captures"
     cap_dir.mkdir(parents=True, exist_ok=True)
-    now = _dt.datetime.now().timestamp()
     for p in (base.root / "raw").rglob("*.md"):
         pfm, _ = read_frontmatter(p)
         if pfm and pfm.get("source_sha256") == sha:
             if not quiet:
-                age_min = (now - p.stat().st_mtime) / 60
-                kind = "duplicate (window)" if age_min <= DEDUP_WINDOW_MIN else "duplicate"
-                print(f"{kind}: matches {base.rel(p)} — dropped.")
+                print(f"duplicate: matches {base.rel(p)} — dropped.")
             return None
     slug = slugify(title)
     dst = cap_dir / f"{today()}-{slug}.md"
@@ -479,7 +475,8 @@ def cmd_inbox(args):
         fm, _ = read_frontmatter(p)
         if fm and fm.get("triage") == want:
             found += 1
-            extra = f"  error: {fm.get('meta', {}).get('error', '')}" if want == "failed" else ""
+            meta = fm.get("meta") if isinstance(fm.get("meta"), dict) else {}
+            extra = f"  error: {meta.get('error', '')}" if want == "failed" else ""
             print(f"{base.rel(p)}  [{fm.get('captured_at', '?')}]{extra}")
     print(f"({found} {want} item{'s' if found != 1 else ''})")
 
@@ -530,7 +527,10 @@ def cmd_state(args):
     # bump / drop match by substring of note
     if not args.note:
         die(f"state {args.op} needs --note <substring>")
-    matches = [i for i in items if args.note.lower() in str(i.get("note", "")).lower()]
+    exact = [i for i in items
+             if str(i.get("note", "")).lower() == args.note.lower()]
+    matches = exact or [i for i in items
+                        if args.note.lower() in str(i.get("note", "")).lower()]
     if len(matches) != 1:
         die(f"--note must match exactly one item (matched {len(matches)})")
     it = matches[0]
@@ -613,7 +613,8 @@ def _link_graph(base: Base):
             if t.endswith(".md"):
                 t = t[:-3]
             if t in stems:
-                targets.add(stems[t])
+                if stems[t] != rel:      # a self-link is not an inbound reference
+                    targets.add(stems[t])
             else:
                 # short-form: match by basename within the tree
                 cands = [full for stem, full in stems.items()
@@ -696,9 +697,10 @@ def cmd_lint(args):
             alias_owner[a] = rel
         if fm.get("verified") is False and inbound_count.get(rel):
             unverified_with_inbound.append(f"{rel} ({inbound_count[rel]} inbound)")
-        # timeline shape
-        if "## Timeline" in body:
-            tail = body.split("## Timeline", 1)[1]
+        # timeline shape (fenced code blocks don't count)
+        unfenced = re.sub(r"```.*?```", "", body, flags=re.S)
+        if "## Timeline" in unfenced:
+            tail = unfenced.split("## Timeline", 1)[1]
             for line in [l for l in tail.splitlines() if l.strip()][:20]:
                 if line.startswith("#"):
                     findings.append(f"{rel}: '## Timeline' is not the last section")
@@ -730,10 +732,13 @@ def cmd_lint(args):
                 findings.append(f"{rel}: broken wikilink [[{t[9:]}]]")
     index_text = (base.root / "index.md").read_text(encoding="utf-8") \
         if (base.root / "index.md").exists() else ""
+    index_links = {t[:-3] if t.endswith(".md") else t
+                   for t in (m.group(1).strip()
+                             for m in WIKILINK_RE.finditer(index_text))}
     for p in base.md_files(kinds=("wiki",)):
         rel = base.rel(p)
         stem = rel[:-3]
-        if stem not in index_text and rel not in index_text:
+        if stem not in index_links:
             findings.append(f"index drift: {rel} not listed in index.md (invisible)")
     for m in WIKILINK_RE.finditer(index_text):
         t = m.group(1).strip()
@@ -801,14 +806,37 @@ def cmd_lint(args):
             if not line.strip() or line.startswith("#") or line.startswith("<!--") \
                     or line.startswith("     ") or line.endswith("-->"):
                 continue
-            m = re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}[+-]\d{2}:?\d{2} \| (\S+) \| "
-                         r"(\S+) \| (\S+) \| .+$", line)
+            m = re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}[+-]\d{2}:?\d{2} \| ([^|]+?) \| "
+                         r"([^|]+?) \| ([^|]+?) \| .+$", line)
             if not m:
                 findings.append(f"log.md:{i}: line doesn't parse as the five-field grammar")
-            elif m.group(2) not in LOG_VERBS:
+            elif m.group(2).strip() not in LOG_VERBS:
                 findings.append(f"log.md:{i}: illegal verb {m.group(2)!r}")
     else:
         findings.append("log.md missing")
+
+    # grants hygiene: via grammar (revocation depends on it)
+    agents_md = base.root / "AGENTS.md"
+    if agents_md.exists():
+        in_grants = in_table = False
+        for i, line in enumerate(agents_md.read_text(encoding="utf-8").splitlines(), 1):
+            if line.startswith("## "):
+                in_grants = line.strip().lower() == "## grants"
+                continue
+            if not in_grants or not line.strip().startswith("|"):
+                in_table = in_table and not line.strip() == ""
+                continue
+            cells = [c.strip().strip("`") for c in line.strip().strip("|").split("|")]
+            if cells and (cells[0] == "subject" or set("".join(cells)) <= set("-: ")):
+                in_table = True
+                continue
+            if in_table and len(cells) >= 6:
+                via = cells[5]
+                if via not in ("—", "-", "") and not re.match(
+                        r"^[a-z0-9-]+@\d+\.\d+\.\d+$", via):
+                    findings.append(f"AGENTS.md:{i}: grant via {via!r} doesn't parse "
+                                    f"as <capability>@<x.y.z> or — (revocation "
+                                    f"deletes rows by via match)")
 
     # grants audit: authorship x grants over recent commits
     grants = base.grants()
@@ -933,6 +961,11 @@ def _sync_one(root: Path, name: str) -> int:
     if git("remote", "get-url", "origin").returncode == 0:
         branch = git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
         pull = git("pull", "--rebase", "--no-stat", "origin", branch)
+        if pull.returncode != 0 and (
+                "couldn't find remote ref" in pull.stderr.lower()
+                or "no such ref" in pull.stderr.lower()):
+            # empty/new remote: nothing to pull — first push establishes the branch
+            pull = subprocess.CompletedProcess([], 0, "", "")
         if pull.returncode != 0:
             git("rebase", "--abort")
             ts = now_ts()
@@ -954,6 +987,20 @@ def _sync_one(root: Path, name: str) -> int:
             return 4
     print(f"{name}: synced")
     return 0
+
+
+def cmd_refuse(args):
+    """Record a refused write: `refuse` log line + needs-review block ([D] per
+    kb-authorization §3.1). The payload stays with the caller — this only records."""
+    base = resolve_base(args)
+    base.log(agent_subject(args), "refuse", args.path,
+             (args.reason or "no grant")[:120])
+    base.review(f"refused write — {args.path}",
+                f"Subject `{args.subject or agent_subject(args)}` was refused "
+                f"`{args.verb}` on `{args.path}`: {args.reason or 'no grant'}. "
+                f"The payload stays with the caller; install the capability "
+                f"properly (grants via the diff gate) or dismiss.")
+    print(f"refusal recorded: {args.path}")
 
 
 def cmd_verify(args):
@@ -1074,7 +1121,7 @@ def main():
     p.add_argument("--tag")
     p.add_argument("--default", action="store_true")
     p.add_argument("--templates")
-    p.add_argument("--kb-version", default="0.2.0")
+    p.add_argument("--kb-version", default=VERSION)
     p.set_defaults(func=cmd_init)
 
     p = sub.add_parser("adopt", help="register an existing tree; report divergence; "
@@ -1138,6 +1185,14 @@ def main():
     p.add_argument("--all", action="store_true",
                    help="every registry base with sync: rebase-5min")
     p.set_defaults(func=cmd_sync)
+
+    p = sub.add_parser("refuse", help="record a refused write (refuse log line + "
+                       "needs-review block); payload stays with the caller")
+    p.add_argument("--path", required=True)
+    p.add_argument("--verb", default="write")
+    p.add_argument("--subject")
+    p.add_argument("--reason")
+    p.set_defaults(func=cmd_refuse)
 
     p = sub.add_parser("verify", help="flip a page to verified: true (user-confirmed)")
     p.add_argument("page")

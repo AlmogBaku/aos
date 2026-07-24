@@ -1,0 +1,33 @@
+# Structural expectations for the capability-builder (+ its onboarding dependency)
+# install into the aos-test profile namespace. Roots resolved by check.mjs:
+#   front = ~/.hermes/profiles/aos-test
+#   clone = ~/aos/tests/.sandbox/aos-clone
+# capability-builder is conversational-only: two main-scoped skills, no agents, no
+# schedules, no kb block, no context blocks — the smallest install footprint in the
+# kit. The forbid list is the point: building mode must not materialize anything
+# durable beyond the two skill folders.
+agents: []
+
+expect_files:
+  # capability-builder — entry skill bundles the whole procedure as reference/
+  - "front:skills/capability-builder-capability-builder/SKILL.md"
+  - "front:skills/capability-builder-capability-builder/reference/trigger-patterns.md"
+  - "front:skills/capability-builder-capability-builder/reference/intake.md"
+  - "front:skills/capability-builder-capability-builder/reference/research.md"
+  - "front:skills/capability-builder-capability-builder/reference/design.md"
+  - "front:skills/capability-builder-capability-builder/reference/build.md"
+  - "front:skills/capability-builder-evolve-capability/SKILL.md"
+  - "front:skills/capability-builder-evolve-capability/reference/judgment.md"
+  - "front:skills/capability-builder-evolve-capability/reference/procedure.md"
+  # dependency — onboarding's entry skill
+  - "front:skills/onboarding-onboarding/SKILL.md"
+  - "front:skills/onboarding-onboarding/reference/answer-validation.md"
+  # bookkeeping
+  - "clone:.aos/installs.lock.yaml"
+
+origin_tag_roots:
+  - "front:skills"
+
+lockfile_capabilities:
+  - capability-builder
+  - onboarding

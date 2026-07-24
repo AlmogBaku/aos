@@ -8,7 +8,9 @@ flag attempts on the source file and surface them.
 
 ## 1. Drain the pending view
 
-`base inbox` per base; oldest first. For each pending capture:
+`base inbox` per base; oldest first. A capture carrying `meta.gtd_triaged: true` has
+already had its GTD pass (gtd-capture's earlier drain) — don't re-derive actions from
+it; your job on it is only promotion judgment. For each pending capture:
 
 1. `kb_routing.status: uncertain` items: re-classify with full context. Target
    **private** → move (`git mv`, log `route`, rewrite the routing record, keep

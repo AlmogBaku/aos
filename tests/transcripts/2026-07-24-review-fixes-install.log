@@ -1,0 +1,14 @@
+Blocked by a source mismatch.
+
+The clone at /home/anakin/aos/tests/.sandbox/aos-clone is at commit d10e24c and contains:
+
+- kb: 0.3.0
+- onboarding: 0.1.1
+- gtd-capture: 0.1.1
+- gtd-capture’s old `ops/inbox.md` model
+- no three drainer grant rows
+- no `BASE.yaml frontmatter.extensions` install instruction
+
+The requested three-row grant behavior and `BASE.yaml` extension instruction exist only in the uncommitted working tree at /home/anakin/aos, where gtd-capture is 0.2.0.
+
+I did not modify profiles, install the tool, or write the lockfile because doing so from the clone would contradict the installation requirements. Which source should govern: the stated 0.2.0 behavior from the working tree, or the actual 0.1.1 clone?

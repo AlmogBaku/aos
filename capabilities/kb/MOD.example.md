@@ -1,6 +1,6 @@
 ---
 capability: kb
-onboarded_version: 0.2.0
+onboarded_version: 0.3.0
 answers:
   existing_kbs: []
   create_default: true

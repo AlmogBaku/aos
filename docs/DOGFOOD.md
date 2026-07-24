@@ -3,7 +3,7 @@
 Items the build phase deliberately does NOT automate. Each is a separate session the user
 starts on purpose; none runs from CI or from an implementation agent's own initiative.
 
-- [ ] **Real personal install**: bootstrap per `docs/BOOTSTRAP.md` on the live Hermes with the
+- [ ] **Real personal install**: bootstrap per `BOOTSTRAP.md` on the live Hermes with the
       user's own answers (not fixtures) — kb + onboarding + gtd-capture.
 - [ ] **`kb adopt` report on the production KB** — report-only; nothing committed, nothing rewritten.
 - [ ] **2-week live routing replay** — hand-labeled real captures vs router decisions;

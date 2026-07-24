@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd /home/anakin/aos/tests/.sandbox/aos-clone
-export AOS_REGISTRY=/home/anakin/aos/tests/.sandbox/aos-clone/kb-registry.yaml
+cd <HOME>/aos/tests/.sandbox/aos-clone
+export AOS_REGISTRY=<HOME>/aos/tests/.sandbox/aos-clone/kb-registry.yaml
 export AOS_AGENT=archiver
-exec base --registry /home/anakin/aos/tests/.sandbox/aos-clone/kb-registry.yaml sync --all
+export PATH="<HOME>/.hermes/profiles/aos-test/home/.local/bin:$PATH"
+exec base --registry <HOME>/aos/tests/.sandbox/aos-clone/kb-registry.yaml sync --all

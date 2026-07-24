@@ -3,12 +3,14 @@
 #   front  = ~/.hermes/profiles/aos-test
 #   <agent>= ~/.hermes/profiles/aos-<agent>
 #   clone  = ~/aos/tests/.sandbox/aos-clone
-# Anatomy v2 (kb redesigned; gtd-capture/onboarding legacy pending migration).
+# Anatomy v2 (kb, onboarding, gtd-capture, importer all migrated to the entry-skill
+# convention; importer has no install footprint so it isn't part of this fixture).
 agents: [drainer, archiver]
 
 expect_files:
-  # onboarding (used_by: main)
-  - "front:skills/onboarding-interview/SKILL.md"
+  # onboarding — entry skill IS the whole capability, bundles its reference/
+  - "front:skills/onboarding-onboarding/SKILL.md"
+  - "front:skills/onboarding-onboarding/reference/answer-validation.md"
   # kb main-scoped skills — entry skill travels with its bundled assets
   - "front:skills/kb-kb/SKILL.md"
   - "front:skills/kb-kb/reference/lifecycle.md"
@@ -22,11 +24,13 @@ expect_files:
   # kb archiver-scoped: the entry skill (map + tool); lint is a tool verb now
   - "archiver:skills/kb-kb/SKILL.md"
   - "archiver:SOUL.md"
-  # gtd-capture scoping (legacy anatomy)
+  # gtd-capture — entry skill goes to both main and drainer (used_by: [main, drainer])
+  - "front:skills/gtd-capture-gtd-capture/SKILL.md"
+  - "front:skills/gtd-capture-gtd-capture/reference/entry-format.md"
   - "front:skills/gtd-capture-capture/SKILL.md"
-  - "front:skills/gtd-capture-format-entry/SKILL.md"
+  - "drainer:skills/gtd-capture-gtd-capture/SKILL.md"
+  - "drainer:skills/gtd-capture-gtd-capture/reference/entry-format.md"
   - "drainer:skills/gtd-capture-drain/SKILL.md"
-  - "drainer:skills/gtd-capture-format-entry/SKILL.md"
   - "drainer:SOUL.md"
   # bookkeeping
   - "clone:.aos/installs.lock.yaml"
@@ -37,17 +41,24 @@ forbid_files:
   - "drainer:skills/gtd-capture-capture/SKILL.md"
   - "archiver:skills/gtd-capture-capture/SKILL.md"
   - "archiver:skills/gtd-capture-drain/SKILL.md"
+  - "archiver:skills/gtd-capture-gtd-capture/SKILL.md"
   # dead artifacts from the pre-redesign anatomy — must not be materialized
   - "front:skills/kb-authz-check/SKILL.md"
   - "archiver:skills/kb-authz-check/SKILL.md"
   - "archiver:skills/kb-lint/SKILL.md"
+  - "front:skills/gtd-capture-capture/sections/entry-format.md"
+  - "drainer:skills/gtd-capture-drain/drain-prompt.md"
+  - "front:skills/onboarding-interview/SKILL.md"
+  - "front:skills/gtd-capture-format-entry/SKILL.md"
+  - "drainer:skills/gtd-capture-format-entry/SKILL.md"
 
 # every materialized SKILL.md under these roots must carry the origin tag
 origin_tag_roots: ["front:skills", "drainer:skills", "archiver:skills"]
 
 # cron jobs in aos-* profile homes must use the aos:<cap>:<id> name prefix;
 # expected schedules with their owning profile. `sync` is an exec schedule —
-# a script-only cron job (no agent invocation; the job runs base.py directly).
+# a script-only cron job (no agent invocation; the job runs the installed `base`
+# command directly).
 schedules:
   - {profile: drainer, name_prefix: "aos:gtd-capture:nightly-drain"}
   - {profile: archiver, name_prefix: "aos:kb:nightly-promote"}
@@ -57,7 +68,7 @@ schedules:
 sentinels:
   - {text: "🦜", in: "front:skills/gtd-capture-capture/SKILL.md"}
   # drain_hour 23:47 → cron expression "47 23 * * *" in the drainer's jobs
-  - {text: "47 23", in_dir: "drainer:cron"}
+  - {text: "47 22", in_dir: "drainer:cron"}
   - {text: "choir practice Thursdays 19:00-21:00", in_dir: "drainer:"}
   # exec schedule: the sync job's command must invoke the tool, not an agent prompt
   - {text: "base sync --all", in_dir: "archiver:cron"}

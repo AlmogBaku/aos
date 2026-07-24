@@ -1,0 +1,42 @@
+Install complete. Here's the summary:
+
+## What was installed
+
+Read `harnesses/hermes/CHEATSHEET.md` and `docs/BOOTSTRAP.md` from the clone at `tests/.sandbox/aos-clone`, then materialized the three capabilities into the real (non-simulated) Hermes profile namespace, driven entirely by the pre-existing overlay files (`MOD.md`, `kb-registry.yaml`, `capabilities/{kb,gtd-capture}/MOD.md`):
+
+**Profiles created:** `aos-test` (front agent, pre-existing) + `aos-archiver`, `aos-drainer` (capability agents), model config set to match `aos-test`.
+
+**kb (0.3.0):**
+- Tool installed: `uv tool install --from .../capabilities/kb/tool aos-base` → `base` on PATH
+- Front-agent skills: `kb-kb`, `kb-route`, `kb-recall`, `kb-init`, `kb-adopt`, `kb-import` (all with `x-aos-origin: kb@0.3.0`)
+- Archiver-scoped: `kb-kb` skill + `SOUL.md` (no messaging tools) + `scripts/kb-sync-all.sh`
+- Schedules on `aos-archiver`: `aos:kb:nightly-promote` (23:30), `aos:kb:weekly-lint` (Sat 07:00), `aos:kb:sync` (*/5min, exec-only script job, no LLM)
+- Both existing bases (`personal-kb`, `acme-kb`) got a `_ops/next-actions.md` zone + Grants row for `agent:drainer`, committed to each base's git history
+
+**onboarding (0.2.0):** `onboarding-onboarding` skill on the front agent only.
+
+**gtd-capture (0.2.0):**
+- Front agent: `gtd-capture-gtd-capture` + `gtd-capture-capture` (with `{{mod: capture_preferences}}` filled from MOD.md's 🦜-emoji preference)
+- Drainer: `gtd-capture-gtd-capture` + `gtd-capture-drain`, `SOUL.md` reflecting sacred-time/red-line constraints
+- Schedule: `aos:gtd-capture:nightly-drain` at 23:47 (per the user's `drain_hour` answer), correctly ordered before kb's 23:30 promote
+
+**Front SOUL.md** got marker-delimited overlay blocks for both onboarding and gtd-capture, matching the cheat-sheet's materialization format.
+
+**Lockfile** recorded at `tests/.sandbox/aos-clone/.aos/installs.lock.yaml`: install_home, overlay_sources, created_profiles, config_keys, tool_installs, per-capability version/profiles/schedules_owned/degraded_modes, and sha256 for all 62 materialized artifacts (skills, SOUL.md, config.yaml, script, plus the two KB base trees).
+
+**Degraded mode noted:** `gtd-capture`'s `reminder_target` (whatsapp:+000000000000) has no outbound messaging wired in this sandbox, so reminders fall back to the drain close-out report — recorded in the lockfile.
+
+## Verification
+
+Ran the project's own golden-render check against the live materialized tree:
+```
+cd /home/anakin/aos && HOME=/home/anakin node tests/golden/check.mjs full-install --live
+→ golden: 0 failures
+```
+This validated: all expected files present, `used_by` scoping respected (no cross-pollution), every materialized `SKILL.md` carries `x-aos-origin`, all four schedules exist under the right profile with single-owner names, sentinel content checks (🦜 emoji, drain-hour cron expression, sacred-time text, `base sync --all` in the exec job), and the lockfile lists all three capabilities.
+
+Also confirmed the two sandbox KB git repos are clean (grant-row and next-actions changes committed properly, no stray working-tree diffs).
+
+## Note on repo state
+
+The clone's working tree still shows the pre-existing uncommitted changes from before this session started (capability restructuring, golden snapshot updates, transcripts) — those are pre-existing and untouched by this install; I did not commit or stage anything in the clone repo itself, per instructions.

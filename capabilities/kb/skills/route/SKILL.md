@@ -10,12 +10,13 @@ exclusion is a candidate-set list filter, not a confidence threshold.
 
 Resolve one write to one base from `kb-registry.yaml`. Cost: at most one LLM call,
 usually zero. Never ask the user "work or personal?" synchronously — wrong-but-cheap
-into a *private* base is corrected by the nightly drain.
+into a *private* base is corrected by the archiver's nightly promote pass.
 
 **Candidate set**: only bases where the writing subject holds a `route-into` grant
 (`base grants check --subject <subj> --verb route-into --path raw/captures/x` per
 base). Zero candidates → do not drop the payload: hand it back to the caller tagged
-`kb_routing: refused`; the tool's refusal bookkeeping records it.
+`kb_routing: refused`, and record it: `base refuse --path <target> --subject <subj>
+--reason "no route-into grant"` (refuse log line + needs-review block — [D]).
 
 Resolution order — stop at the first match:
 
@@ -29,7 +30,8 @@ Resolution order — stop at the first match:
    `audience: private`** (effective audience = the more restrictive of BASE.yaml and
    the registry). One call, each candidate's `purpose` as rubric → `{base, confidence}`.
    Accept iff `confidence >= confidence_bar`. Record `method: llm`.
-4. **[D] Fallback.** Default base, `status: uncertain`. The nightly drain re-routes:
+4. **[D] Fallback.** Default base, `status: uncertain`. The archiver's nightly
+   promote pass re-routes:
    into a private base → may move directly (logged, reversible); into a shared base →
    proposed in `_ops/needs-review.md`, never auto-applied.
 

@@ -1,6 +1,6 @@
 ---
 capability: gtd-capture
-onboarded_version: 0.1.0
+onboarded_version: 0.2.0
 answers:
   capture_channels: ["whatsapp"]
   reminder_target: "whatsapp"
