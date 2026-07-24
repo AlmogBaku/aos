@@ -12,6 +12,7 @@ if (!src || !dest) {
 }
 
 const SKIP = new Set(['config.yaml', 'profile.yaml',  // harness runtime state: provider/model details are run-varying and private
+  '.hub', 'index-cache', '.bundled_manifest',  // harness-owned skill-store metadata + caches (megabytes of run-varying JSON)
   'node_modules', '.git', 'sessions', 'logs', 'memories', 'state.db',
   'audio_cache', 'cache', '.env', 'auth.json', 'state-snapshots', 'bin',
   'executions.db', '.jobs.lock', 'auth.lock', 'state.db-shm', 'state.db-wal',
