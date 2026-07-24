@@ -120,7 +120,8 @@ capabilities/<id>/
                              #   body = the conversational interview script. Same file-shape as
                              #   CAPABILITY.md. Optional; found by convention (no manifest pointer)
   MOD.example.md             # shipped seed for the user's MOD.md (§3.1); upstream owns it.
-                             #   the user's own MOD.md is created here at install, never shipped
+                             #   the user's own MOD.md is created at install in the MIRRORED
+                             #   path under personal/ — never inside this tree (§3.1)
   kb/                        # only if it touches KBs: zone templates, schema fragments
   tool/                      # only if it ships an installable deterministic tool (§2.4):
                              #   a uv package (pyproject + src/) whose install step the briefing names
@@ -146,7 +147,7 @@ tags: [usecase]                # infra | usecase — metadata, not architecture 
 summary: Voice/text → next-action → KB write → reminder.
 
 depends:
-  capabilities: [kb, onboarding]   # no version ranges, on purpose: a capability resolves against the roots on this machine —
+  capabilities: [kb, onboarding]   # no version ranges, on purpose: a capability resolves against whichever root supplies it —
                                    # every capability in your clone is from the same commit
   host:                        # enumerated vocabulary — §5.2; per key: required | preferred | optional
     cron: preferred            # preferred ⇒ install proceeds degraded if absent (§5.5)
@@ -619,7 +620,7 @@ The same capability evolves capabilities that already exist: feedback is classif
 
 **Promotion judgment (shared by the evolver's ledger exit, §3.3, and the builder's contribute offer).** Promotion is **signal-gated, never reflexive** — the default fate of every evolution is the user's MOD, silently. An offer fires only on: objectively broken; forced mechanism override (the render was edited *beyond* the `{{mod:}}` slots — lockfile drift flags *that* a render changed; establishing *beyond-slots* means comparing against a fresh render — never their value); or user-initiated. Contribution takes the **lightest sufficient rung**: +1 an existing signal issue → a new signal issue (the `promotion-signal` label is the maintainers' demand ledger) → knob/fix PR → capability PR; uncertain generality always goes issue-first, and the governing principle is **one user's need is a MOD line; two users' need is a knob** (rule of two, applied socially). False positives are priced with the user's attention first — a nagging agent drives users out — so offers are one-liners at a conversation's natural end, at most one per conversation, once per ledger line ever.
 
-**Hard invariant (normative):** the agent **never** opens a PR, files an issue, comments, +1s, or pushes anything to upstream — or to any repo the user does not own — without the user's explicit approval or request. No exceptions, regardless of judgment confidence. The framework above decides what to *offer*; only the user decides what leaves the machine, and `gh pr create` / `gh issue create` confirm once more before firing.
+**Hard invariant (normative):** the agent **never** opens a PR, files an issue, comments, +1s, pushes, forks, or creates a remote branch — for upstream or any repo the user does not own — without the user's explicit approval or request. No exceptions, regardless of judgment confidence. The framework above decides what to *offer*; only the user decides what leaves the machine, and `gh pr create` / `gh issue create` confirm once more before firing.
 
 ## Appendix A: Problems A–G → mechanism
 
@@ -644,5 +645,5 @@ The same capability evolves capabilities that already exist: feedback is classif
 | 5 | **Spec-before-use** — contracts here that no build validates | Every § names its consuming build step (§7); a § no reference capability exercises by build 9 gets cut | Rule-of-two applies to the spec itself |
 | 6 | **Duplicate schedules across harnesses** — same drain installed twice violates one-writer | `doctor` duplicate-schedule check across the lockfile | Single-owner rule (§5.5); worst case, schedules become explicitly harness-pinned in MOD.md |
 | 7 | **File-retrieval ceiling** — structure + BM25 degrade on bases past ~10K pages | Dogfood: recall quality on the largest live base; complaints of missed hits with confirmed on-disk answers | Rebuildable derived caches in `.base/` (gitignored, delete-and-lose-nothing) — never a store that outranks the files (§4.4) |
-| 9 | **Symlink/mount fragility** — a harness doesn't follow symlinked skill dirs, or a container can't see `personal/`, so installs silently degrade or break | Per-harness e2e: install, confirm the harness loads the linked skill, and `aos-lock verify` reports no link damage. Hermes is verified; OpenClaw/NanoClaw/Nanobot are research-drafted claims | No silent fallback: the contract bans copies (one canonical render), so a harness that cannot follow links is documented as unsupported in its cheat-sheet and support matrix until the mount/link path works. Introducing a copy mode would need a lockfile field and a `verify` mode — an RFC-level change, not an install-time improvisation |
 | 8 | **Authorization read-surface leaks** — a grant honored on the write path but not by search/list/graph surfaces | e2e probes leakage explicitly (ungranted reads via every surface), not just happy-path routing | Any surface that reads a base must consult grants; a surface that can't is documented as such in the capability README |
+| 9 | **Symlink/mount fragility** — a harness doesn't follow symlinked skill dirs, or a container can't see `personal/`, so installs silently degrade or break | Per-harness e2e: install, confirm the harness loads the linked skill, and `aos-lock verify` reports no link damage. Hermes is verified; OpenClaw/NanoClaw/Nanobot are research-drafted claims | No silent fallback: the contract bans copies (one canonical render), so a harness that cannot follow links is documented as unsupported in its cheat-sheet and support matrix until the mount/link path works. Introducing a copy mode would need a lockfile field and a `verify` mode — an RFC-level change, not an install-time improvisation |
