@@ -8,7 +8,7 @@
 
 The install/upgrade/remove/evolve procedures as five `main`-scoped skills (`capability-lifecycle` entry + `capability-installer`, `capability-upgrader`, `capability-remover`, `capability-evolver` — ids self-descriptive out of context, §2.1), the overlay mechanism (§3: interviews → MOD.md, the {{mod}} transform, MOD.md-as-ledger with `capability-evolver` as its write path), the per-harness cheat-sheets (shipped in-capability at `harnesses/<harness-runtime>.md`, §5.2), and the `aos-lock` bookkeeping tool (§2.4 capability tool: manifest parse/validate + lockfile init/record/verify/show/list/remove — the lockfile is the tool's file; agents call verbs, never edit the YAML). `BOOTSTRAP.md` shrinks to a warm stub that inline-installs this capability (the only chicken-and-egg break) and hands over.
 
-Boundary: `capability-evolver` changes *your install* through the ledger; changing the *shipped source* for everyone is capability-builder's `capability-source-evolver` (§9 building mode). The evolver is the single front door and routes.
+Boundary: `capability-evolver` changes *your install* through the ledger; changing the *shipped source* for everyone is capability-builder's `capability-source-evolver` (§9 building mode). The evolver is the single front door and routes — and the ledger has an exit side (§3.3): a generally-useful line is promotable (signal-gated per §9's judgment, lightest rung first) and retires once an upgrade lands the upstream version covering it.
 
 ## What exists today (extraction sources — in Almog's live setup, the first wrap target)
 

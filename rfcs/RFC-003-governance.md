@@ -23,3 +23,7 @@ Consensus-everything (slow death for volunteer groups) · maintainer-decides-eve
 ## Process
 
 This RFC bootstraps itself: comment window 10 days from publication, then the recommendation stands.
+
+## Evidence (2026-07-25)
+
+The built contributor guide (main: CONTRIBUTING.md, "one way of working") adopts the recommendation as written: PRs always — self-merge after green CI where the merge policy allows is still a PR; branch protection on `main` and `spec` binds maintainers too. The repo stays under the owner's personal account for now (decided); with the household layout the owner is simply a plain clone with push rights — no exception anywhere in the flow.

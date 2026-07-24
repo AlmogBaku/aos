@@ -8,39 +8,44 @@
 > under `agents/<name>/`). This exhibit reflects its current shape; `kb` remains the
 > first conforming example (design/kb-methodology.md §10).
 
-## 1. The whole repo, from the top
+## 1. The whole household, from the top
 
-What a user's clone actually looks like (their machine, after installing two capabilities):
+What a user's machine actually looks like (after installing two capabilities) — the **household** (§3.1):
 
 ```
-aos/                              # the user's clone (private fork or plain clone — RFC-005)
-├── README.md                     # paste-to-install entry point (see design/install-flow.md §1)
-│                                 # (spec docs — ARCHITECTURE.md, design/, rfcs/ — live on the spec BRANCH, not in the main clone)
-├── MOD.md                        # ★ USER-OWNED: global profile (identity, tz, hours, sacred time, red lines)
-├── kb-registry.yaml              # ★ USER-OWNED: their KBs (work/personal/…)
-├── .aos/                         # machine-local, gitignored
-│   ├── installs.lock.yaml        # what's installed, where, versions, artifact hashes
-│   ├── backups/                  # pre-upgrade snapshots
-│   └── conflicts/                # parked diffs when hand-edits collide with re-renders
-├── BOOTSTRAP.md                  # the agent's door: warm stub — prereqs, clone,
-│                                 #   one inline install, hand-over (install-flow §1)
-├── capabilities/
-│   ├── capability-lifecycle/
-│   │   └── harnesses/            # per-harness cheat-sheets, flat, named for the
-│   │       ├── hermes.md         #   harness runtime (§5.2) — shipped inside the
-│   │       └── …                 #   capability that uses them
-│   ├── kb/ …
-│   └── gtd-capture/              # ↓ dissected below
-│       └── MOD.md                # ★ USER-OWNED: this user's gtd nuances
-└── docs/
+~/aos/                            # the household — a plain directory, itself never a git repo
+├── upstream/                     # the kit clone: pristine, contributor-shaped (origin = fork,
+│   │                             #   upstream = canonical); NOTHING personal in it, ever
+│   ├── README.md                 # paste-to-install entry point (see design/install-flow.md §1)
+│   │                             # (spec docs — ARCHITECTURE.md, design/, rfcs/ — live on the spec BRANCH)
+│   ├── BOOTSTRAP.md              # the agent's door: warm stub — prereqs, household creation,
+│   │                             #   one inline install, hand-over (install-flow §1)
+│   ├── capabilities/
+│   │   ├── capability-lifecycle/
+│   │   │   └── harnesses/        # per-harness cheat-sheets, flat, named for the
+│   │   │       ├── hermes.md     #   harness runtime (§5.2) — shipped inside the
+│   │   │       └── …             #   capability that uses them
+│   │   ├── kb/ …
+│   │   └── gtd-capture/          # ↓ dissected below (the TEMPLATE — never edited)
+│   └── docs/
+├── personal/                     # ★ USER-OWNED: their ONE private repo — "my aos, as built"
+│   ├── MOD.md                    # global profile (identity, tz, hours, sacred time, red lines)
+│   ├── kb-registry.yaml          # their KBs (work/personal/…)
+│   └── capabilities/
+│       ├── gtd-capture/          # personalized twin of upstream/capabilities/gtd-capture/
+│       │   ├── MOD.md            # this user's gtd nuances (the ledger)
+│       │   └── skills/…          # the PINNED RENDER (§3.1) — tracked; harnesses symlink here
+│       └── my-private-cap/       # private capabilities: full §2.1 package + MOD + render
+└── .aos/                         # machine-local state, outside every repo
+    └── installs.lock.yaml        # what's installed: versions, source roots, links, hashes
 ```
 
-★ = overlay family: upstream never contains these paths; CI rejects them in PRs.
+★ = the personal root holds the overlay family: upstream never contains those paths; CI rejects them in PRs.
 
 ## 2. gtd-capture, file by file
 
 ```
-capabilities/gtd-capture/
+upstream/capabilities/gtd-capture/
 ├── CAPABILITY.md           # [manifest] read at INSTALL by the installing LLM
 ├── README.md                 # [humans + PR review] support matrix lives here
 ├── skills/
@@ -63,14 +68,14 @@ capabilities/gtd-capture/
 ├── ONBOARDING.md            # [install + re-runs] frontmatter = typed questions (also validates
 │                             #   MOD.md); body = the interview script. Same shape as CAPABILITY.md
 ├── MOD.example.md          # [install] shipped seed copied to MOD.md before the interview fills it
-├── kb/
-│   └── zones/next-actions.md.tmpl   # [install] standalone-next-actions template — a grant
-│                                     #   into kb's EXISTING `_ops/` zone, not a new zone of
-│                                     #   its own (kb is infra; usecase capabilities build on
-│                                     #   its already-declared zones)
-└── MOD.md                    # ★ [everything, at render time] this user's nuances
-                             #   (created here at install from MOD.example.md; never shipped upstream)
+└── kb/
+    └── zones/next-actions.md.tmpl   # [install] standalone-next-actions template — a grant
+                                      #   into kb's EXISTING `_ops/` zone, not a new zone of
+                                      #   its own (kb is infra; usecase capabilities build on
+                                      #   its already-declared zones)
 ```
+
+The user's side lives in the personal root, mirrored: `personal/capabilities/gtd-capture/MOD.md` (★ the ledger — seeded from `MOD.example.md` at install, filled by the interview, never shipped upstream) next to `personal/capabilities/gtd-capture/skills/…` (the pinned render the transform writes and harnesses link to).
 
 Note what's gone relative to the pre-migration layout: no `ops/inbox.md` zone (captures
 land in kb's own `raw/captures/`, which kb's install already grants the front agent
@@ -81,11 +86,11 @@ tag-append rules — is now the `base capture` tool's frontmatter, for free).
 
 | Moment | Actor | Reads | Writes |
 |---|---|---|---|
-| Install | harness LLM (installer role) | CAPABILITY.md, cheat-sheet, MOD.md (after interview) | harness artifacts, lockfile |
+| Install | harness LLM (installer role) | CAPABILITY.md, cheat-sheet, MOD.md (after interview) | pinned render in `personal/` (committed), harness symlinks + native injections, lockfile |
 | Install (interview) | onboarding capability | ONBOARDING.md, MOD.example.md | MOD.md, harness secret store |
 | Runtime (capture) | main agent | rendered capture skill (which embeds MOD.md nuances) | a raw file in the routed KB's `raw/captures/`, via kb's `base capture` (sha256 dedup, `triage: pending` come free) |
 | Runtime (drain, 23:00) | drainer agent | rendered drain skill; kb's pending view (`base inbox` / `base inbox --failed`) | next-actions (a project's `next_action` field, or `_ops/next-actions.md`), reminders, `meta.gtd_triaged` on the capture — never the capture's own `triage` field, which stays kb's archiver's call at its later 23:30 promote step |
-| Upgrade | harness LLM (re-render role) | new upstream files, MOD.md (the ledger; current render is a drift source only, §3.4) | new render (diff-reviewed), lockfile, backups |
+| Upgrade | harness LLM (re-render role) | new upstream files, MOD.md (the ledger; current render is a drift source only, §3.4) | new pinned render (reviewed as a git diff in `personal/`, commit = accept), lockfile |
 | Lint/CI | repo CI | everything except overlay family | PR status |
 
 ## 3. Template vs page: the same skill, before and after
@@ -107,7 +112,7 @@ description: Instant capture, no classification. Use when the user fires off a t
 5. Confirm with a single emoji. No echo, no follow-up questions.
 ```
 
-**Installed in this user's Hermes** (the *page* — what the LLM actually materialized into `~/.hermes/skills/gtd-capture-capture/`, origin-tagged, hash in lockfile):
+**Installed for this user** (the *page* — the pinned render the LLM materialized into `personal/capabilities/gtd-capture/skills/capture/`, committed there, and symlinked into Hermes as `~/.hermes/skills/gtd-capture-capture`; origin-tagged, link + hash in lockfile):
 
 ```markdown
 ---
@@ -131,35 +136,37 @@ The `{{mod: …}}` slot is a *convention, not a template engine* — it marks wh
 
 | Declaration in CAPABILITY.md | Becomes (per Hermes cheat-sheet) |
 |---|---|
-| `skills: capture, used_by: [main]` | `~/.hermes/skills/gtd-capture-capture/` in the **root profile only** |
-| `skills: drain, used_by: [drainer]` | skill in the **drainer profile's workspace only** — the main agent never sees it |
+| `skills: capture, used_by: [main]` | symlink `~/.hermes/skills/gtd-capture-capture` → the pinned render, in the **root profile only** |
+| `skills: drain, used_by: [drainer]` | symlink in the **drainer profile's skills dir only** — the main agent never sees it |
 | `agents: drainer.agent.yaml` | `~/.hermes/profiles/gtd-drainer/` (directory-defined — `hermes profile create`; no config.yaml registry) |
 | `schedules: nightly-drain` | entry in `~/.hermes/cron/jobs.json`, name-prefixed `aos:gtd-capture:nightly-drain` (§5.3 — `jobs.json`'s own `origin` field means chat provenance, not this), assigned to profile `gtd-drainer` — **in exactly one harness** (single-owner rule, §5.5) |
 | `kb: zones: _ops/next-actions.md` | row appended to the target KB's `AGENTS.md` zone table (a grant, §4.3) — nested inside kb's *own* `_ops/` zone, not a new top-level dir — + zone file seeded from `kb/zones/next-actions.md.tmpl` |
-| `secrets` in MOD.md frontmatter | values in `~/.hermes/auth.json`; MOD.md holds only `{store, key}` refs |
+| `secrets` in MOD.md frontmatter | values in the Hermes `.env` (root or profile — `auth.json` is Hermes's own provider-credential state, never written by installs); MOD.md holds only `{store, key}` refs |
 
 Skill scoping is the load-bearing row: **`used_by` is what keeps ten capabilities from becoming fifty skills in every agent's context.** The drainer carries drain logic; the front agent carries capture only.
 
 ## 5. What the lockfile knows
 
 ```yaml
-# .aos/installs.lock.yaml (machine-local)
+# ~/aos/.aos/installs.lock.yaml (machine-local, household level — spans source roots)
 installs:
   gtd-capture:
     version: 0.1.0
+    source_root: upstream              # personal/ for private capabilities
     onboarded: 2026-07-17
     harnesses:
       hermes:
         artifacts:
-          - path: ~/.hermes/skills/gtd-capture-capture/SKILL.md
-            hash: sha256:…
+          - link: ~/.hermes/skills/gtd-capture-capture
+            target: ~/aos/personal/capabilities/gtd-capture/skills/capture/
+            hash: sha256:…             # hash of the TARGET (the pinned render)
           - path: ~/.hermes/profiles/gtd-drainer/
-            hash: sha256:…            # dir-tree hash
+            hash: sha256:…             # dir-tree hash (native injection, not a link)
           - path: ~/.hermes/cron/jobs.json#nightly-drain   # keyed entry in a shared file
             hash: sha256:…
         schedules_owned: [nightly-drain]   # single-owner rule: this harness runs the drain
       nanoclaw:
-        artifacts: [ …capture skill only… ]
+        artifacts: [ …capture skill link only… ]   # requires the ~/aos/personal ro mount (§5.3)
         schedules_owned: []                # installed here too, but the drain runs in Hermes
 ```
 
