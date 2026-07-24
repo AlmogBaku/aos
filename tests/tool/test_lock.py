@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.9"
+# dependencies = ["pyyaml>=6.0"]
+# ///
+"""Tier-0 tests for the capability-lifecycle `aos-lock` tool.
+
+Black-box subprocess invocation against a throwaway clone — stdout text and exit
+codes are the contract; no imports of tool internals.
+Run: uv run tests/tool/test_lock.py
+"""
+import json
+import os
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[2]
+TOOL_DIR = REPO / "capabilities/capability-lifecycle/tool"
+
+VALID_MANIFEST = """---
+id: democap
+version: 1.2.3
+tags: [usecase]
+summary: A demo capability for lock tests.
+skills:
+  - id: democap
+    used_by: [main]
+---
+# democap briefing
+"""
+
+
+def run(args, env_extra=None, cwd=None):
+    env = dict(os.environ)
+    env.pop("AOS_CLONE", None)
+    env.update(env_extra or {})
+    return subprocess.run(["uv", "run", "--quiet", "--project", str(TOOL_DIR),
+                           "aos-lock", *args],
+                          capture_output=True, text=True, env=env, cwd=cwd)
+
+
+class LockToolTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.clone = Path(self.tmp.name) / "clone"
+        (self.clone / ".aos").mkdir(parents=True)
+        cap = self.clone / "capabilities" / "democap"
+        (cap / "skills" / "democap").mkdir(parents=True)
+        (cap / "CAPABILITY.md").write_text(VALID_MANIFEST)
+        (cap / "skills" / "democap" / "SKILL.md").write_text(
+            "---\nname: democap\ndescription: demo. Use when testing.\n---\nbody\n")
+        self.a1 = self.clone / "artifact-one.md"
+        self.a2 = self.clone / "artifact-two.md"
+        self.a1.write_text("alpha\n")
+        self.a2.write_text("beta\n")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def lock(self, *args, cwd=None, env=None):
+        return run(["--clone", str(self.clone), *args] if cwd is None else list(args),
+                   env_extra=env, cwd=cwd)
+
+    def init(self):
+        r = self.lock("init")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return r
+
+    def record(self):
+        return self.lock("record", "democap", "--version", "1.2.3",
+                         "--artifact", str(self.a1), "--artifact", str(self.a2),
+                         "--job", "job-abc123", "--config-key", "gtd.drain_hour")
+
+    # -- manifest ----------------------------------------------------------
+    def test_manifest_valid_prints_json(self):
+        r = self.lock("manifest", str(self.clone / "capabilities" / "democap"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        data = json.loads(r.stdout)
+        self.assertEqual(data["id"], "democap")
+        self.assertEqual(data["version"], "1.2.3")
+
+    def test_manifest_unknown_key_rejected(self):
+        cap = self.clone / "capabilities" / "democap" / "CAPABILITY.md"
+        cap.write_text(VALID_MANIFEST.replace("summary:", "sneaky: yes\nsummary:"))
+        r = self.lock("manifest", str(cap.parent))
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("sneaky", r.stderr)
+
+    def test_manifest_x_fields_allowed(self):
+        cap = self.clone / "capabilities" / "democap" / "CAPABILITY.md"
+        cap.write_text(VALID_MANIFEST.replace("summary:", "x-vendor: hi\nsummary:"))
+        r = self.lock("manifest", str(cap.parent))
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_manifest_bad_version_rejected(self):
+        cap = self.clone / "capabilities" / "democap" / "CAPABILITY.md"
+        cap.write_text(VALID_MANIFEST.replace("1.2.3", "v1.2"))
+        r = self.lock("manifest", str(cap.parent))
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("version", r.stderr)
+
+    def test_manifest_undeclared_skill_dir_rejected(self):
+        extra = self.clone / "capabilities" / "democap" / "skills" / "ghost"
+        extra.mkdir()
+        (extra / "SKILL.md").write_text("---\nname: ghost\ndescription: g. Use when.\n---\n")
+        r = self.lock("manifest", str(self.clone / "capabilities" / "democap"))
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("ghost", r.stderr)
+
+    # -- lockfile lifecycle ------------------------------------------------
+    def test_init_creates_empty_lockfile(self):
+        self.init()
+        text = (self.clone / ".aos" / "installs.lock.yaml").read_text()
+        self.assertIn("version: 1", text)
+        self.assertIn("installs:", text)
+
+    def test_record_then_show(self):
+        self.init()
+        r = self.record()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        s = self.lock("show", "democap")
+        self.assertEqual(s.returncode, 0, s.stderr)
+        entry = json.loads(s.stdout)
+        self.assertEqual(entry["version"], "1.2.3")
+        self.assertEqual(len(entry["artifacts"]), 2)
+        self.assertIn("job-abc123", entry["schedules_owned"])
+        self.assertIn("gtd.drain_hour", entry["config_keys"])
+        for sha in entry["artifacts"].values():
+            self.assertRegex(sha, r"^[0-9a-f]{64}$")
+
+    def test_verify_clean_and_drift(self):
+        self.init()
+        self.record()
+        r = self.lock("verify", "democap")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("clean", r.stdout)
+        self.a2.write_text("mutated\n")
+        r = self.lock("verify", "democap")
+        self.assertEqual(r.returncode, 13)
+        self.assertIn("artifact-two.md", r.stdout)
+
+    def test_show_unknown_capability(self):
+        self.init()
+        r = self.lock("show", "nope")
+        self.assertEqual(r.returncode, 14)
+
+    def test_list_and_remove(self):
+        self.init()
+        self.record()
+        r = self.lock("list")
+        self.assertIn("democap", r.stdout)
+        self.assertIn("1.2.3", r.stdout)
+        r = self.lock("remove", "democap")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        r = self.lock("list")
+        self.assertNotIn("democap", r.stdout)
+
+    # -- clone discovery ---------------------------------------------------
+    def test_discovery_walks_up_from_cwd(self):
+        self.init()
+        self.record()
+        nested = self.clone / "capabilities" / "democap" / "skills"
+        r = run(["list"], cwd=str(nested))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("democap", r.stdout)
+
+    def test_no_clone_found_errors(self):
+        bare = Path(self.tmp.name) / "elsewhere"
+        bare.mkdir()
+        r = run(["list"], cwd=str(bare))
+        self.assertEqual(r.returncode, 15)
+        self.assertIn(".aos", r.stderr)
+
+    def test_env_override_wins_over_cwd(self):
+        self.init()
+        self.record()
+        bare = Path(self.tmp.name) / "elsewhere2"
+        bare.mkdir()
+        r = run(["list"], env_extra={"AOS_CLONE": str(self.clone)}, cwd=str(bare))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("democap", r.stdout)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=1)
