@@ -1,0 +1,37 @@
+Installed `gtd-capture@0.2.0` from:
+
+`/home/anakin/aos/tests/.sandbox/aos-clone`
+
+Materialized:
+
+- Front agent: `~/.hermes/profiles/aos-test/skills/`
+  - `gtd-capture-gtd-capture`
+  - `gtd-capture-capture`
+- Drainer agent: `~/.hermes/profiles/aos-drainer/`
+  - `gtd-capture-gtd-capture`
+  - `gtd-capture-drain`
+  - drainer `SOUL.md`
+- KB grant rows added:
+  - Personal KB: `_ops/next-actions.md`, `raw/captures/**`, `projects/**`
+  - Shared KB: `raw/captures/**` only
+- Schedule:
+  - `aos:gtd-capture:nightly-drain`
+  - `aos-drainer`
+  - `47 22 * * *` local delivery
+  - Job ID: `cc8d16d19088`
+
+Lockfile recorded at:
+
+`/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+
+Verification passed:
+
+- `aos-lock verify`: 4 capability entries clean
+- 9 gtd-capture artifacts hashed
+- Correct front/drainer skill scoping
+- All materialized skills carry `x-aos-origin: gtd-capture@0.2.0`
+- Grant checks pass
+- Both KBs: 0 criticals, 0 findings
+
+Caveat: `aos-test` currently has no messaging platform configured and no model configured, so WhatsApp capture and the drainer’s LLM schedule are installed but not operational until those profile prerequisites are set.
+EXIT=0

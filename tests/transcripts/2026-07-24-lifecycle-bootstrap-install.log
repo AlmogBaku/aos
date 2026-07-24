@@ -1,0 +1,36 @@
+Installed from `/home/anakin/aos/tests/.sandbox/aos-clone`.
+
+Materialized:
+
+- Front agent: `aos-test`
+  - capability-lifecycle: 5 skills
+  - onboarding: 1 skill
+  - kb: 6 front-agent skills
+- Capability agent: `aos-archiver`
+  - kb entry skill
+  - archiver persona in `SOUL.md`
+  - messaging tools not enabled
+- Tools:
+  - `aos-lock`
+  - `base` / `aos-base`
+
+Schedules on `aos-archiver`:
+
+- `aos:kb:nightly-promote` — `30 23 * * *`
+- `aos:kb:weekly-lint` — `0 7 * * 6`
+- `aos:kb:sync` — every 5 minutes, no-agent, runs `base sync --all`
+
+Lockfile:
+
+`/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+
+Verification:
+
+- `aos-lock verify`: `clean: 3 entries verified`
+- All materialized skills have `x-aos-origin` provenance.
+- All three schedules have exactly one owner.
+- Clone changes remain overlay-only: `MOD.md`, `capabilities/*/MOD.md`, `kb-registry.yaml`.
+- The two registry-backed KB trees were not rewritten.
+
+Known pre-existing condition: `base lint personal-kb` reports 3 critical grants-audit findings for existing `agent:drainer` writes. `acme-kb` is clean.
+EXIT=0

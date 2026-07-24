@@ -44,15 +44,16 @@ Everything the run creates is identifiable and disposable:
    at <sandbox>/aos-clone"` (default-profile fallback as above) — must trigger the
    materialized `capability-installer` skill and complete the install.
 
-   **Evolve step**: another fresh prompt — "change gtd-capture's drain schedule to
-   22:00" — must route through `capability-evolver`: the cron job changes, the change
-   lands in `capabilities/gtd-capture/MOD.md`, and `aos-lock verify` stays clean.
 4. **Check**: `node tests/golden/check.mjs --live` runs the structural checks against the
    materialized tree (expectations in `tests/golden/expectations/*.yaml`), plus the
    canary check against the pre-state snapshot.
 5. **Snapshot**: `node tests/golden/normalize.mjs <paths>` → commit under
    `tests/golden/hermes/<cap>/`. The commit diff is the reviewable render (RFC-002).
    Save the run transcript to `tests/transcripts/`.
+   **Evolve step (after the snapshot — it mutates install state)**: a fresh prompt —
+   "change gtd-capture's drain schedule to 22:00" — must route through
+   `capability-evolver`: the cron job changes, the change lands in
+   `capabilities/gtd-capture/MOD.md`, and `aos-lock verify` stays clean.
 6. **Remove**: tell the agent to remove per the cheat-sheet Removal section; verify with
    `prestate.sh` that `~/.hermes` matches pre-state; `hermes profile delete` the test
    profiles.

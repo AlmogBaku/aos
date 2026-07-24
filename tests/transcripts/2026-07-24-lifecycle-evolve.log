@@ -1,0 +1,17 @@
+Changed permanently.
+
+- Durable ledger: `/home/anakin/aos/tests/.sandbox/aos-clone/capabilities/gtd-capture/MOD.md`
+  - `drain_hour: "22:00"`
+- Live Hermes schedule:
+  - Profile: `aos-drainer`
+  - Job: `aos:gtd-capture:nightly-drain`
+  - Cron: `0 22 * * *`
+  - Job ID: `cc8d16d19088`
+- Lockfile re-recorded with the existing artifact set.
+
+Verified:
+- Hermes reports the next run at `22:00`.
+- `aos-lock verify gtd-capture` → `clean: 1 entry verified`.
+
+Because the change is in the user-owned MOD ledger, future upgrades will reapply 22:00 instead of reverting to the capability default.
+EXIT=0

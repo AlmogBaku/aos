@@ -1,0 +1,42 @@
+Removed the AOS install in the requested order:
+
+- `gtd-capture`
+  - Removed its cron job.
+  - Removed materialized skills.
+  - Removed its grant rows from both sandbox KBs.
+  - Removed lockfile entry.
+- `kb`
+  - Removed all three cron jobs.
+  - Removed materialized skills and `aos-kb-sync.sh`.
+  - Uninstalled `aos-base`.
+  - Removed its grant rows from both sandbox KBs.
+  - Removed lockfile entry.
+- `onboarding`
+  - Removed its SOUL marker block and skills.
+  - Removed lockfile entry.
+- `capability-lifecycle`
+  - Removed all five materialized skill directories.
+  - Uninstalled `aos-lock`.
+  - Reset the lockfile to:
+    `version: 1`
+    `installs: {}`
+
+Then deleted Hermes profiles:
+
+- `aos-test`
+- `aos-archiver`
+- `aos-drainer`
+
+Verification passed:
+
+- No `aos:*` cron jobs.
+- No `x-aos-origin:` frontmatter in live materialized artifacts.
+- No `<!-- aos:... -->` marker blocks.
+- No target profiles or aliases remain.
+- No `base` or `aos-lock` tool commands remain.
+- Grant rows for `kb`, `gtd-capture`, and `onboarding` are gone from both sandbox KBs.
+- `MOD.md` files remain untouched:
+  - `/home/anakin/aos/tests/.sandbox/aos-clone/MOD.md`
+  - `/home/anakin/aos/tests/.sandbox/aos-clone/capabilities/gtd-capture/MOD.md`
+  - `/home/anakin/aos/tests/.sandbox/aos-clone/capabilities/kb/MOD.md`
+EXIT=0

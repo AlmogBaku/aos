@@ -1,0 +1,23 @@
+Applied both fixes.
+
+1. Onboarding context
+- Appended to `/home/anakin/.hermes/profiles/aos-test/SOUL.md`
+- Marker-delimited as:
+  `<!-- aos:onboarding@0.2.0 begin -->` / `end`
+- Preserved all text outside the markers.
+- Full diff was shown before writing.
+
+2. Archiver sync wrapper
+- Rewrote `/home/anakin/.hermes/profiles/aos-archiver/scripts/aos-kb-sync.sh` to:
+  `base --registry /home/anakin/aos/tests/.sandbox/aos-clone/kb-registry.yaml sync --all`
+- Shell syntax check passed.
+- Wrapper exits 0.
+
+Important limitation: the clone registry declares both KBs with `sync: none`. `base sync --all` only processes `sync: rebase-5min` entries, so no actual Git sync target exists. The pinned registry is being read correctly, but this fixture cannot perform a remote sync without changing the user-owned registry.
+
+3. Lockfile
+- Re-listed all existing artifacts before recording.
+- `onboarding`: 3 artifacts, including the new `aos-test/SOUL.md`
+- `kb`: 24 artifacts, including the changed sync wrapper
+- `aos-lock verify`: `clean: 4 entries verified`
+EXIT=0

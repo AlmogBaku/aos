@@ -8,6 +8,13 @@
 agents: [drainer, archiver]
 
 expect_files:
+  # capability-lifecycle — the five lifecycle skills, main-scoped, {{mod}}-slot-free
+  - "front:skills/capability-lifecycle-capability-lifecycle/SKILL.md"
+  - "front:skills/capability-lifecycle-capability-lifecycle/reference/contract.md"
+  - "front:skills/capability-lifecycle-capability-installer/SKILL.md"
+  - "front:skills/capability-lifecycle-capability-upgrader/SKILL.md"
+  - "front:skills/capability-lifecycle-capability-remover/SKILL.md"
+  - "front:skills/capability-lifecycle-capability-evolver/SKILL.md"
   # onboarding — entry skill IS the whole capability, bundles its reference/
   - "front:skills/onboarding-onboarding/SKILL.md"
   - "front:skills/onboarding-onboarding/reference/answer-validation.md"
@@ -67,10 +74,14 @@ schedules:
 
 sentinels:
   - {text: "🦜", in: "front:skills/gtd-capture-capture/SKILL.md"}
+  # onboarding's context block must land in the front agent's SOUL.md, marker-delimited
+  - {text: "aos:onboarding", in: "front:SOUL.md"}
+  # the sync wrapper must pin the clone's registry — a bare `base sync` silently no-ops
+  - {text: "kb-registry.yaml", in_dir: "archiver:scripts"}
   # drain_hour 23:47 → cron expression "47 23 * * *" in the drainer's jobs
   - {text: "47 22", in_dir: "drainer:cron"}
   - {text: "choir practice Thursdays 19:00-21:00", in_dir: "drainer:"}
   # exec schedule: the sync job's command must invoke the tool, not an agent prompt
-  - {text: "base sync --all", in_dir: "archiver:cron"}
+  - {text: "base sync --all", in_dir: "archiver:"}
 
-lockfile_capabilities: [kb, onboarding, gtd-capture]
+lockfile_capabilities: [capability-lifecycle, kb, onboarding, gtd-capture]

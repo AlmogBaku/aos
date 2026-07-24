@@ -1,198 +1,80 @@
-version: 1
-harness: hermes
-install_home: <HOME>/.hermes/profiles/aos-test
-overlay_sources:
-- <HOME>/aos/tests/.sandbox/aos-clone/MOD.md
-- <HOME>/aos/tests/.sandbox/aos-clone/kb-registry.yaml
-- <HOME>/aos/tests/.sandbox/aos-clone/capabilities/kb/MOD.md
-- <HOME>/aos/tests/.sandbox/aos-clone/capabilities/gtd-capture/MOD.md
-created_profiles:
-- aos-archiver
-- aos-drainer
-config_keys:
-- profile: aos-archiver
-  key: model.default
-  value: gpt-5.6-luna
-- profile: aos-archiver
-  key: model.provider
-  value: openai-api
-- profile: aos-drainer
-  key: model.default
-  value: gpt-5.6-luna
-- profile: aos-drainer
-  key: model.provider
-  value: openai-api
-tool_installs:
-- command: uv tool install --from <HOME>/aos/tests/.sandbox/aos-clone/capabilities/kb/tool
-    aos-base
-  package: aos-base==0.3.0
-  executable: base
-capabilities:
-  onboarding:
-    version: 0.2.0
-    profiles:
-    - aos-test
+installs:
+  capability-lifecycle:
+    artifacts:
+      <HOME>/.hermes/profiles/aos-test/skills/capability-lifecycle-capability-evolver/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/capability-lifecycle-capability-installer/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/capability-lifecycle-capability-lifecycle/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/capability-lifecycle-capability-lifecycle/reference/contract.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/capability-lifecycle-capability-lifecycle/reference/no-cheatsheet.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/capability-lifecycle-capability-lifecycle/reference/overlay.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/capability-lifecycle-capability-remover/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/capability-lifecycle-capability-upgrader/SKILL.md: <SHA256>
+      <HOME>/.local/bin/aos-lock: <SHA256>
+    config_keys: []
+    env_lines: []
     schedules_owned: []
-  kb:
-    version: 0.3.0
-    profiles:
-    - aos-test
-    - aos-archiver
-    schedules_owned:
-    - profile: aos-archiver
-      id: nightly-promote
-      job_id: <ID>
-      name: aos:kb:nightly-promote
-    - profile: aos-archiver
-      id: weekly-lint
-      job_id: <ID>
-      name: aos:kb:weekly-lint
-    - profile: aos-archiver
-      id: sync
-      job_id: <ID>
-      name: aos:kb:sync
-    kbs_registered:
-    - personal-kb
-    - acme-kb
-    degraded_modes: []
+    scripts: []
+    version: 0.1.0
   gtd-capture:
-    version: 0.2.0
-    profiles:
-    - aos-test
-    - aos-drainer
+    artifacts:
+      <HOME>/.hermes/profiles/aos-drainer/SOUL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-drainer/skills/gtd-capture-drain/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-drainer/skills/gtd-capture-gtd-capture/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-drainer/skills/gtd-capture-gtd-capture/reference/entry-format.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/gtd-capture-capture/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/gtd-capture-gtd-capture/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/gtd-capture-gtd-capture/reference/entry-format.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/kb/acme-kb/AGENTS.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/kb/personal-kb/AGENTS.md: <SHA256>
+    config_keys: []
+    env_lines: []
     schedules_owned:
-    - profile: aos-drainer
-      id: nightly-drain
-      job_id: <ID>
-      name: aos:gtd-capture:nightly-drain
-    degraded_modes:
-    - 'messaging.outbound: reminder_target is whatsapp:+<ID> but this sandbox
-      profile has no outbound messaging wired; reminders are reported in the drain
-      close-out instead of delivered.'
-artifacts:
-- path: <HOME>/.hermes/profiles/aos-archiver/SOUL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-archiver/config.yaml
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-archiver/scripts/aos-kb-sync.sh
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-archiver/skills/kb-kb/SKILL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-archiver/skills/kb-kb/reference/grants.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-archiver/skills/kb-kb/reference/lifecycle.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-archiver/skills/kb-kb/reference/wiring.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-drainer/SOUL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-drainer/config.yaml
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-drainer/skills/gtd-capture-drain/SKILL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-drainer/skills/gtd-capture-gtd-capture/SKILL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-drainer/skills/gtd-capture-gtd-capture/reference/entry-format.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/SOUL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/config.yaml
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/gtd-capture-capture/SKILL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/gtd-capture-gtd-capture/SKILL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/gtd-capture-gtd-capture/reference/entry-format.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-adopt/SKILL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-import/SKILL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-import/reference/v1-migration.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-init/SKILL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/BASE.yaml
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/gitattributes
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/index.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/log.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/state.yaml
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/zones/_ops.AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/zones/entities.AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/zones/profile.AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/zones/raw.AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-kb/SKILL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-kb/reference/grants.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-kb/reference/lifecycle.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-kb/reference/wiring.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-recall/SKILL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/kb-route/SKILL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/onboarding-onboarding/SKILL.md
-  sha256: <SHA256>
-- path: <HOME>/.hermes/profiles/aos-test/skills/onboarding-onboarding/reference/answer-validation.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/acme-kb/.gitattributes
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/acme-kb/.gitignore
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/acme-kb/AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/acme-kb/BASE.yaml
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/acme-kb/_ops/AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/acme-kb/_ops/next-actions.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/acme-kb/entities/AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/acme-kb/index.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/acme-kb/log.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/acme-kb/profile/AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/acme-kb/raw/AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/acme-kb/state.yaml
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/personal-kb/.gitattributes
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/personal-kb/.gitignore
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/personal-kb/AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/personal-kb/BASE.yaml
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/personal-kb/_ops/AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/personal-kb/_ops/next-actions.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/personal-kb/entities/AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/personal-kb/index.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/personal-kb/log.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/personal-kb/profile/AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/personal-kb/raw/AGENTS.md
-  sha256: <SHA256>
-- path: <HOME>/aos/tests/.sandbox/kb/personal-kb/state.yaml
-  sha256: <SHA256>
+    - <ID>
+    scripts: []
+    version: 0.2.0
+  kb:
+    artifacts:
+      <HOME>/.hermes/profiles/aos-archiver/SOUL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-archiver/scripts/aos-kb-sync.sh: <SHA256>
+      <HOME>/.hermes/profiles/aos-archiver/skills/kb-kb/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-adopt/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-import/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-import/reference/v1-migration.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-init/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/AGENTS.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/BASE.yaml: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/gitattributes: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/index.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/log.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/state.yaml: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/zones/_ops.AGENTS.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/zones/entities.AGENTS.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/zones/profile.AGENTS.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-init/templates/zones/raw.AGENTS.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-kb/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-kb/reference/grants.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-kb/reference/lifecycle.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-kb/reference/wiring.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-recall/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/kb-route/SKILL.md: <SHA256>
+      <HOME>/.local/bin/base: <SHA256>
+    config_keys: []
+    env_lines: []
+    schedules_owned:
+    - <ID>
+    - <ID>
+    - <ID>
+    scripts:
+    - aos-kb-sync.sh
+    version: 0.3.0
+  onboarding:
+    artifacts:
+      <HOME>/.hermes/profiles/aos-test/SOUL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/onboarding-onboarding/SKILL.md: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/skills/onboarding-onboarding/reference/answer-validation.md: <SHA256>
+    config_keys: []
+    env_lines: []
+    schedules_owned: []
+    scripts: []
+    version: 0.2.0
+version: 1
