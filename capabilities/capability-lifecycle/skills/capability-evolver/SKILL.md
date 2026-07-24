@@ -5,7 +5,8 @@ description: Changes how an installed aos capability behaves for this user and r
 
 # capability-evolver
 
-Not in context yet? Load the `capability-lifecycle` skill first. This is the ledger's
+Not in context yet? Load the `capability-lifecycle` skill first — the map, the
+contract, the overlay doctrine, and the Experience rules. This is the ledger's
 write side — the single front door for every "change this capability" ask; the classify
 step routes what isn't yours.
 
@@ -21,8 +22,10 @@ step routes what isn't yours.
 3. **[A]** Apply to the materialized artifact(s) per the cheat-sheet (load
    `harnesses/<harness-runtime>.md` now; native edit verbs where they exist), through
    the STAGE→GATE→EXECUTE phases.
-4. **[D]** `aos-lock record <id>` — refresh the hashes so `verify` stays clean; from
-   now on `capability-upgrader` re-applies this change on every upgrade.
+4. **[D]** `aos-lock rehash <id>` — refresh the recorded hashes in place so `verify`
+   stays clean; from now on `capability-upgrader` re-applies this change on every
+   upgrade. (New artifacts, jobs, or keys → a full `aos-lock record` with the complete
+   set from `aos-lock show`.)
 5. Confirm: "recorded in your MOD.md — survives every upgrade."
 
 Capture mode (drift found by `verify` or by noticing a hand-edit): same steps, but

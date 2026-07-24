@@ -5,7 +5,8 @@ description: Upgrades installed aos capabilities by re-applying the user's MOD.m
 
 # capability-upgrader
 
-Not in context yet? Load the `capability-lifecycle` skill first. The model: **MOD.md is
+Not in context yet? Load the `capability-lifecycle` skill first — the map, the
+contract, the overlay doctrine, and the Experience rules. The model: **MOD.md is
 a ledger; upgrade = re-apply it to fresh upstream.** The current install is a drift
 source, never a merge input.
 
@@ -22,6 +23,8 @@ source, never a merge input.
       (`reference/overlay.md`); interview only new or `re_ask` questions. Then STAGE
       the changes per the cheat-sheet (load it now if not in context).
    d. **[D]** GATE: old render vs new, per file.
-   e. **[D]** EXECUTE; `aos-lock record <id>` re-hashes.
+   e. **[D]** EXECUTE; `aos-lock record <id>` with the full updated set (start from
+      `aos-lock show` — `record` replaces the entry wholesale, never call it with a
+      partial list).
 4. Report per capability: upstream changes taken, ledger entries re-applied, anything
    folded in step a.

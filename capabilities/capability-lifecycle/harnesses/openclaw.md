@@ -49,7 +49,7 @@ Work top-down from `CAPABILITY.md`, under the contract (reference/contract.md).
    `--bind <channel[:account]>`.
 2. **Skills.** Skills land in the owning agent's `<workspace>/skills/` per `used_by`
    (`~/.openclaw/skills/` only for genuinely every-agent skills); copy/naming rules per
-   BOOTSTRAP §0. OpenClaw takes skill identity from frontmatter, not the folder — set the
+   the contract (reference/contract.md). OpenClaw takes skill identity from frontmatter, not the folder — set the
    materialized copy's `name: <capability>-<id>`; `description` is required. `{baseDir}`
    resolves skill-local files. Do not route aos skills through
    `openclaw skills install`/ClawHub — the clone is the source.

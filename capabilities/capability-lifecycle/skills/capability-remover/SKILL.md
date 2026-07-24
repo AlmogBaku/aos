@@ -5,10 +5,12 @@ description: Removes an installed aos capability exactly, walking its lockfile e
 
 # capability-remover
 
-Not in context yet? Load the `capability-lifecycle` skill first.
+Not in context yet? Load the `capability-lifecycle` skill first — the map, the
+contract, and the Experience rules.
 
-1. **[D]** `aos-lock show <id>` → the entry: artifacts, `schedules_owned`, config keys,
-   env variable names, scripts, tool install.
+1. **[D]** `aos-lock show <id>` → the entry: artifacts (including the capability's
+   tool binary, recorded as an artifact), `schedules_owned`, config keys, env variable
+   names, scripts.
 2. **[D]** Dependents check: another entry in `aos-lock list` whose manifest
    `depends.capabilities` names this one → say so; stop unless the user insists (then
    remove dependents first).

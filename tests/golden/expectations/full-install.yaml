@@ -1,4 +1,4 @@
-# Structural expectations for the full kb+onboarding+gtd-capture install into the
+# Structural expectations for the full capability-lifecycle+kb+onboarding+gtd-capture install into the
 # aos-test profile namespace. Roots resolved by check.mjs:
 #   front  = ~/.hermes/profiles/aos-test
 #   <agent>= ~/.hermes/profiles/aos-<agent>

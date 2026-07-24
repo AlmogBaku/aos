@@ -76,7 +76,8 @@ installing anyway is fine, silently pretending is not:
 
 - **No cron?** Scheduled work (nightly drain, promote) becomes a run-card you trigger by
   asking ("drain the inbox now").
-- **No `uv`?** kb's verbs run as prose procedures instead of the deterministic tool.
+- **`uv` gone after bootstrap?** (it's required to bootstrap) — kb's verbs degrade to
+  prose procedures until it's back; the lifecycle's bookkeeping needs it restored.
 - A `required` host feature that's absent stops that capability's install with an
   explanation.
 

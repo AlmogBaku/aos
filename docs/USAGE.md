@@ -1,6 +1,6 @@
 # Day-to-day usage
 
-You've [installed](INSTALL.md) kb, onboarding, and gtd-capture. This is what living with
+You've [installed](INSTALL.md) capability-lifecycle, kb, onboarding, and gtd-capture. This is what living with
 them looks like. Everything below is a thing you *say to your agent* — the skills it
 loaded at install time do the rest.
 
@@ -64,8 +64,8 @@ base --help                    # the rest: links, grants, index, verify, import 
   everything and shows you the diff before writing.
 - **Hand-edit anything materialized** — normal. The agent captures your edits back into
   `MOD.md` when it notices them, so the next upgrade preserves them.
-- **`update`** after a `git pull` merges new capability versions under your overlay —
-  diff-gated, backed up.
+- **`update`** after a `git pull` re-applies your MOD.md ledger to the new capability
+  versions — your hand-edits get folded into the ledger first; diff-gated, backed up.
 - **Corrections beat re-capture**: told it something wrong? Say so — the page is fixed
   in place (current truth), and git remembers the old state.
 

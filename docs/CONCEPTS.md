@@ -102,7 +102,7 @@ and installs that one capability; its skills do the rest, loading your harness r
 cheat-sheet at the steps that need it. Three mechanisms keep it honest:
 
 - **Cheat-sheets, not adapters.** Per-harness support is one lean doc
-  (`harnesses/<harness-runtime>.md`) teaching the mapping (agent → Hermes profile,
+  (`capabilities/capability-lifecycle/harnesses/<harness-runtime>.md`) teaching the mapping (agent → Hermes profile,
   schedule → `hermes cron create`, secret → `.env`). Knowledge, not glue code — a new
   harness costs one document, and even that is an aid, not a gate: without one, the
   agent derives the mapping itself per BOOTSTRAP.

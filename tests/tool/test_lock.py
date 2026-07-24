@@ -49,6 +49,7 @@ class LockToolTest(unittest.TestCase):
         cap = self.clone / "capabilities" / "democap"
         (cap / "skills" / "democap").mkdir(parents=True)
         (cap / "CAPABILITY.md").write_text(VALID_MANIFEST)
+        (cap / "README.md").write_text("# democap\n\n| a | b |\n|---|---|\n")
         (cap / "skills" / "democap" / "SKILL.md").write_text(
             "---\nname: democap\ndescription: demo. Use when testing.\n---\nbody\n")
         self.a1 = self.clone / "artifact-one.md"
@@ -156,6 +157,66 @@ class LockToolTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         r = self.lock("list")
         self.assertNotIn("democap", r.stdout)
+
+    def test_init_creates_aos_dir_on_fresh_clone(self):
+        fresh = Path(self.tmp.name) / "fresh"
+        fresh.mkdir()
+        r = run(["--clone", str(fresh), "init"])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue((fresh / ".aos" / "installs.lock.yaml").is_file())
+
+    def test_init_requires_explicit_clone(self):
+        bare = Path(self.tmp.name) / "bare"
+        bare.mkdir()
+        r = run(["init"], cwd=str(bare))
+        self.assertEqual(r.returncode, 15)
+        self.assertIn("--clone", r.stderr)
+
+    def test_record_resolves_relative_paths(self):
+        self.init()
+        r = run(["record", "democap", "--version", "1.2.3",
+                 "--artifact", "artifact-one.md"], cwd=str(self.clone))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        s = run(["show", "democap"], cwd=str(Path(self.tmp.name)),
+                env_extra={"AOS_CLONE": str(self.clone)})
+        entry = json.loads(s.stdout)
+        (path,) = entry["artifacts"].keys()
+        self.assertTrue(Path(path).is_absolute())
+        v = run(["verify", "democap"], cwd=str(Path(self.tmp.name)),
+                env_extra={"AOS_CLONE": str(self.clone)})
+        self.assertEqual(v.returncode, 0, v.stderr)
+
+    def test_record_missing_artifact_clean_error(self):
+        self.init()
+        r = self.lock("record", "democap", "--version", "1.2.3",
+                      "--artifact", str(self.clone / "no-such.md"))
+        self.assertEqual(r.returncode, 16)
+        self.assertIn("no-such.md", r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
+
+    def test_rehash_refreshes_only_hashes(self):
+        self.init()
+        self.record()
+        self.a1.write_text("alpha v2\n")
+        r = self.lock("rehash", "democap")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        v = self.lock("verify", "democap")
+        self.assertEqual(v.returncode, 0, v.stderr)
+        entry = json.loads(self.lock("show", "democap").stdout)
+        self.assertEqual(len(entry["artifacts"]), 2)
+        self.assertIn("job-abc123", entry["schedules_owned"])
+
+    def test_manifest_schedule_and_depends_rules(self):
+        cap = self.clone / "capabilities" / "democap" / "CAPABILITY.md"
+        cap.write_text(VALID_MANIFEST.replace("skills:",
+            "depends:\n  capabilities: [ghostcap]\n"
+            "schedules:\n  - cron: \"0 4 * * *\"\n    agent: main\nskills:"))
+        r = self.lock("manifest", str(cap.parent))
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("ghostcap", r.stderr)      # missing dependency
+        self.assertIn("id", r.stderr)            # schedule id required
+        self.assertIn("prompt_ref", r.stderr)    # agent form needs prompt_ref
+        self.assertIn("degraded", r.stderr)      # degraded required
 
     # -- clone discovery ---------------------------------------------------
     def test_discovery_walks_up_from_cwd(self):

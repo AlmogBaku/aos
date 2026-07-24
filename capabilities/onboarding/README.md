@@ -7,7 +7,7 @@ secrets as `{store, key}` references with values in the harness store.
 
 Also owns the **global bootstrap interview** (its own `ONBOARDING.md`): identity, timezone,
 working hours, sacred time, red lines → the root `MOD.md`. First thing a new user runs
-(`BOOTSTRAP.md` step 2).
+(the bootstrap hand-over, `BOOTSTRAP.md` step 3).
 
 Re-runs ask only missing or `re_ask` questions; `--refresh` re-asks everything and shows a
 diff before writing. Nothing self-deletes.

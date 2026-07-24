@@ -37,7 +37,7 @@ Built and passing the [three CI tiers](docs/TESTING.md) today:
 | [**kb**](capabilities/kb/) | infra | Multi-base knowledge infrastructure: registry, rules-first routing, the base engine (immutable `raw/` + current-truth wiki), and the deterministic [`base` tool](capabilities/kb/tool/) |
 | [**onboarding**](capabilities/onboarding/) | infra | The interview engine — typed questions → your user-owned `MOD.md` overlay; re-runnable, diff-shown |
 | [**gtd-capture**](capabilities/gtd-capture/) | usecase | Capture a thought in under 5 seconds; a nightly drain turns pending captures into next-actions and reminders |
-| [**importer**](capabilities/importer/) | usecase | Wrap what you already built in your harness into a shareable capability package |
+| [**importer**](capabilities/importer/) | infra | Wrap what you already built in your harness into a shareable capability package |
 | [**capability-builder**](capabilities/capability-builder/) | infra | Notices when a chat request is really a new use case and walks it through intake → research → design → approval → build |
 | [**capability-lifecycle**](capabilities/capability-lifecycle/) | infra | Install/upgrade/remove/evolve as skills in your harness; the MOD.md ledger; the [`aos-lock`](capabilities/capability-lifecycle/tool/) bookkeeping tool; the per-harness cheat-sheets |
 

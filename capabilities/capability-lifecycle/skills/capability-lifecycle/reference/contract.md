@@ -12,7 +12,8 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   in the overlay (§3.1) and the materialized artifacts.
 - **The lockfile is `aos-lock`'s file.** Everything you materialize is recorded — one
   entry per capability+harness: version, artifact paths + sha256, job ids under
-  `schedules_owned`, config keys, `.env` variable names, scripts/hooks. You call verbs
+  `schedules_owned`, config keys, `.env` variable names, scripts/hooks; a capability's
+  installed tool binary is recorded as an `--artifact` (hash the command on PATH). You call verbs
   (`aos-lock --help`), you never read or write the YAML. No lockfile record, no
   artifact. If a crash lands between EXECUTE and `record`, everything written carries
   provenance anyway — re-introspect for the tags and record or remove what you find.
@@ -25,11 +26,12 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   frontmatter block (between the `---` delimiters, beside `name:`).
 - **Schedules** are named `aos:<capability>:<schedule-id>` and single-owner (§5.5): check
   across agents first — exists elsewhere → ask the user to reassign, never duplicate.
-  Exec-type entries run the tool the capability's briefing installs; a path-form `exec:`
-  runs as `uv run <clone>/<path-and-args>`. An absent host feature triggers the
+  Exec-type entries run the tool the capability's briefing installs (verify
+  `uv --version` before wiring); a path-form `exec:` runs as `uv run <clone>/<path-and-args>`. An absent host feature triggers the
   schedule's declared degraded mode: `manual` = materialize the prompt as an invocable
   skill and tell the user how to run it · `inline` = append it (inside markers) to an
-  existing aos-owned job · `skip` = record it so it is reported.
+  existing aos-owned job · `skip` = skip it, say so in the install summary, and record it in your report — the
+  deferred `doctor` verb (RFC-004) will make skips queryable.
 - **Context blocks** are appended only inside
   `<!-- aos:<capability>@<version> begin -->` … `<!-- aos:<capability>@<version> end -->`
   markers; never touch text outside them.
@@ -44,6 +46,8 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   clone (capability sources, cheat-sheets, MOD ledgers): shipped files write a
   `<clone>/…` placeholder; the transform bakes the real clone path into materialized
   copies (same pass as `{{mod}}`), and scheduled commands get `--clone`/`AOS_CLONE`
-  baked the same way.
+  baked the same way. The lifecycle capability's own skills are copy-stable (no
+  transform) and keep the placeholder — resolve it at use time via `aos-lock`'s clone
+  discovery.
 - Harness-owned files (e.g. Hermes `config.yaml`, `cron/jobs.json`) are touched only
   through the harness's own CLI, per the cheat-sheet.

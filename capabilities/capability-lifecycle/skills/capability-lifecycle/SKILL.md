@@ -19,11 +19,12 @@ personalization: you re-apply it, you never overwrite it. The full rules:
 | "remove/uninstall <capability>" | `capability-remover` |
 | "change how <capability> behaves for me" | `capability-evolver` |
 | "what's installed?" | `aos-lock list` |
-| your harness's mapping | `harnesses/<harness-runtime>.md` (this capability); none → `reference/no-cheatsheet.md` |
+| your harness's mapping | `harnesses/<harness-runtime>.md` (this capability) — an aid, not a gate: loaded per operation, never standing context; none → `reference/no-cheatsheet.md` |
 
 Manifest quick facts: CAPABILITY.md frontmatter is strict-typed (`aos-lock manifest
-<dir>` parses and validates it — its errors name the field and rule); predefined fields
-only, `x-*` reserved for extensions; the prose below the frontmatter is the installer's
+<dir>` parses and validates it — its errors name the field and rule); the fields are
+`id · version · tags · summary · depends · schedules · skills · kb`, `x-*` reserved
+for extensions; the prose below the frontmatter is the installer's
 briefing, never runtime context.
 
 ## Experience

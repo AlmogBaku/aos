@@ -75,7 +75,8 @@ skill resolves them.
    is on PATH for every agent and cron:
    `uv tool install --from <clone>/capabilities/kb/tool aos-base`
    (record in the lockfile under the capability; removal = `uv tool uninstall
-   aos-base`). No uv on the host → degraded: skills fall back to prose execution and
+   aos-base`). uv is a bootstrap prerequisite; if it later disappears → degraded:
+   skills fall back to prose execution and
    exec schedules to manual run-cards.
 1. **Skills** per `used_by`: the `kb` entry skill goes to the front agent AND the
    archiver — it carries the map; the tool is on PATH for both.

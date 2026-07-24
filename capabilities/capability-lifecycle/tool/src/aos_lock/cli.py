@@ -5,7 +5,7 @@ Two jobs, no judgment:
   init/record/verify/show/list/remove  own the lockfile (.aos/installs.lock.yaml)
 
 The lockfile is THIS TOOL'S file: agents call verbs, never edit the YAML.
-Exit codes: 0 ok · 12 manifest invalid · 13 drift · 14 no such entry · 15 no clone.
+Exit codes: 0 ok · 12 manifest invalid · 13 drift · 14 no such entry · 15 no clone · 16 artifact missing.
 """
 import argparse
 import hashlib
@@ -38,11 +38,13 @@ def fail(code, msg):
     sys.exit(code)
 
 
-def find_clone(args):
+def find_clone(args, require_existing=True):
     if args.clone:
         root = Path(args.clone)
     elif os.environ.get("AOS_CLONE"):
         root = Path(os.environ["AOS_CLONE"])
+    elif not require_existing:
+        fail(15, "init creates state — name the clone explicitly (--clone or AOS_CLONE)")
     else:
         cur = Path.cwd()
         for cand in [cur, *cur.parents]:
@@ -50,7 +52,7 @@ def find_clone(args):
                 return cand
         fail(15, "no clone found: no .aos/ directory from cwd upward "
                  "(pass --clone or set AOS_CLONE)")
-    if not (root / ".aos").is_dir():
+    if require_existing and not (root / ".aos").is_dir():
         fail(15, f"no .aos/ directory under {root}")
     return root
 
@@ -59,9 +61,10 @@ def frontmatter(path):
     text = path.read_text()
     if not text.startswith("---\n"):
         fail(12, f"{path}: no YAML frontmatter block")
-    end = text.find("\n---", 4)
-    if end < 0:
+    m = re.search(r"^---\s*$", text[4:], flags=re.M)
+    if not m:
         fail(12, f"{path}: unterminated frontmatter block")
+    end = 4 + m.start()
     try:
         return yaml.safe_load(text[4:end]) or {}
     except yaml.YAMLError as e:
@@ -98,8 +101,20 @@ def cmd_manifest(args):
         if level not in HOST_LEVELS:
             errs.append(f"depends.host.{feat}: level '{level}' not in {sorted(HOST_LEVELS)}")
 
-    agent_names = {p.name.replace(".agent.yaml", "")
-                   for p in (cap_dir / "agents").glob("*.agent.yaml")} | {"main"}
+    agent_names = {"main"}
+    for spec in (cap_dir / "agents").glob("*.agent.yaml"):
+        try:
+            name = (yaml.safe_load(spec.read_text()) or {}).get("name")
+        except yaml.YAMLError:
+            name = None
+        agent_names.add(name or spec.name.replace(".agent.yaml", ""))
+    for dep in (depends.get("capabilities") or []):
+        if not (cap_dir.parent / str(dep) / "CAPABILITY.md").is_file():
+            errs.append(f"depends.capabilities: '{dep}' has no capabilities/{dep}/CAPABILITY.md")
+    if not (cap_dir / "README.md").is_file():
+        errs.append("README.md is required")
+    if (cap_dir / "ONBOARDING.md").is_file() and not (cap_dir / "MOD.example.md").is_file():
+        errs.append("ONBOARDING.md without MOD.example.md (presence-paired)")
     seen_sched = set()
     for s in data.get("schedules") or []:
         for key in s:
@@ -111,13 +126,27 @@ def cmd_manifest(args):
         seen_sched.add(sid)
         if not CRON5.match(str(s.get("cron", ""))):
             errs.append(f"schedules[{sid}]: cron '{s.get('cron')}' is not 5-field")
+        if sid is None:
+            errs.append("schedules: every entry requires an id")
         has_exec = "exec" in s
         has_agent = "agent" in s or "prompt_ref" in s
         if has_exec == has_agent:
             errs.append(f"schedules[{sid}]: exactly one of exec | agent+prompt_ref")
-        if has_agent and s.get("agent") not in agent_names:
-            errs.append(f"schedules[{sid}]: agent '{s.get('agent')}' is not main or a declared agent")
-        if s.get("degraded") is not None and s["degraded"] not in DEGRADED:
+        if has_agent:
+            if s.get("agent") not in agent_names:
+                errs.append(f"schedules[{sid}]: agent '{s.get('agent')}' is not main or a declared agent")
+            pref = s.get("prompt_ref")
+            if not pref:
+                errs.append(f"schedules[{sid}]: agent form requires prompt_ref")
+            elif not (cap_dir / str(pref)).is_file():
+                errs.append(f"schedules[{sid}]: prompt_ref '{pref}' does not resolve in the capability")
+        if has_exec:
+            first = str(s.get("exec", "")).split()[0] if str(s.get("exec", "")).strip() else ""
+            if "/" in first and not (cap_dir / first).is_file():
+                errs.append(f"schedules[{sid}]: exec path '{first}' does not resolve in the capability")
+        if s.get("degraded") is None:
+            errs.append(f"schedules[{sid}]: degraded is required (manual|skip|inline)")
+        elif s["degraded"] not in DEGRADED:
             errs.append(f"schedules[{sid}]: degraded '{s['degraded']}' not in {sorted(DEGRADED)}")
 
     declared = set()
@@ -146,6 +175,12 @@ def cmd_manifest(args):
     for key in kb:
         if key not in KB_KEYS:
             errs.append(f"kb: unknown key '{key}'")
+    for zone in (kb.get("zones") or []):
+        for key in zone:
+            if key not in ("path", "owner_agent"):
+                errs.append(f"kb.zones: unknown key '{key}'")
+        if zone.get("owner_agent") and zone["owner_agent"] not in agent_names:
+            errs.append(f"kb.zones: owner_agent '{zone['owner_agent']}' is not main or a declared agent")
 
     if errs:
         for e in errs:
@@ -159,7 +194,10 @@ def load_lock(root):
     path = root / LOCK_REL
     if not path.is_file():
         fail(15, f"no lockfile at {path} (run: aos-lock init)")
-    return yaml.safe_load(path.read_text()) or {"version": 1, "installs": {}}
+    data = yaml.safe_load(path.read_text()) or {}
+    data.setdefault("version", 1)
+    data.setdefault("installs", {})
+    return data
 
 
 def save_lock(root, data):
@@ -167,11 +205,14 @@ def save_lock(root, data):
 
 
 def sha256(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    p = Path(path)
+    if not p.is_file():
+        fail(16, f"artifact not found: {path}")
+    return hashlib.sha256(p.read_bytes()).hexdigest()
 
 
 def cmd_init(args):
-    root = find_clone(args)
+    root = find_clone(args, require_existing=False)
     path = root / LOCK_REL
     if path.is_file():
         fail(1, f"{path} already exists")
@@ -185,7 +226,7 @@ def cmd_record(args):
     lock = load_lock(root)
     entry = {
         "version": args.version,
-        "artifacts": {str(a): sha256(a) for a in args.artifact},
+        "artifacts": {str(Path(a).resolve()): sha256(Path(a).resolve()) for a in args.artifact},
         "schedules_owned": list(args.job),
         "config_keys": list(args.config_key),
         "env_lines": list(args.env_line),
@@ -195,6 +236,14 @@ def cmd_record(args):
     save_lock(root, lock)
     print(f"recorded {args.capability}@{args.version}: "
           f"{len(entry['artifacts'])} artifacts, {len(entry['schedules_owned'])} schedules")
+
+
+def cmd_rehash(args):
+    root = find_clone(args)
+    lock, entry = get_entry(root, args.capability)
+    entry["artifacts"] = {path: sha256(path) for path in entry.get("artifacts", {})}
+    save_lock(root, lock)
+    print(f"rehashed {args.capability}: {len(entry['artifacts'])} artifacts")
 
 
 def get_entry(root, capability):
@@ -272,6 +321,10 @@ def main():
     s.add_argument("--env-line", action="append", default=[], help="env var NAME added (never the value)")
     s.add_argument("--script", action="append", default=[], help="script/hook file installed")
     s.set_defaults(fn=cmd_record)
+
+    s = sub.add_parser("rehash", help="re-hash a capability's recorded artifacts in place (after an approved evolve)")
+    s.add_argument("capability")
+    s.set_defaults(fn=cmd_rehash)
 
     s = sub.add_parser("verify", help="re-hash artifacts vs disk; 13 on drift")
     s.add_argument("capability", nargs="?")

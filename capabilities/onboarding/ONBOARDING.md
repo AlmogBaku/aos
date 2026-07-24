@@ -25,7 +25,7 @@ questions:
 
 # The global bootstrap interview
 
-This is the first interview a new user ever runs (BOOTSTRAP.md step 2). It writes the
+This is the first interview a new user ever runs (the bootstrap hand-over, BOOTSTRAP.md step 3). It writes the
 **root** `MOD.md` — the global overlay every capability's transform reads. Tone: brief and
 warm; the user just pasted an install command, don't make this feel like a tax form.
 
