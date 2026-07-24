@@ -1,6 +1,6 @@
 ---
 id: kb
-version: 0.3.1
+version: 0.4.0
 tags: [infra]
 summary: Multi-base knowledge infrastructure — registry, routing, the base engine (store · curation · state), the deterministic `base` tool, and one Archiver agent across all bases.
 depends:
@@ -73,7 +73,7 @@ skill resolves them.
 
 0. **The tool — first.** Install the capability's deterministic executor so `base`
    is on PATH for every agent and cron:
-   `uv tool install --from <clone>/capabilities/kb/tool aos-base`
+   `uv tool install --from <home>/upstream/capabilities/kb/tool aos-base`
    (record in the lockfile under the capability; removal = `uv tool uninstall
    aos-base`). uv is a bootstrap prerequisite; if it later disappears → degraded:
    skills fall back to prose execution and

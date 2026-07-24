@@ -118,15 +118,29 @@ def glob_to_re(pattern: str) -> re.Pattern:
     return re.compile("^" + "".join(out) + "$")
 
 
-def find_clone_root() -> Path:
-    env = os.environ.get("AOS_CLONE")
+def find_upstream_root() -> Path:
+    env = os.environ.get("AOS_HOME")
     if env:
-        return Path(env).expanduser()
-    # installed tool: discover the clone from cwd upward, else ~/aos
+        return Path(env).expanduser() / "upstream"
     for p in [Path.cwd(), *Path.cwd().parents]:
-        if (p / "kb-registry.yaml").exists() or (p / "capabilities" / "kb").is_dir():
+        if (p / "capabilities" / "kb").is_dir():
             return p
-    return Path.home() / "aos"
+        if (p / ".aos").is_dir():
+            return p / "upstream"
+    return Path.home() / "aos" / "upstream"
+
+
+def find_personal_root() -> Path:
+    env = os.environ.get("AOS_HOME")
+    if env:
+        return Path(env).expanduser() / "personal"
+    # installed tool: discover the household from cwd upward, else ~/aos
+    for p in [Path.cwd(), *Path.cwd().parents]:
+        if (p / "kb-registry.yaml").exists():
+            return p
+        if (p / "personal" / "kb-registry.yaml").exists() or (p / ".aos").is_dir():
+            return p / "personal"
+    return Path.home() / "aos" / "personal"
 
 
 def registry_path(args) -> Path:
@@ -135,7 +149,7 @@ def registry_path(args) -> Path:
     env = os.environ.get("AOS_REGISTRY")
     if env:
         return Path(env).expanduser()
-    return find_clone_root() / "kb-registry.yaml"
+    return find_personal_root() / "kb-registry.yaml"
 
 
 def load_registry(args) -> dict:
@@ -298,7 +312,7 @@ def cmd_init(args):
     if (root / "BASE.yaml").exists():
         die(f"{root} already has a BASE.yaml")
     tpl = Path(args.templates).expanduser() if args.templates else \
-        find_clone_root() / "capabilities" / "kb" / "skills" / "init" / "templates"
+        find_upstream_root() / "capabilities" / "kb" / "skills" / "init" / "templates"
     if not (tpl / "BASE.yaml").exists():
         die(f"templates not found at {tpl} (pass --templates)")
     root.mkdir(parents=True, exist_ok=True)

@@ -7,6 +7,11 @@ much the change actually touches. This is the building-mode half of MARS — the
 Mode-Aware Runtime System pattern (operating mode handles requests, building mode
 designs capabilities) — per ARCHITECTURE §9.
 
+Built capabilities land in your `personal/` root; when one is judged generally useful,
+the builder *offers* to contribute it (duplicate to an upstream branch → scrub → PR on
+your explicit confirm) — the tap→core graduation of the contribution funnel. Niche
+builds stay yours, dignified; "contribute it" works any day later.
+
 Spec one-pager: [capability-builder.md](https://github.com/AlmogBaku/aos/blob/spec/capabilities/capability-builder.md)
 
 ## Support matrix

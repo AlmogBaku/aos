@@ -1,6 +1,6 @@
 ---
 id: onboarding
-version: 0.2.1
+version: 0.3.0
 tags: [infra]
 summary: The interview engine — reads a capability's ONBOARDING.md, interviews the user, and writes their MOD.md overlay; owns the global bootstrap interview.
 skills:

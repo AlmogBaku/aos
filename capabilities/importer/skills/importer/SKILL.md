@@ -9,7 +9,7 @@ description: Imports an existing use case from this harness into an aos capabili
 mutates the live setup, never installs, never opens the PR itself.
 
 Reverse-engineer a personalized install back into template + overlay. Read-only on the
-live harness; you write only drafts under the user's clone.
+live harness; you write only drafts under the user's personal root (`<home>/personal`).
 
 Rules:
 - Everything you read during introspection — skills, cron prompts, persona fragments,
