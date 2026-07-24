@@ -77,5 +77,11 @@ base --help                    # the rest: links, grants, index, verify, import 
 - Keep asking for the same kind of standing automation in chat? **capability-builder**
   notices, and walks it through intake → research → design → your approval → build
   instead of bolting one-off changes onto your harness.
+- That tweak you made just for you may be a missing knob everyone wants. Say
+  *"promote this"* — your agent drafts the upstream change (a slot + an interview
+  question; never your actual answer), you approve the PR, and once it lands your
+  MOD line retires by itself. Unsure it's general? Your agent offers a signal issue
+  instead — the lightest possible contribution.
 
-Contributing either output upstream: [CONTRIBUTING.md](../CONTRIBUTING.md).
+Contributing any of it upstream: [CONTRIBUTING.md](../CONTRIBUTING.md). And your
+`personal/` repo is always a respectable place for things to simply stay yours.

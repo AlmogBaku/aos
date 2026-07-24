@@ -6,9 +6,10 @@
 # …and golden snapshots, which record the rendered user side incl. its lockfile
 !tests/golden/**/.aos/
 
-# NOTE on MOD.md / kb-registry.yaml (the overlay family): whether users track them
-# in a private fork or gitignore them is RFC-005 — deliberately NOT decided here.
-# Upstream CI rejects overlay-family paths in PRs either way.
+# NOTE on MOD.md / kb-registry.yaml (the overlay family): with the household layout
+# (RFC-005 resolved) they live in the user's ~/aos/personal repo, never in this
+# clone — so there is nothing to ignore. Upstream CI rejects overlay-family paths
+# in PRs regardless (fixtures and golden snapshots are the one exemption).
 
 # build tooling + scratch test area
 node_modules/
