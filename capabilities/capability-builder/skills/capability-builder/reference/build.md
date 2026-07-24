@@ -19,5 +19,6 @@ package would ship.
 capability package sitting in the clone; installing it into the harness is the
 already-specified install flow, a separate step.
 
-Before calling it done: run the repo's tier-1 lint if `tools/` exists, and show the
-user the full file tree plus a one-line summary of each new file.
+Before calling it done: run the kit linter (`node tools/lint/aos-lint.mjs`) if
+`tools/` exists — the new package must add zero errors — and show the user the full
+file tree plus a one-line summary of each new file.

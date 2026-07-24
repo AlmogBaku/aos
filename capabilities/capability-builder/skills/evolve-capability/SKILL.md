@@ -24,8 +24,13 @@ calibrate against, not a checklist to satisfy mechanically.
   a personalization answer changes through the onboarding skill (the only MOD.md
   writer), then the live materialized artifact is synced to match (the §3.3
   round-trip: overlay and install stay consistent, MOD.md stays the source of truth);
-  a package-level tweak edits the capability in the clone, and the user is told it
-  goes live on the next install/update. Either way: tell the user what changed and
+  a package-level tweak: **whose package is it?** A capability the user authored
+  (built here, or an importer draft) is theirs — edit it in the clone; it goes live
+  on the next install/update. An **upstream-shipped** capability is not silently
+  edited in the clone — that's fork drift, the exact thing the overlay exists to
+  prevent: route it through the overlay if it's personalizable, otherwise draft the
+  change and offer to open an upstream PR (applying it locally only if the user
+  accepts the divergence knowingly). Either way: tell the user what changed and
   where — transparent, not silent, but no approval gate.
 - **Major**: interrupt like `capability-builder`'s detector does, then run the
   scaled-down procedure in [reference/procedure.md](reference/procedure.md).
