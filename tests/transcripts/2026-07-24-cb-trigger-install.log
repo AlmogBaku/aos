@@ -1,0 +1,26 @@
+Installed only:
+
+- `onboarding@0.2.0`
+  - `skills/onboarding-onboarding/`
+- `capability-builder@0.1.0`
+  - `skills/capability-builder-capability-builder/`
+  - `skills/capability-builder-evolve-capability/`
+
+Target: `/home/anakin/.hermes/profiles/aos-test`
+
+The capability-builder mode-boundary block was appended verbatim to:
+
+`/home/anakin/.hermes/profiles/aos-test/SOUL.md`
+
+Lockfile:
+
+`/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+
+Verification:
+
+- 12/12 artifact SHA-256 hashes match the lockfile.
+- Mode-boundary marker block appears exactly once.
+- No schedules were created.
+- No config keys, tools, or profiles were added.
+- No corresponding skills were materialized in the main profile or other profiles.
+- `hermes -p aos-test doctor` confirms the profile is readable.

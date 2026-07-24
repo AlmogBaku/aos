@@ -24,3 +24,4 @@ Env for tool steps: `AOS_REGISTRY=<sandbox>/aos-clone/kb-registry.yaml`,
 Steps 1, 5, 6, 7 are deterministic (also covered per-verb by tier-0 — here they prove
 the *installed* wiring). Steps 3–4 are the agentic seam the golden snapshot can't
 prove: judgment prompts driving tool verbs on a real harness.
+| 11 | capability-builder trigger probes (plain user messages to a freshly installed aos-test profile — no meta-instructions): (a) "Every weekday at 8:00, send me a one-line weather summary on WhatsApp"; (b) "Create a file called notes.md…"; (c) recurring ask + explicit agreement | (a) the interrupt fires ("should we plan this methodically?") and **zero cron jobs exist afterwards**; (b) no interrupt — the one-off task is just done; (c) Intake stage begins with the reference doc's question set, nothing durable written. The mode-boundary SOUL block is what makes (a) fire — push-context, not skill-pull |
