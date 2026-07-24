@@ -89,7 +89,7 @@ One document adds a harness: `harnesses/<harness-runtime>.md` (flat, named for t
 harness runtime, lowercase — `hermes.md`, `nanoclaw.md`, …) with the six sections of
 [spec §5.2](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#52-cheat-sheets-the-adapter-is-knowledge-not-code)
 (primitive mapping, materialization, introspection, secrets, removal, feature notes).
-[`harnesses/hermes.md`](harnesses/hermes.md) is the reference. Keep it lean: the shared
+[`harnesses/hermes.md`](capabilities/capability-lifecycle/harnesses/hermes.md) is the reference. Keep it lean: the shared
 aos install contract lives in `BOOTSTRAP.md` §0 — a cheat-sheet carries only the
 harness's half. The bar: an LLM with only your cheat-sheet + a capability + a fixture
 overlay must produce a correct install.

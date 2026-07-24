@@ -3,7 +3,7 @@
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
 Nanobot (obot-platform/nanobot, the MCP-host agent runtime). The aos half of the install
 contract — provenance, lockfile, markers, secret references, degraded-mode meanings,
-removal discipline — is `BOOTSTRAP.md` §0; this sheet is only the Nanobot half.
+removal discipline — is the `capability-lifecycle` entry skill's `reference/contract.md`; this sheet is only the Nanobot half.
 
 > [!WARNING]
 > Research-drafted: no aos e2e install has run on this harness yet (ARCHITECTURE §5.3).
@@ -38,13 +38,13 @@ deprecated `mcp-servers.yaml|json` (don't add one; only one variant is allowed).
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`, under the BOOTSTRAP §0 contract. Config edits take
+Work top-down from `CAPABILITY.md`, under the contract (reference/contract.md). Config edits take
 effect on the next `nanobot run` — restart after materializing.
 
 1. **Agents.** Create `agents/<id>.md`: frontmatter `name:` + fields, `purpose` + persona
    → the markdown body. `workspace: shared` ⇒ no new agent; wire into `main.md`. Sub-agent
    delegation is first-class: list child ids under the parent's `agents:`.
-2. **Skills** land in the shared `skills/` dir (naming per BOOTSTRAP §0); Nanobot
+2. **Skills** land in the shared `skills/` dir (naming per the contract); Nanobot
    requires frontmatter `name:` to match the dir, so update it in the copy, then attach
    to each `used_by` agent via its `skills:` list.
 3. **Tools.** Capability-shipped or external tools land under `mcpServers:` in
@@ -98,7 +98,7 @@ There is no uninstall command — drive everything from the lockfile entry, in o
    `nanobot.yaml`; `nanobot.env` lines: remove after asking the user.
 5. Agents created by this capability and used by nothing else: delete `agents/<id>.md`;
    if one was the entrypoint, set a new `agents/main.md` or `publish.entrypoint`.
-6. Restart `nanobot run`; remove the lockfile entry; verify per BOOTSTRAP §0 (re-run
+6. Restart `nanobot run`; remove the lockfile entry; verify per the contract (re-run
    Introspection).
 
 ## Feature notes
@@ -114,7 +114,7 @@ There is no uninstall command — drive everything from the lockfile entry, in o
 | `email` | ✗ | roadmap ⇒ degraded mode |
 | `secrets-store` | ⚠ partial | `env:` + `sensitive:` redaction, no vault — treat as env-file-grade |
 
-Degraded-mode wiring (meanings in BOOTSTRAP §0): `manual` ⇒ the invocable skill lands in
+Degraded-mode wiring (meanings in reference/contract.md): `manual` ⇒ the invocable skill lands in
 `skills/` attached to the agent that would have owned the task; `inline` ⇒
 `updateScheduledTask` appends (inside markers) to an existing aos-owned task's prompt.
 

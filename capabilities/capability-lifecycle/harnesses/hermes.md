@@ -2,7 +2,7 @@
 
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
 Hermes. The aos half of the install contract — provenance, lockfile, markers, secret
-references, degraded-mode meanings, removal discipline — is `BOOTSTRAP.md` §0; this sheet
+references, degraded-mode meanings, removal discipline — is the `capability-lifecycle` entry skill's `reference/contract.md`; this sheet
 is only the Hermes half.
 
 **Rule zero: never hand-edit `config.yaml` or `cron/jobs.json`.** Both are
@@ -31,7 +31,7 @@ the profile's default doesn't already fit the class; never hardcode provider nam
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`, under the BOOTSTRAP §0 contract.
+Work top-down from `CAPABILITY.md`, under the contract (reference/contract.md).
 
 1. **Agents → profiles.** `hermes profile create <name>`; then inside the profile:
    `purpose` + persona content → `SOUL.md` (replace the seeded default, never leave it
@@ -100,7 +100,7 @@ Drive everything from the lockfile entry, in order:
 6. Profiles created by this capability and used by nothing else: `hermes profile delete
    <name>`.
 7. Recorded `~/.hermes/scripts/` and `hooks/` files: delete.
-8. Remove the lockfile entry; verify per BOOTSTRAP §0 (re-run Introspection).
+8. Remove the lockfile entry; verify per the contract (re-run Introspection).
 
 ## Feature notes
 
@@ -114,7 +114,7 @@ Drive everything from the lockfile entry, in order:
 | `email` | ⚠ via skill | same as calendar |
 | `secrets-store` | ✓ | `.env` (+ optional `hermes secrets`) |
 
-Degraded-mode wiring (meanings in BOOTSTRAP §0): `manual` ⇒ the invocable skill lands in
+Degraded-mode wiring (meanings in reference/contract.md): `manual` ⇒ the invocable skill lands in
 the same profile the job would have owned; `inline` ⇒ append via `hermes cron edit`.
 
 Safety rails to route through: `hermes backup --quick` (pre-install), `state-snapshots/`

@@ -2,7 +2,7 @@
 
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
 NanoClaw. The aos half of the install contract — provenance, lockfile, markers, secret
-references, degraded-mode meanings, removal discipline — is `BOOTSTRAP.md` §0; this sheet is
+references, degraded-mode meanings, removal discipline — is the `capability-lifecycle` entry skill's `reference/contract.md`; this sheet is
 only the NanoClaw half. One sheet covers **v2** (current) and **v1** (frozen at v1.2.0;
 migration is `/migrate-from-v1`): each concept is stated once, and where the execution
 surface differs it splits inline as "v2: `ncl …` · v1: ask the main agent / edit editable files".
@@ -49,7 +49,7 @@ already fit the class; never hardcode provider names.
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`, under the BOOTSTRAP §0 contract.
+Work top-down from `CAPABILITY.md`, under the contract (reference/contract.md).
 
 1. **Agents → agent groups.** v2: `ncl groups create --name "Scout" --folder scout`; wire to
    a chat with `ncl messaging-groups create --channel-type <t> --platform-id <id> --name <n>
@@ -58,7 +58,7 @@ Work top-down from `CAPABILITY.md`, under the BOOTSTRAP §0 contract.
    `pnpm run chat scout "hi"` (cold start 30–60 s). v1: ask the main agent to register the
    chat as a group. `purpose` + persona content → v2 `instructions.prepend.md` (then
    `ncl groups restart --id <id>`) · v1 `groups/<f>/CLAUDE.md`.
-2. **Skills** land in `.claude/skills/` (naming and copy rules per BOOTSTRAP §0; frontmatter
+2. **Skills** land in `.claude/skills/` (naming and copy rules per the contract; frontmatter
    `name`: lowercase `[a-z0-9-]`, ≤64 chars). Scope per `used_by` via the v2 group config `skills`
    field; v2 skills that leave artifacts ship a sibling `REMOVE.md` (no v1 `REMOVE.md`
    convention found — unverified). Channel plumbing comes from registry slash-skills (`/add-telegram`, …) —
@@ -136,7 +136,7 @@ Drive everything from the lockfile entry, in order:
    --id <id>` (cascades wirings, config, sessions); orphaned plumbing via
    `ncl wirings delete` and `ncl messaging-groups delete`. v1: the main agent's remove-group
    (deletes the DB row + `groups/<folder>/`).
-7. Remove the lockfile entry; verify per BOOTSTRAP §0 (re-run Introspection).
+7. Remove the lockfile entry; verify per the contract (re-run Introspection).
 
 Whole-harness uninstall (not per-capability): v2 `bash nanoclaw.sh --uninstall` (`--dry-run`,
 `--yes`); leftover containers
@@ -156,7 +156,7 @@ uninstall script — manual cleanup plus stopping the `launchd/` service.
 | `email` | ⚠ both | v2 `/add-gmail-tool` (read/search/send/label/draft) + `/add-resend` outbound channel; v1 `add-gmail` skill; absent ⇒ degraded mode |
 | `secrets-store` | v2 ✓ · v1 ⚠ | `.env` always; v2 optionally the OneCLI vault; v1 `.env` only |
 
-Degraded-mode wiring (meanings in BOOTSTRAP §0): `manual` ⇒ the invocable skill lands in
+Degraded-mode wiring (meanings in reference/contract.md): `manual` ⇒ the invocable skill lands in
 `.claude/skills/` scoped (v2 `skills` field) to the group that would have owned the job;
 `inline` ⇒ no verified task-edit verb exists — cancel the owning task and recreate it under
 the same `aos:` name with the appended prompt.

@@ -2,7 +2,7 @@
 
 The guide for the *human* about to install. Your agent follows
 [`BOOTSTRAP.md`](../BOOTSTRAP.md) (the exact sequence), which loads its harness runtime's
-[cheat-sheet](../harnesses/) at the steps that need it; this page tells you what to
+[cheat-sheet](../capabilities/capability-lifecycle/harnesses/) at the steps that need it; this page tells you what to
 expect, what you'll be asked, and what ends up where.
 
 ## Before you start
