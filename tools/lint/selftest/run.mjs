@@ -10,6 +10,7 @@ import { checkOnboarding } from '../checks/onboarding.mjs';
 import { checkOverlayPaths, checkOverlaySchemas } from '../checks/overlay.mjs';
 import { checkReferences } from '../checks/refs.mjs';
 import { checkCheatsheets } from '../checks/cheatsheet.mjs';
+import { checkCrossPaths } from '../checks/crosspath.mjs';
 import { checkSecrets } from '../checks/secrets.mjs';
 import { checkStructure } from '../checks/structure.mjs';
 
@@ -22,6 +23,7 @@ const EXPECTED = [
   'schedules/unknown-key', 'schedules/id', 'schedules/cron', 'schedules/agent',
   'schedules/prompt-ref', 'schedules/degraded',
   'skills/unknown-key', 'skills/missing-dir', 'skills/undeclared',
+  'skill/no-cross-path',
   'skill/origin-tag', 'skill/unknown-key', 'skill/name', 'skill/description',
   'skill/used-by', 'skill/used-by-ref',
   'agent/unknown-key', 'agent/required', 'agent/name-file', 'agent/model-class',
@@ -42,7 +44,7 @@ const ctx = { root: ROOT, files: walkRepo(ROOT), caps: listCapabilities(ROOT), r
 for (const check of [
   checkManifests, checkSkills, checkAgents, checkOnboarding,
   checkOverlayPaths, checkOverlaySchemas, checkReferences,
-  checkCheatsheets, checkSecrets, checkStructure,
+  checkCheatsheets, checkCrossPaths, checkSecrets, checkStructure,
 ]) {
   check(ctx);
 }

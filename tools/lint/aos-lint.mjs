@@ -9,6 +9,7 @@ import { checkOnboarding } from './checks/onboarding.mjs';
 import { checkOverlayPaths, checkOverlaySchemas } from './checks/overlay.mjs';
 import { checkReferences } from './checks/refs.mjs';
 import { checkCheatsheets } from './checks/cheatsheet.mjs';
+import { checkCrossPaths } from './checks/crosspath.mjs';
 import { checkSecrets } from './checks/secrets.mjs';
 import { checkVersionBumps } from './checks/version-bump.mjs';
 import { checkStructure } from './checks/structure.mjs';
@@ -30,7 +31,7 @@ const ctx = {
 for (const check of [
   checkManifests, checkSkills, checkAgents, checkOnboarding,
   checkOverlayPaths, checkOverlaySchemas, checkReferences,
-  checkCheatsheets, checkSecrets, checkVersionBumps, checkStructure,
+  checkCheatsheets, checkCrossPaths, checkSecrets, checkVersionBumps, checkStructure,
 ]) {
   try {
     check(ctx);

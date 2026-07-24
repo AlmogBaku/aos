@@ -8,7 +8,8 @@ export const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 // planted violations and is linted only by its own runner.
 // .aos/ is deliberately NOT skipped: a committed .aos path must be caught by
 // the overlay check (in CI the tree is a clean checkout, so no local noise).
-const SKIP_DIRS = new Set(['.git', 'node_modules', '.sandbox']);
+// .claude/.agents/.venv: local harness/tooling state, never kit content.
+const SKIP_DIRS = new Set(['.git', 'node_modules', '.sandbox', '.claude', '.agents', '.venv']);
 const SKIP_PREFIXES = ['tools/lint/selftest/'];
 
 export function walkRepo(root = REPO_ROOT) {

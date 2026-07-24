@@ -6,3 +6,7 @@ custom_field: not-allowed
 ---
 
 See [a dead link](./nowhere.md).
+
+Also planted: a cross-folder reference — read ../ghost/SKILL.md before continuing
+(`skill/no-cross-path` must fire: shipped skills reference siblings by NAME, the
+materialized dir is renamed to `<capability>-<id>/`).

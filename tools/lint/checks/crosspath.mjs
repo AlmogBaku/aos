@@ -1,0 +1,19 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+// ARCHITECTURE §2.1/§2.5 — in-capability cross-skill references are by skill NAME,
+// never by relative path: materialization renames skill dirs to <capability>-<id>/,
+// so an authored ../<dir>/ path breaks at runtime. Relative paths must stay inside
+// the skill's own folder (the whole-folder copy keeps those intact).
+export function checkCrossPaths({ files, report, root }) {
+  for (const rel of files) {
+    if (!/^capabilities\/[^/]+\/skills\/[^/]+\/.*\.md$/.test(rel)) continue;
+    const text = readFileSync(join(root, rel), 'utf8');
+    if (/\.\.\//.test(text)) {
+      report('error', 'skill/no-cross-path', rel,
+        'contains a "../" reference — cross-skill references are by skill name '
+        + '(materialized dirs are renamed to <capability>-<id>/, §2.5); '
+        + 'relative paths must stay inside the skill\'s own folder');
+    }
+  }
+}
