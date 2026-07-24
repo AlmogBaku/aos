@@ -23,7 +23,11 @@ adds your harness's half. Derive it yourself:
    branch** (`git -C <home>/upstream switch -c cheatsheet-<harness>`): a cheat-sheet is
    generic knowledge, not personalization — the clone stays pristine on `main`, and the
    draft is born contribution-shaped.
-3. **[D]** Diff gate: show the user the full draft before writing it.
+3. **[D]** Diff gate: show the user the full draft before writing it — then **commit it
+   on the branch** (`git -C <home>/upstream add capabilities/capability-lifecycle/harnesses/<h>.md`
+   + commit). Uncommitted, it would follow you back to `main` as an untracked file in a
+   clone that must hold nothing but upstream's own content — and it would fail the
+   contribution preflight's clean-status check.
 4. Proceed with the operation using your draft (it is in the working tree on that
    branch — do not switch away yet, or the file you are following disappears), telling
    the user the mappings are self-authored and unverified.

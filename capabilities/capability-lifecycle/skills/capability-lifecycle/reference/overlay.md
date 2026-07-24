@@ -31,7 +31,9 @@ Original skills × MOD.md → the pinned render in
   into scheduled commands).
 - Upgrade is the same transform with fresh upstream, written into `personal/`'s working
   tree: the current install is a drift *source*, never a merge input — and the review
-  gate is `git -C <home>/personal diff` (commit = accept, revert = rollback).
+  gate is a *staged* diff — `git -C <home>/personal add -A` then
+  `git diff --staged`, so files the re-render added are visible too (commit = accept,
+  revert = rollback).
 
 ## Capture and fold (the ledger's write side)
 
@@ -106,6 +108,7 @@ A retired line is deleted, not archived — `personal/` git history is the archi
 
 After every ledger write and every render, commit `personal/` with a dated one-line
 message ("evolve gtd-capture: drain 22:00 — 2026-07-25") — you do this, silently; the
-user never runs git. Restore on a new machine = clone `upstream/` + clone `personal/` +
-relink from the lockfile. `personal/`'s only remote is private; nothing personal ever
+user never runs git. Restore on a new machine = clone `upstream/` + clone `personal/`, then **re-install**
+(the lockfile is machine-local state, not something you carry): the renders are already
+there, so install re-creates the links and records a fresh lockfile. `personal/`'s only remote is private; nothing personal ever
 enters any other remote.

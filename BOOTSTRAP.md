@@ -48,7 +48,8 @@ private remote; only `.aos/` is machine-local.
 
 1. Confirm this clone is at `~/aos/upstream` and clean (`git -C ~/aos/upstream status`).
    If the paste-block landed it elsewhere (e.g. `~/aos` directly — the pre-household
-   shape), move it to `~/aos/upstream` first.
+   shape), stage the move: `mv ~/aos ~/aos-kit && mkdir ~/aos && mv ~/aos-kit
+   ~/aos/upstream` (a directory can't be moved inside itself in one step).
 2. Check remotes: the fork shape is `origin` = the user's fork, `upstream` = canonical.
    A plain clone (origin = canonical) is fine — note once that forking later is one
    command (`gh repo fork --remote`) and move on. **Forks are public** — which is safe,

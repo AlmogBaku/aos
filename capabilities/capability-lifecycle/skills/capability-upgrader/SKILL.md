@@ -35,9 +35,13 @@ diff in the user's own repo.
       (`reference/overlay.md`), written into `personal/`'s working tree; interview
       only new or `re_ask` questions. Then STAGE any native-plan changes per the
       cheat-sheet (load it now if not in context).
-   c. **[D]** GATE: `git -C <home>/personal diff` — the old render vs the new, per
-      file — plus the native plan. Approve → commit (dated message); decline →
-      `git -C <home>/personal checkout -- .` restores the working tree, stop.
+   c. **[D]** GATE: stage first, then diff — `git -C <home>/personal add -A` then
+      `git -C <home>/personal diff --staged` — the old render vs the new, per file,
+      **including files the re-render added** (a bare `git diff` would hide them) —
+      plus the native plan. Approve → commit (dated message). Decline →
+      `git -C <home>/personal reset --hard HEAD` **and**
+      `git -C <home>/personal clean -fd -- capabilities/<id>` (the reset alone leaves
+      the new files on disk, where the next persist commit would sweep them in), stop.
    d. **[D]** EXECUTE the native plan (links usually survive re-render untouched —
       verify, don't assume); `aos-lock record <id>` with the full updated set (start
       from `aos-lock show` — `record` replaces the entry wholesale, never call it with

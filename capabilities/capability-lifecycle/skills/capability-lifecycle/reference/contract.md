@@ -13,9 +13,16 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   seen the full diff of what you are about to write and approved it (§5.4). The three
   phases are explicit: **STAGE** (render the personalized artifacts into `personal/`'s
   working tree and compute the exact native command plan — commit nothing, touch no
-  harness file), **GATE** (show contents + plan; for re-renders the gate *is*
-  `git -C <home>/personal diff`), **EXECUTE** (commit the render in `personal/` with a
-  dated message, create the links, run the native plan). Nothing touches the harness
+  harness file), **GATE** (show contents + plan; for re-renders the gate *is* a git diff in
+  `personal/` — **stage first so new files are visible**:
+  `git -C <home>/personal add -A && git -C <home>/personal diff --staged`. A bare
+  `git diff` hides untracked files, and a re-render that *adds* a skill or a
+  `reference/` page is the commonest upgrade shape), **EXECUTE** (commit the staged
+  render with a dated message, create the links, run the native plan). Declined →
+  restore the working tree completely, additions included:
+  `git -C <home>/personal reset --hard HEAD` followed by
+  `git -C <home>/personal clean -fd -- capabilities/<id>` (scoped to the capability, so
+  nothing else of the user's is touched). Nothing touches the harness
   before the gate. Where the harness has a native plan/read-only mode (cheat-sheet
   Primitive mapping, `plan mode` row), STAGE runs inside it and the GATE approval is
   the exit.
@@ -23,8 +30,8 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   and you never edit shipped capability files in any source root — personalization
   lives only in `personal/` (the ledgers and the pinned renders).
 - **You never contribute without approval.** You never open a PR, file an issue,
-  comment, +1, or push to upstream — or any repo the user doesn't own — without the
-  user's explicit approval or request. No exceptions. Offers are cheap; writes that
+  comment, +1, push, fork, or create a branch on a remote — for upstream or any repo
+  the user doesn't own — without the user's explicit approval or request. No exceptions. Offers are cheap; writes that
   leave the machine are the user's alone to authorize.
 - **The lockfile is `aos-lock`'s file.** Everything you materialize is recorded — **one
   entry per capability, covering every harness it is installed into** (`record` replaces

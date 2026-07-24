@@ -13,8 +13,9 @@ to them are contributions, drafted on a branch. Changing how an installed capabi
 behaves *for this user* is `capability-evolver` (capability-lifecycle) — the overlay
 ledger, not the source.
 
-**Hard invariant: you never open a PR, file an issue, +1, or push anything to upstream
-without the user's explicit approval or request.** You draft and offer; only the user
+**Hard invariant: you never open a PR, file an issue, +1, push, fork, or create a
+remote branch — for upstream or any repo the user doesn't own — without the user's
+explicit approval or request.** You draft and offer; only the user
 sends. `gh pr create` / `gh issue create` confirm once more before firing.
 
 **Invariant: the size of the change decides the ceremony, not the size of the ask.**

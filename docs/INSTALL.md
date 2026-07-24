@@ -68,7 +68,7 @@ Everything else is a sentence, on demand:
 | You say | What happens |
 |---|---|
 | `install gtd-capture` | Briefing read → missing deps recursed → its interview → diff gate → materialize → lockfile |
-| `update` | After `git pull`: your hand-edits folded into MOD.md → backup → fresh upstream × MOD.md re-applied → diff gate |
+| `update` | After `git pull`: your hand-edits folded into MOD.md → fresh upstream × MOD.md re-rendered into `personal/` → diff gate |
 | "make the drain run at 22:00" | The evolve skill: change applied AND recorded in your MOD.md — survives every upgrade |
 | `remove gtd-capture` | The lockfile entry walked backwards; your `MOD.md` survives removal |
 
