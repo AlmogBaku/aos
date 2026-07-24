@@ -227,6 +227,14 @@ class LockToolTest(unittest.TestCase):
         self.assertNotIn("Traceback", r.stderr)
         self.assertIn("mapping", r.stderr)
 
+    def test_manifest_scalar_frontmatter_exit_12(self):
+        cap = self.clone / "capabilities" / "democap" / "CAPABILITY.md"
+        cap.write_text("---\njust a string\n---\nbody\n")
+        r = self.lock("manifest", str(cap.parent))
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("mapping", r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
+
     def test_manifest_accepts_all_shipped_capabilities(self):
         # drift guard: the tool must accept every in-repo manifest the lint accepts
         for cap in sorted((REPO / "capabilities").iterdir()):

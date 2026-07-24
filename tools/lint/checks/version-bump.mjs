@@ -21,7 +21,7 @@ export function checkVersionBumps({ caps, report, base }) {
     const current = readFrontmatter(join(cap.dir, 'CAPABILITY.md')).data?.version;
     let previous = null;
     try {
-      const old = execFileSync('git', ['show', `${base}:${cap.rel}/CAPABILITY.md`], { cwd: REPO_ROOT, encoding: 'utf8' });
+      const old = execFileSync('git', ['show', `${base}:${cap.rel}/CAPABILITY.md`], { cwd: REPO_ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
       previous = /^version:\s*["']?([\d.]+)/m.exec(old.split('\n---')[0])?.[1] ?? null;
     } catch {
       continue; // capability is new in this diff — no bump needed

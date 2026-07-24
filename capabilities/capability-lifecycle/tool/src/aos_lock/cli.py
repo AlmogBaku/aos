@@ -67,9 +67,12 @@ def frontmatter(path):
         fail(12, f"{path}: unterminated frontmatter block")
     end = 4 + m.start()
     try:
-        return yaml.safe_load(text[4:end]) or {}
+        data = yaml.safe_load(text[4:end]) or {}
     except yaml.YAMLError as e:
         fail(12, f"{path}: frontmatter is not valid YAML: {e}")
+    if not isinstance(data, dict):
+        fail(12, f"{path}: frontmatter must be a YAML mapping")
+    return data
 
 
 def cmd_manifest(args):
