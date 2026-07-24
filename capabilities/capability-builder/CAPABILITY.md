@@ -1,6 +1,6 @@
 ---
 id: capability-builder
-version: 0.1.1
+version: 0.2.0
 tags: [infra]
 summary: Detects use-case-shaped requests mid-conversation and turns them into an intake -> research -> design -> approval -> build procedure instead of ad hoc changes; also evolves capabilities that already exist.
 depends:
@@ -8,7 +8,7 @@ depends:
 skills:
   - id: capability-builder
     used_by: [main]
-  - id: evolve-capability
+  - id: capability-source-evolver
     used_by: [main]
 ---
 
@@ -36,7 +36,8 @@ change actually touches.
    doc in the same folder. One skill, not two: the procedure never fires on its own,
    only ever as a continuation after the detector interrupts and the user agrees, so
    splitting it into its own skill folder would add a boundary that isn't doing work.
-2. **The `evolve-capability` skill** — feedback on a capability that's already
+2. **The `capability-source-evolver` skill** (renamed from `evolve-capability` — skill
+   ids carry their meaning, §2.5) — source-level feedback on a capability that's already
    installed. Kept separate: unlike the procedure above, it has its own independent
    trigger — a user can reach it without ever passing through the detector.
 3. **The mode-boundary context block** — a short, marker-delimited append to the

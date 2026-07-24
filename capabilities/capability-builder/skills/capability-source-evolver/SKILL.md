@@ -1,9 +1,13 @@
 ---
-name: evolve-capability
-description: "Applies feedback to a capability that's already installed — a small tweak lands directly, a change to what the capability owns or does re-runs a scoped version of capability-builder's research/design/approval flow. Use when the user gives feedback, a bug report, or a change request about a capability that already exists ('the drainer should also flag X', 'can capture also do Y'). Not for describing something new to build — that's capability-builder."
+name: capability-source-evolver
+description: "Evolves a capability's SHIPPED SOURCE in the clone — for everyone, not one user. A small tweak lands directly; a change to what the capability owns or does re-runs a scoped version of capability-builder's research/design/approval flow. Use for upstream bug reports and change requests about an existing capability ('the drainer should also flag X' as a fix for all users), or when capability-lifecycle's capability-evolver routes a source-level ask here. Not for personalizing one user's install — that's capability-evolver (the overlay ledger) — and not for something new to build — that's capability-builder."
 ---
 
-# evolve-capability
+# capability-source-evolver
+
+Boundary: this skill edits `capabilities/<id>/` in the clone (the shipped source,
+version-bumped, for everyone). Changing how an installed capability behaves *for this
+user* is `capability-evolver` (capability-lifecycle) — the overlay ledger, not the source.
 
 **Invariant: the size of the change decides the ceremony, not the size of the ask.**
 Classify before acting — see [reference/judgment.md](reference/judgment.md).

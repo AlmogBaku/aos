@@ -16,9 +16,9 @@ expect_files:
   - "front:skills/capability-builder-capability-builder/reference/research.md"
   - "front:skills/capability-builder-capability-builder/reference/design.md"
   - "front:skills/capability-builder-capability-builder/reference/build.md"
-  - "front:skills/capability-builder-evolve-capability/SKILL.md"
-  - "front:skills/capability-builder-evolve-capability/reference/judgment.md"
-  - "front:skills/capability-builder-evolve-capability/reference/procedure.md"
+  - "front:skills/capability-builder-capability-source-evolver/SKILL.md"
+  - "front:skills/capability-builder-capability-source-evolver/reference/judgment.md"
+  - "front:skills/capability-builder-capability-source-evolver/reference/procedure.md"
   # dependency — onboarding's entry skill
   - "front:skills/onboarding-onboarding/SKILL.md"
   - "front:skills/onboarding-onboarding/reference/answer-validation.md"

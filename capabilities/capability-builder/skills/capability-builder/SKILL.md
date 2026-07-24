@@ -1,6 +1,6 @@
 ---
 name: capability-builder
-description: "Detects when a request has drifted from a one-off task into building something persistent (a new skill, agent, cron, or standing automation) and offers to plan it properly before anything gets built. Use BEFORE creating any cron job, scheduled task, recurring reminder, or standing automation — whenever the user describes something recurring or systemic: 'every morning/day/weekday at <time>, do X', 'send me a daily/weekly summary or digest', 'remind me every...', 'let's build something that...', 'can we make it so every time X, Y', 'watch X and do Y when...', 'I keep doing this manually, can we automate it', or an explicit ask for a new skill/agent/cron/capability. Not for one-off asks even if phrased with add/create/make ('add this to my calendar', 'create a file called notes.md') and not for feedback on a capability that already exists — that's evolve-capability."
+description: "Detects when a request has drifted from a one-off task into building something persistent (a new skill, agent, cron, or standing automation) and offers to plan it properly before anything gets built. Use BEFORE creating any cron job, scheduled task, recurring reminder, or standing automation — whenever the user describes something recurring or systemic: 'every morning/day/weekday at <time>, do X', 'send me a daily/weekly summary or digest', 'remind me every...', 'let's build something that...', 'can we make it so every time X, Y', 'watch X and do Y when...', 'I keep doing this manually, can we automate it', or an explicit ask for a new skill/agent/cron/capability. Not for one-off asks even if phrased with add/create/make ('add this to my calendar', 'create a file called notes.md') and not for feedback on a capability that already exists — that's capability-source-evolver (source-level) or capability-lifecycle's capability-evolver (one user's install)."
 ---
 
 # capability-builder — the detector
@@ -24,7 +24,7 @@ add/create/make. See [reference/trigger-patterns.md](reference/trigger-patterns.
 for worked examples.
 
 Feedback on a capability that's already installed is a different signal — that's
-`evolve-capability`, not this flow.
+`capability-source-evolver`, not this flow.
 
 ## If the user agrees: the procedure
 
