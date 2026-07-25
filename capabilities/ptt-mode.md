@@ -12,7 +12,7 @@ Fragmented but real: ElevenLabs v3 TTS (Almog's daily-briefing voice notes), Dee
 
 ## Depends
 
-`capabilities: [onboarding]` · `host: voice.stt: required, voice.tts: required` — this capability *defines* the honest degraded story: no voice features ⇒ not installable, and the support matrix says so plainly.
+`capabilities: [capability-lifecycle]` · `host: voice.stt: required, voice.tts: required` — this capability *defines* the honest degraded story: no voice features ⇒ not installable, and the support matrix says so plainly.
 
 ## Onboarding sketch
 

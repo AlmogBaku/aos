@@ -54,7 +54,7 @@ upstream/capabilities/gtd-capture/
 │   │   │                     #   two narrower skills below, authority tiers
 │   │   └── reference/
 │   │       └── entry-format.md   # on-demand depth: what capture composes, corrections rule
-│   ├── capture/
+│   ├── quick-capture/         # installs as `gtd-quick-capture` (skill_prefix: gtd-)
 │   │   └── SKILL.md          # [runtime: MAIN agent only] the fast-capture skill
 │   └── drain/
 │       └── SKILL.md          # [runtime: DRAINER agent only] nightly GTD triage — stays a
@@ -87,7 +87,7 @@ tag-append rules — is now the `base capture` tool's frontmatter, for free).
 | Moment | Actor | Reads | Writes |
 |---|---|---|---|
 | Install | harness LLM (installer role) | CAPABILITY.md, cheat-sheet, MOD.md (after interview) | pinned render in `personal/` (committed), harness symlinks + native injections, lockfile |
-| Install (interview) | onboarding capability | ONBOARDING.md, MOD.example.md | MOD.md, harness secret store |
+| Install (interview) | `capability-onboard` (capability-lifecycle) | ONBOARDING.md, MOD.example.md | MOD.md, harness secret store |
 | Runtime (capture) | main agent | rendered capture skill (which embeds MOD.md nuances) | a raw file in the routed KB's `raw/captures/`, via kb's `base capture` (sha256 dedup, `triage: pending` come free) |
 | Runtime (drain, 23:00) | drainer agent | rendered drain skill; kb's pending view (`base inbox` / `base inbox --failed`) | next-actions (a project's `next_action` field, or `_ops/next-actions.md`), reminders, `meta.gtd_triaged` on the capture — never the capture's own `triage` field, which stays kb's archiver's call at its later 23:30 promote step |
 | Upgrade | harness LLM (re-render role) | new upstream files, MOD.md (the user's deltas; current render is a drift source only, §3.4) | new pinned render (reviewed as a git diff in `personal/`, commit = accept), lockfile |
@@ -95,11 +95,11 @@ tag-append rules — is now the `base capture` tool's frontmatter, for free).
 
 ## 3. Template vs page: the same skill, before and after
 
-**Shipped** (`skills/capture/SKILL.md`, upstream — the *template*; personalization slots are declared, empty):
+**Shipped** (`skills/quick-capture/SKILL.md`, upstream — the *template*; the id is capability-local, personalization slots are declared and empty):
 
 ```markdown
 ---
-name: capture
+name: quick-capture
 description: Instant capture, no classification. Use when the user fires off a thought, task, idea, or voice note to capture — never classify synchronously; capture is dumb and fast.
 ---
 1. Resolve the target KB with kb's `route` skill. Never ask the user where it goes.
@@ -112,13 +112,13 @@ description: Instant capture, no classification. Use when the user fires off a t
 5. Confirm with a single emoji. No echo, no follow-up questions.
 ```
 
-**Installed for this user** (the *page* — the pinned render the LLM materialized into `personal/capabilities/gtd-capture/skills/capture/`, committed there, and symlinked into Hermes as `~/.hermes/skills/gtd-capture-capture`; origin-tagged, link + hash in lockfile):
+**Installed for this user** (the *page* — what `aos-lock render` materialized into `personal/capabilities/gtd-capture/skills/gtd-quick-capture/` and the LLM then personalized: the render directory, the frontmatter `name`, and the symlink all carry the **installed name**, committed there and symlinked from the harness):
 
 ```markdown
 ---
-name: capture
+name: gtd-quick-capture                  # the installed name — rewritten by the render
 description: Instant capture, no classification. Use when the user fires off a thought, task, idea, or voice note to capture — never classify synchronously; capture is dumb and fast.
-x-aos-origin: gtd-capture@0.2.0        # attribution tag — doctor/remove/round-trip use this
+x-aos-origin: gtd-capture@0.3.0        # attribution tag — doctor/remove/round-trip use this
 ---
 1. Resolve the target KB with kb's `route` skill. Never ask the user where it goes.
 2. Write it: `base --base <name> capture --text <verbatim content> --source <channel>`
@@ -136,7 +136,7 @@ The `{{mod: …}}` slot is a *convention, not a template engine* — it marks wh
 
 | Declaration in CAPABILITY.md | Becomes (per Hermes cheat-sheet) |
 |---|---|
-| `skills: capture, used_by: [main]` | symlink `~/.hermes/skills/gtd-capture-capture` → the pinned render, in the **root profile only** |
+| `skills: quick-capture, used_by: [main]` | symlink `~/.hermes/skills/gtd-quick-capture` → the pinned render, in the **root profile only** |
 | `skills: drain, used_by: [drainer]` | symlink in the **drainer profile's skills dir only** — the main agent never sees it |
 | `agents: drainer.agent.yaml` | `~/.hermes/profiles/gtd-drainer/` (directory-defined — `hermes profile create`; no config.yaml registry) |
 | `schedules: nightly-drain` | entry in `~/.hermes/cron/jobs.json`, name-prefixed `aos:gtd-capture:nightly-drain` (§5.3 — `jobs.json`'s own `origin` field means chat provenance, not this), assigned to profile `gtd-drainer` — **in exactly one harness** (single-owner rule, §5.5) |
@@ -156,11 +156,11 @@ installs:
     version: 0.1.0
     source_root: upstream            # which distribution shipped the package
     artifacts:                       # path -> sha256 (render files + native artifacts)
-      <HOME>/aos/personal/capabilities/gtd-capture/skills/capture/SKILL.md: sha256:…
+      <HOME>/aos/personal/capabilities/gtd-capture/skills/gtd-quick-capture/SKILL.md: sha256:…
       <HOME>/.hermes/profiles/gtd-drainer/SOUL.md: sha256:…
     links:                           # harness symlink -> the pinned render it points at
-      <HOME>/.hermes/skills/gtd-capture-capture: <HOME>/aos/personal/capabilities/gtd-capture/skills/capture
-      <HOME>/.hermes/profiles/gtd-drainer/skills/gtd-capture-drain: <HOME>/aos/personal/capabilities/gtd-capture/skills/drain
+      <HOME>/.hermes/skills/gtd-quick-capture: <HOME>/aos/personal/capabilities/gtd-capture/skills/gtd-quick-capture
+      <HOME>/.hermes/profiles/gtd-drainer/skills/gtd-drain: <HOME>/aos/personal/capabilities/gtd-capture/skills/gtd-drain
     schedules_owned: [nightly-drain]  # single-owner rule: this install runs the drain
     config_keys: []
     env_lines: []

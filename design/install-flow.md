@@ -14,7 +14,7 @@ Bootstrap sequence the agent then follows (from `BOOTSTRAP.md`, at the clone roo
 
 0. The paste-block already forked-and-cloned (fork by default — `gh repo fork --clone` wires origin+upstream; plain clone works, forking later is one command; silent, harmless). **Welcome first** — what the kit is, what will happen, questions answered — before any other action; then **[D]** prerequisites: `git` and `uv` (required — `uv` carries the bookkeeping tool; offer the official installer, refuse to continue without).
 1. **[D]** Verify the clone shape; **create the household**: `personal/` git-init (offer a private remote — `gh repo create --private`; forks are public, nothing personal ever lands in the clone), seed the mirrored shape; then inline-install the **capability-lifecycle** capability (the only chicken-and-egg break): read its contract reference in full, `uv tool install … aos-lock`, `aos-lock --home ~/aos init`, render its five skills into `personal/` and symlink them to the front agent per its cheat-sheet (none for this harness → its no-cheat-sheet reference: generic mapping contract, self-drafted sheet, diff-gated — never a stop), STAGE→GATE→EXECUTE, `aos-lock record`.
-2. Hand over to `capability-installer`: install **onboarding** (its interview = the global one → `personal/MOD.md`) then **kb** (its interview + KB adopt/init → `personal/kb-registry.yaml`) as ordinary §2 installs.
+2. Hand over to the installed skills: run the **global interview** (`capability-onboard`, whose own `ONBOARDING.md` is the global one → `personal/MOD.md`) then install **kb** through `capability-install` (its interview + KB adopt/init → `personal/kb-registry.yaml`) as ordinary §2 installs.
 3. Done — celebratory specific summary. Everything after is `install <capability>` on demand, triggering the materialized skills.
 
 ## 2. Installing a capability
@@ -29,15 +29,17 @@ sequenceDiagram
 
     U->>H: "install personal-trainer"
     H->>H: [D] read CAPABILITY.md
-    H->>L: [D] dependency check: kb? onboarding? installed — versions = repo revision
+    H->>L: [D] dependency check: kb? capability-lifecycle? installed — versions = repo revision
     Note over H: missing dep → recurse: install it first (its interview included)
     H->>H: [D] host-feature check vs cheat-sheet feature notes<br/>(required missing → stop, preferred missing → note degraded mode,<br/>no sheet → check depends.host by live introspection)
+    H->>L: [D] name gate: aos-lock skills --check (household · lockfile links · the harness's own skills)<br/>collision → stop, nothing written — the fix belongs in the package
     H->>O: run interview (ONBOARDING.md — questions + script)
     O->>U: [A] conversational interview (goals, gym days, injuries…)
     O->>O: [D] validate answers against ONBOARDING.md questions
     O-->>HA: [D] secret values → harness-native store
     O->>H: [A] MOD.md written (frontmatter answers + prose nuances)
-    H->>H: [A] TRANSFORM: original capability × MOD.md → personalized artifacts
+    H->>H: [D] aos-lock render per skill → the installed name, frontmatter name, origin tag
+    H->>H: [A] TRANSFORM: fill {{mod}} slots in the render, bake the household path
     H->>H: [A] translate declarations per cheat-sheet<br/>(agent→profile, schedule→jobs.json, skills scoped by used_by)
     H->>U: [D] present full diff of everything about to be written
     U->>H: approve

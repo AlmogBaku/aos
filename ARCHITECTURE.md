@@ -61,7 +61,7 @@ The layering borrows from Brad Frost's atomic design, as an analogy (the spec's 
 | Atomic design | Here | Example |
 |---|---|---|
 | Atoms | **Skills** (Agent Skills spec folders) | `capture`, `route-to-kb`, `tts-speak` |
-| Molecules | **Infrastructure capabilities** (`tags: [infra]`) | knowledge base, onboarding, ptt-mode |
+| Molecules | **Infrastructure capabilities** (`tags: [infra]`) | knowledge base, capability-lifecycle, ptt-mode |
 | Organisms | **Use-case capabilities** (`tags: [usecase]`) | GTD capture, time blocking, personal trainer |
 | Templates | **The capability as shipped** — generic structure, personalization slots empty | `capabilities/gtd-capture/` upstream |
 | Pages | **The personalized install** — the template instantiated with *your* overlay in *your* harness | the GTD capture actually running in your Hermes |
@@ -131,7 +131,7 @@ capabilities/<id>/
 
 **Normative:** every `skills/<id>/` folder MUST be a valid Agent Skills folder on its own — a harness with nothing but skill support can still consume the atoms. Everything outside `skills/` and `adapters/` MUST be harness-neutral (the capability-lifecycle capability's `harnesses/` cheat-sheets are the sanctioned exception — per-harness *knowledge*, §5.2, never code). If a capability's `adapters/` content outweighs its neutral core, the linter flags it: that is a sign the "neutral" design is fictional and the capability should say so honestly in its support matrix.
 
-**Skill packaging (normative, per the Agent Skills best-practices):** a SKILL.md body stays under 500 lines; anything deeper moves to files the skill references **one level deep** (no reference chains); deterministic assets — templates, scripts — ship *inside* the skill directory (scripts are **executed, never loaded into context**); descriptions are third-person and carry concrete triggers (activities, literal user phrases, proper nouns). Skills state their one load-bearing invariant up front, and mark each section's authority explicitly: may auto-fix, report-only, or ask-first. **Skill ids must be self-descriptive out of context** — they materialize into a crowded harness where a generic verb (`install`, `update`) says nothing; `capability-installer` does. And **in-capability cross-skill references are by skill *name*, never by relative path** (materialization renders the whole folder once into `personal/` and links it as `<capability>-<id>`, so link names differ from shipped directory names; names ship unchanged) — relative paths stay inside the skill's own folder, which the whole-folder render keeps intact.
+**Skill packaging (normative, per the Agent Skills best-practices):** a SKILL.md body stays under 500 lines; anything deeper moves to files the skill references **one level deep** (no reference chains); deterministic assets — templates, scripts — ship *inside* the skill directory (scripts are **executed, never loaded into context**); descriptions are third-person and carry concrete triggers (activities, literal user phrases, proper nouns). Skills state their one load-bearing invariant up front, and mark each section's authority explicitly: may auto-fix, report-only, or ask-first. **A skill's id is capability-local; the name it *installs* under is the shipped identity** — computed, never authored: `<skill_prefix><id>`, where `skill_prefix` is the capability's declared prefix (§2.2) or its id, and the entry skill installs verbatim. Harnesses keep **one flat skill namespace**, so that installed name must be **self-descriptive out of context and globally unique**: a generic verb (`install`, `update`) says nothing next to thirty other skills, and two capabilities claiming one name is a silent override. Ids name actions (`install`, `drain`); agents (§2.3) name roles (`archiver`). Enforced deterministically at both ends — kit-side lint on the computed name, and an install-time gate (§5.4) against the household, the lockfile, and the skills the harness already has. A collision is resolved in the package, **never by renaming at install time**. And **in-capability cross-skill references use the installed name, never a relative path** (materialization renders the whole folder once into `personal/` and links it under that same name, so a bare id names nothing once installed; a reference into a *sibling* reference file gets read only in part) — relative paths stay inside the skill's own folder, which the whole-folder render keeps intact.
 
 ### 2.2 The manifest: `CAPABILITY.md` — markdown + frontmatter, minimal by rule-of-two
 
@@ -147,7 +147,7 @@ tags: [usecase]                # infra | usecase — metadata, not architecture 
 summary: Voice/text → next-action → KB write → reminder.
 
 depends:
-  capabilities: [kb, onboarding]   # no version ranges, on purpose: a capability resolves against whichever root supplies it —
+  capabilities: [kb, capability-lifecycle]   # no version ranges, on purpose: a capability resolves against whichever root supplies it —
                                    # every capability in your clone is from the same commit
   host:                        # enumerated vocabulary — §5.2; per key: required | preferred | optional
     cron: preferred            # preferred ⇒ install proceeds degraded if absent (§5.5)
@@ -169,11 +169,14 @@ schedules:
                                # deterministic-only — they never call an LLM (§2.4); failures
                                # surface via files/exit codes, not by summoning an agent
 
+skill_prefix: gtd-             # OPTIONAL: what ids install under (§2.1). Absent or empty
+                               # means the capability id. Ids stay bare; the prefix is
+                               # applied once, by the tool, and never doubled
 skills:                        # every shipped skill, with SCOPE — who loads it
   - id: gtd-capture
-    used_by: [main, drainer]   # the entry skill (§2.5) — everyone gets the map
-  - id: capture
-    used_by: [main]            # the user-facing front agent gets this one
+    used_by: [main, drainer]   # the entry skill (§2.5) — installs verbatim, no prefix
+  - id: quick-capture
+    used_by: [main]            # the front agent's; installs as gtd-quick-capture
   - id: drain
     used_by: [drainer]         # ONLY the drainer agent loads it — nobody else
 
@@ -186,6 +189,8 @@ kb:
 (No `onboarding` or `mod_example` field — `ONBOARDING.md` and `MOD.example.md` sit at fixed paths, found by convention. A manifest field would be a pointer to a constant, which nothing needs; the *presence* of `ONBOARDING.md` is itself the signal that a capability has an interview.)
 
 **Skill scoping (normative):** every skill declares `used_by` — which agents load it (`main` = the harness's front agent; other names = agents from `agents/`). The installing LLM materializes each skill **only into the workspaces of the agents that use it**. No agent ever loads a skill it isn't declared to use; a capability that scopes everything to `main` is the degenerate case and the linter asks why. This is the anti-pollution rule: ten installed capabilities must not mean every agent carries fifty skills' worth of context.
+
+**`skill_prefix` (normative):** the one field that shapes a name. It exists because two families needed it, not one: `capability-lifecycle` declares `capability-` (nine skills whose ids would otherwise repeat their capability) and `gtd-capture` declares `gtd-` (its own id is two words, so the default would stutter); `kb` exercises the default. Both the kit linter and the install tool machine-read it — rule of two satisfied on both counts. Absent or empty means the capability id, so most capabilities never write it.
 
 Deliberately **absent** from v0.1 (deferred by rule-of-two, listed so nobody "helpfully" adds them): a `provides` surface graph, a hooks/events vocabulary, per-capability permission grants, model/cost hints. The moment two capabilities need to compose mechanically through one of these, it gets an RFC and a schema.
 
@@ -226,7 +231,7 @@ A capability is the composition of **five building blocks** around one use case 
 Two lifecycle roles follow:
 
 - **`CAPABILITY.md` is the installer's briefing.** The installing LLM (§5) consumes it to materialize the building blocks *with understanding* — why each agent exists and how it should be shaped on this harness, why each cron runs when it does, which agents get which skills. Once materialization is done, the document's job is done: it is not loaded at runtime, and operator knowledge does not belong in it.
-- **The entry skill is the runtime face.** Every capability ships a skill named after itself (`skills/<id>/`) — deliberately small: the philosophy in a few lines, where things live, the mechanics map, and pointers to the focused skills and tool verbs for each job. Its description is the capability's broad front door (any intent in the capability's domain that doesn't match a narrower skill); the focused skills keep narrow triggers. This matters most for infrastructure capabilities, which have no obvious user-facing verb: the entry skill is the one thing an agent can always "hold" to understand how the pieces play together. `BOOTSTRAP.md` and the capability-lifecycle skills point at it as "start here" (an aos-side rule — cheat-sheets stay lean, §5.2).
+- **The entry skill is the runtime face.** Every capability ships a skill named after itself (`skills/<id>/`) — deliberately small: the philosophy in a few lines, where things live, the mechanics map, and pointers to the focused skills and tool verbs for each job. Its description is the capability's broad front door (any intent in the capability's domain that doesn't match a narrower skill); the focused skills keep narrow triggers. This matters most for infrastructure capabilities, which have no obvious user-facing verb: the entry skill is the one thing an agent can always "hold" to understand how the pieces play together. `BOOTSTRAP.md` and the capability-lifecycle skills point at it as "start here" (an aos-side rule — cheat-sheets stay lean, §5.2). It is also the one documented exception to action-oriented naming (§2.1): named after its capability, it carries a domain noun, and it installs under that name verbatim — never prefixed into a stutter.
 
 ---
 
@@ -281,7 +286,7 @@ The **user-owned overlay family** is: every `MOD.md` (global + per-capability) a
 2. Onboarding writes **only** overlay-family files (and harness secret stores — see below).
 3. Every render/merge treats the overlay family as input, never output — except the explicit round-trip in §3.3.
 
-Rule 2 governs the *interview*: it writes only overlay-family files (and harness secret stores). Installing the onboarding capability materializes artifacts like any other capability (§5.3) — its context block into the front agent's identity file is an install-time write, not an interview write.
+Rule 2 governs the *interview*: it writes only overlay-family files (and harness secret stores). Installing the capability that owns the interview materializes artifacts like any other capability (§5.3) — its context block into the front agent's identity file is an install-time write, not an interview write.
 
 How a user's `MOD.md` files are versioned is resolved (proposed, closing after dogfood — **RFC-005**): they are committed in the `personal/` repo alongside the pinned renders, auto-committed by the lifecycle skills after every MOD write.
 
@@ -291,13 +296,13 @@ How a user's `MOD.md` files are versioned is resolved (proposed, closing after d
 
 Installation of a capability proceeds:
 
-1. **Onboarding runs first.** The onboarding capability (itself `tags: [infra]`) interviews the user, driven by the capability's `ONBOARDING.md` (frontmatter questions + body script) — the questions are exactly the nuances the capability needs. Interviews are **re-runnable and diffable**: re-running asks only missing or `re_ask`-triggered questions; `--refresh` re-asks everything and shows a diff before writing. Nothing self-deletes.
+1. **The interview runs first.** The `capability-onboard` skill (capability-lifecycle, `tags: [infra]`) interviews the user, driven by the capability's `ONBOARDING.md` (frontmatter questions + body script) — the questions are exactly the nuances the capability needs. Interviews are **re-runnable and diffable**: re-running asks only missing or `re_ask`-triggered questions; `--refresh` re-asks everything and shows a diff before writing. Nothing self-deletes.
 2. **Answers create the overlay.** Typed answers land in `MOD.md` frontmatter; prose nuances land in the body.
 3. **The harness agent transforms the template into the page.** The LLM takes the *original* capability (never edited) plus `MOD.md` and produces the personalized artifacts — adapted skills, agent definitions, schedules, context blocks. Whole artifacts land in `personal/capabilities/<id>/` (the pinned render, committed) and are **symlinked** into the harness per its cheat-sheet (§5.3); in-file injections (context blocks, cron registrations, env lines) stay harness-native. **The transform is agentic, not deterministic**: it is prompt-guided judgment, not templating. What *is* required to be deterministic is the bookkeeping around it: `installs.lock.yaml` records versions, links, and hashes of every materialized artifact, and every install/upgrade is presented as a reviewable diff before it lands.
 
 ### 3.3 Round-trip: edits flow back to MOD.md — and sometimes onward, upstream
 
-Users will tweak their installed (rendered) capability directly — that is normal, not drift. The contract: **whenever the user changes their installed capability, the change is also captured back into `MOD.md`** — `MOD.md` *specifies what this user changed from the shipped defaults* — current desired state, which the agent re-applies — and the capability-lifecycle `capability-evolver` skill is its named write path (it applies the change *and* records it as part of the same edit, or captures hand-edits on demand, using the lockfile hashes to detect what changed). **Writes edit in place**: one statement per subject, rewritten when it changes and removed when the setting returns to the shipped default — never a second entry contradicting the first. History is not `MOD.md`'s job; `personal/`'s git log holds every prior state (§3.1). `MOD.md` therefore remains the single durable source of truth for personalization; the rendered install is always reconstructible from `(original × MOD.md)`.
+Users will tweak their installed (rendered) capability directly — that is normal, not drift. The contract: **whenever the user changes their installed capability, the change is also captured back into `MOD.md`** — `MOD.md` *specifies what this user changed from the shipped defaults* — current desired state, which the agent re-applies — and the capability-lifecycle `capability-evolve` skill is its named write path (it applies the change *and* records it as part of the same edit, or captures hand-edits on demand, using the lockfile hashes to detect what changed). **Writes edit in place**: one statement per subject, rewritten when it changes and removed when the setting returns to the shipped default — never a second entry contradicting the first. History is not `MOD.md`'s job; `personal/`'s git log holds every prior state (§3.1). `MOD.md` therefore remains the single durable source of truth for personalization; the rendered install is always reconstructible from `(original × MOD.md)`.
 
 The overlay also has an **exit side**. A MOD statement whose mechanism would serve other users is *promotable*: the agent extracts the generic mechanism (a `{{mod:}}` slot plus an `ONBOARDING.md` question, or a plain fix — the importer's mechanism/nuance split at statement granularity; the user's literal nuance text never ships) and offers a contribution — judgment is signal-gated and thresholds live in §9. Once an upgrade lands the upstream version that covers the statement, the now-redundant statement is **retired**: shown as a diff, user-confirmed, written only through the evolver. Promotion is user-driven and PR-shaped; the §3.1 invariant is untouched — overlay-family paths still never enter upstream.
 
@@ -476,6 +481,8 @@ Terminology note: a capability's `adapters/<harness>/` directory holds its per-h
 
 The research finding stands — harness primitives don't rhyme — but the consequence is a **richer cheat-sheet per harness, not per-harness code**. When the wiring genuinely can't be expressed as instructions — native hooks, patches — that's the §2.4 `plugins/` escape hatch, and the cheat-sheet tells the LLM where to put them.
 
+The **installed name** (§2.1) is the same string in all four columns, and it is also the render directory's name and the render's frontmatter `name` — one identity end to end, so no harness needs a rename at materialization. An earlier draft prefixed only Hermes's link and left the frontmatter as shipped, which broke on every harness that keys skills by frontmatter name.
+
 The `depends.host` vocabulary is fixed and enumerated: `cron`, `messaging.inbound`, `messaging.outbound`, `voice.stt`, `voice.tts`, `calendar.read`, `calendar.write`, `email`, `secrets-store`. Adding a word requires updating every cheat-sheet — deliberate friction that keeps the neutral surface small.
 
 ### 5.3 What the cheat-sheets direct the LLM to write
@@ -484,7 +491,7 @@ The `depends.host` vocabulary is fixed and enumerated: `cron`, `messaging.inboun
 
 | Artifact | **Hermes** | **OpenClaw** | **NanoClaw** | **Nanobot** |
 |---|---|---|---|---|
-| skill | symlink `~/.hermes/skills/<capability>-<id>` or `profiles/<p>/skills/<capability>-<id>` per `used_by` → the pinned render (dirs named at materialization, §2.1) | symlink workspace `skills/<capability>-<id>` → pinned render (per-agent workspaces = `used_by` scoping) | symlink checkout `.claude/skills/<capability>-<id>` → pinned render (requires the `~/aos/personal` ro mount); per-group scoping via the group config `skills` field | symlink workspace `skills/<capability>-<id>` → pinned render + each agent's `skills:` list |
+| skill | symlink `~/.hermes/skills/<installed-name>` or `profiles/<p>/skills/<installed-name>` per `used_by` → the pinned render | symlink workspace `skills/<installed-name>` → pinned render (per-agent workspaces = `used_by` scoping) | symlink checkout `.claude/skills/<installed-name>` → pinned render (requires the `~/aos/personal` ro mount); also the slash-command namespace; per-group scoping via the group config `skills` field | symlink workspace `skills/<installed-name>` → pinned render + each agent's `skills:` list |
 | agent | profile dir `~/.hermes/profiles/<name>/` (directory-defined — `hermes profile create`; no `config.yaml` registry entry exists) | `openclaw agents add` — agent dir + own workspace (`SOUL.md`, `AGENTS.md`…) | agent group (per-group container): `ncl groups create` (v2) / registered via the main agent (v1) | `agents/<id>.md` (frontmatter + body-as-instructions) |
 | schedule | cron job via `hermes cron create` in the owning profile's home — provenance = `aos:<cap>:<id>` name prefix + job id in the lockfile (never a hand-written `jobs.json` field: the file is scheduler-owned and its `origin` key already means chat provenance) | `openclaw cron add` (Gateway-hosted; `cron/jobs.json` store) | `ncl tasks create` (DB-sweep task, v2) / `scheduled_tasks` via the main agent (v1) | `createScheduledTask` runtime tool (DB-backed; no config-file form) |
 | context block | profile `SOUL.md` (identity) / `workspace/AGENTS.md` (working-dir instructions), inside `<!-- aos:… -->` markers | workspace bootstrap files (`AGENTS.md`, `SOUL.md`, …; sub-agents receive only `AGENTS.md`+`TOOLS.md`) | `instructions.prepend.md` → composed `CLAUDE.md` (v2) / group `CLAUDE.md` (v1) | the agent md body (no auto-loaded context file exists) |
@@ -500,6 +507,7 @@ The installer being an LLM does not relax the discipline — it is *why* the dis
 
 - Every mutation is **diff-previewed** before it lands in a live harness; renders are additionally reviewed as a git diff in `personal/` (§3.4).
 - Everything materialized is **recorded** in `<home>/.aos/installs.lock.yaml` — at household level, spanning source roots (capability, version, source root, artifact paths, links, hashes).
+- Every skill name is **gated before anything is written** (§2.1): the installer computes each installed name and refuses to proceed if one is already claimed — by another capability in the household, by a link the lockfile records, or by a skill the harness already has, aos-installed or not. The gate is deterministic (a tool verb, exit code 17), because "is this name taken" is not a judgment call.
 - Upgrade rollback is `git revert` in `personal/` — the pinned-render history is the primary safety net.
 - `aos-lock verify` reports drift (lockfile hash ≠ on-disk artifact) and link damage (missing, re-targeted, dangling, or replaced by a copy); the deferred `doctor` verb (RFC-004) will add degraded installs, orphaned artifacts, and patch/version mismatches (§2.4).
 
@@ -509,19 +517,21 @@ What is *not* open: prose-driven mutation of live configs with no lockfile, no d
 
 A missing `preferred`/`optional` host feature does not block install. Per-schedule `degraded:` policy: `manual` (register an invocable skill + a run-card the user or a heartbeat can trigger), `skip`, or `inline` (fold into an existing scheduled agent's prompt). `doctor` lists every degradation. This is how one capability serves harnesses with real schedulers and harnesses with none.
 
+**Single-owner rule for skill names (normative):** a harness keeps one flat skill namespace, so an installed name (§2.1) has **exactly one** owner — the capability that ships it. A second capability claiming the same name would silently override the first, with no error and no diff to notice. The installing agent gates every name before writing (§5.4) and stops on a collision; the fix belongs in the package (rename it upstream, or in the user's own capability), **never a local rename**, which would leave one user's harness disagreeing with everyone else's about what a skill is called.
+
 **Single-owner rule for schedules (normative):** a capability may be installed into several harnesses from one household, but each of its `schedules[]` entries runs in **exactly one** harness at a time. The lockfile's `schedules_owned` lists the ids the capability owns; *which* harness runs them is established by the installing agent's cross-agent introspection before it creates a job (a per-harness owner field would be a lockfile schema change — rule of two applies). Two harnesses running the same nightly drain against the same KB is a one-writer violation waiting to fire; the installing agent must ask (or reassign) when a second install would duplicate a schedule, and `doctor` flags duplicates.
 
 ---
 
 ## 6. The importer
 
-The importer is a first-class v0.1 capability — it is how the commons gets seeded ("wrap what you already built" — problem G, §1.3) and how the personal-trainer loop starts. It is also, deliberately, a capability itself: it dogfoods the package contract.
+Importing is how the commons gets seeded ("wrap what you already built" — problem G, §1.3) and how the personal-trainer loop starts. It ships as the `capability-import` skill of `capability-lifecycle` (§7) — it was its own capability until the build phase showed it shared an invariant, word for word, with the build skill it hands off to (§9): read-only on the live harness, write-only into a draft it owns, never install, never open the PR.
 
 Like everything else in the kit, **it is invoked conversationally, not by a CLI** (see the note on `aos <verb>` in §1.1) — and it is *more* agentic than install, because it is pure judgment (introspect → cluster → map → split) and it only *reads* your harness and writes a draft; it never mutates the live setup. You tell your harness agent, in plain language:
 
 > *"import my trip-planning use-case — the skill and its agent — into the aos kit."*
 
-The importer's skill then drives your harness agent (which already knows its own setup, and reads the cheat-sheet's introspection section) through this pipeline:
+The skill then drives your harness agent (which already knows its own setup, and reads the cheat-sheet's introspection section) through this pipeline:
 
 1. **Inventory** — the harness agent, guided by its cheat-sheet's introspection section, enumerates skills, cron entries, profiles/groups, workspace files, plugins.
 2. **Cluster** — the LLM groups artifacts into candidate use cases ("these two skills + this cron + this persona fragment = trip planning").
@@ -535,25 +545,22 @@ Acceptance fixtures: the maintainers' existing Hermes-built trip-planning and ti
 
 ## 7. Reference capabilities & build order
 
-Thirteen capabilities ship as v0.1's reference set (one-page specs in `capabilities/`). Order is chosen so each step exercises exactly one new seam; a step is done when the seam holds:
+Ten capabilities ship as v0.1's reference set (one-page specs in `capabilities/`). Order is chosen so each step exercises exactly one new seam; a step is done when the seam holds:
 
 | # | Capability | Tags | New seam it proves |
 |---|---|---|---|
 | 1 | **kb** | infra | The whole neutral contract + first cheat-sheet, Hermes (registry, router, base engine: store/curation/state, `base` tool, Archiver agent, entry skill) |
-| 2 | **onboarding** | infra | Interview engine → MOD.md; re-runnable diffs; secret references |
+| 2 | **capability-lifecycle** | infra | The lifecycle itself as one capability: install/upgrade/remove/onboard/import/build/contribute/evolve materialized into the harness as nine skills, the MOD.md overlay operationalized, the lockfile and installed skill names tool-owned (`aos-lock`), cheat-sheets shipped in-capability, and the MARS mode boundary (§9) as a block on the front agent's identity file |
 | 3 | **gtd-capture** | usecase | First vertical composing on kb + schedules; first real routing traffic |
-| 4 | **importer** | infra | Cheat-sheet-guided introspection + the generic/personal split; format's stress test via GAP reports |
-| 5 | **time-blocking** | usecase | `calendar.write` host feature + degraded modes (calendar write path is new) |
-| 6 | **ptt-mode** | infra | `voice.*` host vocabulary (wraps existing TTS/PTT pieces) |
-| 7 | **interviewing** | infra | Capability-depends-on-capability (consumes ptt-mode optionally) |
-| 8 | **news-tracker** | usecase | Nothing new — the "boring port" proving the contract is cheap to use |
-| 9 | **permission-gate** | infra | Capabilities-ship-code: `adapters/*/plugins/`, hook-vs-patch, the §4.3 ACL model enforced |
-| 10 | **router** | infra | Front-door persona dispatch (fixes "multiple-personality disorder"); adopt-native-router vs kit-provided per harness |
-| 11 | **agent-comms** | infra | The side doors: agent→agent envelope, the glass-box rule (no dark channels), loop/budget guards |
-| 12 | **capability-builder** | infra | The MARS building-mode boundary (§9): a structural, prompt-enforced mode-switch gated by user approval before anything durable is written |
-| 13 | **capability-lifecycle** | infra | The lifecycle itself as a capability: install/upgrade/remove/evolve skills materialized into the harness, the MOD.md overlay operationalized, the lockfile tool-owned (`aos-lock`), cheat-sheets shipped in-capability |
+| 4 | **time-blocking** | usecase | `calendar.write` host feature + degraded modes (calendar write path is new) |
+| 5 | **ptt-mode** | infra | `voice.*` host vocabulary (wraps existing TTS/PTT pieces) |
+| 6 | **interviewing** | infra | Capability-depends-on-capability (consumes ptt-mode optionally) |
+| 7 | **news-tracker** | usecase | Nothing new — the "boring port" proving the contract is cheap to use |
+| 8 | **permission-gate** | infra | Capabilities-ship-code: `adapters/*/plugins/`, hook-vs-patch, the §4.3 ACL model enforced |
+| 9 | **router** | infra | Front-door persona dispatch (fixes "multiple-personality disorder"); adopt-native-router vs kit-provided per harness |
+| 10 | **agent-comms** | infra | The side doors: agent→agent envelope, the glass-box rule (no dark channels), loop/budget guards |
 
-kb and onboarding are built together (the installer needs both); the importer lands as early as possible after them because its GAP reports are the fastest source of spec fixes. `capability-builder` and `capability-lifecycle` are appended rather than resequenced near the front, where they conceptually belong — see each one-pager's build-order note; both were built at the maintainer's direction, out of the original sequence.
+kb and capability-lifecycle are built together: the installer needs the interview engine, which lives inside the lifecycle capability (it was a separate `onboarding` capability, and `importer` and `capability-builder` were separate too, until the build phase showed the four were carving one subject — §9 records the firm-position change and the three one-pagers are merged into `capability-lifecycle.md`). Historical note: the importer used to land as early as possible after them because its GAP reports are the fastest source of spec fixes. `capability-builder` and `capability-lifecycle` are appended rather than resequenced near the front, where they conceptually belong — see each one-pager's build-order note; both were built at the maintainer's direction, out of the original sequence.
 
 ---
 
@@ -570,6 +577,7 @@ kb and onboarding are built together (the installer needs both); the importer la
 | Capability tools | Deterministic-executor tools ship inside capabilities (entry-skill `scripts/`), never as a kit-level helper; [D]-only, never call an LLM; files+exit codes are the interface (RFC-004 resolved) | §2.4 |
 | Capability anatomy | Five building blocks (skills · agents · tools · crons · patches); CAPABILITY.md = installer briefing, dead after install; entry skill named after the capability = runtime face | §2.5 |
 | Skill packaging | ≤500-line SKILL.md, one-level references, assets bundled in skills (scripts executed, never loaded), trigger-rich third-person descriptions | §2.1 |
+| Skill identity | A skill's id is capability-local; the *installed* name (`<skill_prefix><id>`, entry skill verbatim) is the shipped identity — computed, globally unique, single-owner per harness, gated deterministically before every install; skills name actions, agents name roles | §2.1, §2.2, §5.4, §5.5 |
 | Schedules | `exec:` (mechanical, deterministic-only) xor `agent`+`prompt_ref` (judgment) per entry | §2.2 |
 | Capability format | Agent Skills superset + minimal manifest as `CAPABILITY.md` (md + typed frontmatter — one format everywhere), rule-of-two growth | §2 |
 | Layering | One package kind + tags; harness code is an adapter concern | §1.2, §2.4 |
@@ -604,7 +612,9 @@ kb and onboarding are built together (the installer needs both); the importer la
 
 The mode boundary rides the harness's native plan/read-only mode where one exists (cheat-sheet Primitive mapping, `plan mode` row) and is prompt-enforced where none does; either way, the approval gate is the only exit.
 
-The building-mode boundary from **MARS — the Mode-Aware Runtime System pattern**: a personal harness runs in two modes, *operating* (handle requests) and *building* (design and compose capabilities), and the runtime enforces the line between them rather than trusting each conversation to notice which side it's on. Personal harnesses read as chatbots, but they're runtimes — a chat message can just as easily seed a persistent, unattended artifact (a cron, a persona, a standing automation) as it can a one-off answer. Nothing about a casual conversational turn marks that moment, and agents don't reliably self-throttle on how consequential a request is — they react to what's ambiguous, not to how much a wrong assumption could cost. The `capability-builder` capability (§7, build 12) makes that boundary structural instead of leaving it to in-the-moment judgment.
+The building-mode boundary from **MARS — the Mode-Aware Runtime System pattern**: a personal harness runs in two modes, *operating* (handle requests) and *building* (design and compose capabilities), and the runtime enforces the line between them rather than trusting each conversation to notice which side it's on. Personal harnesses read as chatbots, but they're runtimes — a chat message can just as easily seed a persistent, unattended artifact (a cron, a persona, a standing automation) as it can a one-off answer. Nothing about a casual conversational turn marks that moment, and agents don't reliably self-throttle on how consequential a request is — they react to what's ambiguous, not to how much a wrong assumption could cost. The `capability-build` skill makes that boundary structural instead of leaving it to in-the-moment judgment.
+
+**Firm-position change (2026-07-25): building mode is a mode boundary, not a package boundary.** It was a separate `capability-builder` capability until the build phase showed the split was carving one subject: the authoring skills shared their invariant word for word — read-only on the live harness, write-only into a draft under `personal/capabilities/<id>/`, never install, never open the PR — and build's mechanism/nuance split is the importer's (§6) in reverse. Four packages described one flow. Counter-proposal, taken: the boundary's teeth were never the packaging. They are the push-context context block on the front agent's identity file plus the detector skill's own description — both of which survive intact as skills of `capability-lifecycle` (§7). The honest cost, recorded rather than argued away: `BOOTSTRAP.md` installs that capability for everyone, so the boundary now reaches users who only ever consume capabilities. The block carries the narrowing that keeps it tolerable — one-off tasks are unaffected, and so is changing something aos already installed, which is the overlay round-trip (§3.3), not building.
 
 The detector watches for use-case-shaped requests — recurring, systemic, or defining new persistent behavior — as distinct from task-shaped ones, and interrupts before anything is built: *"should we plan this methodically?"* Decline, and operating mode continues uninterrupted. The gate is deliberately narrow — it fires on persistence, not on word choice — because gating everything trains a user to stop reading what they approve, which defeats the point.
 
@@ -626,13 +636,13 @@ The same capability evolves capabilities that already exist: feedback is classif
 
 | Problem (§1.3) | Mechanism | § |
 |---|---|---|
-| A. Share the horizontals | Infrastructure capabilities (kb, onboarding, ptt-mode…) in the shared repo | §2, §7 |
+| A. Share the horizontals | Infrastructure capabilities (kb, capability-lifecycle, ptt-mode…) in the shared repo | §2, §7 |
 | B. Share the verticals | The capability package: Agent Skills core + manifest + onboarding + overlay slots | §2 |
 | C. Cross-harness portability | Portable skill core + per-harness cheat-sheets read by the installing LLM + support-matrix honesty | §5 |
 | D. Preserve personalization | The `personal/` root (MOD files + pinned renders), inviolable invariant, round-trip | §3.1, §3.3 |
 | E. Enable upgrades | `git pull` can't touch `personal/` (different repo); the overlay re-applied to fresh upstream, git-diff review in `personal/`, revert = rollback | §3.4 |
 | F. Harness modifications | `adapters/<harness>/plugins/` in ordinary capabilities; no third layer | §2.4 |
-| G. Lower the contribution barrier | The importer (introspect → cluster → map → split → draft + GAP report) + the promotion funnel (overlay exit §3.3, signal-gated judgment §9, builder's contribute offer) | §6, §3.3, §9 |
+| G. Lower the contribution barrier | The `capability-import` skill (introspect → cluster → map → split → draft + GAP report) + the promotion funnel (overlay exit §3.3, signal-gated judgment §9, builder's contribute offer) | §6, §3.3, §9 |
 
 ## Appendix B: Risk register
 
@@ -641,8 +651,9 @@ The same capability evolves capabilities that already exist: feedback is classif
 | 1 | **Re-render fidelity** — upgrades silently drop personal nuances or upstream fixes | Replay an upgrade of a personalized capability against a hand-made expected result; diff. Live signal: the per-file `git diff` in `personal/` a user actually reviews before committing | Tighten MOD.md structure (more typed frontmatter, less prose); `git revert` restores the prior render; worst case, constrain re-renders to marker-block regions |
 | 2 | **Routing accuracy** — misroutes poison trust in multi-KB | Replay 2 weeks of real captures, hand-labeled; misroute rate must stay <5% and the review queue must drain nightly | Drop LLM routing entirely; channel-pinned KBs + explicit tags only |
 | 3 | **The "primitives rhyme" bet** — the neutral declarations + cheat-sheet translation can't express real harness needs | After porting 2 capabilities to all 4 first-tier harnesses, measure per-capability `adapters/` override volume; >~35% of neutral core falsifies the bet | Invert: portable SKILL.md core + thick per-harness packages, drop the neutral middle |
-| 4 | **Round-trip discipline** — user edits to rendered installs don't make it back to MOD.md, overlay rots | Uncommitted changes lingering in `personal/` (`git status`) and `aos-lock verify` drift trending up over weeks of live use | Route all tweaks through `capability-evolver`; the persist hook makes an unfolded edit visible as an uncommitted diff rather than silent drift |
+| 4 | **Round-trip discipline** — user edits to rendered installs don't make it back to MOD.md, overlay rots | Uncommitted changes lingering in `personal/` (`git status`) and `aos-lock verify` drift trending up over weeks of live use | Route all tweaks through `capability-evolve`; the persist hook makes an unfolded edit visible as an uncommitted diff rather than silent drift |
 | 5 | **Spec-before-use** — contracts here that no build validates | Every § names its consuming build step (§7); a § no reference capability exercises by build 9 gets cut | Rule-of-two applies to the spec itself |
+| 6b | **Skill-name collision** — two capabilities (or a capability and something the harness already had) claim one installed name; the loser is silently overridden, with no error and no diff | Deterministic gate before every install (§5.4, exit 17) across the household, the lockfile, and the harness's own skills; kit-side lint on the computed name | Names are computed from `skill_prefix` (§2.2), so a whole family renames in one field; worst case a capability is renamed upstream |
 | 6 | **Duplicate schedules across harnesses** — same drain installed twice violates one-writer | `doctor` duplicate-schedule check across the lockfile | Single-owner rule (§5.5); worst case, schedules become explicitly harness-pinned in MOD.md |
 | 7 | **File-retrieval ceiling** — structure + BM25 degrade on bases past ~10K pages | Dogfood: recall quality on the largest live base; complaints of missed hits with confirmed on-disk answers | Rebuildable derived caches in `.base/` (gitignored, delete-and-lose-nothing) — never a store that outranks the files (§4.4) |
 | 8 | **Authorization read-surface leaks** — a grant honored on the write path but not by search/list/graph surfaces | e2e probes leakage explicitly (ungranted reads via every surface), not just happy-path routing | Any surface that reads a base must consult grants; a surface that can't is documented as such in the capability README |

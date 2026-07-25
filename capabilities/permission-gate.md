@@ -17,7 +17,7 @@ This is the reference proof that **capabilities can ship software — as standal
 
 ## Depends
 
-`capabilities: [onboarding]` · `host:` nothing from the standard vocabulary — this capability *is* the test of the non-standard surface: each adapter declares `hook` / `patched` / `unsupported` in the support matrix.
+`capabilities: [capability-lifecycle]` · `host:` nothing from the standard vocabulary — this capability *is* the test of the non-standard surface: each adapter declares `hook` / `patched` / `unsupported` in the support matrix.
 
 ## Onboarding sketch
 

@@ -20,7 +20,7 @@ Team members' internal routers (inventory them like the permission gates — RFC
 
 ## Depends
 
-`capabilities: [onboarding]` · reads the lockfile · `host:` nothing new — dispatch rides `messaging.inbound`; the native-vs-provided split is per-harness cheat-sheet knowledge.
+`capabilities: [capability-lifecycle]` · reads the lockfile · `host:` nothing new — dispatch rides `messaging.inbound`; the native-vs-provided split is per-harness cheat-sheet knowledge.
 
 ## Onboarding sketch
 

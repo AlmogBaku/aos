@@ -11,6 +11,8 @@ Capabilities can depend on each other (`depends.capabilities: [kb]`), and some s
 
 gtd-capture→kb is real consumer #1 (its capture flow invokes kb's routing; its drain consumes kb's pending-capture view). The rule-of-two clock is ticking but has not struck: no second *cross-agent* consumer exists yet.
 
+**Partially answered (2026-07-25):** §2.1 now gives every skill a globally unique *installed* name (`<skill_prefix><id>`), so option 1's `kb/route` qualified-reference syntax is no longer needed to *name* a foreign skill unambiguously — `kb-route` already is unambiguous, everywhere. What that does **not** settle is the grant: naming a skill was never the hard part, deciding whose agents may load it is. The options below stand.
+
 ## Options (sketch — to be developed when this RFC is worked)
 
 1. **Extend `used_by`** to accept qualified names (`kb/route → used_by: [main, gtd-capture:drainer]`) — grants expressed by the *providing* capability. Awkward: the provider must know its consumers.
