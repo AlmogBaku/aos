@@ -88,7 +88,7 @@ private remote; only `.aos/` is machine-local.
    `aos-lock record capability-lifecycle --version <manifest version> --source-root upstream
    --artifact <render-file>… --link <symlink>…` — render files go to `--artifact` (hashed),
    symlinks to `--link` (a symlink passed as `--artifact` fails: exit 16).
-5. Then the briefing's remaining items: the two **context blocks** on your identity file,
+5. Then the briefing's remaining items: the **mode-boundary context block** on your identity file,
    the **global bootstrap interview** (§3 runs it), and **`skill-creator`** — referenced,
    not copied, and best-effort: if the clone or plugin install fails, say so and continue.
 
@@ -99,8 +99,8 @@ The lifecycle skills are live — from here `install <capability>` triggers
 
 1. **The global interview** — run `capability-onboard` against this capability's own
    `ONBOARDING.md`: identity, timezone, working hours, sacred time, red lines →
-   `~/aos/personal/MOD.md`, then the two context blocks on your identity file per the
-   briefing. It is the first thing the user experiences; take the Experience section
+   `~/aos/personal/MOD.md`. Nothing from those answers is copied into your identity file —
+   your harness already owns user context, and `MOD.md` is the authoritative store. It is the first thing the user experiences; take the Experience section
    seriously here.
 2. **kb**, as an ordinary install — its interview + KB setup (adopt existing KBs / init a
    fresh one → `~/aos/personal/kb-registry.yaml`).

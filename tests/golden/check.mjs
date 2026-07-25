@@ -106,6 +106,14 @@ function runExpectations(expName, roots, liveMode = false) {
     }
     if (!found) fail('golden/schedule', `${expName}: no job named ${s.name_prefix}* in profile ${s.profile}`);
   }
+  // The inverse of a sentinel: text an install must NOT write. A block we stopped
+  // shipping has to be provably absent, or "we removed it" is only a claim.
+  for (const s of exp.forbid_texts ?? []) {
+    const p = resolveRef(roots, s.in);
+    if (p && existsSync(p) && readFileSync(p, 'utf8').includes(s.text)) {
+      fail('golden/forbidden-text', `${expName}: "${s.text}" must not appear in ${s.in}`);
+    }
+  }
   for (const s of exp.sentinels ?? []) {
     if (s.in) {
       const p = resolveRef(roots, s.in);

@@ -57,13 +57,8 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
    `MOD.md` every other capability's transform reads. This is why the nine skills being
    slot-free matters: the inline install is mechanical, and personalization arrives
    immediately afterwards, from the same capability.
-4. **Two context blocks** on the front agent's identity file (on Hermes: `SOUL.md`), each
-   inside its own marker pair per `reference/contract.md`:
-   - `aos:capability-lifecycle:identity@<ver>` — the global MOD's identity facts
-     (timezone, working hours, sacred time, red lines: the facts every conversation
-     needs, not the whole file) distilled per the cheat-sheet's context-block row. This
-     is what makes the interview's answers ambient — capabilities read MOD at render
-     time, but the front agent lives by its identity file.
+4. **One context block** on the front agent's identity file (on Hermes: `SOUL.md`), inside
+   its marker pair per `reference/contract.md`:
    - `aos:capability-lifecycle:mode-boundary@<ver>` — the MARS building-mode boundary
      (ARCHITECTURE §9), materialized verbatim:
 
@@ -81,6 +76,15 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
      only when the model thinks to), but a harness with a native cron tool will satisfy a
      schedule-shaped ask the shortest way and never consult it — so the boundary must be
      push-context, always present. Found the hard way in the first live e2e.
+
+     **And that is the only block.** Do not distil the user's identity facts — timezone,
+     working hours, sacred time, red lines — into the front agent's file. Every harness in
+     scope already owns user context (Hermes: `memories/USER.md`, maintained by its own
+     always-active memory), so writing them again would be a second source of truth for
+     facts we do not own, in an agent aos did not create, that nothing in the kit reads.
+     `MOD.md` stays the authoritative store, read at render time. Agents aos *creates* are
+     the opposite case: their identity file is written whole, by us, because they have no
+     other source.
 5. **`skill-creator`, by reference — never copied in.** Anthropic's skill-authoring
    skill (`github.com/anthropics/skills`, Apache-2.0) is what `capability-build` and
    `capability-contribute` lean on for generic skill craft. Install it the way the

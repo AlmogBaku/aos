@@ -23,8 +23,10 @@ refused to commit as an unknown author rather than inventing one. After configur
 - The entry skill installed **verbatim** — `skills/capability-lifecycle/`, not the old
   `capability-lifecycle-capability-lifecycle/` stutter.
 - kb: 23 artifacts, 7 links, 3 schedules, `base` tool installed, `aos-archiver` created.
-- Both context blocks present under discriminated markers:
-  `aos:capability-lifecycle:identity@0.3.0` and `…:mode-boundary@0.3.0`.
+- The mode-boundary context block present under its marker,
+  `aos:capability-lifecycle:mode-boundary@0.3.0` — and no identity block: the harness
+  owns user context, so aos does not distil the user's facts into an agent it did not
+  create.
 
 **One identity, verified on disk:**
 

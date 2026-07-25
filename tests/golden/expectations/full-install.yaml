@@ -66,6 +66,12 @@ expect_files:
   # bookkeeping — household-level lockfile
   - "home:.aos/installs.lock.yaml"
 
+forbid_texts:
+  # the harness owns user context (Hermes: memories/USER.md). aos must not distil the
+  # global MOD's identity facts into an agent it did not create.
+  - {text: "aos:capability-lifecycle:identity", in: "front:SOUL.md"}
+  - {text: "aos:onboarding", in: "front:SOUL.md"}
+
 forbid_files:
   # used_by placement — the anti-pollution rule, §2.2
   - "front:skills/gtd-drain/SKILL.md"
@@ -115,9 +121,7 @@ schedules:
 
 sentinels:
   - {text: "🦜", in: "front:skills/gtd-quick-capture/SKILL.md"}
-  # the identity context block must land in the front agent's SOUL.md, marker-delimited,
-  # and the MARS mode boundary alongside it — one discriminated marker each (§5.3)
-  - {text: "aos:capability-lifecycle:identity", in: "front:SOUL.md"}
+  # the MARS mode boundary is the ONE block aos writes to the front agent's identity file
   - {text: "aos:capability-lifecycle:mode-boundary", in: "front:SOUL.md"}
   # the sync wrapper must pin the household's registry — a bare `base sync` silently no-ops
   # (the wrapper's canonical home is the harness scripts dir, recorded in the lockfile;
