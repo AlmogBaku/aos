@@ -4,7 +4,7 @@
 
 ## Resolution: the `personal/` repo (the household layout)
 
-The overlay's durable home is **one private git repo — `~/aos/personal/`** — sibling to a pristine kit clone (`~/aos/upstream/`) in the aos household (ARCHITECTURE §3.1). It holds, at mirrored capability paths: the ledger (`MOD.md` global + per-capability, `kb-registry.yaml`), the **pinned renders** (rendered artifacts, tracked — the agentic transform's lockfile-equivalent), and the user's **private capabilities** as full §2.1 packages. The lifecycle skills auto-commit it after every ledger write with a dated message; harnesses symlink into it (§5.3). Bootstrap creates it (`git init` + an offered private remote) before the first interview.
+The overlay's durable home is **one private git repo — `~/aos/personal/`** — sibling to a pristine kit clone (`~/aos/upstream/`) in the aos household (ARCHITECTURE §3.1). It holds, at mirrored capability paths: the overlay (`MOD.md` global + per-capability, `kb-registry.yaml`), the **pinned renders** (rendered artifacts, tracked — the agentic transform's lockfile-equivalent), and the user's **private capabilities** as full §2.1 packages. The lifecycle skills auto-commit it after every MOD write with a dated message; harnesses symlink into it (§5.3). Bootstrap creates it (`git init` + an offered private remote) before the first interview.
 
 Why this shape won:
 

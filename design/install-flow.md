@@ -6,7 +6,7 @@
 
 There is no installer binary to download. The kit's README opens with a paste-block (the gstack lesson — paste-to-install is the whole funnel — minus their Bun/bash dependency):
 
-> Paste into your agent: *"Fork and clone https://…/aos to ~/aos/upstream (a plain clone works too), read ~/aos/upstream/BOOTSTRAP.md, then set me up."*
+> Paste into your agent: *"Fork and clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream (a plain clone works too), read ~/aos/upstream/BOOTSTRAP.md, then set me up."*
 
 One file, on purpose: `BOOTSTRAP.md` is a warm stub — it defines the install *experience* (welcome and explain first; tone contract in the capability-lifecycle entry skill's Experience section) and hands the machinery to the capability-lifecycle capability, whose skills carry the contract and load the cheat-sheet (`capabilities/capability-lifecycle/harnesses/<harness-runtime>.md`, §5.2) — the human never has to name their harness.
 
@@ -56,7 +56,7 @@ Rules the diagram compresses:
 
 ## 3. Upgrade
 
-The riskiest operation, so every agentic step (the re-render) is fenced by deterministic gates — drift folded into the ledger before, a git-diff gate in the user's own repo after (commit = accept, `git revert` = rollback; the pinned-render history in `personal/` is the primary safety net). MOD.md is a *ledger* the agent re-applies (§3.3/§3.4): the current install is a drift source, never a merge input. Kit-wide (`update` after a `git pull` in `upstream/`) and per-capability are one procedure at two scopes:
+The riskiest operation, so every agentic step (the re-render) is fenced by deterministic gates — drift folded into MOD.md before, a git-diff gate in the user's own repo after (commit = accept, `git revert` = rollback; the pinned-render history in `personal/` is the primary safety net). MOD.md *states the user's deltas* and the agent re-applies them (§3.3/§3.4): the current install is a drift source, never a merge input. Kit-wide (`update` after a `git pull` in `upstream/`) and per-capability are one procedure at two scopes:
 
 ```mermaid
 flowchart TB
@@ -66,7 +66,7 @@ flowchart TB
     V --> M(("re-render: fresh upstream ×<br/>MOD.md → personal/ working tree<br/>[A] — the risky step (risk #1)"))
     M --> D["git diff in personal/<br/>[D gate]"]
     D --> Q{"user approves?<br/>[H]"}
-    Q -->|yes| W["commit · re-hash · update lockfile<br/>· offer ledger-line retirement [D]"]
+    Q -->|yes| W["commit · re-hash · update lockfile<br/>· offer statement retirement [D]"]
     Q -->|no| K(["git checkout — personal/<br/>working tree restored"])
 
     style M fill:#FCE9EF,stroke:#A61E4D
@@ -96,7 +96,7 @@ doctor verifies nothing orphaned                          [D]
 | Transform + cheat-sheet translation | A | diff gate [D] + origin tags |
 | Writing artifacts | D | hashes into lockfile |
 | Zone grant registration | A (edits a live KB file) | append-only + lint audits the table |
-| Upgrade re-render (ledger re-apply) | A | drift-fold before, git-diff gate in `personal/` after (revert = rollback), reference/-file granularity |
+| Upgrade re-render (overlay re-apply) | A | drift-fold before, git-diff gate in `personal/` after (revert = rollback), reference/-file granularity |
 | Drift detection, duplicate schedules | D | `doctor` |
 
 The pattern is deliberate: **every [A] step is sandwiched between [D] checks.** The LLM is trusted with judgment, never with bookkeeping — the [D] bookkeeping column is enforced by `aos-lock` (capability-lifecycle), the outcome of RFC-004's reopen path.

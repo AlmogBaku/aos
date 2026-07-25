@@ -33,7 +33,7 @@ What a user's machine actually looks like (after installing two capabilities) �
 │   ├── kb-registry.yaml          # their KBs (work/personal/…)
 │   └── capabilities/
 │       ├── gtd-capture/          # personalized twin of upstream/capabilities/gtd-capture/
-│       │   ├── MOD.md            # this user's gtd nuances (the ledger)
+│       │   ├── MOD.md            # this user's gtd deltas from the defaults
 │       │   └── skills/…          # the PINNED RENDER (§3.1) — tracked; harnesses symlink here
 │       └── my-private-cap/       # private capabilities: full §2.1 package + MOD + render
 └── .aos/                         # machine-local state, outside every repo
@@ -75,7 +75,7 @@ upstream/capabilities/gtd-capture/
                                       #   its already-declared zones)
 ```
 
-The user's side lives in the personal root, mirrored: `personal/capabilities/gtd-capture/MOD.md` (★ the ledger — seeded from `MOD.example.md` at install, filled by the interview, never shipped upstream) next to `personal/capabilities/gtd-capture/skills/…` (the pinned render the transform writes and harnesses link to).
+The user's side lives in the personal root, mirrored: `personal/capabilities/gtd-capture/MOD.md` (★ the overlay — seeded from `MOD.example.md` at install, filled by the interview, never shipped upstream) next to `personal/capabilities/gtd-capture/skills/…` (the pinned render the transform writes and harnesses link to).
 
 Note what's gone relative to the pre-migration layout: no `ops/inbox.md` zone (captures
 land in kb's own `raw/captures/`, which kb's install already grants the front agent
@@ -90,7 +90,7 @@ tag-append rules — is now the `base capture` tool's frontmatter, for free).
 | Install (interview) | onboarding capability | ONBOARDING.md, MOD.example.md | MOD.md, harness secret store |
 | Runtime (capture) | main agent | rendered capture skill (which embeds MOD.md nuances) | a raw file in the routed KB's `raw/captures/`, via kb's `base capture` (sha256 dedup, `triage: pending` come free) |
 | Runtime (drain, 23:00) | drainer agent | rendered drain skill; kb's pending view (`base inbox` / `base inbox --failed`) | next-actions (a project's `next_action` field, or `_ops/next-actions.md`), reminders, `meta.gtd_triaged` on the capture — never the capture's own `triage` field, which stays kb's archiver's call at its later 23:30 promote step |
-| Upgrade | harness LLM (re-render role) | new upstream files, MOD.md (the ledger; current render is a drift source only, §3.4) | new pinned render (reviewed as a git diff in `personal/`, commit = accept), lockfile |
+| Upgrade | harness LLM (re-render role) | new upstream files, MOD.md (the user's deltas; current render is a drift source only, §3.4) | new pinned render (reviewed as a git diff in `personal/`, commit = accept), lockfile |
 | Lint/CI | repo CI | everything except overlay family | PR status |
 
 ## 3. Template vs page: the same skill, before and after
