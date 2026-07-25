@@ -1,19 +1,23 @@
 """aos-lock — deterministic lifecycle bookkeeping (ARCHITECTURE §2.4 capability tool).
 
-Two jobs, no judgment:
+Three jobs, no judgment:
   manifest  parse + validate a CAPABILITY.md -> JSON on stdout
+  skills    compute each skill's INSTALLED name; --check gates name collisions
+  render    copy one skill to its installed name (deterministic, idempotent)
   init/record/verify/show/list/remove  own the lockfile
   (<home>/.aos/installs.lock.yaml — the aos household root, e.g. ~/aos)
 
 The lockfile is THIS TOOL'S file: agents call verbs, never edit the YAML.
 Exit codes: 0 ok · 1 generic (e.g. init over an existing lockfile) · 12 manifest
-invalid · 13 drift · 14 no such entry · 15 no home · 16 artifact missing.
+invalid · 13 drift · 14 no such entry · 15 no home · 16 artifact missing ·
+17 skill-name collision.
 """
 import argparse
 import hashlib
 import json
 import os
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -24,7 +28,8 @@ SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 CRON5 = re.compile(r"^\S+\s+\S+\s+\S+\s+\S+\s+\S+$")
 
 # Mirrors tools/lib/constants.mjs + tools/lint/checks/manifest.mjs (the kit-side gate).
-MANIFEST_KEYS = {"id", "version", "tags", "summary", "depends", "schedules", "skills", "kb"}
+MANIFEST_KEYS = {"id", "version", "tags", "summary", "depends", "schedules", "skills", "kb",
+                 "skill_prefix"}
 CAPABILITY_TAGS = {"infra", "usecase"}
 HOST_FEATURES = {"cron", "messaging.inbound", "messaging.outbound", "voice.stt",
                  "voice.tts", "calendar.read", "calendar.write", "email", "secrets-store"}
@@ -34,10 +39,45 @@ DEGRADED = {"manual", "skip", "inline"}
 SKILL_ENTRY_KEYS = {"id", "used_by"}
 KB_KEYS = {"writes", "zones"}
 
+# Agent Skills spec (agentskills.io/specification): the shipped `name` is what a harness
+# keys on, so these limits bind the INSTALLED name, not the capability-local id.
+SKILL_PREFIX_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*-$")
+SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+SKILL_NAME_MAX = 64
+RESERVED_NAME_WORDS = ("anthropic", "claude")
+ORIGIN_KEY = "x-aos-origin"
+
 
 def fail(code, msg):
     print(f"aos-lock: {msg}", file=sys.stderr)
     sys.exit(code)
+
+
+def effective_prefix(manifest, cap_id):
+    """§2.2: declared prefix, else the capability id. Absent/empty means default."""
+    declared = manifest.get("skill_prefix")
+    if isinstance(declared, str) and declared.strip():
+        return declared
+    return f"{cap_id}-"
+
+
+def installed_name(cap_id, prefix, skill_id):
+    """The name the skill ships under. Entry skill verbatim; never double-prefixed."""
+    if skill_id == cap_id or skill_id.startswith(prefix):
+        return skill_id
+    return f"{prefix}{skill_id}"
+
+
+def name_errors(name, what):
+    errs = []
+    if len(name) > SKILL_NAME_MAX:
+        errs.append(f"{what} '{name}' is {len(name)} chars (max {SKILL_NAME_MAX})")
+    if not SKILL_NAME_RE.match(name):
+        errs.append(f"{what} '{name}' must be [a-z0-9-], no leading/trailing/double hyphens")
+    for word in RESERVED_NAME_WORDS:
+        if word in name:
+            errs.append(f"{what} '{name}' contains the reserved word '{word}'")
+    return errs
 
 
 def find_home(args, require_existing=True):
@@ -76,8 +116,7 @@ def frontmatter(path):
     return data
 
 
-def cmd_manifest(args):
-    cap_dir = Path(args.dir)
+def validated_manifest(cap_dir):
     mf = cap_dir / "CAPABILITY.md"
     if not mf.is_file():
         fail(12, f"{cap_dir}: no CAPABILITY.md")
@@ -164,6 +203,17 @@ def cmd_manifest(args):
         elif s["degraded"] not in DEGRADED:
             errs.append(f"schedules[{sid}]: degraded '{s['degraded']}' not in {sorted(DEGRADED)}")
 
+    # Absent or empty means "default to the capability id" (§2.2), so only a non-empty
+    # value is held to the format.
+    prefix_declared = data.get("skill_prefix")
+    if isinstance(prefix_declared, str) and prefix_declared.strip():
+        if not SKILL_PREFIX_RE.match(prefix_declared):
+            errs.append(f"skill_prefix '{prefix_declared}' must be [a-z0-9-] ending in a hyphen "
+                        f"(e.g. 'capability-'); omit it to default to '<id>-'")
+    elif prefix_declared is not None and not isinstance(prefix_declared, str):
+        errs.append(f"skill_prefix must be a string (got {prefix_declared!r})")
+    prefix = effective_prefix(data, cap_dir.name)
+
     declared = set()
     for entry in data.get("skills") or []:
         if not isinstance(entry, dict):
@@ -176,6 +226,12 @@ def cmd_manifest(args):
         declared.add(sid)
         if not (cap_dir / "skills" / str(sid) / "SKILL.md").is_file():
             errs.append(f"skills: declared '{sid}' has no skills/{sid}/SKILL.md")
+        if isinstance(sid, str) and SKILL_NAME_RE.match(sid):
+            # The installed name is the shipped identity — it carries the spec's limits.
+            for e in name_errors(installed_name(cap_dir.name, prefix, sid), f"skills[{sid}]: installed name"):
+                errs.append(e)
+        else:
+            errs.append(f"skills[{sid!r}]: id must be [a-z0-9-], no leading/trailing/double hyphens")
         used = entry.get("used_by")
         if not isinstance(used, list) or not used:
             errs.append(f"skills[{sid}]: used_by must be a non-empty list")
@@ -210,8 +266,217 @@ def cmd_manifest(args):
         for e in errs:
             print(f"aos-lock: manifest: {e}", file=sys.stderr)
         sys.exit(12)
-    json.dump(data, sys.stdout, indent=2, default=str)
+    return data
+
+
+def cmd_manifest(args):
+    json.dump(validated_manifest(Path(args.dir)), sys.stdout, indent=2, default=str)
     print()
+
+
+# ---- skill names (§2.5): the installed name is the shipped identity ----------------
+
+def frontmatter_soft(path):
+    """Like frontmatter() but returns None instead of exiting — a malformed neighbour
+    capability must not block an unrelated install's collision check."""
+    try:
+        text = path.read_text()
+    except OSError:
+        return None
+    if not text.startswith("---\n"):
+        return None
+    m = re.search(r"^---\s*$", text[4:], flags=re.M)
+    if not m:
+        return None
+    try:
+        data = yaml.safe_load(text[4:4 + m.start()]) or {}
+    except yaml.YAMLError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def find_home_soft(args):
+    """The household if one is resolvable, else None. An explicit --home that isn't a
+    household is an error; absence of any household is not (the check still runs on
+    --harness-skills alone, e.g. in CI)."""
+    if args.home:
+        root = Path(args.home).expanduser()
+        if not (root / ".aos").is_dir():
+            fail(15, f"no .aos/ directory under {root}")
+        return root
+    if os.environ.get("AOS_HOME"):
+        root = Path(os.environ["AOS_HOME"]).expanduser()
+        return root if (root / ".aos").is_dir() else None
+    cur = Path.cwd()
+    for cand in [cur, *cur.parents]:
+        if (cand / ".aos").is_dir():
+            return cand
+    return None
+
+
+def skill_rows(cap_dir):
+    """(manifest, [{id, installed_name, used_by}]) for a validated capability."""
+    data = validated_manifest(cap_dir)
+    prefix = effective_prefix(data, cap_dir.name)
+    rows = [{"id": e["id"],
+             "installed_name": installed_name(cap_dir.name, prefix, e["id"]),
+             "used_by": list(e.get("used_by") or [])}
+            for e in (data.get("skills") or [])]
+    return data, rows
+
+
+def capability_skill_names(cap_dir):
+    """Installed names a capability would claim — declared entries plus any on-disk
+    skill dir (an undeclared dir is a lint error, but it would still land if installed)."""
+    data = frontmatter_soft(cap_dir / "CAPABILITY.md")
+    if data is None:
+        return set()
+    prefix = effective_prefix(data, cap_dir.name)
+    ids = {e.get("id") for e in (data.get("skills") or []) if isinstance(e, dict)}
+    skills_dir = cap_dir / "skills"
+    if skills_dir.is_dir():
+        ids |= {d.name for d in skills_dir.iterdir() if (d / "SKILL.md").is_file()}
+    return {installed_name(cap_dir.name, prefix, i) for i in ids if isinstance(i, str) and i}
+
+
+def household_owners(root, exclude_cap):
+    owners = {}
+    for label in ("upstream", "personal"):
+        caps_dir = root / label / "capabilities"
+        if not caps_dir.is_dir():
+            continue
+        for cap in sorted(caps_dir.iterdir()):
+            if cap.name == exclude_cap or not (cap / "CAPABILITY.md").is_file():
+                continue
+            for name in capability_skill_names(cap):
+                owners.setdefault(name, f"capability '{cap.name}' in {label}/")
+    return owners
+
+
+def lock_link_names(root, capability):
+    """Skill-link basenames the lockfile attributes to one capability."""
+    path = root / LOCK_REL
+    if not path.is_file():
+        return {}
+    try:
+        data = yaml.safe_load(path.read_text()) or {}
+    except yaml.YAMLError:
+        return {}
+    out = {}
+    for cap, entry in (data.get("installs") or {}).items():
+        for link in (entry.get("links") or {}):
+            # Only skill links participate — a linked script's basename is not a skill name.
+            if "skills" not in Path(link).parts[:-1]:
+                continue
+            out.setdefault(Path(link).name, cap)
+    return {name: cap for name, cap in out.items() if capability is None or cap == capability}
+
+
+def harness_owners(dirs, ours):
+    owners = {}
+    for d in dirs:
+        p = Path(d).expanduser()
+        if not p.is_dir():
+            fail(16, f"--harness-skills: not a directory: {d}")
+        for child in sorted(p.iterdir()):
+            if child.is_dir():
+                name = child.name
+            elif child.suffix == ".md":
+                name = child.stem   # Nanobot's flat skills/<name>.md form
+            else:
+                continue
+            if name in ours:
+                continue            # our own link from a previous install of this capability
+            owners.setdefault(name, f"skill already in the harness at {child}")
+    return owners
+
+
+def skill_collisions(args, cap_id, rows):
+    taken, ours = {}, set()
+    root = find_home_soft(args)
+    if root:
+        ours = set(lock_link_names(root, cap_id))
+        taken.update(household_owners(root, cap_id))
+        for name, cap in lock_link_names(root, None).items():
+            if cap != cap_id:
+                taken.setdefault(name, f"installed capability '{cap}' (lockfile link)")
+    for name, where in harness_owners(args.harness_skills, ours).items():
+        taken.setdefault(name, where)
+
+    out, seen = [], {}
+    for r in rows:
+        name = r["installed_name"]
+        if name in seen:
+            out.append(f"COLLISION {name}: computed by both '{seen[name]}' and '{r['id']}' "
+                       f"in {cap_id} itself")
+        seen[name] = r["id"]
+        if name in taken:
+            out.append(f"COLLISION {name} (from {cap_id}:{r['id']}) is already claimed by "
+                       f"{taken[name]}")
+    return out
+
+
+def cmd_skills(args):
+    cap_dir = Path(args.dir)
+    data, rows = skill_rows(cap_dir)
+    if args.check:
+        collisions = skill_collisions(args, cap_dir.name, rows)
+        if collisions:
+            for line in collisions:
+                print(line, file=sys.stderr)
+            fail(17, f"{cap_dir.name}: {len(collisions)} skill-name collision(s) — "
+                     f"resolve upstream, never rename at install time")
+    if args.json:
+        json.dump({"capability": cap_dir.name,
+                   "skill_prefix": effective_prefix(data, cap_dir.name),
+                   "skills": rows}, sys.stdout, indent=2)
+        print()
+    else:
+        for r in rows:
+            print(f"{r['id']}\t{r['installed_name']}\t{','.join(r['used_by'])}")
+    if args.check:
+        print(f"clean: {len(rows)} skill name{'' if len(rows) == 1 else 's'} unclaimed")
+
+
+def stamp_render(path, name, origin):
+    """Rewrite the render's frontmatter `name` to the installed name and stamp origin."""
+    lines = path.read_text().split("\n")
+    if not lines or lines[0].strip() != "---":
+        fail(12, f"{path}: no YAML frontmatter block")
+    end = next((i for i, l in enumerate(lines[1:], 1) if l.strip() == "---"), None)
+    if end is None:
+        fail(12, f"{path}: unterminated frontmatter block")
+    head, renamed = [], False
+    for line in lines[1:end]:
+        if line.startswith(f"{ORIGIN_KEY}:"):
+            continue                      # never inherit a stale tag
+        if line.startswith("name:") and not renamed:
+            head.append(f"name: {name}")
+            renamed = True
+        else:
+            head.append(line)
+    if not renamed:
+        fail(12, f"{path}: frontmatter has no name: field")
+    head.append(f"{ORIGIN_KEY}: {origin}")
+    path.write_text("\n".join(["---", *head, "---", *lines[end + 1:]]))
+
+
+def cmd_render(args):
+    cap_dir = Path(args.dir)
+    data, rows = skill_rows(cap_dir)
+    row = next((r for r in rows if r["id"] == args.skill), None)
+    if row is None:
+        fail(14, f"{cap_dir.name}: no declared skill '{args.skill}'")
+    src = cap_dir / "skills" / args.skill
+    dest = Path(args.out).expanduser() / row["installed_name"]
+    if dest.exists() and any(dest.iterdir()) and not args.force:
+        fail(1, f"{dest} exists and is not empty (pass --force to re-render in place)")
+    if dest.exists():
+        shutil.rmtree(dest)
+    shutil.copytree(src, dest)
+    stamp_render(dest / "SKILL.md", row["installed_name"],
+                 f"{cap_dir.name}@{data.get('version')}")
+    print(f"rendered {cap_dir.name}:{args.skill} -> {dest}")
 
 
 def load_lock(root):
@@ -389,6 +654,22 @@ def main():
     s = sub.add_parser("manifest", help="parse + validate a CAPABILITY.md -> JSON")
     s.add_argument("dir", help="capability directory")
     s.set_defaults(fn=cmd_manifest)
+
+    s = sub.add_parser("skills", help="each skill's installed name; --check gates collisions (17)")
+    s.add_argument("dir", help="capability directory")
+    s.add_argument("--check", action="store_true",
+                   help="fail (17) if any installed name is already claimed")
+    s.add_argument("--harness-skills", action="append", default=[], metavar="DIR",
+                   help="repeatable: a skills directory the harness already reads")
+    s.add_argument("--json", action="store_true")
+    s.set_defaults(fn=cmd_skills)
+
+    s = sub.add_parser("render", help="copy one skill to its installed name (idempotent)")
+    s.add_argument("dir", help="capability directory")
+    s.add_argument("skill", help="capability-local skill id")
+    s.add_argument("--out", required=True, help="parent dir for the render (…/skills)")
+    s.add_argument("--force", action="store_true", help="re-render over an existing render")
+    s.set_defaults(fn=cmd_render)
 
     sub.add_parser("init", help="create an empty lockfile").set_defaults(fn=cmd_init)
 

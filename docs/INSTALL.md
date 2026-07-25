@@ -34,9 +34,9 @@ Paste into your agent:
    missing); the kit clone lands at `~/aos/upstream` (forked by default — you're one
    branch from contributing; a plain clone works too), and `~/aos/personal` is created
    as your own private repo (a private remote is offered, never required).
-3. **The lifecycle capability installs itself.** One inline install puts the
-   install/upgrade/remove/evolve skills and the `aos-lock` tool into your harness —
-   from here on, "install X" is a skill, and the lockfile
+3. **The lifecycle capability installs itself.** One inline install puts the whole
+   lifecycle — install, upgrade, remove, onboard, import, build, contribute, evolve — plus
+   the `aos-lock` tool into your harness. From here on, "install X" is a skill, and the lockfile
    (`~/aos/.aos/installs.lock.yaml`, the record of everything materialized) is written by
    the tool, never by hand.
 4. **The global interview.** Identity, timezone, working hours, sacred time, red lines.
@@ -46,10 +46,11 @@ Paste into your agent:
 5. **Knowledge base setup.** Have a KB already? It gets *adopted* — registered in
    `kb-registry.yaml` with a report of how it diverges from the kit's methodology,
    **nothing rewritten**. Starting fresh? `base init personal` scaffolds one from
-   templates. Migrating a big existing KB wholesale is its own guided flow (kb's
-   `import` skill) you can run later.
-6. **Both installs run through the new `capability-installer` skill.** For each, the agent reads
-   the briefing, personalizes the skills with your MOD.md, and materializes them per the
+   templates. Migrating a big existing KB wholesale is its own guided flow (the
+   `kb-import` skill) you can run later.
+6. **kb installs through the new `capability-install` skill.** The agent reads
+   the briefing, checks that no skill name it ships is already taken in your harness,
+   personalizes the skills with your MOD.md, and materializes them per the
    cheat-sheet — skills into the right agents, the archiver agent created, its schedules
    registered, kb's `base` tool installed
    (`uv tool install --from ~/aos/upstream/capabilities/kb/tool aos-base`).

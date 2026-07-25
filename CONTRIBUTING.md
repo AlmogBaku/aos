@@ -47,14 +47,13 @@ Most contributions start as a personal tweak. The route out, lightest rung first
 | Useful, but you can't tell how general | a **`promotion-signal` issue** naming the gap — the maintainers' demand ledger |
 | A missing knob (you fought the template) | a PR adding the `{{mod:}}` slot + ONBOARDING question; your answer stays yours |
 | Broken for everyone | a fix PR — CI is the witness, no second user needed |
-| A whole capability worth sharing | the builder's contribute flow (or the importer): package → scrub → PR |
+| A whole capability worth sharing | `capability-build`'s contribute flow (or `capability-import`): package → scrub → PR |
 
 The governing principle: **one user's need is a MOD line; two users' need is a knob.**
 Maintainers watch the `promotion-signal` label and build the knob when the second
 signal arrives. After your PR merges and you upgrade, your agent offers to retire the
 now-redundant MOD line — the loop closes. Your agent knows this whole funnel
-(capability-lifecycle's evolver routes it; capability-builder's
-`capability-source-evolver` carries the mechanics) — saying *"promote this"* is enough.
+(`capability-evolve` routes it; `capability-contribute` carries the mechanics) — saying *"promote this"* is enough.
 
 ### Agent-drafted contributions
 
@@ -114,7 +113,7 @@ capabilities/<id>/
 Start from the worked example: **gtd-capture** is walked file-by-file in
 [design/capability-anatomy.md](https://github.com/AlmogBaku/aos/blob/spec/design/capability-anatomy.md),
 and its manifest is the spec's own example. Or don't hand-roll at all — the kit's
-**importer** capability wraps what's already in your harness: ask your agent to import
+**`capability-import`** skill wraps what's already in your harness: ask your agent to import
 it, review the draft + `GAP.md` it emits, open the PR.
 
 House rules the linter can't fully check:

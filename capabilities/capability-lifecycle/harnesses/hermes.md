@@ -15,7 +15,7 @@ mutation goes through the `hermes` CLI.
 |---|---|---|
 | agent | **profile** — a full parallel HERMES_HOME (own `config.yaml`, `.env`, `SOUL.md`, `skills/`, `cron/`) | `~/.hermes/profiles/<name>/`; directory-defined, no registry entry. `hermes profile create <name>`; target with `hermes -p <name> …` |
 | front agent (`main`) | the default profile | `~/.hermes/` itself |
-| skill | Agent Skills folder — a **symlink** to the pinned render in `<home>/personal` | link at `~/.hermes/skills/<capability>-<id>` (main) or `profiles/<p>/skills/<capability>-<id>` — per-profile links are how `used_by` scoping works; Hermes follows symlinks in skills dirs |
+| skill | Agent Skills folder — a **symlink** to the pinned render in `<home>/personal` | link at `~/.hermes/skills/<installed-name>` (main) or `profiles/<p>/skills/<installed-name>` (`aos-lock skills`) — per-profile links are how `used_by` scoping works; Hermes follows symlinks in skills dirs. Name gate: pass both dirs to `--harness-skills` |
 | schedule | cron job owned by exactly one profile (mapping is by directory, not a field) | `hermes -p <profile> cron create '<cron>' '<prompt>' --name … --skill …` |
 | context block | `SOUL.md` = identity; `workspace/AGENTS.md` = working-dir instructions | inside the profile dir |
 | secret | `.env` line | see Secrets |
@@ -38,16 +38,18 @@ Work top-down from `CAPABILITY.md`, under the install contract (the `capability-
    `purpose` + persona content → `SOUL.md` (replace the seeded default, never leave it
    empty); `context_files` → workspace, referenced from `workspace/AGENTS.md`;
    `workspace: shared` → skip profile creation, wire into the default profile.
-2. **Skills**: the render lives once in
-   `<home>/personal/capabilities/<capability>/skills/<id>/` (contract); create a symlink
-   per `used_by` — `ln -s <render-dir> ~/.hermes/skills/<capability>-<id>` (main) or
-   into `profiles/<p>/skills/`. Never copy. Record each link with
-   `aos-lock record … --link <linkpath>`.
+2. **Skills**: `aos-lock skills <cap-dir>` gives the installed name; the render lives once
+   at `<home>/personal/capabilities/<capability>/skills/<installed-name>/` (contract);
+   create a symlink per `used_by` — `ln -s <render-dir> ~/.hermes/skills/<installed-name>`
+   (main) or into `profiles/<p>/skills/`. Never copy. Record each link with
+   `aos-lock record … --link <linkpath>`. Enumerate what is already there for the name gate
+   with `hermes skills list` (`-p <profile>` per profile), or the dirs themselves:
+   `~/.hermes/skills` and `~/.hermes/profiles/*/skills`.
 3. **Schedules.** Agent-type entries (`agent` + `prompt_ref`):
 
    ```
    hermes -p <agent-profile> cron create '<cron>' "<personalized prompt_ref content>" \
-     --name 'aos:<capability>:<schedule-id>' [--skill <id> …] [--deliver <target>]
+     --name 'aos:<capability>:<schedule-id>' [--skill <installed-name> …] [--deliver <target>]
    ```
 
    (`main` ⇒ no `-p`.) **Exec-type entries (`exec:`)** are script-only jobs — no agent,

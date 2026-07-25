@@ -14,10 +14,12 @@ Multi-base knowledge infrastructure (ARCHITECTURE §4). A KB instance is a **bas
 - one **Archiver** agent across all bases (cross-base re-routing is its point), on
   two agent schedules plus a script-direct **exec** sync cron.
 
-Skills: `kb` (entry — the runtime face), `route` (write path), `recall` (read path
-with citations + gap admission), `init` (interview → BASE.yaml → scaffold), `adopt`
-(register + divergence report, zero writes), `import` (interactive bulk import of an
-existing KB — source read-only always; the ~/ai-kb migration path). The kb capability *is* the methodology
+Skills, by the names they install under (the source ids drop the `kb-` prefix, which
+`aos-lock skills` applies): `kb` (entry — the runtime face), `kb-route` (write path),
+`kb-recall` (read path with citations + gap admission), `kb-init` (interview → BASE.yaml
+→ scaffold), `kb-adopt` (register + divergence report, zero writes), `kb-import`
+(interactive bulk import of an existing KB — source read-only always; the ~/ai-kb
+migration path). The kb capability *is* the methodology
 (Karpathy-LLM-wiki lineage, extended — see the spec's lineage table); no pluggable
 seam in v0.1.
 

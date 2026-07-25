@@ -38,18 +38,21 @@ Everything the run creates is identifiable and disposable:
    > in `personal/` at mirrored paths. Your install home (the "front agent") is the
    > `aos-test` profile (`~/.hermes/profiles/aos-test`); create capability agents as
    > `aos-<name>` profiles. Renders land in `personal/` and skills are symlinked per
-   > the contract. Install: onboarding, kb (gtd-capture comes later, as its own
-   > prompt — see step 3a). The lockfile lives at `aos-home/.aos/installs.lock.yaml`
+   > the contract. Install: kb (gtd-capture comes later, as its own prompt — see the
+   > Day-N step). The lockfile lives at `aos-home/.aos/installs.lock.yaml`
    > (`aos-lock --home <sandbox>/aos-home`).
 
    The installer gets **no other context** — BOOTSTRAP + the capability-lifecycle
    contract + capability + cheat-sheet + overlay must suffice; that is the test.
-   Bootstrap installs capability-lifecycle, onboarding, and kb.
+   Bootstrap installs capability-lifecycle (nine skills — the interview engine among
+   them, so there is no separate onboarding install) and kb. The name gate
+   (`aos-lock skills … --check`) runs before each install; a fresh `aos-test` profile has
+   no skills of its own, so it must come back clean.
 
    **Day-N step** (the seam this exists to prove): a SEPARATE, fresh prompt with no
    bootstrap context — `hermes -p aos-test -z "install gtd-capture from the aos household
    at <sandbox>/aos-home"` (default-profile fallback as above) — must trigger the
-   materialized `capability-installer` skill and complete the install.
+   materialized `capability-install` skill and complete the install.
 
 4. **Check**: `node tests/golden/check.mjs --live` runs the structural checks against the
    materialized tree (expectations in `tests/golden/expectations/*.yaml`), plus the
@@ -59,12 +62,12 @@ Everything the run creates is identifiable and disposable:
    Save the run transcript to `tests/transcripts/`.
    **Evolve step (after the snapshot — it mutates install state)**: a fresh prompt —
    "change gtd-capture's drain schedule to 22:00" — must route through
-   `capability-evolver`: the cron job changes, the change lands in
+   `capability-evolve`: the cron job changes, the change lands in
    `personal/capabilities/gtd-capture/MOD.md` (auto-committed by the persist hook), and
    `aos-lock verify` stays clean. **Note when running via the default-profile fallback:**
    the fallback agent does not carry the materialized skills in context, so the prompt
    must name the skill path explicitly (`~/.hermes/profiles/aos-test/skills/
-   capability-lifecycle-capability-evolver/SKILL.md`) — otherwise it edits the cron
+   capability-evolve/SKILL.md`) — otherwise it edits the cron
    natively and skips the ledger, which is a fallback artifact, not a skill failure.
    Capture mode is then the second half of the test: fold the existing change into the
    ledger and confirm the persist commit.

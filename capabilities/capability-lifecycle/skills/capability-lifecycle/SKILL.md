@@ -16,23 +16,31 @@ place: you re-apply it, you never overwrite it — and you never write anything
 to upstream (PR, issue, +1, push, fork, remote branch) without the user's explicit
 approval. The full rules:
 `reference/contract.md`. The overlay doctrine (interviews, transform, capture,
-promote/retire, persist): `reference/overlay.md`.
+promote/retire, persist): `reference/overlay.md`. Naming, installed skill names, and the
+uniqueness gate: `reference/naming.md` — read it before authoring or installing anything
+that ships a skill.
 
 | Ask | Skill |
 |---|---|
-| "install <capability>" · a capability offered for install | `capability-installer` |
-| "update" / "upgrade" (kit-wide or one capability) | `capability-upgrader` |
-| "remove/uninstall <capability>" | `capability-remover` |
-| "change how <capability> behaves for me" | `capability-evolver` |
-| "promote my tweak" / "this should be for everyone" | `capability-evolver` classifies, then hands to capability-builder's `capability-source-evolver` |
+| "install <capability>" · a capability offered for install | `capability-install` |
+| "update" / "upgrade" (kit-wide or one capability) | `capability-upgrade` |
+| "remove/uninstall <capability>" | `capability-remove` |
+| "run/redo my interview" · bootstrap a new user | `capability-onboard` |
+| "wrap what I already built into a capability" | `capability-import` |
+| something recurring/systemic to build | `capability-build` |
+| "fix/change <capability> for everyone" · contribute upstream | `capability-contribute` |
+| "change how <capability> behaves for me" | `capability-evolve` |
+| "promote my tweak" / "this should be for everyone" | `capability-evolve` classifies, then hands to `capability-contribute` |
 | "what's installed?" | `aos-lock list` |
 | your harness's mapping | `harnesses/<harness-runtime>.md` (this capability) — an aid, not a gate: loaded per operation, never standing context; none → `reference/no-cheatsheet.md` |
 
 Manifest quick facts: CAPABILITY.md frontmatter is strict-typed (`aos-lock manifest
 <dir>` parses and validates it — its errors name the field and rule); the fields are
-`id · version · tags · summary · depends · schedules · skills · kb`, `x-*` reserved
-for extensions; the prose below the frontmatter is the installer's
-briefing, never runtime context.
+`id · version · tags · summary · depends · schedules · skills · skill_prefix · kb`, `x-*`
+reserved for extensions; the prose below the frontmatter is the installer's
+briefing, never runtime context. A skill's id is capability-local — the name it installs
+under is `aos-lock skills <dir>`'s answer, and it is single-owner across the whole harness
+(`reference/naming.md`).
 
 ## Experience
 

@@ -1,18 +1,19 @@
 ---
 id: gtd-capture
-version: 0.2.0
+version: 0.3.0
 tags: [usecase]
 summary: Voice/text → instant capture into kb's raw/captures/; a nightly drain turns pending captures into next-actions and reminders.
 depends:
-  capabilities: [kb, onboarding]
+  capabilities: [kb, capability-lifecycle]
   host:
     cron: preferred
     messaging.inbound: required
     messaging.outbound: preferred
+skill_prefix: gtd-
 skills:
   - id: gtd-capture
     used_by: [main, drainer]
-  - id: capture
+  - id: quick-capture
     used_by: [main]
   - id: drain
     used_by: [drainer]
@@ -47,8 +48,9 @@ thinking, walking kb's own pending view instead of a capability-owned inbox file
 ## What you materialize, and why
 
 1. **Skills** per `used_by`: the `gtd-capture` entry skill goes to the front agent AND
-   the drainer — it carries the map. `capture` is the front agent's write path (composes
-   with kb's `route` skill, never the front agent's own routing logic). `drain` is the
+   the drainer — it carries the map. `gtd-quick-capture` is the front agent's write path
+   (composes with kb's `kb-route` skill, never the front agent's own routing logic).
+   `gtd-drain` is the
    drainer's judgment skill — it also stays real and loadable rather than folding into
    the schedule prompt, because it's user-triggerable ad hoc ("drain the inbox now"),
    not only the nightly job.
@@ -86,7 +88,7 @@ thinking, walking kb's own pending view instead of a capability-owned inbox file
 ## Contracts to preserve
 
 - Capture never classifies synchronously, never dedups, never formats — that's the
-  tool's (`base capture`) and kb's `route` skill's job, not this capability's.
+  tool's (`base capture`) and kb's `kb-route` skill's job, not this capability's.
 - Drain's pass is additive only: it files next-actions/reminders and marks its own pass
   via `meta.gtd_triaged` (the schema's free per-doc escape hatch) — it never flips a
   capture's own `triage` field. That stays kb's archiver's call.
@@ -96,4 +98,4 @@ thinking, walking kb's own pending view instead of a capability-owned inbox file
 ## Contested core — none
 
 gtd-capture takes no position on RFC-006 (multi-KB routing/authorization) — it consumes
-kb's `route` skill as-is and defers entirely to kb's contract.
+kb's `kb-route` skill as-is and defers entirely to kb's contract.

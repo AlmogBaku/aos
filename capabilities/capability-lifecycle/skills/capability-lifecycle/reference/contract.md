@@ -1,12 +1,23 @@
 # The install contract
 
+## Contents
+
+- The household, and where everything lives
+- The diff gate · MOD.md authorship · contribution approval
+- The lockfile, and what gets recorded
+- Installed skill names, renders, and symlinks
+- The persist hook · schedules · context blocks · secrets
+- Removal, and how references resolve
+
 Binds every lifecycle operation, on every harness, with or without a cheat-sheet.
 
 - **The household is the ground truth of where things live** (§3.1): `<home>` (default
   `~/aos`) contains `upstream/` (the kit clone — pristine, never anything personal, not
   even untracked files), `personal/` (the user's one private git repo: MOD files at
-  mirrored capability paths, the pinned renders, their private capabilities), and
-  `.aos/` (machine state — the lockfile). A capability id resolves against `personal/`
+  mirrored capability paths, the pinned renders, their private capabilities), `.aos/`
+  (machine state — the lockfile), and `vendor/` (third-party skills aos references rather
+  than ships — cloned, symlinked, and recorded like anything else, but never rendered and
+  never origin-tagged: they are not ours to modify). A capability id resolves against `personal/`
   first, then `upstream/`; a personal package shadowing an upstream id is reported
   loudly at install/upgrade, never silently preferred.
 - **The diff gate is never optional.** Nothing lands in the harness until the user has
@@ -33,7 +44,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   before the gate. Where the harness has a native plan/read-only mode (cheat-sheet
   Primitive mapping, `plan mode` row), STAGE runs inside it and the GATE approval is
   the exit.
-- **You never write** any `MOD.md` except through `capability-evolver` or an interview,
+- **You never write** any `MOD.md` except through `capability-evolve` or an interview,
   and you never edit shipped capability files in any source root — personalization
   lives only in `personal/` (the MOD files and the pinned renders).
 - **You never contribute without approval.** You never open a PR, file an issue,
@@ -52,18 +63,27 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   no artifact. If a crash lands between EXECUTE and `record`, everything written
   carries provenance anyway — re-introspect for the tags and record or remove what you
   find.
-- **Skills materialize as pinned renders + symlinks, never copies.** Render each
-  declared skill whole (`reference/`, `scripts/`, `templates/` travel; scripts are
-  executed, never loaded as context) into
-  `personal/capabilities/<capability>/skills/<id>/`, filling `{{mod: …}}` slots (leave
-  unfilled slots intact) and adding an `x-aos-origin: <capability>@<version>` line
-  **inside** the render's YAML frontmatter block (between the `---` delimiters, beside
-  `name:`). Then symlink it into the skills location of every agent in its `used_by` as
-  **`<capability>-<id>`** — the frontmatter `name` stays as shipped unless the
-  cheat-sheet says the harness needs it to match the folder. Container harnesses
-  resolve links only if `<home>/personal` is mounted read-only — the cheat-sheet's
-  Materialization guide says how; without the mount, stop and say so (never fall back
-  to copying: one canonical render, everywhere).
+- **A skill's installed name is computed, and it is single-owner.** `aos-lock skills <cap-dir>`
+  gives you the name each skill ships under (`<skill_prefix><id>`; the entry skill keeps the
+  capability id). **Gate before you materialize**:
+  `aos-lock skills <cap-dir> --check --harness-skills <each skills dir this harness reads>`
+  — exit 17 means the name is already claimed by another capability in the household, by a
+  lockfile-recorded link, or by a skill the harness already has (aos-installed or not).
+  Stop and report it; **never rename at install time** — the name belongs to the package, so
+  the fix is upstream (`capability-contribute`) or in the user's own package. Full rules:
+  `reference/naming.md`.
+- **Skills materialize as pinned renders + symlinks, never copies.** `aos-lock render
+  <cap-dir> <id> --out personal/capabilities/<capability>/skills` does the mechanical half:
+  the whole folder travels (`reference/`, `scripts/`, `templates/` — scripts are executed,
+  never loaded as context), the render lands under the **installed name**, its frontmatter
+  `name` is rewritten to match, and `x-aos-origin: <capability>@<version>` is stamped inside
+  the frontmatter block. Then you fill `{{mod: …}}` slots in the render (leave unfilled slots
+  intact) — that judgment is yours, the copy is not. Symlink the render into the skills
+  location of every agent in its `used_by`, under the same installed name: **dir, frontmatter
+  `name`, and link all agree, on every harness — no per-harness renaming.** Container
+  harnesses resolve links only if `<home>/personal` is mounted read-only — the cheat-sheet's
+  Materialization guide says how; without the mount, stop and say so (never fall back to
+  copying: one canonical render, everywhere).
 - **The persist hook**: after every MOD write (interview, evolve, retirement,
   drift-fold) and every render, commit `personal/` with a dated one-line message —
   you, not the user; silently. The `personal/` git history is the primary safety net;
@@ -80,7 +100,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   your report — the deferred `doctor` verb (RFC-004) will make skips queryable.
 - **Context blocks** are appended only inside
   `<!-- aos:<capability>@<version> begin -->` … `<!-- aos:<capability>@<version> end -->`
-  markers; never touch text outside them.
+  markers; never touch text outside them. A capability that owns more than one block
+  discriminates them the way schedules do — `aos:<capability>:<block-id>@<version>` — so each
+  is independently replaceable on upgrade.
 - **Secrets**: values go to the harness's store, never into files or chat — and never
   into `personal/` (it may be pushed to a private remote); `MOD.md` and configs carry
   references only — `{store: <name>, key: <key>}`.
@@ -89,9 +111,11 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   re-running introspection until no aos provenance (`x-aos-origin:`, `aos:` names,
   marker blocks, links into `personal/`) remains.
 - **References resolve by three rules.** Inside a skill's own folder: relative paths
-  (the whole-folder render keeps them valid — and links preserve them). Across skills:
-  by skill *name* — never a parent-directory path (link names differ from shipped dirs;
-  lint bans the pattern). Into the household (capability sources, cheat-sheets, MOD
+  (the whole-folder render keeps them valid — and links preserve them), and never into a
+  sibling `reference/` file — depth is one level from SKILL.md. Across skills: by the
+  skill's **installed** name — never a parent-directory path (a source id is
+  capability-local and names nothing once installed; lint bans both patterns). Into the
+  household (capability sources, cheat-sheets, MOD
   files): shipped files write a `<home>/…` placeholder; the transform bakes the real
   household path into renders (same pass as `{{mod}}`), and scheduled commands get
   `--home`/`AOS_HOME` baked the same way. The lifecycle capability's own skills are

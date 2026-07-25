@@ -7,7 +7,7 @@
 ## What `--text` composes
 
 `base capture` writes the frontmatter, sha256 dedup, `triage: pending`, and the log
-line for free — the same tool call kb's own `route` skill uses. The capture skill only
+line for free — the same tool call kb's own `kb-route` skill uses. The `gtd-quick-capture` skill only
 ever supplies two things on the command line:
 
 ```
@@ -22,7 +22,7 @@ base --base <name> capture --text "<verbatim content>" --source <channel>
   agent-originated captures.
 
 Everything else — the filename, dedup, `triage: pending`, the log line, and (once
-`route` runs) the `kb_routing` record — is the tool's and the route skill's job, never
+`kb-route` runs) the `kb_routing` record — is the tool's and that skill's job, never
 gtd-capture's to hand-roll.
 
 ## Corrections are new captures, never edits

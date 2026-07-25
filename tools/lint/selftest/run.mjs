@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { walkRepo, listCapabilities } from '../../lib/repo.mjs';
 import { checkManifests } from '../checks/manifest.mjs';
 import { checkSkills } from '../checks/skills.mjs';
+import { checkSkillNames } from '../checks/skill-names.mjs';
 import { checkAgents } from '../checks/agents.mjs';
 import { checkOnboarding } from '../checks/onboarding.mjs';
 import { checkOverlayPaths, checkOverlaySchemas } from '../checks/overlay.mjs';
@@ -26,6 +27,11 @@ const EXPECTED = [
   'skill/no-cross-path',
   'skill/origin-tag', 'skill/unknown-key', 'skill/name', 'skill/description',
   'skill/used-by', 'skill/used-by-ref',
+  // §2.5 skill identity: the installed name is what ships, so it carries the limits
+  'skills/prefix-format', 'skills/prefix-redundant', 'skills/installed-name',
+  'skills/installed-collision', 'skills/ref-unqualified',
+  // Agent Skills authoring conformance
+  'skill/reserved-word', 'skill/xml-tags', 'skill/nested-reference', 'skill/reference-toc',
   'agent/unknown-key', 'agent/required', 'agent/name-file', 'agent/model-class',
   'agent/tool', 'agent/workspace', 'agent/context-file',
   'onboarding/unknown-key', 'onboarding/required', 'onboarding/duplicate-id',
@@ -42,7 +48,7 @@ const report = (severity, code, file, message) => findings.push({ severity, code
 const ctx = { root: ROOT, files: walkRepo(ROOT), caps: listCapabilities(ROOT), report, base: null };
 
 for (const check of [
-  checkManifests, checkSkills, checkAgents, checkOnboarding,
+  checkManifests, checkSkills, checkSkillNames, checkAgents, checkOnboarding,
   checkOverlayPaths, checkOverlaySchemas, checkReferences,
   checkCheatsheets, checkCrossPaths, checkSecrets, checkStructure,
 ]) {

@@ -26,7 +26,7 @@ The workspace is the first `--config` path (`nanobot run ./my-config/`; default
 |---|---|---|
 | agent | agent definition — `agents/<id>.md` (YAML frontmatter + markdown body = instructions) or an `agents:` entry in `nanobot.yaml` | id = filename sans `.md`; markdown agents override same-named YAML agents. Fields: `name`, `model`, `mcpServers`, `tools`, `agents` (sub-agent delegation), `skills`, `tasks` |
 | front agent (`main`) | `agents/main.md` — the auto entrypoint | else `publish.entrypoint`; >1 agent with neither is an error |
-| skill | Agent Skills folder: `skills/<name>/SKILL.md` (dir form; overrides flat `skills/<name>.md`) — a **symlink** to the pinned render in `<home>/personal` | link at `skills/<capability>-<id>`; per-agent scoping (`used_by`) via each agent's `skills:` list. Frontmatter `name` must match the dir name (`^[a-z0-9-]+`, 1–64) — Nanobot is the harness the contract's name-match clause exists for: set the render's frontmatter `name:` to `<capability>-<id>` at render time (one canonical render serves every harness, so the name change rides the render, gate-shown) |
+| skill | Agent Skills folder: `skills/<name>/SKILL.md` (dir form; overrides flat `skills/<name>.md`) — a **symlink** to the pinned render in `<home>/personal` | link at `skills/<installed-name>`; per-agent scoping (`used_by`) via each agent's `skills:` list. Frontmatter `name` must match the dir name (`^[a-z0-9-]+`, 1–64) — which it does: `aos-lock render` writes the installed name into both, so the render Nanobot reads needs no adjustment |
 | schedule | DB-backed scheduled task — created at runtime via the `createScheduledTask` tool, never via config files | 5-field cron, timezone-aware; only daily/weekly/monthly/one-time shapes (dom+dow combined is rejected). Firing starts a **new** chat thread with the stored prompt, so prompts must be self-contained. Referenced by `task:///` URI — record it in the lockfile |
 | context block | the agent's md body (its `instructions`) | **no auto-loaded context file exists (no CLAUDE.md/AGENTS.md equivalent) — do not invent one.** Append inside aos markers in `agents/<id>.md` |
 | secret | `env:` map in `nanobot.yaml` (mark `sensitive: true`); values in `nanobot.env` | `${VAR}` interpolation anywhere in config; see Secrets |
@@ -45,12 +45,13 @@ effect on the next `nanobot run` — restart after materializing.
 1. **Agents.** Create `agents/<id>.md`: frontmatter `name:` + fields, `purpose` + persona
    → the markdown body. `workspace: shared` ⇒ no new agent; wire into `main.md`. Sub-agent
    delegation is first-class: list child ids under the parent's `agents:`.
-2. **Skills**: the render lives once in
-   `<home>/personal/capabilities/<capability>/skills/<id>/` (contract); symlink it as
-   `skills/<capability>-<id>` and record the link (`aos-lock record … --link`). Nanobot
-   requires frontmatter `name:` to match the dir — set it to `<capability>-<id>` in the
-   render (Primitive mapping row). Then attach to each `used_by` agent via its
-   `skills:` list.
+2. **Skills**: `aos-lock skills <cap-dir>` gives the installed name; the render lives once
+   at `<home>/personal/capabilities/<capability>/skills/<installed-name>/` (contract);
+   symlink it as `skills/<installed-name>` and record the link
+   (`aos-lock record … --link`). Nanobot requires frontmatter `name:` to match the dir, and
+   `aos-lock render` already made both the installed name — nothing to adjust. Then attach
+   to each `used_by` agent via its `skills:` list. For the name gate, pass `skills/` to
+   `--harness-skills`: it catches both `<name>/` dirs and the flat `<name>.md` form.
 3. **Tools.** Capability-shipped or external tools land under `mcpServers:` in
    `nanobot.yaml` — remote `{url, headers}` or local stdio `{command, args, env, cwd}` —
    then attach via the agent's `mcpServers:`/`tools:` (ref form `mcpServer/toolName`).
@@ -95,7 +96,7 @@ There is no uninstall command — drive everything from the lockfile entry, in o
 
 1. Scheduled tasks: `deleteScheduledTask` per recorded `task:///` URI (crontab-fallback
    lines: delete the `# aos:<cap>:<id>` line).
-2. Skills: delete each `skills/<capability>-<id>` symlink (or the `deleteSkill` tool by
+2. Skills: delete each `skills/<installed-name>` symlink (or the `deleteSkill` tool by
    URI) and remove it from every agent's `skills:` list; the render dirs in
    `<home>/personal` are deleted via a commit (contract).
 3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks from agent bodies.

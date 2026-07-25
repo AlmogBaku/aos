@@ -1,6 +1,6 @@
 ---
 id: kb
-version: 0.4.0
+version: 0.5.0
 tags: [infra]
 summary: Multi-base knowledge infrastructure — registry, routing, the base engine (store · curation · state), the deterministic `base` tool, and one Archiver agent across all bases.
 depends:
@@ -80,7 +80,7 @@ skill resolves them.
    exec schedules to manual run-cards.
 1. **Skills** per `used_by`: the `kb` entry skill goes to the front agent AND the
    archiver — it carries the map; the tool is on PATH for both.
-   `route`/`recall`/`init`/`adopt`/`import` are front-agent judgment skills. Skill directories
+   `kb-route`/`kb-recall`/`kb-init`/`kb-adopt`/`kb-import` are front-agent judgment skills (ids `route`/`recall`/`init`/`adopt`/`import`; the prefix is applied at install). Skill directories
    are rendered whole into `personal/` and symlinked per agent (reference/, scripts/,
    templates/ travel with them) — one canonical render, never per-harness copies.
 2. **The archiver agent** (`agents/archiver.agent.yaml`): create per the cheat-sheet.
@@ -98,7 +98,7 @@ skill resolves them.
    diff), revoked at removal. The front agent additionally gets `raw/captures/**`
    (route-into) and `state.yaml` + `profile/**` (write) rows — seeded by the init
    templates.
-5. **Onboarding** asks which bases exist; `init`/`adopt` then write the user-owned
+5. **Onboarding** asks which bases exist; `kb-init`/`kb-adopt` then write the user-owned
    `kb-registry.yaml` (overlay family — never committed upstream). The init interview
    designs each base's zones/types once (theme-driven), written into its BASE.yaml.
 
