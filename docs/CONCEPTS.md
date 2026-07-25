@@ -58,7 +58,7 @@ them safe:
 1. **Upstream never ships them.** The kit ships `MOD.example.md` seeds; your real
    `MOD.md` is written only by the onboarding interview, in your `personal/` repo.
 2. **Upstream never writes them.** `git pull` cannot touch a path it doesn't contain.
-3. **Upgrades re-apply your ledger** — MOD.md is re-applied to the fresh upstream
+3. **Upgrades re-apply your MOD** — MOD.md is re-applied to the fresh upstream
    (your current install is only checked for uncaptured edits, which get folded in
    first), diff shown before anything lands.
 
@@ -111,7 +111,7 @@ cheat-sheet at the steps that need it. Three mechanisms keep it honest:
 - **The lockfile.** Everything materialized is recorded in `.aos/installs.lock.yaml`
   (paths, hashes, owned schedule ids) — written and verified by the `aos-lock` tool,
   never by the model. Removal walks it backwards; no record, no artifact. And your
-  `MOD.md` is a *ledger*: upgrades re-apply it to fresh upstream, and the evolve skill
+  `MOD.md` *states what you changed*: upgrades re-apply it to fresh upstream, and the evolve skill
   writes your changes into it so they survive.
 
 If a host feature is missing (no cron, no `uv`), the capability **degrades, declared**:

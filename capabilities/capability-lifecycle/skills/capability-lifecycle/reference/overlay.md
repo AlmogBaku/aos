@@ -1,12 +1,21 @@
 # The overlay mechanism
 
-**MOD.md is a ledger of personalization the agent re-applies.** Typed answers live in its
-frontmatter, nuances as dated imperative prose lines in its body ("drain runs at 22:00,
-not 23:00 — 2026-07-24"). The overlay family lives in the personal root at mirrored
-paths (`<home>/personal/MOD.md`, `<home>/personal/capabilities/<id>/MOD.md`,
+**MOD.md specifies what this user changed from the shipped defaults — current desired
+state, not a history.** Typed answers live in its frontmatter; anything the questions
+don't cover is an imperative prose statement in its body ("drain runs at 22:00, not
+23:00"). The overlay family lives in the personal root at mirrored paths
+(`<home>/personal/MOD.md`, `<home>/personal/capabilities/<id>/MOD.md`,
 `<home>/personal/kb-registry.yaml` — §3.1); upstream never ships, writes, or merges any
 of it. Everything personal is reconstructible from `original × MOD.md`; that
 reconstructibility is what makes upgrades safe.
+
+**One statement per subject — edit, never accumulate.** When something changes, find the
+statement that already covers it and *rewrite* it; when it returns to the shipped
+default, *delete* it; only add when nothing covers that subject yet. A MOD that says
+"office hours Thursday 17:00–18:00" and later "office hours: none" is a contradiction,
+not a record — the second write replaces the first, and if "none" *is* the default the
+line simply goes away. History is not MOD's job: `personal/`'s git log already holds
+every prior state, with dates, which is exactly why MOD doesn't carry them.
 
 ## Running an interview (any ONBOARDING.md)
 
@@ -25,7 +34,7 @@ reconstructibility is what makes upgrades safe.
 Original skills × MOD.md → the pinned render in
 `personal/capabilities/<id>/skills/…` (contract: render + symlink, never copies):
 
-- Fill `{{mod: <key>}}` slots from MOD.md frontmatter; weave prose-ledger nuances into
+- Fill `{{mod: <key>}}` slots from MOD.md frontmatter; weave the prose statements into
   the relevant instructions; leave unfilled slots intact; never edit shipped files.
 - Bake `<home>/…` placeholders to the absolute household path (and `--home`/`AOS_HOME`
   into scheduled commands).
@@ -35,24 +44,27 @@ Original skills × MOD.md → the pinned render in
   `git diff --staged -- capabilities/<id>`, so files the re-render added are visible too
   (commit = accept, revert = rollback; the contract has the decline commands).
 
-## Capture and fold (the ledger's write side)
+## Capture and fold (the overlay's write side)
 
 When the user changes an installed capability — deliberately (via `capability-evolver`)
 or by hand-editing (found by `aos-lock verify`) — the change is captured into MOD.md
-*before* anything else depends on it: an existing typed answer updates the frontmatter;
-anything else becomes a dated prose line. Then hashes are refreshed
+*before* anything else depends on it. **Read the file first and place the change where
+it belongs**: an ONBOARDING question covers it → update that frontmatter answer; a prose
+statement already covers the subject → rewrite that statement; the change restores the
+shipped default → remove the entry; nothing covers it yet → add one statement. Never
+append a line that contradicts one already there. Then hashes are refreshed
 (`aos-lock rehash`) so `verify` stays clean, and the persist hook commits. A fold is
 shown to the user like any other write: "you changed X — keeping it." A fold whose edit
 reaches *beyond* the `{{mod}}` slots (mechanism-shaped, not a value) is also the moment
 the promotion judgment below fires.
 
-## Promote and retire (the ledger's exit side)
+## Promote and retire (the overlay's exit side)
 
-Some ledger lines carry mechanism other users would want. Judgment is **signal-gated,
+Some MOD statements carry mechanism other users would want. Judgment is **signal-gated,
 never reflexive** — the default fate of every evolution is the MOD, silently. It is
 built on one asymmetry: a false positive costs the user's attention first (a nagging
 agent drives users out — the worst outcome), then maintainer review, then permanent kit
-surface; a false negative costs nothing irreversible — the line stays in `personal/`,
+surface; a false negative costs nothing irreversible — the statement stays in `personal/`,
 promotable any day. So the bar scales with the rung, and the user's attention is priced
 above everything.
 
@@ -84,11 +96,11 @@ universal — a real bug needs no second witness, CI is the witness) → capabil
 (all tests, ideally a prior signal). Prose rewrites ("I reworded the skill, it's
 better") never go directly to PR: issue-first, and a rewrite PR needs golden-render
 evidence plus a second user's confirmation. The governing principle: **one user's need
-is a MOD line; two users' need is a knob.**
+is a MOD statement; two users' need is a knob.**
 
 **Etiquette (hard rules):** the MOD write and render always complete first; the offer
-is a one-liner at the conversation's natural end, never mid-flow; once per ledger line,
-ever — a "no" is recorded as a dated line and never re-asked; at most one promotion
+is a one-liner at the conversation's natural end, never mid-flow; once per statement, ever — a
+"no" is noted on that statement ("…— not for upstream") and never re-asked; at most one promotion
 offer per session, whatever qualified. And the contract's invariant: an *offer* is all
 you ever do on your own — every upstream write, down to a signal issue or a +1, happens
 only on the user's explicit yes.
@@ -96,17 +108,18 @@ only on the user's explicit yes.
 **Promotion extracts mechanism.** The literal nuance text never ships: route to
 capability-builder's `capability-source-evolver` skill, which drafts the generic form —
 a `{{mod:}}` slot + ONBOARDING question for a knob, a plain fix, or a scrubbed package —
-and carries the contribution mechanics. A promotion-pending line may carry its PR URL
-("promoted: <url> — 2026-07-25").
+and carries the contribution mechanics. A statement awaiting an upstream PR may carry the URL inline
+("…— promoting: <url>"), which is removed when the PR lands or is dropped.
 
 **Retirement closes the loop.** When an upgrade lands the upstream version that covers a
-line (a new interview question over the same subject, or the behavior baked in), offer
-to retire it: shown as a diff, user-confirmed, written only through `capability-evolver`.
-A retired line is deleted, not archived — `personal/` git history is the archive.
+statement (a new interview question over the same subject, or the behavior baked in),
+offer to retire it: shown as a diff, user-confirmed, written only through
+`capability-evolver`. A retired statement is deleted, not annotated — it no longer
+describes a difference from the default, and `personal/` git history holds what it said.
 
-## Persist (the ledger's durability)
+## Persist (durability)
 
-After every ledger write and every render, commit `personal/` with a dated one-line
+After every MOD write and every render, commit `personal/` with a dated one-line
 message ("evolve gtd-capture: drain 22:00 — 2026-07-25") — you do this, silently; the
 user never runs git. Restore on a new machine = clone `upstream/` + clone `personal/`, then **re-install**
 (the lockfile is machine-local state, not something you carry): the renders are already

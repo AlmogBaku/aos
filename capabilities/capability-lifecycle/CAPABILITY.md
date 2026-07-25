@@ -2,7 +2,7 @@
 id: capability-lifecycle
 version: 0.2.0
 tags: [infra]
-summary: The capability lifecycle as a capability — install, upgrade, remove, and evolve skills for the front agent, the MOD.md overlay ledger with its promote/retire exit side, the household layout with pinned renders and symlink installs, the per-harness cheat-sheets, and the aos-lock bookkeeping tool that owns the lockfile.
+summary: The capability lifecycle as a capability — install, upgrade, remove, and evolve skills for the front agent, the MOD.md overlay with its promote/retire exit side, the household layout with pinned renders and symlink installs, the per-harness cheat-sheets, and the aos-lock bookkeeping tool that owns the lockfile.
 skills:
   - id: capability-lifecycle
     used_by: [main]
@@ -47,7 +47,7 @@ this clone, `<home>/personal` the user's private repo, `<home>/.aos` machine sta
 - The five skills are the runtime face of ARCHITECTURE §5 and design/install-flow.md
   §2–§4; the entry skill (`capability-lifecycle`) carries the shared depth
   (`reference/`) and the Experience rules every lifecycle interaction obeys.
-- The evolver is a **two-way door**: personalization flows in (the ledger), and
+- The evolver is a **two-way door**: personalization flows in (the MOD), and
   generally-useful mechanism flows out (promotion, signal-gated; retirement closes the
   loop when upstream absorbs a line) — the judgment lives once, in the entry skill's
   `reference/overlay.md`.

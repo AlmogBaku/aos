@@ -1,13 +1,14 @@
 ---
 name: capability-upgrader
-description: Upgrades installed aos capabilities by re-applying the user's MOD.md ledger to fresh upstream. Use when the user says "update" or "upgrade" (the whole kit or one capability), or after a git pull of the aos upstream clone.
+description: Upgrades installed aos capabilities by re-applying the user's MOD.md deltas to fresh upstream. Use when the user says "update" or "upgrade" (the whole kit or one capability), or after a git pull of the aos upstream clone.
 ---
 
 # capability-upgrader
 
 Not in context yet? Load the `capability-lifecycle` skill first — the map, the
-contract, the overlay doctrine, and the Experience rules. The model: **MOD.md is
-a ledger; upgrade = re-apply it to fresh upstream, into `personal/`'s working tree.**
+contract, the overlay doctrine, and the Experience rules. The model: **MOD.md states
+the user's deltas; upgrade = re-apply them to fresh upstream, into `personal/`'s
+working tree.**
 The current install is a drift source, never a merge input; the review gate is a git
 diff in the user's own repo.
 
@@ -24,7 +25,8 @@ diff in the user's own repo.
 3. Per capability needing work:
    a. **[D]** `aos-lock verify <id>` — two classes, two responses. *Artifact drift*
       (a render file's hash changed = the user's hand-edit) → **[A]** fold each into
-      MOD.md first per `reference/overlay.md` ("you changed X — keeping it").
+      MOD.md first per `reference/overlay.md` (edit the statement that covers it — never
+      append a contradicting one) ("you changed X — keeping it").
       *Link damage* (`MISSING LINK`, `NOT A LINK (copies are banned)`, `RELINKED`,
       `DANGLING LINK`) is not a hand-edit and never folds: re-create the link from the
       lockfile's recorded target, say what you repaired, and stop if the target itself
@@ -52,9 +54,9 @@ diff in the user's own repo.
       from `aos-lock show` — `record` replaces the entry wholesale, never call it with
       a partial list; keep `--source-root` and `--link` records).
    e. **[A]** Retirement pass (overlay.md, Promote and retire): fresh upstream now
-      covers a ledger line — a new interview question over its subject, or the
-      behavior baked in → offer to retire the line (diff-shown; written only through
+      covers a MOD statement — a new interview question over its subject, or the
+      behavior baked in → offer to retire it (diff-shown; written only through
       `capability-evolver`).
-4. Report per capability: upstream changes taken, ledger entries re-applied, lines
+4. Report per capability: upstream changes taken, MOD statements re-applied, statements
    retired, anything folded in step a — and at most one promotion offer, if a fold
    qualified.

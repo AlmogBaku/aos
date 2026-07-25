@@ -64,8 +64,8 @@ base --help                    # the rest: links, grants, index, verify, import 
   everything and shows you the diff before writing.
 - **Hand-edit anything materialized** — normal. The agent captures your edits back into
   `MOD.md` when it notices them, so the next upgrade preserves them.
-- **`update`** pulls fresh upstream for you, then re-applies your MOD.md ledger to the new capability
-  versions — your hand-edits get folded into the ledger first; diff-gated, and every render is a commit in your `personal/` repo (revert = rollback).
+- **`update`** pulls fresh upstream for you, then re-applies your MOD.md to the new capability
+  versions — your hand-edits get folded in first (edited in place — MOD states current settings, not a history); diff-gated, and every render is a commit in your `personal/` repo (revert = rollback).
 - **Corrections beat re-capture**: told it something wrong? Say so — the page is fixed
   in place (current truth), and git remembers the old state.
 

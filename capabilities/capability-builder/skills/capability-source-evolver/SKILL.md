@@ -1,6 +1,6 @@
 ---
 name: capability-source-evolver
-description: "Evolves a capability's SHIPPED SOURCE — for everyone, not one user. A small tweak lands directly; a change to what the capability owns or does re-runs a scoped version of capability-builder's research/design/approval flow. Use for upstream bug reports and change requests about an existing capability ('the drainer should also flag X' as a fix for all users), when capability-lifecycle's capability-evolver routes a source-level ask or a promotion here ('promote this MOD line', 'this should be for everyone'), or when a contribution needs drafting for upstream. Not for personalizing one user's install — that's capability-evolver (the overlay ledger) — and not for something new to build — that's capability-builder."
+description: "Evolves a capability's SHIPPED SOURCE — for everyone, not one user. A small tweak lands directly; a change to what the capability owns or does re-runs a scoped version of capability-builder's research/design/approval flow. Use for upstream bug reports and change requests about an existing capability ('the drainer should also flag X' as a fix for all users), when capability-lifecycle's capability-evolver routes a source-level ask or a promotion here ('promote this MOD line', 'this should be for everyone'), or when a contribution needs drafting for upstream. Not for personalizing one user's install — that's capability-evolver (the overlay) — and not for something new to build — that's capability-builder."
 ---
 
 # capability-source-evolver
@@ -10,8 +10,8 @@ Whose package decides where that is: the user's own capabilities live in
 `<home>/personal/capabilities/<id>/` (theirs — edit directly); upstream-shipped ones
 live in `<home>/upstream/capabilities/<id>/` and are **never silently edited** — changes
 to them are contributions, drafted on a branch. Changing how an installed capability
-behaves *for this user* is `capability-evolver` (capability-lifecycle) — the overlay
-ledger, not the source.
+behaves *for this user* is `capability-evolver` (capability-lifecycle) — the overlay,
+not the source.
 
 **Hard invariant: you never open a PR, file an issue, +1, push, fork, or create a
 remote branch — for upstream or any repo the user doesn't own — without the user's
@@ -24,13 +24,13 @@ Classify before acting — see [reference/judgment.md](reference/judgment.md).
 ## Intakes
 
 - **A source fix** ("the drainer double-counts") — classify Small/Major below.
-- **A promotion** (routed from `capability-evolver` with a ledger line, or "promote
+- **A promotion** (routed from `capability-evolver` with a MOD statement, or "promote
   this"): extract the *mechanism* — the user's literal nuance text never ships. A
   missing knob becomes a `{{mod: <key>}}` slot at the site the nuance targets **plus**
   the matching `ONBOARDING.md` question **plus** a `MOD.example.md` placeholder
   (the three land together; ONBOARDING and MOD.example are presence-paired). Tell the
   user: their concrete answer stays in their MOD; once the upstream change lands in an
-  upgrade, the ledger line retires. Generality uncertain → the lightest rung is a
+  upgrade, the MOD statement retires. Generality uncertain → the lightest rung is a
   signal issue, not a PR (the ledger search and issue-first path are in
   [reference/contribute.md](reference/contribute.md)).
 
@@ -56,7 +56,7 @@ calibrate against, not a checklist to satisfy mechanically.
   goes live on the next install/update. **Upstream-shipped** — draft the change on a
   branch and *offer* the contribution per
   [reference/contribute.md](reference/contribute.md) (applying it locally only if the
-  user accepts the divergence knowingly, as a dated ledger workaround that retires
+  user accepts the divergence knowingly, as a MOD statement that retires
   when the PR lands). Either way: tell the user what changed and where — transparent,
   not silent, but no approval gate for their own package.
 - **Major**: interrupt like `capability-builder`'s detector does, then run the

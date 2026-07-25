@@ -12,8 +12,8 @@
   tweak is a direct `personal/` edit.
 - "Turn off the Friday digest" — a personalization answer changing: onboarding
   updates it, the live render syncs.
-- **A knob promotion** — the evolver hands over the ledger line "captures after 22:00
-  default to personal — 2026-07-20": upstream's capture skill hardcodes no such
+- **A knob promotion** — the evolver hands over the MOD statement "captures after 22:00
+  default to personal": upstream's capture skill hardcodes no such
   cutoff, and the user fought the template (mechanism override). The promotion is a
   `{{mod: late_capture_kb}}` slot at that step + an ONBOARDING question ("where do
   late-night captures default?") + a MOD.example placeholder — never the user's KB

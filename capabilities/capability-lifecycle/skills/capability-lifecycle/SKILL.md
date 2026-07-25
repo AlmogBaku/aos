@@ -8,10 +8,11 @@ description: The aos capability lifecycle's front door. Use when the user asks t
 Capabilities are self-describing prompts; **you are the installer**. Judgment is yours;
 bookkeeping is `aos-lock`'s (`aos-lock --help` — the lockfile is its file, never edit
 the YAML). Everything lives in the household `<home>` (default `~/aos`): `upstream/`
-the pristine kit clone, `personal/` the user's private repo (their MOD ledgers, the
+the pristine kit clone, `personal/` the user's private repo (their MOD files, the
 pinned renders harnesses symlink to, their private capabilities), `.aos/` machine
-state. The diff gate is never optional. `MOD.md` is the user's ledger of
-personalization: you re-apply it, you never overwrite it — and you never write anything
+state. The diff gate is never optional. `MOD.md` states the user's
+personalization — what they changed from the shipped defaults, current state, edited in
+place: you re-apply it, you never overwrite it — and you never write anything
 to upstream (PR, issue, +1, push, fork, remote branch) without the user's explicit
 approval. The full rules:
 `reference/contract.md`. The overlay doctrine (interviews, transform, capture,

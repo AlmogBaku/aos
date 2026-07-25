@@ -124,7 +124,7 @@ Drive everything from the lockfile entry, in order:
 Degraded-mode wiring (meanings in the entry skill's `reference/contract.md`): `manual` ⇒ the invocable skill lands in
 the same profile the job would have owned; `inline` ⇒ append via `hermes cron edit`.
 
-Safety rails to route through: the `personal/` git history first (renders and ledgers —
+Safety rails to route through: the `personal/` git history first (renders and MOD files —
 revert = rollback), then Hermes-native: `hermes backup --quick` (pre-install),
 `state-snapshots/` (pre-update), `hermes doctor`, `hermes skills diff` (feeds the §3.3
 round-trip; note stock-vs-modified tracking sees through links to the render),

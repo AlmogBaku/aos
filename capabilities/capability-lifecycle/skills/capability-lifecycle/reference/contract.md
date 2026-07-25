@@ -4,7 +4,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 
 - **The household is the ground truth of where things live** (§3.1): `<home>` (default
   `~/aos`) contains `upstream/` (the kit clone — pristine, never anything personal, not
-  even untracked files), `personal/` (the user's one private git repo: MOD ledgers at
+  even untracked files), `personal/` (the user's one private git repo: MOD files at
   mirrored capability paths, the pinned renders, their private capabilities), and
   `.aos/` (machine state — the lockfile). A capability id resolves against `personal/`
   first, then `upstream/`; a personal package shadowing an upstream id is reported
@@ -35,7 +35,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   the exit.
 - **You never write** any `MOD.md` except through `capability-evolver` or an interview,
   and you never edit shipped capability files in any source root — personalization
-  lives only in `personal/` (the ledgers and the pinned renders).
+  lives only in `personal/` (the MOD files and the pinned renders).
 - **You never contribute without approval.** You never open a PR, file an issue,
   comment, +1, push, fork, or create a branch on a remote — for upstream or any repo
   the user doesn't own — without the user's explicit approval or request. No exceptions. Offers are cheap; writes that
@@ -64,7 +64,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   resolve links only if `<home>/personal` is mounted read-only — the cheat-sheet's
   Materialization guide says how; without the mount, stop and say so (never fall back
   to copying: one canonical render, everywhere).
-- **The persist hook**: after every ledger write (interview, evolve, retirement,
+- **The persist hook**: after every MOD write (interview, evolve, retirement,
   drift-fold) and every render, commit `personal/` with a dated one-line message —
   you, not the user; silently. The `personal/` git history is the primary safety net;
   rollback is `git revert`.
@@ -92,7 +92,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   (the whole-folder render keeps them valid — and links preserve them). Across skills:
   by skill *name* — never a parent-directory path (link names differ from shipped dirs;
   lint bans the pattern). Into the household (capability sources, cheat-sheets, MOD
-  ledgers): shipped files write a `<home>/…` placeholder; the transform bakes the real
+  files): shipped files write a `<home>/…` placeholder; the transform bakes the real
   household path into renders (same pass as `{{mod}}`), and scheduled commands get
   `--home`/`AOS_HOME` baked the same way. The lifecycle capability's own skills are
   render-stable (no `{{mod}}` slots) and keep the placeholder — resolve it at use time

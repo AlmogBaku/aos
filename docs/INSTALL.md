@@ -22,7 +22,7 @@ expect, what you'll be asked, and what ends up where.
 
 Paste into your agent:
 
-> Fork and clone https://github.com/AlmogBaku/aos to ~/aos/upstream (a plain clone
+> Fork and clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream (a plain clone
 > works too), read ~/aos/upstream/BOOTSTRAP.md, then set me up.
 
 ## What happens next

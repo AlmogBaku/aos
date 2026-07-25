@@ -16,7 +16,7 @@ contract, and the Experience rules.
    and skip its render deletion (the render is shared — it stays), then re-`record` the
    reduced set (start from `aos-lock show`, drop that harness's links/artifacts/jobs,
    keep everything else), then step 6's verify scoped to that harness. The lockfile
-   entry and the MOD ledger both stay. Skip step 5. Step 3's dependents check still applies **scoped to this harness** (a
+   entry and the MOD file both stay. Skip step 5. Step 3's dependents check still applies **scoped to this harness** (a
    capability installed here that depends on this one). Note the lockfile's
    `schedules_owned` is a flat id list with no harness dimension (§5.5), so identify
    *this* harness's jobs by introspecting the harness, not by reading the lockfile.

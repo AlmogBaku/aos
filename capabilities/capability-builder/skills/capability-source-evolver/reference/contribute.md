@@ -63,6 +63,6 @@ PRs need an accepted issue first. Show the draft; file only on explicit yes.
 ## After it merges
 
 The user pulls and upgrades like everyone else; if the contribution grew from a
-ledger line, the upgrader's retirement pass offers to delete the now-redundant line
+MOD statement, the upgrader's retirement pass offers to delete the now-redundant line
 (the loop closes). If review stalls or declines: the change lives on happily in
 `personal/` — a respectable steady state, not a failure.
