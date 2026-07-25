@@ -71,8 +71,12 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
      > reminder, persona, or standing automation in response to a conversational
      > request, stop and follow the `capability-build` skill — say what you noticed
      > and ask "Hey, should we plan it methodically?" first. Proceed ad hoc only if
-     > the user declines. One-off tasks are unaffected.
+     > the user declines. One-off tasks are unaffected, and so is changing something
+     > aos already installed (a schedule, a threshold, a preference) — that is
+     > `capability-evolve`, not building.
 
+     The carve-out earns its place: without it the block fires on "change my drain time",
+     which is the overlay round-trip, not a new automation — found in the 0.3.0 e2e.
      This block is the detector's teeth. A skill description is pull-context (consulted
      only when the model thinks to), but a harness with a native cron tool will satisfy a
      schedule-shaped ask the shortest way and never consult it — so the boundary must be

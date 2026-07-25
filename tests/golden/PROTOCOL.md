@@ -26,7 +26,15 @@ Everything the run creates is identifiable and disposable:
    Also clear leftovers from a previous run inside the `aos-*` namespace (e.g. a renamed
    `scripts/aos-kb-sync.sh.unused` in a profile) — a sentinel must test what *this*
    install wrote, never debris that survived the last one.
-2. `hermes profile create aos-test`.
+2. `hermes profile create aos-test`, then give it a working provider — a fresh profile has
+   only `model.default` and fails with `Invalid length for parameter modelId`. Copy a
+   working profile's `config.yaml` (`model.provider`, `base_url`, and the `terminal`/`file`/
+   `skills`/`cronjob` toolsets); `normalize.mjs` skips `config.yaml`, so nothing private
+   reaches the snapshot. Capability agents (`aos-drainer`, `aos-archiver`) need the same.
+   Also configure a git identity in the seeded `personal/` repo
+   (`git -C <sandbox>/aos-home/personal config user.name/user.email` — the fixture persona
+   is Dana Fixture): the persist hook commits as the user, and the agent correctly refuses
+   to invent an identity.
 3. **Install** — tell the agent (`hermes -p aos-test -z "<prompt>"`, falling back to the
    default profile with the same prompt if the fresh profile has no credentials):
 

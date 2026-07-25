@@ -9,13 +9,15 @@ Not in context yet? Load the `capability-lifecycle` skill first — the map, the
 the overlay doctrine, and the Experience rules. Then:
 
 1. **[D]** Resolve the capability dir across the household — `personal/capabilities/<id>`
-   first, then `upstream/capabilities/<id>`; both exist → say so loudly and ask which
+   first, then `upstream/capabilities/<id>`, counting a directory as a source **only if it
+   holds a `CAPABILITY.md`** (a MOD-only directory is the user's overlay at its mirrored
+   path, not a package); both are real packages → say so loudly and ask which
    (never silently prefer). Then `aos-lock manifest <dir>` → validated JSON. Validation
    failure → show the tool's error, offer fix-or-report; never improvise a parse.
 2. **[D]** `aos-lock show <id>`: installed at this version → say so, stop; older →
    hand to `capability-upgrade`.
 3. **[D]** Dependencies: each `depends.capabilities` missing from `aos-lock list` →
-   announce briefly ("kb needs onboarding — setting that up first"), install it first,
+   announce briefly ("gtd-capture needs kb — setting that up first"), install it first,
    its interview included.
 4. **[D]** Load `harnesses/<harness-runtime>.md` (this capability) **now** — Feature
    notes first: a `required` host feature missing → friendly stop with the reason;

@@ -2,7 +2,7 @@
 // Copy a rendered tree into a golden snapshot, normalizing run-varying values so
 // the committed diff shows only meaningful changes.
 // Usage: normalize.mjs <src-dir> <dest-dir>
-import { readdirSync, statSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readdirSync, statSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const [src, dest] = process.argv.slice(2);
@@ -15,6 +15,13 @@ const SKIP = new Set(['config.yaml', 'profile.yaml',  // harness runtime state: 
   '.hub', 'index-cache', '.bundled_manifest',  // harness-owned skill-store metadata + caches (megabytes of run-varying JSON)
   'node_modules', '.git', 'sessions', 'logs', 'memories', 'state.db',
   'audio_cache', 'cache', '.env', 'auth.json', 'state-snapshots', 'bin',
+  // Harness runtime state inside a profile. `home` is the agent's own sandbox HOME
+  // (npm/node caches — megabytes, and it carries absolute developer paths a snapshot
+  // must never commit); `lsp` is language-server state. Neither is ever an aos artifact.
+  'home', 'lsp',
+  // Harness-written marker/notice files: presence depends on the build and the model in
+  // use, not on anything an install did.
+  '.no-bundled-skills', '.codex_gpt55_autoraise_notice',
   'executions.db', '.jobs.lock', 'auth.lock', 'state.db-shm', 'state.db-wal',
   '.skills_prompt_snapshot.json', '.update_check', 'context_length_cache.yaml',
   'verification_evidence.db', 'models_dev_cache.json']);
@@ -56,6 +63,9 @@ function copy(s, d) {
       return;
     }
     for (const name of readdirSync(s)) copy(join(s, name), join(d, name));
+    // An empty directory is noise in the committed diff — the harness creates a dozen
+    // of them per profile, and none of them is something an install wrote.
+    if (!readdirSync(d).length) rmdirSync(d);
   } else {
     if (SKIP.has(s.split('/').pop())) return;
     mkdirSync(join(d, '..'), { recursive: true });

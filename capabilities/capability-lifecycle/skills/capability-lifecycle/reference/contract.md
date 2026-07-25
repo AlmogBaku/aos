@@ -19,7 +19,10 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   than ships — cloned, symlinked, and recorded like anything else, but never rendered and
   never origin-tagged: they are not ours to modify). A capability id resolves against `personal/`
   first, then `upstream/`; a personal package shadowing an upstream id is reported
-  loudly at install/upgrade, never silently preferred.
+  loudly at install/upgrade, never silently preferred. **A directory is only a package if it
+  holds a `CAPABILITY.md`** — `personal/capabilities/<id>/` exists for every capability the
+  user has answers for (it is the mirrored overlay path), so treating a MOD-only directory
+  as a second source would report a shadow on every ordinary install.
 - **The diff gate is never optional.** Nothing lands in the harness until the user has
   seen the full diff of what you are about to write and approved it (§5.4). The three
   phases are explicit: **STAGE** (render the personalized artifacts into `personal/`'s
