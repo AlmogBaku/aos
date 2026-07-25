@@ -1,5 +1,5 @@
 ---
-capability: onboarding
+capability: capability-lifecycle
 onboarded_version: 0.1.0
 answers:
   user_name: Dana

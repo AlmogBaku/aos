@@ -36,12 +36,12 @@ Copy this checklist and work the stages in order — **stop for the user between
 extension, frontmatter fields in use, wikilink density, large binaries, and the
 **shape** — `old-methodology` (a v1 base: see
 [reference/v1-migration.md](reference/v1-migration.md) for the known mapping),
-`obsidian`, `plain`, or `base-v2` (→ stop: that's `adopt`, not import). Present the
+`obsidian`, `plain`, or `base-v2` (→ stop: that's `kb-adopt`, not import). Present the
 user a short digest and a first-cut mapping proposal.
 
 ## 2. Mapping — the agreement [user decides]
 
-Talk it through: target base (existing, or run `init` first) · their-folders → our
+Talk it through: target base (existing, or run `kb-init` first) · their-folders → our
 zones/types · what lands as raw vs. becomes wiki pages vs. gets skipped · attachment
 destinations · frontmatter correspondences · **per-set vouching**: the user vouches
 `verified: true` for sets that are their own curated knowledge; machine-generated or

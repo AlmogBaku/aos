@@ -1,26 +1,39 @@
-# Structural expectations for the full capability-lifecycle+kb+onboarding+gtd-capture install into the
+# Structural expectations for the full capability-lifecycle+kb+gtd-capture install into the
 # aos-test profile namespace. Roots resolved by check.mjs:
 #   front  = ~/.hermes/profiles/aos-test
 #   <agent>= ~/.hermes/profiles/aos-<agent>
 #   home   = <repo>/tests/.sandbox/aos-home  (the household: upstream/ + personal/ + .aos/)
-# Anatomy v2 (kb, onboarding, gtd-capture, importer all migrated to the entry-skill
-# convention; importer has no install footprint so it isn't part of this fixture).
+# Every skill path below is an INSTALLED name (§2.5): `<skill_prefix><id>`, with the entry
+# skill keeping the capability id. capability-lifecycle declares `capability-`, gtd-capture
+# declares `gtd-`, kb takes the default `kb-`. `aos-lock skills <cap-dir>` is the authority.
 agents: [drainer, archiver]
 
 expect_files:
-  # capability-lifecycle — the five lifecycle skills, main-scoped, {{mod}}-slot-free
-  - "front:skills/capability-lifecycle-capability-lifecycle/SKILL.md"
-  - "front:skills/capability-lifecycle-capability-lifecycle/reference/contract.md"
-  - "front:skills/capability-lifecycle-capability-installer/SKILL.md"
-  - "front:skills/capability-lifecycle-capability-upgrader/SKILL.md"
-  - "front:skills/capability-lifecycle-capability-remover/SKILL.md"
-  - "front:skills/capability-lifecycle-capability-evolver/SKILL.md"
-  # onboarding — entry skill IS the whole capability, bundles its reference/
-  - "front:skills/onboarding-onboarding/SKILL.md"
-  - "front:skills/onboarding-onboarding/reference/answer-validation.md"
+  # capability-lifecycle — nine main-scoped skills, {{mod}}-slot-free. The entry skill
+  # installs verbatim (no `capability-lifecycle-capability-lifecycle` stutter).
+  - "front:skills/capability-lifecycle/SKILL.md"
+  - "front:skills/capability-lifecycle/reference/contract.md"
+  - "front:skills/capability-lifecycle/reference/naming.md"
+  # the cheat-sheets travel with the render — that is the point of them being reference
+  # files of the skill that reads them, rather than a capability-level directory
+  - "front:skills/capability-lifecycle/reference/harness-hermes.md"
+  - "front:skills/capability-lifecycle/reference/harness-nanoclaw.md"
+  - "front:skills/capability-lifecycle/reference/harness-openclaw.md"
+  - "front:skills/capability-lifecycle/reference/harness-nanobot.md"
+  - "front:skills/capability-lifecycle/reference/no-cheatsheet.md"
+  - "front:skills/capability-install/SKILL.md"
+  - "front:skills/capability-upgrade/SKILL.md"
+  - "front:skills/capability-remove/SKILL.md"
+  - "front:skills/capability-evolve/SKILL.md"
+  # absorbed capabilities are now skills of this one (0.3.0)
+  - "front:skills/capability-onboard/SKILL.md"
+  - "front:skills/capability-onboard/reference/answer-validation.md"
+  - "front:skills/capability-import/SKILL.md"
+  - "front:skills/capability-build/SKILL.md"
+  - "front:skills/capability-contribute/SKILL.md"
   # kb main-scoped skills — entry skill travels with its bundled assets
-  - "front:skills/kb-kb/SKILL.md"
-  - "front:skills/kb-kb/reference/lifecycle.md"
+  - "front:skills/kb/SKILL.md"
+  - "front:skills/kb/reference/lifecycle.md"
   - "front:skills/kb-route/SKILL.md"
   - "front:skills/kb-recall/SKILL.md"
   - "front:skills/kb-init/SKILL.md"
@@ -29,21 +42,23 @@ expect_files:
   - "front:skills/kb-import/SKILL.md"
   - "front:skills/kb-import/reference/v1-migration.md"
   # kb archiver-scoped: the entry skill (map + tool); lint is a tool verb now
-  - "archiver:skills/kb-kb/SKILL.md"
+  - "archiver:skills/kb/SKILL.md"
   - "archiver:SOUL.md"
   # gtd-capture — entry skill goes to both main and drainer (used_by: [main, drainer])
-  - "front:skills/gtd-capture-gtd-capture/SKILL.md"
-  - "front:skills/gtd-capture-gtd-capture/reference/entry-format.md"
-  - "front:skills/gtd-capture-capture/SKILL.md"
-  - "drainer:skills/gtd-capture-gtd-capture/SKILL.md"
-  - "drainer:skills/gtd-capture-gtd-capture/reference/entry-format.md"
-  - "drainer:skills/gtd-capture-drain/SKILL.md"
+  - "front:skills/gtd-capture/SKILL.md"
+  - "front:skills/gtd-capture/reference/entry-format.md"
+  - "front:skills/gtd-quick-capture/SKILL.md"
+  - "drainer:skills/gtd-capture/SKILL.md"
+  - "drainer:skills/gtd-capture/reference/entry-format.md"
+  - "drainer:skills/gtd-drain/SKILL.md"
   - "drainer:SOUL.md"
-  # pinned renders — the canonical artifacts in personal/ that harness links target
+  # pinned renders — the canonical artifacts in personal/ that harness links target.
+  # The render directory carries the installed name too: one identity end to end.
   - "home:personal/capabilities/capability-lifecycle/skills/capability-lifecycle/SKILL.md"
+  - "home:personal/capabilities/capability-lifecycle/skills/capability-onboard/SKILL.md"
   - "home:personal/capabilities/kb/skills/kb/SKILL.md"
-  - "home:personal/capabilities/gtd-capture/skills/capture/SKILL.md"
-  - "home:personal/capabilities/gtd-capture/skills/drain/SKILL.md"
+  - "home:personal/capabilities/gtd-capture/skills/gtd-quick-capture/SKILL.md"
+  - "home:personal/capabilities/gtd-capture/skills/gtd-drain/SKILL.md"
   # ledgers at mirrored paths in the personal root
   - "home:personal/MOD.md"
   - "home:personal/kb-registry.yaml"
@@ -51,22 +66,45 @@ expect_files:
   # bookkeeping — household-level lockfile
   - "home:.aos/installs.lock.yaml"
 
+forbid_texts:
+  # the harness owns user context (Hermes: memories/USER.md). aos must not distil the
+  # global MOD's identity facts into an agent it did not create.
+  - {text: "aos:capability-lifecycle:identity", in: "front:SOUL.md"}
+  - {text: "aos:onboarding", in: "front:SOUL.md"}
+
 forbid_files:
   # used_by placement — the anti-pollution rule, §2.2
-  - "front:skills/gtd-capture-drain/SKILL.md"
-  - "drainer:skills/gtd-capture-capture/SKILL.md"
-  - "archiver:skills/gtd-capture-capture/SKILL.md"
-  - "archiver:skills/gtd-capture-drain/SKILL.md"
-  - "archiver:skills/gtd-capture-gtd-capture/SKILL.md"
+  - "front:skills/gtd-drain/SKILL.md"
+  - "drainer:skills/gtd-quick-capture/SKILL.md"
+  - "archiver:skills/gtd-quick-capture/SKILL.md"
+  - "archiver:skills/gtd-drain/SKILL.md"
+  - "archiver:skills/gtd-capture/SKILL.md"
+  # the retired `<capability>-<id>` link scheme — the entry-skill stutter especially
+  - "front:skills/capability-lifecycle-capability-lifecycle/SKILL.md"
+  - "front:skills/capability-lifecycle-capability-installer/SKILL.md"
+  - "front:skills/kb-kb/SKILL.md"
+  - "front:skills/onboarding-onboarding/SKILL.md"
+  - "front:skills/gtd-capture-gtd-capture/SKILL.md"
+  - "front:skills/gtd-capture-capture/SKILL.md"
+  # the retired capability-level cheat-sheet directory: a path that resolves in the source
+  # tree and nowhere beside an installed skill
+  - "home:personal/capabilities/capability-lifecycle/harnesses/hermes.md"
+  # capabilities absorbed into capability-lifecycle must leave no separate footprint
+  - "home:personal/capabilities/onboarding/CAPABILITY.md"
+  - "home:personal/capabilities/importer/CAPABILITY.md"
+  - "home:personal/capabilities/capability-builder/CAPABILITY.md"
   # dead artifacts from the pre-redesign anatomy — must not be materialized
   - "front:skills/kb-authz-check/SKILL.md"
   - "archiver:skills/kb-authz-check/SKILL.md"
   - "archiver:skills/kb-lint/SKILL.md"
-  - "front:skills/gtd-capture-capture/sections/entry-format.md"
-  - "drainer:skills/gtd-capture-drain/drain-prompt.md"
+  - "front:skills/gtd-quick-capture/sections/entry-format.md"
+  - "drainer:skills/gtd-drain/drain-prompt.md"
   - "front:skills/onboarding-interview/SKILL.md"
   - "front:skills/gtd-capture-format-entry/SKILL.md"
-  - "drainer:skills/gtd-capture-format-entry/SKILL.md"
+
+# Third-party skills this capability references rather than ships: linked from
+# <home>/vendor/, never rendered, so no origin tag and no personal/ link target (§2.1).
+vendored: [skill-creator]
 
 # every materialized SKILL.md under these roots must carry the origin tag
 origin_tag_roots: ["front:skills", "drainer:skills", "archiver:skills"]
@@ -82,16 +120,22 @@ schedules:
   - {profile: archiver, name_prefix: "aos:kb:sync"}
 
 sentinels:
-  - {text: "🦜", in: "front:skills/gtd-capture-capture/SKILL.md"}
-  # onboarding's context block must land in the front agent's SOUL.md, marker-delimited
-  - {text: "aos:onboarding", in: "front:SOUL.md"}
+  - {text: "🦜", in: "front:skills/gtd-quick-capture/SKILL.md"}
+  # the MARS mode boundary is the ONE block aos writes to the front agent's identity file
+  - {text: "aos:capability-lifecycle:mode-boundary", in: "front:SOUL.md"}
   # the sync wrapper must pin the household's registry — a bare `base sync` silently no-ops
   # (the wrapper's canonical home is the harness scripts dir, recorded in the lockfile;
   # the profile-level copy is what this root can see)
   - {text: "kb-registry.yaml", in_dir: "archiver:scripts"}
   # drain_hour 22:47 → cron expression "47 22 * * *" in the drainer's jobs
   - {text: "47 22", in_dir: "drainer:cron"}
-  - {text: "choir practice Thursdays 19:00-21:00", in_dir: "drainer:"}
+  # The global MOD's sacred time must reach the schedule-touching agent. Matched on the
+  # distinctive token, not the fixture's phrasing: the contract says *distill* the identity
+  # facts, so the render legitimately rewords them ("Thursday choir practice, 19:00–21:00").
+  # A verbatim assertion here would contradict the contract it is testing.
+  - {text: "choir", in_dir: "drainer:"}
+  # …and the time fact itself, so the sentinel keeps its signal
+  - {text: "19:00", in_dir: "drainer:"}
   # exec schedule: the sync job's command must invoke the tool, not an agent prompt
   - {text: "base sync --all", in_dir: "archiver:"}
 
@@ -101,10 +145,10 @@ lockfile_links_into_personal: true
 
 # live-only: harness skill dirs must be symlinks into personal/ (§5.3 — copies banned)
 expect_links:
-  - "front:skills/capability-lifecycle-capability-installer"
-  - "front:skills/kb-kb"
-  - "front:skills/gtd-capture-capture"
-  - "drainer:skills/gtd-capture-drain"
-  - "archiver:skills/kb-kb"
+  - "front:skills/capability-install"
+  - "front:skills/kb"
+  - "front:skills/gtd-quick-capture"
+  - "drainer:skills/gtd-drain"
+  - "archiver:skills/kb"
 
-lockfile_capabilities: [capability-lifecycle, kb, onboarding, gtd-capture]
+lockfile_capabilities: [capability-lifecycle, kb, gtd-capture]

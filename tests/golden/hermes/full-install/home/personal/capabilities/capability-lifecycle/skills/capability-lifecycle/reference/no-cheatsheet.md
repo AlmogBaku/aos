@@ -16,15 +16,23 @@ adds your harness's half. Derive it yourself:
 1. **[A]** Introspect your harness: config layout, skills dirs, scheduler, secret store,
    agent primitive — read its docs and CLI help, list what already exists.
 2. **[A]** Draft
-   `<home>/upstream/capabilities/capability-lifecycle/harnesses/<harness-runtime>.md`
+   `<home>/upstream/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`
    answering §5.2's six sections (Primitive mapping, Materialization guide, Introspection
-   guide, Secrets, Removal, Feature notes — `harnesses/hermes.md` in the same directory
-   is the reference shape). Keep it lean: your harness's half only. Write it **on a
+   guide, Secrets, Removal, Feature notes — `harness-hermes.md` beside this file is
+   the reference shape). Keep it lean: your harness's half only. Write it **on a
    branch** (`git -C <home>/upstream switch -c cheatsheet-<harness>`): a cheat-sheet is
    generic knowledge, not personalization — the clone stays pristine on `main`, and the
    draft is born contribution-shaped.
-3. **[D]** Diff gate: show the user the full draft before writing it.
-4. Proceed with the operation using your draft, telling the user the mappings are
-   self-authored and unverified. After a verified install, it is a ready-made
-   contribution (§5.2): *offer* to open the PR per
-   `<home>/upstream/CONTRIBUTING.md` — and only on the user's explicit yes.
+3. **[D]** Diff gate: show the user the full draft before writing it — then **commit it
+   on the branch** (`git -C <home>/upstream add capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<h>.md`
+   + commit). Uncommitted, it would follow you back to `main` as an untracked file in a
+   clone that must hold nothing but upstream's own content — and it would fail the
+   contribution preflight's clean-status check.
+4. Proceed with the operation using your draft (it is in the working tree on that
+   branch — do not switch away yet, or the file you are following disappears), telling
+   the user the mappings are self-authored and unverified.
+5. **When the operation is done, switch the clone back to `main`**
+   (`git -C <home>/upstream switch main`): the branch keeps the draft, and a clone left
+   on a feature branch stops receiving upstream changes (the upgrader skips the pull
+   there by design). After a verified install, it is a ready-made contribution (§5.2): *offer* to open the
+   PR per `<home>/upstream/CONTRIBUTING.md` — and only on the user's explicit yes.

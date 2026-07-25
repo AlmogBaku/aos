@@ -1,12 +1,19 @@
 import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { readFrontmatter } from '../../lib/frontmatter.mjs';
-import { ORIGIN_FRONTMATTER_KEY, MAIN_AGENT } from '../../lib/constants.mjs';
+import {
+  ORIGIN_FRONTMATTER_KEY, MAIN_AGENT, SKILL_NAME_RE, SKILL_NAME_MAX,
+  RESERVED_NAME_WORDS, REFERENCE_TOC_LINES,
+} from '../../lib/constants.mjs';
 import { agentNames } from './agents.mjs';
 
 // Agent Skills spec (agentskills.io/specification) — the portable core every
 // skills/<id>/ folder must satisfy standalone (ARCHITECTURE §2.1 normative).
 const SKILL_KEYS = ['name', 'description', 'license', 'allowed-tools', 'metadata', 'compatibility'];
-const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const NAME_RE = SKILL_NAME_RE;
+// The spec forbids XML tags in name/description: both are injected into the system prompt,
+// where an angle-bracket token reads as markup. Placeholders belong in the body.
+const XML_TAG_RE = /<[^\s>]+>/;
 
 export function checkSkills({ caps, files, report }) {
   for (const cap of caps) {
@@ -39,16 +46,29 @@ export function checkSkills({ caps, files, report }) {
         }
       }
       const name = data.name;
-      if (typeof name !== 'string' || !name.length || name.length > 64 || !NAME_RE.test(name)) {
-        report('error', 'skill/name', file, `name must be 1–64 chars of [a-z0-9-], no leading/trailing/double hyphens`);
+      if (typeof name !== 'string' || !name.length || name.length > SKILL_NAME_MAX || !NAME_RE.test(name)) {
+        report('error', 'skill/name', file, `name must be 1–${SKILL_NAME_MAX} chars of [a-z0-9-], no leading/trailing/double hyphens`);
       } else if (name !== id) {
         report('error', 'skill/name-dir', file, `name "${name}" must equal directory name "${id}"`);
+      }
+      if (typeof name === 'string') {
+        for (const word of RESERVED_NAME_WORDS) {
+          if (name.includes(word)) {
+            report('error', 'skill/reserved-word', file, `name "${name}" contains the reserved word "${word}" (Agent Skills spec)`);
+          }
+        }
       }
       const desc = data.description;
       if (typeof desc !== 'string' || !desc.trim().length || desc.length > 1024) {
         report('error', 'skill/description', file, 'description is required, 1–1024 chars');
       } else if (!/\bwhen\b/i.test(desc)) {
         report('warn', 'skill/description-when', file, 'description should say when to use the skill (trigger phrasing)');
+      }
+      for (const [field, value] of [['name', name], ['description', desc]]) {
+        if (typeof value === 'string' && XML_TAG_RE.test(value)) {
+          report('error', 'skill/xml-tags', file,
+            `${field} contains "${value.match(XML_TAG_RE)[0]}" — no XML tags in frontmatter (it is injected into the system prompt); use a plain placeholder or move the example into the body`);
+        }
       }
       if (body.split('\n').length > 500) {
         report('warn', 'skill/body-length', file, 'SKILL.md body exceeds 500 lines — split into sections/ (progressive disclosure)');
@@ -71,11 +91,46 @@ export function checkSkills({ caps, files, report }) {
       }
     }
 
+    checkReferenceDepth(cap, files, report);
+
     // §2.2: a multi-skill capability scoping everything to main is the degenerate
     // case the linter questions.
     const allUsedBy = [...declared.values()].flatMap((s) => s.used_by ?? []);
     if (declared.size > 1 && allUsedBy.length && allUsedBy.every((u) => u === MAIN_AGENT)) {
       report('warn', 'skill/all-main', `${cap.rel}/CAPABILITY.md`, 'every skill is scoped to main — is that deliberate? (§2.2)');
+    }
+  }
+}
+
+// Progressive disclosure, per the Agent Skills authoring guide: every reference file hangs
+// directly off SKILL.md. A file reached *through* another one gets partially read (the
+// agent previews with head -100 rather than reading it whole), so a chain silently
+// truncates. And past ~100 lines a preview no longer shows the file's scope — hence the
+// Contents block.
+function checkReferenceDepth(cap, files, report) {
+  const refs = files.filter((f) => f.startsWith(`${cap.rel}/`)
+    && f.endsWith('.md') && f.split('/').includes('reference'));
+  for (const file of refs) {
+    const dir = file.slice(0, file.lastIndexOf('/'));
+    const siblings = new Set(refs.filter((f) => f.startsWith(`${dir}/`))
+      .map((f) => f.slice(dir.length + 1)));
+    let text;
+    try {
+      text = readFileSync(join(cap.dir, ...file.split('/').slice(2)), 'utf8');
+    } catch {
+      continue;
+    }
+    for (const m of text.matchAll(/]\((?:\.\/)?([a-z0-9._-]+\.md)(?:#[^)]*)?\)/gi)) {
+      if (siblings.has(m[1])) {
+        report('error', 'skill/nested-reference', file,
+          `links to the sibling reference "${m[1]}" — every reference file must hang directly off SKILL.md, or it gets read only in part`);
+      }
+    }
+    const lines = text.split('\n');
+    if (lines.length > REFERENCE_TOC_LINES
+        && !lines.slice(0, 15).some((l) => /^#{1,3}\s*contents\b/i.test(l))) {
+      report('warn', 'skill/reference-toc', file,
+        `${lines.length} lines with no "## Contents" block — a partial read must still show the file's scope`);
     }
   }
 }

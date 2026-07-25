@@ -26,7 +26,15 @@ Everything the run creates is identifiable and disposable:
    Also clear leftovers from a previous run inside the `aos-*` namespace (e.g. a renamed
    `scripts/aos-kb-sync.sh.unused` in a profile) — a sentinel must test what *this*
    install wrote, never debris that survived the last one.
-2. `hermes profile create aos-test`.
+2. `hermes profile create aos-test`, then give it a working provider — a fresh profile has
+   only `model.default` and fails with `Invalid length for parameter modelId`. Copy a
+   working profile's `config.yaml` (`model.provider`, `base_url`, and the `terminal`/`file`/
+   `skills`/`cronjob` toolsets); `normalize.mjs` skips `config.yaml`, so nothing private
+   reaches the snapshot. Capability agents (`aos-drainer`, `aos-archiver`) need the same.
+   Also configure a git identity in the seeded `personal/` repo
+   (`git -C <sandbox>/aos-home/personal config user.name/user.email` — the fixture persona
+   is Dana Fixture): the persist hook commits as the user, and the agent correctly refuses
+   to invent an identity.
 3. **Install** — tell the agent (`hermes -p aos-test -z "<prompt>"`, falling back to the
    default profile with the same prompt if the fresh profile has no credentials):
 
@@ -38,18 +46,21 @@ Everything the run creates is identifiable and disposable:
    > in `personal/` at mirrored paths. Your install home (the "front agent") is the
    > `aos-test` profile (`~/.hermes/profiles/aos-test`); create capability agents as
    > `aos-<name>` profiles. Renders land in `personal/` and skills are symlinked per
-   > the contract. Install: onboarding, kb (gtd-capture comes later, as its own
-   > prompt — see step 3a). The lockfile lives at `aos-home/.aos/installs.lock.yaml`
+   > the contract. Install: kb (gtd-capture comes later, as its own prompt — see the
+   > Day-N step). The lockfile lives at `aos-home/.aos/installs.lock.yaml`
    > (`aos-lock --home <sandbox>/aos-home`).
 
    The installer gets **no other context** — BOOTSTRAP + the capability-lifecycle
    contract + capability + cheat-sheet + overlay must suffice; that is the test.
-   Bootstrap installs capability-lifecycle, onboarding, and kb.
+   Bootstrap installs capability-lifecycle (nine skills — the interview engine among
+   them, so there is no separate onboarding install) and kb. The name gate
+   (`aos-lock skills … --check`) runs before each install; a fresh `aos-test` profile has
+   no skills of its own, so it must come back clean.
 
    **Day-N step** (the seam this exists to prove): a SEPARATE, fresh prompt with no
    bootstrap context — `hermes -p aos-test -z "install gtd-capture from the aos household
    at <sandbox>/aos-home"` (default-profile fallback as above) — must trigger the
-   materialized `capability-installer` skill and complete the install.
+   materialized `capability-install` skill and complete the install.
 
 4. **Check**: `node tests/golden/check.mjs --live` runs the structural checks against the
    materialized tree (expectations in `tests/golden/expectations/*.yaml`), plus the
@@ -57,14 +68,28 @@ Everything the run creates is identifiable and disposable:
 5. **Snapshot**: `node tests/golden/normalize.mjs <paths>` → commit under
    `tests/golden/hermes/<cap>/`. The commit diff is the reviewable render (RFC-002).
    Save the run transcript to `tests/transcripts/`.
+
+   **Re-rendering instead of re-running.** A prose fix to a `{{mod}}`-slot-free skill can be
+   re-rendered into the snapshot with `aos-lock render` rather than costing a whole live run —
+   the render is a pure function of source + version for those skills. Two conditions, both
+   non-negotiable: prove it first by rendering an *untouched* skill and confirming byte
+   identity with the committed snapshot, and pipe the output through `normalize.mjs` (skipping
+   it leaves un-normalized values that the next real run silently flips back). Record which
+   files came in that way, here or in the transcript. `check.mjs` asserts the snapshot equals
+   what the normalizer produces, which catches the second mistake but not the first. Anything
+   an agent *decided* — placement, links, schedules, context blocks — only a live run can
+   attest.
+
+   Done this way on 2026-07-25 for the nine `capability-lifecycle` skills, to carry two prose
+   fixes found in review (`tests/transcripts/2026-07-25-skill-identity-e2e-hermes.md`).
    **Evolve step (after the snapshot — it mutates install state)**: a fresh prompt —
    "change gtd-capture's drain schedule to 22:00" — must route through
-   `capability-evolver`: the cron job changes, the change lands in
+   `capability-evolve`: the cron job changes, the change lands in
    `personal/capabilities/gtd-capture/MOD.md` (auto-committed by the persist hook), and
    `aos-lock verify` stays clean. **Note when running via the default-profile fallback:**
    the fallback agent does not carry the materialized skills in context, so the prompt
    must name the skill path explicitly (`~/.hermes/profiles/aos-test/skills/
-   capability-lifecycle-capability-evolver/SKILL.md`) — otherwise it edits the cron
+   capability-evolve/SKILL.md`) — otherwise it edits the cron
    natively and skips the ledger, which is a fallback artifact, not a skill failure.
    Capture mode is then the second half of the test: fold the existing change into the
    ledger and confirm the persist commit.

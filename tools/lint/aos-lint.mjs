@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { walkRepo, listCapabilities, REPO_ROOT } from '../lib/repo.mjs';
 import { checkManifests } from './checks/manifest.mjs';
 import { checkSkills } from './checks/skills.mjs';
+import { checkSkillNames } from './checks/skill-names.mjs';
 import { checkAgents } from './checks/agents.mjs';
 import { checkOnboarding } from './checks/onboarding.mjs';
 import { checkOverlayPaths, checkOverlaySchemas } from './checks/overlay.mjs';
@@ -40,7 +41,7 @@ const ctx = {
 };
 
 for (const check of [
-  checkManifests, checkSkills, checkAgents, checkOnboarding,
+  checkManifests, checkSkills, checkSkillNames, checkAgents, checkOnboarding,
   checkOverlayPaths, checkOverlaySchemas, checkReferences,
   checkCheatsheets, checkCrossPaths, checkSecrets, checkVersionBumps, checkStructure,
 ]) {

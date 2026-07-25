@@ -2,7 +2,7 @@
 
 You are a harness agent setting up aos for your user. There is no installer binary — **you
 are the installer** (ARCHITECTURE §5.1). This file is deliberately small: it gets exactly
-one capability into your harness — `capability-lifecycle` — and that capability's skills
+one capability into your harness — `capability-lifecycle` — and that capability's nine skills
 carry everything else. Steps are **[D]** (mechanical — do it precisely, verify, record) or
 **[A]** (judgment — think, then show your work).
 
@@ -39,6 +39,7 @@ with it, and `aos-lock --home` pins it). Two members, plus machine state:
 ~/aos/
 ├── upstream/    # this clone — the kit, pristine; NOTHING personal ever lands here
 ├── personal/    # the user's ONE private repo: answers, tweaks, private capabilities
+├── vendor/      # third-party skills aos references, not ships (created on demand)
 └── .aos/        # machine-local state (lockfile) — created by aos-lock init
 ```
 
@@ -68,29 +69,41 @@ private remote; only `.aos/` is machine-local.
 2. Read `capabilities/capability-lifecycle/CAPABILITY.md` (the briefing), then:
    `uv tool install --from ~/aos/upstream/capabilities/capability-lifecycle/tool aos-lock`
    and `aos-lock --home ~/aos init`.
-3. Load your cheat-sheet: `capabilities/capability-lifecycle/harnesses/<harness-runtime>.md`,
+3. Load your cheat-sheet: `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`,
    where the **harness runtime** is the program hosting you (OpenClaw →
-   `harnesses/openclaw.md` · Hermes → `harnesses/hermes.md` · NanoClaw →
-   `harnesses/nanoclaw.md` · Nanobot → `harnesses/nanobot.md`; Claude Code and OpenCode
+   `…/reference/harness-openclaw.md` · Hermes → `harness-hermes.md` · NanoClaw →
+   `harness-nanoclaw.md` · Nanobot → `harness-nanobot.md`; Claude Code and OpenCode
    have no sheet yet). None for your harness → follow the entry skill's
    `reference/no-cheatsheet.md` — do not stop.
-4. **STAGE** the five skills per the contract (mechanical — they have no `{{mod}}` slots):
-   render into `~/aos/personal/capabilities/capability-lifecycle/skills/…`, plan the
-   symlinks into your front agent's skills dir → **GATE** (show the user the plan) →
-   **EXECUTE** (commit the render in `personal/`, create the links) →
+4. **Name gate**, then STAGE the nine skills per the contract (mechanical — they have no
+   `{{mod}}` slots):
+   `aos-lock --home ~/aos skills ~/aos/upstream/capabilities/capability-lifecycle --check
+   --harness-skills <each skills dir your harness reads, per the cheat-sheet>` — exit 17
+   means one of the names is already taken in this harness; stop and report it rather than
+   renaming anything. Then `aos-lock render ~/aos/upstream/capabilities/capability-lifecycle
+   <skill-id> --out ~/aos/personal/capabilities/capability-lifecycle/skills` for each of the
+   nine, plan the symlinks (each render's own directory name) into your front agent's skills
+   dir → **GATE** (show the user the plan) → **EXECUTE** (commit the render in `personal/`,
+   create the links) →
    `aos-lock record capability-lifecycle --version <manifest version> --source-root upstream
    --artifact <render-file>… --link <symlink>…` — render files go to `--artifact` (hashed),
    symlinks to `--link` (a symlink passed as `--artifact` fails: exit 16).
+5. Then the briefing's remaining items: the **mode-boundary context block** on your identity file,
+   the **global bootstrap interview** (§3 runs it), and **`skill-creator`** — referenced,
+   not copied, and best-effort: if the clone or plugin install fails, say so and continue.
 
 ## 3. Hand over
 
 The lifecycle skills are live — from here `install <capability>` triggers
-`capability-installer`. Use it now, as ordinary installs:
+`capability-install`. Two things left:
 
-1. **onboarding** — its interview *is* the global one (identity, timezone, working hours,
-   sacred time, red lines → `~/aos/personal/MOD.md`).
-2. **kb** — its interview + KB setup (adopt existing KBs / init a fresh one →
-   `~/aos/personal/kb-registry.yaml`).
+1. **The global interview** — run `capability-onboard` against this capability's own
+   `ONBOARDING.md`: identity, timezone, working hours, sacred time, red lines →
+   `~/aos/personal/MOD.md`. Nothing from those answers is copied into your identity file —
+   your harness already owns user context, and `MOD.md` is the authoritative store. It is the first thing the user experiences; take the Experience section
+   seriously here.
+2. **kb**, as an ordinary install — its interview + KB setup (adopt existing KBs / init a
+   fresh one → `~/aos/personal/kb-registry.yaml`).
 
 Close per the Experience section: what was installed, where, which schedules, any
 degraded modes — specific and celebratory. Everything after is on demand:

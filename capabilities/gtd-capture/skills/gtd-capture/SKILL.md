@@ -10,10 +10,10 @@ seconds; all judgment happens later, in one nightly pass.
 
 ## The mental model
 
-- **Capture** — the `capture` skill composes with kb's `route` skill to write one raw
+- **Capture** — the `gtd-quick-capture` skill composes with kb's `kb-route` skill to write one raw
   file per thought via `base capture` (instant, deduped, `triage: pending`). No
   lookups, no clarifying questions, no next-action decision on this path.
-- **Drain** — the nightly GTD triage (`drain` skill, default 23:00; the user's
+- **Drain** — the nightly GTD triage (`gtd-drain` skill, default 23:00; the user's
   `drain_hour` answer overrides the cron) walks kb's own pending view and turns
   actionable captures into next-actions, reminders, or two-minute-done. Its pass is
   additive only — it never flips a capture's own `triage` field.
@@ -36,8 +36,8 @@ seconds; all judgment happens later, in one nightly pass.
 
 | Job | Skill |
 |---|---|
-| Fire off a capture | `capture` |
-| Nightly triage / "drain the inbox now" | `drain` |
+| Fire off a capture | `gtd-quick-capture` |
+| Nightly triage / "drain the inbox now" | `gtd-drain` |
 | What capture composes, corrections rule | `reference/entry-format.md` here |
 
 ## Authority

@@ -1,6 +1,6 @@
 # Day-to-day usage
 
-You've [installed](INSTALL.md) capability-lifecycle, kb, onboarding, and gtd-capture. This is what living with
+You've [installed](INSTALL.md) capability-lifecycle, kb, and gtd-capture. This is what living with
 them looks like. Everything below is a thing you *say to your agent* — the skills it
 loaded at install time do the rest.
 
@@ -72,9 +72,9 @@ base --help                    # the rest: links, grants, index, verify, import 
 ## Growing the kit
 
 - Built something in your own harness worth sharing? *"Wrap my <thing> into a
-  capability"* — the **importer** inventories it, splits generic mechanism from your
+  capability"* — **`capability-import`** inventories it, splits generic mechanism from your
   personal nuance, and emits a draft package + gap report. The PR stays yours to open.
-- Keep asking for the same kind of standing automation in chat? **capability-builder**
+- Keep asking for the same kind of standing automation in chat? **`capability-build`**
   notices, and walks it through intake → research → design → your approval → build
   instead of bolting one-off changes onto your harness.
 - That tweak you made just for you may be a missing knob everyone wants. Say

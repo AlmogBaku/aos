@@ -12,7 +12,7 @@ below. If this page and the spec ever disagree, the spec wins (and that's a bug 
 
 The layering borrows Brad Frost's atomic design
 ([§1.2](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#12-mental-model-atomic-design)):
-**skills** are the atoms, **infra capabilities** (kb, onboarding) the molecules,
+**skills** are the atoms, **infra capabilities** (kb, capability-lifecycle) the molecules,
 **use-case capabilities** (gtd-capture) the organisms. The kit ships **templates** —
 generic structure, personalization slots empty. Your harness runs **pages** — the same
 capability instantiated with *your* answers. The transform between template and page is
@@ -46,6 +46,15 @@ Two files have special roles:
   itself (`skills/<id>/SKILL.md`): a short map of where things live and which skill/verb
   does which job, with depth one `reference/` hop away. It's the thing an agent can
   always "hold" to understand the capability.
+- **A skill's installed name is computed, and single-owner** — your harness keeps one flat
+  list of skills, so a name is a claim, not a label. Ids inside a capability are short and
+  local (`init`, `drain`); the name a skill actually installs under is
+  `<skill_prefix><id>` — `kb-init`, `gtd-drain`, `capability-install` — so it still says
+  what it is when it's sitting next to thirty other skills. The installer computes it and
+  refuses to install a name something else already owns (yours, another capability's, or a
+  skill aos never touched) rather than silently overriding it. Skills are named for actions,
+  agents for roles. The rules live in the lifecycle capability's
+  `reference/naming.md`.
 
 ## The overlay — why upgrades can't eat your personalization
 
@@ -56,7 +65,7 @@ capability) plus `kb-registry.yaml` — together, the **overlay family**. Three 
 them safe:
 
 1. **Upstream never ships them.** The kit ships `MOD.example.md` seeds; your real
-   `MOD.md` is written only by the onboarding interview, in your `personal/` repo.
+   `MOD.md` is written only by the interview (`capability-onboard`), in your `personal/` repo.
 2. **Upstream never writes them.** `git pull` cannot touch a path it doesn't contain.
 3. **Upgrades re-apply your MOD** — MOD.md is re-applied to the fresh upstream
    (your current install is only checked for uncaptured edits, which get folded in
@@ -70,7 +79,7 @@ back into MOD.md when it notices them (the round-trip,
 
 Every capability may ship an `ONBOARDING.md`: typed questions in frontmatter (`string`,
 `enum`, `path`, …, plus `secret: true` for values that go to the harness's secret store,
-never into files), a conversational script in the body. The onboarding capability runs
+never into files), a conversational script in the body. The `capability-onboard` skill runs
 it and writes your MOD.md. Re-runs only ask what's missing; `--refresh` re-asks
 everything and shows the diff first.
 
@@ -102,7 +111,7 @@ and installs that one capability; its skills do the rest, loading your harness r
 cheat-sheet at the steps that need it. Three mechanisms keep it honest:
 
 - **Cheat-sheets, not adapters.** Per-harness support is one lean doc
-  (`capabilities/capability-lifecycle/harnesses/<harness-runtime>.md`) teaching the mapping (agent → Hermes profile,
+  (`capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`) teaching the mapping (agent → Hermes profile,
   schedule → `hermes cron create`, secret → `.env`). Knowledge, not glue code — a new
   harness costs one document, and even that is an aid, not a gate: without one, the
   agent derives the mapping itself per BOOTSTRAP.
@@ -136,10 +145,11 @@ is. When building reveals the spec is wrong, the spec gets fixed — the
 | **harness runtime** | The program hosting your agent — names its cheat-sheet (see BOOTSTRAP.md) |
 | **capability** | An installable directory of skills/agents/tools/crons/patches |
 | **entry skill** | `skills/<id>/` — the capability's runtime face and map |
+| **installed name** | The name a skill ships under: `<skill_prefix><id>`, computed by `aos-lock skills`, unique across the harness |
 | **overlay** | Your `MOD.md` files + `kb-registry.yaml`; user-owned, never shipped |
 | **base** | One KB instance == one git repo, registered in `kb-registry.yaml` |
 | **materialize** | The installer writing a capability's artifacts into your harness |
-| **cheat-sheet** | `capabilities/capability-lifecycle/harnesses/<harness-runtime>.md` — the harness half of the mapping, loaded per operation |
+| **cheat-sheet** | `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md` — the harness half of the mapping, loaded per operation |
 | **lockfile** | `.aos/installs.lock.yaml` — the honest record of what was installed |
 | **diff gate** | You see every write before it happens; never optional |
 | **degraded mode** | A capability's declared behavior when a host feature is absent |

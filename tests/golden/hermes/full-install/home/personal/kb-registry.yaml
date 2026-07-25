@@ -1,35 +1,29 @@
 default: personal-kb
 confidence_bar: 0.7
 kbs:
-- name: personal-kb
-  tag: personal
-  path: ~/aos/tests/.sandbox/kb/personal-kb
-  remote: null
-  sync: none
-  audience: private
-  methodology: karpathy-llm-wiki
-  purpose: 'Dana''s personal knowledge: life admin, ideas, people they know personally,
-    hobbies (choir, reading), household, health. When in doubt, it goes here.'
-  routing:
-    channels:
-    - whatsapp:+<ID>
-    keywords:
-    - choir
-    - family
-    - home
-- name: acme-kb
-  tag: work
-  path: ~/aos/tests/.sandbox/kb/acme-kb
-  remote: null
-  sync: none
-  audience: shared
-  methodology: karpathy-llm-wiki
-  purpose: 'Acme Corp''s shared work KB: clients, projects, tickets, meeting notes.
-    Shared with colleagues — only explicit or rule-matched writes.'
-  routing:
-    channels: []
-    keywords:
-    - acme
-    - client
-    - ticket
-    - sprint
+  - name: personal-kb
+    tag: personal
+    path: <HOME>/aos/tests/.sandbox/kb/personal-kb
+    remote: null
+    sync: none
+    audience: private
+    methodology: karpathy-llm-wiki
+    purpose: >
+      Dana's personal knowledge: life admin, ideas, people they know personally,
+      hobbies (choir, reading), household, health. When in doubt, it goes here.
+    routing:
+      channels: ["whatsapp:+<ID>"]
+      keywords: ["choir", "family", "home"]
+  - name: acme-kb
+    tag: work
+    path: <HOME>/aos/tests/.sandbox/kb/acme-kb
+    remote: null
+    sync: none
+    audience: shared
+    methodology: karpathy-llm-wiki
+    purpose: >
+      Acme Corp's shared work KB: clients, projects, tickets, meeting notes. Shared
+      with colleagues — only explicit or rule-matched writes.
+    routing:
+      channels: []
+      keywords: ["acme", "client", "ticket", "sprint"]

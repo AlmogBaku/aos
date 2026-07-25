@@ -21,7 +21,7 @@ questions:
 Runs during bootstrap (step 3) or on first install of any base-touching capability.
 The typed answers above land in this capability's MOD.md; the *registry details*
 (per-base audience, purpose, channels) and the *structure design* (zones, types —
-written into each base's BASE.yaml) are collected by the `init`/`adopt` skills right
+written into each base's BASE.yaml) are collected by the `kb-init`/`kb-adopt` skills right
 after — registry data belongs in the registry, base structure in BASE.yaml, not the
 overlay.
 
@@ -29,10 +29,10 @@ Script:
 
 1. **`existing_kbs`** — "Do you already keep notes/knowledge repos an agent should
    know about? Obsidian vault, a notes git repo, a wiki checkout — paths, if so." For
-   each path, the `adopt` skill runs next (registration + divergence report, no
+   each path, the `kb-adopt` skill runs next (registration + divergence report, no
    rewrites — promise that out loud, it's the thing users fear).
 2. **`create_default`** — if they named no existing base, recommend yes: "a private
-   personal base, scaffolded from the shipped templates." The `init` skill's
+   personal base, scaffolded from the shipped templates." The `kb-init` skill's
    *structure interview* follows: theme → zones/types, designed once with the user,
    autonomous afterwards.
 3. **`default_base`** — explain what default means: *uncertain captures land there

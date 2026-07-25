@@ -391,5 +391,372 @@ class LockToolTest(unittest.TestCase):
         self.assertIn("democap", r.stdout)
 
 
+SKILL_MD = "---\nname: {name}\ndescription: {name}. Use when testing {name}.\n---\nbody\n"
+
+
+class SkillNameTest(unittest.TestCase):
+    """The installed name (§2.5) and the collision gate. The shipped identity is the
+    computed name, so that is what carries the Agent Skills limits."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.home = Path(self.tmp.name) / "home"
+        (self.home / ".aos").mkdir(parents=True)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def cap(self, cap_id, skills, prefix=None, root="upstream", version="1.0.0"):
+        """Write a capability and return its directory."""
+        cap = self.home / root / "capabilities" / cap_id
+        (cap / "skills").mkdir(parents=True)
+        entries = "".join(f"  - id: {s}\n    used_by: [main]\n" for s in skills)
+        cap.joinpath("CAPABILITY.md").write_text(
+            f"---\nid: {cap_id}\nversion: {version}\ntags: [usecase]\n"
+            f"summary: Fixture capability {cap_id}.\n"
+            + (f"skill_prefix: {prefix}\n" if prefix is not None else "")
+            + f"skills:\n{entries}---\n# {cap_id}\n")
+        cap.joinpath("README.md").write_text(f"# {cap_id}\n")
+        for s in skills:
+            (cap / "skills" / s).mkdir()
+            (cap / "skills" / s / "SKILL.md").write_text(SKILL_MD.format(name=s))
+        return cap
+
+    def skills(self, cap, *extra):
+        return run(["--home", str(self.home), "skills", str(cap), *extra])
+
+    def names(self, cap, *extra):
+        r = self.skills(cap, *extra)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return {line.split("\t")[0]: line.split("\t")[1]
+                for line in r.stdout.strip().split("\n") if "\t" in line}
+
+    # -- the algorithm -----------------------------------------------------
+    def test_prefix_defaults_to_capability_id(self):
+        cap = self.cap("democap", ["democap", "sort"])
+        self.assertEqual(self.names(cap), {"democap": "democap", "sort": "democap-sort"})
+
+    def test_declared_prefix_wins(self):
+        cap = self.cap("democap", ["democap", "sort"], prefix="demo-")
+        self.assertEqual(self.names(cap)["sort"], "demo-sort")
+
+    def test_entry_skill_installs_verbatim(self):
+        cap = self.cap("democap", ["democap"], prefix="demo-")
+        self.assertEqual(self.names(cap)["democap"], "democap")
+
+    def test_already_prefixed_id_is_not_double_prefixed(self):
+        cap = self.cap("democap", ["democap", "demo-sort"], prefix="demo-")
+        self.assertEqual(self.names(cap)["demo-sort"], "demo-sort")
+
+    def test_empty_prefix_falls_back_to_default(self):
+        cap = self.cap("democap", ["democap", "sort"], prefix='""')
+        self.assertEqual(self.names(cap)["sort"], "democap-sort")
+
+    def test_json_reports_prefix_and_rows(self):
+        cap = self.cap("democap", ["democap", "sort"], prefix="demo-")
+        r = self.skills(cap, "--json")
+        data = json.loads(r.stdout)
+        self.assertEqual(data["skill_prefix"], "demo-")
+        self.assertEqual([s["installed_name"] for s in data["skills"]],
+                         ["democap", "demo-sort"])
+
+    # -- manifest validation ----------------------------------------------
+    def test_malformed_prefix_rejected(self):
+        cap = self.cap("democap", ["democap"], prefix="Demo_")
+        r = self.skills(cap)
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("skill_prefix", r.stderr)
+
+    def test_prefix_without_trailing_hyphen_rejected(self):
+        cap = self.cap("democap", ["democap"], prefix="demo")
+        self.assertEqual(self.skills(cap).returncode, 12)
+
+    def test_over_long_installed_name_rejected(self):
+        long_id = "a" + "-very" * 14          # id ok alone, too long once prefixed
+        cap = self.cap("democap", ["democap", long_id])
+        r = self.skills(cap)
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("max 64", r.stderr)
+
+    def test_reserved_word_in_installed_name_rejected(self):
+        cap = self.cap("democap", ["democap", "claude-sync"])
+        r = self.skills(cap)
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("reserved", r.stderr)
+
+    # -- the collision gate (exit 17) --------------------------------------
+    def test_clean_check_reports_unclaimed(self):
+        cap = self.cap("democap", ["democap", "sort"])
+        r = self.skills(cap, "--check")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("clean: 2 skill names unclaimed", r.stdout)
+
+    def test_collision_with_another_household_capability(self):
+        self.cap("othercap", ["othercap", "sort"], prefix="democap-", root="personal")
+        cap = self.cap("democap", ["democap", "sort"])
+        r = self.skills(cap, "--check")
+        self.assertEqual(r.returncode, 17)
+        self.assertIn("democap-sort", r.stderr)
+        self.assertIn("othercap", r.stderr)
+
+    def test_collision_inside_one_capability(self):
+        """The entry skill's name, reached a second time through the prefix."""
+        cap = self.cap("gtd-capture", ["gtd-capture", "capture"], prefix="gtd-")
+        r = self.skills(cap, "--check")
+        self.assertEqual(r.returncode, 17)
+        self.assertIn("itself", r.stderr)
+
+    def test_collision_with_a_lockfile_link(self):
+        harness = self.home / "harness" / "skills"
+        harness.mkdir(parents=True)
+        self.write_lock({"othercap": {"links": {
+            str(harness / "democap-sort"): "/elsewhere/skills/democap-sort"}}})
+        cap = self.cap("democap", ["democap", "sort"])
+        r = self.skills(cap, "--check")
+        self.assertEqual(r.returncode, 17)
+        self.assertIn("othercap", r.stderr)
+
+    def test_collision_with_a_skill_already_in_the_harness(self):
+        harness = self.home / "harness" / "skills"
+        (harness / "democap-sort").mkdir(parents=True)
+        cap = self.cap("democap", ["democap", "sort"])
+        r = self.skills(cap, "--check", "--harness-skills", str(harness))
+        self.assertEqual(r.returncode, 17)
+        self.assertIn("already in the harness", r.stderr)
+
+    def test_flat_harness_skill_file_also_collides(self):
+        harness = self.home / "harness" / "skills"
+        harness.mkdir(parents=True)
+        (harness / "democap-sort.md").write_text("flat form (Nanobot)\n")
+        cap = self.cap("democap", ["democap", "sort"])
+        self.assertEqual(self.skills(cap, "--check", "--harness-skills",
+                                     str(harness)).returncode, 17)
+
+    def test_reinstall_over_our_own_links_is_clean(self):
+        harness = self.home / "harness" / "skills"
+        (harness / "democap-sort").mkdir(parents=True)
+        self.write_lock({"democap": {"links": {
+            str(harness / "democap-sort"): "/elsewhere/skills/democap-sort"}}})
+        cap = self.cap("democap", ["democap", "sort"])
+        r = self.skills(cap, "--check", "--harness-skills", str(harness))
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_non_skill_link_is_not_a_skill_name(self):
+        self.write_lock({"othercap": {"links": {
+            "/h/scripts/democap-sort": "/elsewhere/scripts/democap-sort"}}})
+        cap = self.cap("democap", ["democap", "sort"])
+        self.assertEqual(self.skills(cap, "--check").returncode, 0)
+
+    def test_malformed_neighbour_does_not_block_the_check(self):
+        broken = self.home / "personal" / "capabilities" / "broken"
+        broken.mkdir(parents=True)
+        (broken / "CAPABILITY.md").write_text("not frontmatter at all\n")
+        cap = self.cap("democap", ["democap", "sort"])
+        self.assertEqual(self.skills(cap, "--check").returncode, 0)
+
+
+    def test_explicit_home_without_state_dir_errors(self):
+        cap = self.cap("democap", ["democap"])
+        bare = Path(self.tmp.name) / "bare"
+        bare.mkdir()
+        r = run(["--home", str(bare), "skills", str(cap), "--check"])
+        self.assertEqual(r.returncode, 15)
+
+    def write_lock(self, installs):
+        (self.home / ".aos" / "installs.lock.yaml").write_text(
+            "version: 1\ninstalls:\n" + "".join(
+                f"  {cap}:\n    version: 1.0.0\n    links:\n" + "".join(
+                    f"      {k}: {v}\n" for k, v in entry["links"].items())
+                for cap, entry in installs.items()))
+
+    # -- render ------------------------------------------------------------
+    def test_render_lands_under_the_installed_name(self):
+        cap = self.cap("democap", ["democap", "sort"])
+        out = Path(self.tmp.name) / "renders"
+        r = run(["render", str(cap), "sort", "--out", str(out)])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rendered = out / "democap-sort" / "SKILL.md"
+        self.assertTrue(rendered.is_file())
+        self.assertIn("name: democap-sort", rendered.read_text())
+        self.assertIn("x-aos-origin: democap@1.0.0", rendered.read_text())
+
+    def test_render_carries_bundled_assets(self):
+        cap = self.cap("democap", ["democap", "sort"])
+        (cap / "skills" / "sort" / "reference").mkdir()
+        (cap / "skills" / "sort" / "reference" / "deep.md").write_text("depth\n")
+        out = Path(self.tmp.name) / "renders"
+        run(["render", str(cap), "sort", "--out", str(out)])
+        self.assertEqual((out / "democap-sort" / "reference" / "deep.md").read_text(),
+                         "depth\n")
+
+    def test_render_preserves_mod_slots(self):
+        cap = self.cap("democap", ["democap", "sort"])
+        skill = cap / "skills" / "sort" / "SKILL.md"
+        skill.write_text(skill.read_text() + "Confirm with {{mod: confirm_style}}.\n")
+        out = Path(self.tmp.name) / "renders"
+        run(["render", str(cap), "sort", "--out", str(out)])
+        self.assertIn("{{mod: confirm_style}}", (out / "democap-sort" / "SKILL.md").read_text())
+
+    def test_render_is_idempotent(self):
+        cap = self.cap("democap", ["democap", "sort"])
+        out = Path(self.tmp.name) / "renders"
+        run(["render", str(cap), "sort", "--out", str(out)])
+        first = (out / "democap-sort" / "SKILL.md").read_text()
+        r = run(["render", str(cap), "sort", "--out", str(out), "--force"])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual((out / "democap-sort" / "SKILL.md").read_text(), first)
+
+    def test_render_refuses_to_clobber_without_force(self):
+        cap = self.cap("democap", ["democap", "sort"])
+        out = Path(self.tmp.name) / "renders"
+        run(["render", str(cap), "sort", "--out", str(out)])
+        r = run(["render", str(cap), "sort", "--out", str(out)])
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("--force", r.stderr)
+
+    def test_render_never_inherits_a_stale_origin_tag(self):
+        cap = self.cap("democap", ["democap", "sort"])
+        skill = cap / "skills" / "sort" / "SKILL.md"
+        skill.write_text(skill.read_text().replace(
+            "---\nbody", "x-aos-origin: someoneelse@9.9.9\n---\nbody"))
+        out = Path(self.tmp.name) / "renders"
+        run(["render", str(cap), "sort", "--out", str(out)])
+        text = (out / "democap-sort" / "SKILL.md").read_text()
+        self.assertNotIn("someoneelse", text)
+        self.assertEqual(text.count("x-aos-origin"), 1)
+
+    def test_relative_capability_dir_works(self):
+        """`aos-lock skills .` from inside the capability — the contract's commands are
+        written with <cap-dir> paths, so a relative one must not break the id check."""
+        cap = self.cap("democap", ["democap", "sort"])
+        r = run(["--home", str(self.home), "skills", "."], cwd=str(cap))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("democap-sort", r.stdout)
+
+    def test_readme_in_a_flat_skills_dir_is_not_a_skill(self):
+        harness = self.home / "harness" / "skills"
+        harness.mkdir(parents=True)
+        (harness / "README.md").write_text("what lives here\n")
+        cap = self.cap("readme", ["readme"])
+        r = self.skills(cap, "--check", "--harness-skills", str(harness))
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_collision_found_when_cwd_is_outside_the_household(self):
+        """The regression that mattered: on a real machine the agent's cwd is the harness
+        workspace, not the household, and no documented invocation passes --home. Relying
+        on cwd made --check skip the household and lockfile sources and still say clean."""
+        self.cap("othercap", ["othercap", "sort"], prefix="democap-", root="personal")
+        cap = self.cap("democap", ["democap", "sort"])
+        elsewhere = Path(self.tmp.name) / "elsewhere"
+        elsewhere.mkdir()
+        r = run(["skills", str(cap), "--check"], cwd=str(elsewhere))
+        self.assertEqual(r.returncode, 17, r.stdout + r.stderr)
+        self.assertIn("othercap", r.stderr)
+
+    def test_clean_report_names_the_sources_it_could_not_check(self):
+        """A skipped source must never be indistinguishable from an empty one."""
+        lone = Path(self.tmp.name) / "lone" / "lonecap"
+        (lone / "skills" / "lonecap").mkdir(parents=True)
+        (lone / "CAPABILITY.md").write_text(
+            "---\nid: lonecap\nversion: 1.0.0\ntags: [infra]\nsummary: No household.\n"
+            "skills:\n  - id: lonecap\n    used_by: [main]\n---\nbody\n")
+        (lone / "README.md").write_text("# lonecap\n")
+        (lone / "skills" / "lonecap" / "SKILL.md").write_text(SKILL_MD.format(name="lonecap"))
+        r = run(["skills", str(lone), "--check"], cwd=str(Path(self.tmp.name) / "lone"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("NO HOUSEHOLD RESOLVED", r.stdout)
+        self.assertIn("NO --harness-skills GIVEN", r.stdout)
+
+    def test_clean_report_names_the_sources_it_did_check(self):
+        harness = self.home / "harness" / "skills"
+        harness.mkdir(parents=True)
+        cap = self.cap("democap", ["democap"])
+        r = self.skills(cap, "--check", "--harness-skills", str(harness))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("household", r.stdout)
+        self.assertIn("1 harness skills dir", r.stdout)
+
+    def test_reinstall_over_our_own_flat_form_link_is_clean(self):
+        """Nanobot installs skills as skills/<name>.md, so the lockfile records a link
+        whose basename carries .md — it still has to match our own exemption."""
+        harness = self.home / "harness" / "skills"
+        harness.mkdir(parents=True)
+        (harness / "democap-sort.md").write_text("flat form\n")
+        self.write_lock({"democap": {"links": {
+            str(harness / "democap-sort.md"): "/elsewhere/skills/democap-sort.md"}}})
+        cap = self.cap("democap", ["democap", "sort"])
+        r = self.skills(cap, "--check", "--harness-skills", str(harness))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_another_capabilitys_flat_form_link_still_collides(self):
+        """The mirror of the exemption test: a flat-form link owned by someone ELSE must
+        still be seen as a claim, so all three comparison sites have to agree on stems."""
+        harness = self.home / "harness" / "skills"
+        harness.mkdir(parents=True)
+        self.write_lock({"othercap": {"links": {
+            str(harness / "democap-sort.md"): "/elsewhere/skills/democap-sort.md"}}})
+        cap = self.cap("democap", ["democap", "sort"])
+        r = self.skills(cap, "--check")
+        self.assertEqual(r.returncode, 17, r.stdout + r.stderr)
+        self.assertIn("othercap", r.stderr)
+
+    def test_lost_lockfile_does_not_block_reinstall(self):
+        """.aos/ is machine-local and gitignored. If it is lost, a gate that trusted it
+        alone would see our own installed skills as strangers and refuse every re-install —
+        turning a recoverable state into a stuck one. Provenance answers instead."""
+        harness = self.home / "harness" / "skills"
+        harness.mkdir(parents=True)
+        cap = self.cap("democap", ["democap", "sort"])
+        render = self.home / "personal" / "capabilities" / "democap" / "skills" / "democap-sort"
+        render.mkdir(parents=True)
+        (render / "SKILL.md").write_text(
+            "---\nname: democap-sort\ndescription: d. Use when.\nx-aos-origin: democap@1.0.0\n---\nb\n")
+        (harness / "democap-sort").symlink_to(render)
+        # no lockfile entry at all — the household knows nothing about this install
+        r = self.skills(cap, "--check", "--harness-skills", str(harness))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_a_stranger_still_blocks_when_the_lockfile_is_lost(self):
+        """The other half: provenance exempts our renders, not every name in the dir."""
+        harness = self.home / "harness" / "skills"
+        (harness / "democap-sort").mkdir(parents=True)
+        (harness / "democap-sort" / "SKILL.md").write_text(
+            "---\nname: democap-sort\ndescription: someone else got here first.\n---\nb\n")
+        cap = self.cap("democap", ["democap", "sort"])
+        r = self.skills(cap, "--check", "--harness-skills", str(harness))
+        self.assertEqual(r.returncode, 17, r.stdout + r.stderr)
+
+    def test_render_destination_that_is_a_file_errors_cleanly(self):
+        cap = self.cap("democap", ["democap", "sort"])
+        out = Path(self.tmp.name) / "renders"
+        out.mkdir()
+        (out / "democap-sort").write_text("a file sits where the render goes\n")
+        r = run(["render", str(cap), "sort", "--out", str(out)])
+        self.assertEqual(r.returncode, 1)
+        self.assertNotIn("Traceback", r.stderr)
+
+    def test_render_destination_that_is_a_symlink_errors_cleanly(self):
+        cap = self.cap("democap", ["democap", "sort"])
+        out = Path(self.tmp.name) / "renders"
+        out.mkdir()
+        target = Path(self.tmp.name) / "someone-elses-dir"
+        target.mkdir()
+        (out / "democap-sort").symlink_to(target)
+        r = run(["render", str(cap), "sort", "--out", str(out), "--force"])
+        self.assertEqual(r.returncode, 1)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertTrue(target.is_dir())      # never rmtree'd through the link
+
+    def test_bad_harness_skills_arg_is_a_generic_error(self):
+        cap = self.cap("democap", ["democap"])
+        r = self.skills(cap, "--check", "--harness-skills", str(self.home / "nope"))
+        self.assertEqual(r.returncode, 1)
+
+    def test_render_unknown_skill_errors(self):
+        cap = self.cap("democap", ["democap"])
+        r = run(["render", str(cap), "ghost", "--out", str(Path(self.tmp.name) / "r")])
+        self.assertEqual(r.returncode, 14)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

@@ -29,7 +29,7 @@ export const HOST_LEVELS = ['required', 'preferred', 'optional'];
 
 // ARCHITECTURE §2.2
 export const CAPABILITY_TAGS = ['infra', 'usecase'];
-export const MANIFEST_KEYS = ['id', 'version', 'tags', 'summary', 'depends', 'schedules', 'skills', 'kb'];
+export const MANIFEST_KEYS = ['id', 'version', 'tags', 'summary', 'depends', 'schedules', 'skills', 'kb', 'skill_prefix'];
 export const DEPENDS_KEYS = ['capabilities', 'host'];
 export const SCHEDULE_KEYS = ['id', 'cron', 'agent', 'prompt_ref', 'exec', 'degraded'];
 export const DEGRADED_MODES = ['manual', 'skip', 'inline'];
@@ -37,6 +37,18 @@ export const SKILL_ENTRY_KEYS = ['id', 'used_by'];
 export const KB_KEYS = ['writes', 'zones'];
 export const KB_ZONE_KEYS = ['path', 'owner_agent'];
 export const MAIN_AGENT = 'main'; // §2.2: `main` = the front agent
+
+// ARCHITECTURE §2.5 — skill identity. `skill_prefix` is capability-declared (else the
+// capability id); the *installed* name it produces is the shipped identity and carries the
+// Agent Skills spec's limits (agentskills.io/specification, and the authoring guide's
+// reserved-word rule). Mirrored in aos-lock's cli.py.
+export const SKILL_PREFIX_RE = /^[a-z0-9]+(-[a-z0-9]+)*-$/;
+export const SKILL_NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export const SKILL_NAME_MAX = 64;
+export const RESERVED_NAME_WORDS = ['anthropic', 'claude'];
+// A reference/ file past this length needs a Contents block: partial reads (head -100)
+// must still reveal the full scope of what is in there.
+export const REFERENCE_TOC_LINES = 100;
 
 // ARCHITECTURE §2.3 — neutral agent spec
 export const AGENT_KEYS = ['name', 'purpose', 'model_class', 'tools', 'workspace', 'context_files'];

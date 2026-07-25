@@ -47,11 +47,11 @@ same rules.
 
 | Job | Skill |
 |---|---|
-| File/capture something, destination unclear | `route` |
-| Answer "what do I know about X?" | `recall` |
-| Create a new base | `init` |
-| Register an existing tree | `adopt` |
-| Migrate/import an existing KB's content | `import` (interactive — never autonomous) |
+| File/capture something, destination unclear | `kb-route` |
+| Answer "what do I know about X?" | `kb-recall` |
+| Create a new base | `kb-init` |
+| Register an existing tree | `kb-adopt` |
+| Migrate/import an existing KB's content | `kb-import` (interactive — never autonomous) |
 | Contract details (grants, page schema, lifecycle) | `reference/` here |
 
 ## Authority
