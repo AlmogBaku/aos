@@ -1,25 +1,29 @@
 # RFC-005: MOD.md persistence model
 
-**Status:** open · **Decides:** how users' co-located `MOD.md` files are versioned and survive `git pull`
+**Status:** resolved 2026-07-25 (proposed — closes after the dogfood period) · **Decides:** how users' `MOD.md` files are versioned and survive `git pull`
 
-## Question
+## Resolution: the `personal/` repo (the household layout)
 
-`MOD.md` files live inside the user's clone of the capabilities repo, next to what they personalize (ARCHITECTURE §3.1). Upstream never contains those paths — so `git pull` can't conflict with them. But how does a *user* keep history and avoid losing them?
+The overlay's durable home is **one private git repo — `~/aos/personal/`** — sibling to a pristine kit clone (`~/aos/upstream/`) in the aos household (ARCHITECTURE §3.1). It holds, at mirrored capability paths: the overlay (`MOD.md` global + per-capability, `kb-registry.yaml`), the **pinned renders** (rendered artifacts, tracked — the agentic transform's lockfile-equivalent), and the user's **private capabilities** as full §2.1 packages. The lifecycle skills auto-commit it after every MOD write with a dated message; harnesses symlink into it (§5.3). Bootstrap creates it (`git init` + an offered private remote) before the first interview.
 
-## Options
+Why this shape won:
 
-1. **Tracked in a private fork:** each user's clone is a private fork; `MOD.md` files are committed there. Your nuances get real git history, machine sync for free, disaster recovery. Upstream CI rejects `MOD.md` in PRs; contributions go up from clean branches. Cost: everyone maintains a fork + must keep contribution branches clean (tooling can help: `aos contribute` creates a clean branch).
-2. **Gitignored + `aos backup`:** upstream `.gitignore` excludes `MOD.md`; files stay untracked. Dead simple, zero fork discipline. Cost: no history, `git clean -x` or a re-clone silently destroys personalization; backup is a bolt-on you must remember (or cron).
-3. **Nested private overlay repo:** `MOD.md` files sym/copied from a private repo overlaid on the clone. Max separation; most moving parts; symlink fragility.
+- **Private capabilities are git-native source, so a private repo must exist anyway** — one persistence mechanism instead of two.
+- **The render is agentic (non-deterministic), so its output deserves pinning**: upgrades become intentional — review is a `git diff` in the user's own repo, `git revert` is rollback (§3.4).
+- **The clone stays permanently pristine** — nothing personal in it, not even untracked files. The option-2 footgun (`git clean` eats nuances) dies structurally, and every branch cut from the clone is clean by construction, which is what makes the one-workflow contribution story (CONTRIBUTING) mechanical.
+- **Leak-proofing is by construction, not discipline**: the personal repo's only remote is private; public-facing repos never contain overlay paths.
+- **The graduation seam falls out**: promoting a private capability = duplicate the package onto an upstream branch (tap→core shape, §9); future org "distributions" are further sibling roots (§1.1).
 
-## Trade-off in one line
+Vocabulary: sibling source roots are *distributions*; `personal/` is *your instance* — it syncs across machines via its private remote; the machine-local state is `~/aos/.aos/`.
 
-Option 1 buys durable history at the cost of fork discipline; option 2 buys simplicity at the cost of a footgun (`git clean` eats your nuances).
+## Alternatives considered (kept for the record)
 
-## Recommendation
+1. **Tracked in a private fork of the whole kit** (original option 1): one repo holds everything, but the user's daily git life points away from upstream (fork-to-personalize in disguise — the exact disease the overlay exists to cure), every upstream release must be woven into a mixed history, contribution requires untangling, and a wrong push publishes personal content. Documented as a solo-operator pattern only. Its `aos contribute` clean-branch tool parenthetical is superseded: the clean-branch step involves the self-containment scrub (judgment), so the mechanics ship as skill knowledge, not a tool (no-program-anywhere).
+2. **Gitignored + `aos backup`** (original option 2): simplest, but no history/sync and the `git clean` footgun; also gitignoring MOD would have hardcoded a persistence choice into the kit repo.
+3. **Nested/two-gits overlay repo over the clone** (original option 3, refined): a second git dir tracking only overlay paths in place. Leak-proof and clone-co-located, but nonstandard git ceremony, and it leaves renders and private capabilities unsolved — the household subsumes it.
+4. **KB-mirror**: mirror the overlay into the default private KB (`.aos/` tree). Zero git knowledge required and one personal-data plane — but capability *source* doesn't belong in a knowledge store, and it leaves private capabilities needing a repo anyway. Remains the fallback idea for a future zero-git on-ramp.
+5. **Encrypted overlay branch in the public fork** (chezmoi/age pattern): one repo total, cryptographic privacy — but key loss is fatal, history is opaque, and the psychological bar of "my life on public GitHub, encrypted" is real.
 
-Deliberately none — the group splits on this and both models are livable. One datapoint to gather before deciding: run both for two weeks during reference-capability development and count incidents (lost files, dirty PRs).
+## Evidence & process
 
-## Process
-
-Decide by evidence per RFC-003; deadline starts once two members have run each model.
+Adopted with the household layout during the one-way-of-working build (2026-07-25); the owner's live migration + a real promotion round-trip are the dogfood evidence. Per RFC-003, the proposed resolution closes after that period absent counter-evidence (lost files, dirty PRs, link breakage on a harness).
