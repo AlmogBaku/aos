@@ -117,6 +117,9 @@ def frontmatter(path):
 
 
 def validated_manifest(cap_dir):
+    # resolve() so a relative invocation (`aos-lock skills .`) still has a directory name
+    # to compare `id` against — the contract's commands are written with <cap-dir> paths.
+    cap_dir = Path(cap_dir).resolve()
     mf = cap_dir / "CAPABILITY.md"
     if not mf.is_file():
         fail(12, f"{cap_dir}: no CAPABILITY.md")
@@ -316,6 +319,7 @@ def find_home_soft(args):
 
 def skill_rows(cap_dir):
     """(manifest, [{id, installed_name, used_by}]) for a validated capability."""
+    cap_dir = Path(cap_dir).resolve()
     data = validated_manifest(cap_dir)
     prefix = effective_prefix(data, cap_dir.name)
     rows = [{"id": e["id"],
@@ -381,7 +385,7 @@ def harness_owners(dirs, ours):
         for child in sorted(p.iterdir()):
             if child.is_dir():
                 name = child.name
-            elif child.suffix == ".md":
+            elif child.suffix == ".md" and child.stem.upper() != "README":
                 name = child.stem   # Nanobot's flat skills/<name>.md form
             else:
                 continue
@@ -417,7 +421,7 @@ def skill_collisions(args, cap_id, rows):
 
 
 def cmd_skills(args):
-    cap_dir = Path(args.dir)
+    cap_dir = Path(args.dir).resolve()
     data, rows = skill_rows(cap_dir)
     if args.check:
         collisions = skill_collisions(args, cap_dir.name, rows)
@@ -462,7 +466,7 @@ def stamp_render(path, name, origin):
 
 
 def cmd_render(args):
-    cap_dir = Path(args.dir)
+    cap_dir = Path(args.dir).resolve()
     data, rows = skill_rows(cap_dir)
     row = next((r for r in rows if r["id"] == args.skill), None)
     if row is None:

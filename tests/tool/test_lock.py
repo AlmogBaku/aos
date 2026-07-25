@@ -629,6 +629,22 @@ class SkillNameTest(unittest.TestCase):
         self.assertNotIn("someoneelse", text)
         self.assertEqual(text.count("x-aos-origin"), 1)
 
+    def test_relative_capability_dir_works(self):
+        """`aos-lock skills .` from inside the capability — the contract's commands are
+        written with <cap-dir> paths, so a relative one must not break the id check."""
+        cap = self.cap("democap", ["democap", "sort"])
+        r = run(["--home", str(self.home), "skills", "."], cwd=str(cap))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("democap-sort", r.stdout)
+
+    def test_readme_in_a_flat_skills_dir_is_not_a_skill(self):
+        harness = self.home / "harness" / "skills"
+        harness.mkdir(parents=True)
+        (harness / "README.md").write_text("what lives here\n")
+        cap = self.cap("readme", ["readme"])
+        r = self.skills(cap, "--check", "--harness-skills", str(harness))
+        self.assertEqual(r.returncode, 0, r.stderr)
+
     def test_render_unknown_skill_errors(self):
         cap = self.cap("democap", ["democap"])
         r = run(["render", str(cap), "ghost", "--out", str(Path(self.tmp.name) / "r")])
