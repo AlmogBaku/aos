@@ -32,7 +32,7 @@ const EXPECTED = [
   'skills/installed-collision', 'skills/ref-unqualified',
   // Agent Skills authoring conformance
   'skill/reserved-word', 'skill/xml-tags', 'skill/nested-reference', 'skill/reference-toc',
-  'skill/package-path',
+  'skill/package-path', 'skill/foreign-reference',
   'agent/unknown-key', 'agent/required', 'agent/name-file', 'agent/model-class',
   'agent/tool', 'agent/workspace', 'agent/context-file',
   'onboarding/unknown-key', 'onboarding/required', 'onboarding/duplicate-id',

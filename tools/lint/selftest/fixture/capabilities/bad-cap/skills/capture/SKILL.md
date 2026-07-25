@@ -13,3 +13,7 @@ materialized dir carries the installed name, not this id).
 
 Load `harnesses/badharness.md` and `tool/README.md` — paths that exist only in the
 source package, so they resolve nowhere beside an installed skill.
+
+## Depth
+
+See `reference/somewhere-else.md` for the details.

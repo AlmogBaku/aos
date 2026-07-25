@@ -101,6 +101,39 @@ Every `skills/<id>/` folder must stand alone as a valid Agent Skills folder:
 - `used_by` names only this capability's own agents (or `main`), and every skill declares
   it — an agent never loads a skill it was not given. (`skill/used-by`, `skill/used-by-ref`)
 
+## Where knowledge goes — only the skill folder travels
+
+An installed skill is a folder in a flat set of skills. There is no capability beside it,
+no package root, no sibling `harnesses` or `tool` directory. So **a shipped skill may only
+reference paths inside its own folder** — `reference/`, `scripts/`, `templates/`. Anything
+else sends the agent hunting for a path that exists in the source tree and nowhere on the
+machine it is running on.
+
+Three ways to reference something, and they cover every case:
+
+| What you need | How to write it |
+|---|---|
+| depth for this skill | a plain relative path — `reference/naming.md`, `scripts/check.py` |
+| another skill, or knowledge it owns | name the skill (`capability-lifecycle`), then its own path (`reference/overlay.md`) — the agent loads the skill, and the path resolves inside it (`skill/no-cross-path`) |
+| something in the household | write it from a root — `<home>/upstream/capabilities/<id>/…`, `<home>/personal/…` — which does resolve at runtime |
+
+Consequences worth stating, because each one was a real bug:
+
+- **Package-level knowledge belongs in a `reference/` file of the skill that reads it**, not
+  in a capability-level directory. That is why the per-harness cheat-sheets are
+  `reference/harness-<runtime>.md` here, and not a file in a capability-level `harnesses`
+  directory: that shape resolved for the installer reading the clone, and for nobody else.
+  (`skill/package-path`)
+- **A `reference/` file may not link a sibling `reference/` file.** A file reached through a
+  file gets previewed (`head -100`), not read — so the chain silently truncates.
+  (`skill/nested-reference`)
+- **Never a parent-directory reference.** The materialized directory carries the installed
+  name, not the source id, so climbing out of the skill folder breaks even when the path
+  looks right in the repo. (`skill/no-cross-path`)
+- When you write a path for the *user's* tree — a KB's `_ops/needs-review.md`, a draft's
+  `agents/<name>.agent.yaml` — say once which root it is relative to. Those are data
+  locations, not load targets, and an unrooted one is a guess.
+
 ## Where `skill-creator` fits
 
 Anthropic's `skill-creator` skill is installed alongside this capability (see its

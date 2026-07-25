@@ -13,7 +13,7 @@ The subject matter is a protocol: a curated set of *capabilities* that install i
 **`bash tools/check.sh` is the one local gate — run it before every commit.** It runs, in order, everything CI runs (`.github/workflows/ci.yml`):
 
 - **Tier 0 — the `base` tool** (`capabilities/kb/tool`, a Python CLI; requires [`uv`](https://docs.astral.sh/uv/), skipped locally with a warning if absent): `uv run tests/tool/test_base.py` (black-box subprocess unit suite — the report text is the contract, no imports of tool internals) + lint the shipped example base (`tests/fixtures/example-base/` must pass `base lint` with zero criticals/findings).
-- **Tier 1 — deterministic lint**: `node tools/lint/aos-lint.mjs` (65 checks in 13 code families over the §2/§3/§5 contracts) + `node tools/lint/selftest/run.mjs` (every check must fire on a planted-violation fixture).
+- **Tier 1 — deterministic lint**: `node tools/lint/aos-lint.mjs` (67 checks in 13 code families over the §2/§3/§5 contracts) + `node tools/lint/selftest/run.mjs` (every check must fire on a planted-violation fixture).
 - **Tier 2 — golden structural checks**: `node tests/golden/check.mjs` (re-checks committed snapshots under `tests/golden/hermes/`).
 
 Narrower invocations:
