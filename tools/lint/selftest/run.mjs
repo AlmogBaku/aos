@@ -32,6 +32,7 @@ const EXPECTED = [
   'skills/installed-collision', 'skills/ref-unqualified',
   // Agent Skills authoring conformance
   'skill/reserved-word', 'skill/xml-tags', 'skill/nested-reference', 'skill/reference-toc',
+  'skill/package-path',
   'agent/unknown-key', 'agent/required', 'agent/name-file', 'agent/model-class',
   'agent/tool', 'agent/workspace', 'agent/context-file',
   'onboarding/unknown-key', 'onboarding/required', 'onboarding/duplicate-id',
@@ -56,9 +57,11 @@ for (const check of [
 }
 
 const fired = new Set(findings.map((f) => f.code));
-// the cheat-sheet section check must fire from BOTH sanctioned locations
+// the cheat-sheet section check must fire on the sanctioned shape (a reference file of the
+// skill that reads it) AND on the retired capability-level layout, which must not go
+// silently unchecked while it still exists in the wild
 const cheatFiles = new Set(findings.filter((f) => f.code === 'cheatsheet/section').map((f) => f.file));
-for (const want of ['harnesses/badharness.md', 'capabilities/bad-cap/harnesses/bad.md']) {
+for (const want of ['harnesses/badharness.md', 'skills/capture/reference/harness-badharness.md', 'capabilities/half-cap/harnesses/stale.md']) {
   if (![...cheatFiles].some((f) => f.endsWith(want))) {
     console.error(`selftest FAILED — cheatsheet/section did not fire on ${want}`);
     process.exit(1);

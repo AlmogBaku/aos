@@ -69,10 +69,10 @@ private remote; only `.aos/` is machine-local.
 2. Read `capabilities/capability-lifecycle/CAPABILITY.md` (the briefing), then:
    `uv tool install --from ~/aos/upstream/capabilities/capability-lifecycle/tool aos-lock`
    and `aos-lock --home ~/aos init`.
-3. Load your cheat-sheet: `capabilities/capability-lifecycle/harnesses/<harness-runtime>.md`,
+3. Load your cheat-sheet: `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`,
    where the **harness runtime** is the program hosting you (OpenClaw →
-   `harnesses/openclaw.md` · Hermes → `harnesses/hermes.md` · NanoClaw →
-   `harnesses/nanoclaw.md` · Nanobot → `harnesses/nanobot.md`; Claude Code and OpenCode
+   `…/reference/harness-openclaw.md` · Hermes → `harness-hermes.md` · NanoClaw →
+   `harness-nanoclaw.md` · Nanobot → `harness-nanobot.md`; Claude Code and OpenCode
    have no sheet yet). None for your harness → follow the entry skill's
    `reference/no-cheatsheet.md` — do not stop.
 4. **Name gate**, then STAGE the nine skills per the contract (mechanical — they have no

@@ -19,7 +19,9 @@ the overlay doctrine, and the Experience rules. Then:
 3. **[D]** Dependencies: each `depends.capabilities` missing from `aos-lock list` →
    announce briefly ("gtd-capture needs kb — setting that up first"), install it first,
    its interview included.
-4. **[D]** Load `harnesses/<harness-runtime>.md` (this capability) **now** — Feature
+4. **[D]** Load your cheat-sheet **now** — it travels with the `capability-lifecycle`
+   skill as `reference/harness-<harness-runtime>.md` (load that skill, then read the file;
+   your harness runtime is the program hosting you). Feature
    notes first: a `required` host feature missing → friendly stop with the reason;
    `preferred` missing → note each schedule's declared degraded mode for recording.
 5. **[D]** **Name gate**, before anything is written:

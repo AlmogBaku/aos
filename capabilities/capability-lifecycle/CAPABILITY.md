@@ -42,8 +42,8 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
    the lockfile — the tool's file from this moment on; you call verbs, you never edit
    the YAML.
 2. **All nine skills to the front agent** (`used_by: [main]` throughout), per your
-   cheat-sheet (`harnesses/<harness-runtime>.md` in this capability; none for your
-   harness → the entry skill's `reference/no-cheatsheet.md`). The skills are
+   cheat-sheet (the entry skill's `reference/harness-<harness-runtime>.md`; none for your
+   harness → its `reference/no-cheatsheet.md`). The skills are
    `{{mod}}`-slot-free, so the render is purely mechanical — `aos-lock render` does it,
    one skill at a time, into `personal/capabilities/capability-lifecycle/skills/…`
    (committed), plus symlinks into the front agent's skills dir. Read

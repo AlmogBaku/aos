@@ -16,5 +16,24 @@ export function checkCrossPaths({ files, report, root }) {
         + '(materialized dirs carry the installed name, not the source id, §2.5); '
         + 'relative paths must stay inside the skill\'s own folder');
     }
+
+    // The same failure without a "../": a path into the capability *package*. Only the
+    // skill's own folder travels, so `harnesses/hermes.md` or `tool/README.md` resolves
+    // in the source tree and nowhere else — the agent goes hunting, which is exactly
+    // what a shipped skill must never make it do. Package-level knowledge belongs in a
+    // reference/ file of the skill that reads it; package-level *paths* are written from
+    // a household root (`<home>/upstream/…`), which does resolve at runtime.
+    for (const m of text.matchAll(PACKAGE_PATH)) {
+      report('error', 'skill/package-path', rel,
+        `references "${m[1]}" — that path exists only in the source package, not beside `
+        + 'an installed skill. Put the content in this skill\'s reference/, name the skill '
+        + 'that owns it, or write the path from a household root (<home>/upstream/…)');
+    }
   }
 }
+
+// A bare relative path (no scheme, no anchor, not rooted at a household dir) whose first
+// segment is a capability-package directory. Deliberately narrow: `_ops/…` and `state/…`
+// are paths inside a user's KB, and `<id>-draft/agents/…` is a draft the skill writes —
+// neither is a load target in the source tree.
+const PACKAGE_PATH = /(?:\]\(|`)((?:harnesses|adapters|tool|capabilities)\/[A-Za-z0-9_<>./-]*\.(?:md|ya?ml))/g;

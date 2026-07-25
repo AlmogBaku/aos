@@ -6,11 +6,12 @@ import { walkRepo } from '../../lib/repo.mjs';
 // plus the §2.5 entry-skill convention.
 export function checkStructure({ caps, report }) {
   for (const cap of caps) {
-    // §2.1: a harnesses/ dir (per-harness cheat-sheets) is sanctioned only for
-    // capability-lifecycle; other capabilities' per-harness content is adapters/.
-    if (cap.id !== 'capability-lifecycle' && existsSync(join(cap.dir, 'harnesses'))) {
+    // §2.1: there is no capability-level harnesses/ dir. Cheat-sheets are reference files
+    // of the skill that reads them (so they travel with the render and resolve from an
+    // installed skill); other per-harness content is adapters/<harness>/.
+    if (existsSync(join(cap.dir, 'harnesses'))) {
       report('error', 'structure/harnesses-dir', cap.rel,
-        'a harnesses/ dir is sanctioned only for capability-lifecycle (§2.1) — per-harness content belongs in adapters/<harness>/');
+        'no capability-level harnesses/ dir (§2.1) — a cheat-sheet belongs in the consuming skill\'s reference/ as harness-<runtime>.md, and other per-harness content in adapters/<harness>/');
     }
     // §2.5: every capability ships an entry skill named after itself.
     const entry = join(cap.dir, 'skills', cap.id, 'SKILL.md');

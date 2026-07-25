@@ -1,5 +1,15 @@
 # NanoClaw cheat-sheet
 
+## Contents
+
+- Primitive mapping
+- Materialization guide
+- Introspection guide
+- Secrets
+- Removal
+- Feature notes
+
+
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
 NanoClaw. The aos half of the install contract — provenance, lockfile, markers, secret
 references, degraded-mode meanings, removal discipline — is the `capability-lifecycle` entry skill's `reference/contract.md`; this sheet is
@@ -25,6 +35,7 @@ starting with the do-not-edit comment. v1 has `store/messages.db`, `setup.sh` (n
 `nanoclaw.sh`), no `ncl`, `src/task-scheduler.ts`, and hand-edited `groups/<folder>/CLAUDE.md`
 plus `groups/global/CLAUDE.md`. Either way, `package.json`'s major version (1.x vs 2.x)
 settles it.
+
 
 ## Primitive mapping
 

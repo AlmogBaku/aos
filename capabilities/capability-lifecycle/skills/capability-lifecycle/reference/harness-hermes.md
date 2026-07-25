@@ -1,5 +1,15 @@
 # Hermes cheat-sheet
 
+## Contents
+
+- Primitive mapping
+- Materialization guide
+- Introspection guide
+- Secrets
+- Removal
+- Feature notes
+
+
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
 Hermes. The aos half of the install contract — provenance, lockfile, markers, secret
 references, degraded-mode meanings, removal discipline — is the `capability-lifecycle` entry skill's `reference/contract.md`; this sheet
@@ -8,6 +18,7 @@ is only the Hermes half.
 **Rule zero: never hand-edit `config.yaml` or `cron/jobs.json`.** Both are
 machine-rewritten (comments don't survive; jobs.json holds live scheduler state). Every
 mutation goes through the `hermes` CLI.
+
 
 ## Primitive mapping
 

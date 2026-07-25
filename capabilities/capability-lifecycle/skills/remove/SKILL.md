@@ -25,7 +25,8 @@ contract, and the Experience rules.
    `depends.capabilities` names this one → say so; stop unless the user insists (then
    remove dependents first).
 4. **[A]** Un-write per the cheat-sheet's Removal section (load
-   `harnesses/<harness-runtime>.md` now), in its stated order — typically: jobs →
+   the `capability-lifecycle` skill's `reference/harness-<harness-runtime>.md` now), in its
+   stated order — typically: jobs →
    skill symlinks (delete the links; then delete **only** `personal/capabilities/<id>/skills/`
    **via a commit** — never the capability directory itself and never its `MOD.md` — revertible, the persist
    hook's dated message says why) → marker blocks → config keys → `.env` lines (ask

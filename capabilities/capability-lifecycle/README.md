@@ -24,7 +24,7 @@ agent, names and hashes never do.
 | `skills/build/` | the MARS building-mode detector (§9) plus intake → research → design → approval → build. Nothing durable gets written without an approved design |
 | `skills/contribute/` | change a capability's shipped source, for everyone — and draft the upstream contribution when the user confirms |
 | `skills/evolve/` | change how an installed capability behaves *for you*, recorded so it survives upgrades; promotes upstream when generally useful (signal-gated, offer-only) |
-| `harnesses/<runtime>.md` | the per-harness cheat-sheets (hermes · nanoclaw v1+v2 · openclaw · nanobot) |
+| `skills/capability-lifecycle/reference/harness-<runtime>.md` | the per-harness cheat-sheets (hermes · nanoclaw v1+v2 · openclaw · nanobot) — reference files of the skill that reads them, so they travel with the render |
 | `tool/` | `aos-lock` — deterministic manifest, installed-name, and lockfile verbs |
 
 Installed skill names are computed, not authored: the ids above are capability-local, and

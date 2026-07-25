@@ -141,11 +141,11 @@ House rules the linter can't fully check:
 
 ## Contributing a harness cheat-sheet
 
-One document adds a harness: `capabilities/capability-lifecycle/harnesses/<harness-runtime>.md`
+One document adds a harness: `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`
 (flat, named for the harness runtime, lowercase — `hermes.md`, `nanoclaw.md`, …) with the six sections of
 [spec §5.2](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#52-cheat-sheets-the-adapter-is-knowledge-not-code)
 (primitive mapping, materialization, introspection, secrets, removal, feature notes).
-[`harnesses/hermes.md`](capabilities/capability-lifecycle/harnesses/hermes.md) is the reference. Keep it lean: the shared aos
+[`reference/harness-hermes.md`](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md) is the reference. Keep it lean: the shared aos
 install contract lives in the capability-lifecycle entry skill's `reference/contract.md`
 — a cheat-sheet carries only the harness's half. The bar: an LLM with only BOOTSTRAP.md
 + the contract + your cheat-sheet + a capability + a fixture overlay must produce a

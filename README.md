@@ -26,7 +26,7 @@ boundaries. No runtime, no CLI, no rent.
 > [!TIP]
 > **Reading this as an agent?** Your entry point is [`BOOTSTRAP.md`](BOOTSTRAP.md) — the
 > install sequence (you are the installer). It tells you when to load your harness
-> runtime's [cheat-sheet](capabilities/capability-lifecycle/harnesses/). Everything else here is context for your human.
+> runtime's [cheat-sheet](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/). Everything else here is context for your human.
 
 ## What's in the box
 
@@ -66,10 +66,10 @@ away from being a contributor; it's never a gate.
 
 | Harness | Status |
 |---|---|
-| [OpenClaw](capabilities/capability-lifecycle/harnesses/openclaw.md) | 🧪 cheat-sheet shipped, research-drafted — not yet e2e-verified |
-| [Hermes](capabilities/capability-lifecycle/harnesses/hermes.md) | ✅ supported — e2e-tested for real |
-| [NanoClaw](capabilities/capability-lifecycle/harnesses/nanoclaw.md) (v1 + v2) | 🧪 cheat-sheet shipped, research-drafted — not yet e2e-verified |
-| [Nanobot](capabilities/capability-lifecycle/harnesses/nanobot.md) | 🧪 cheat-sheet shipped, research-drafted — not yet e2e-verified |
+| [OpenClaw](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-openclaw.md) | 🧪 cheat-sheet shipped, research-drafted — not yet e2e-verified |
+| [Hermes](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md) | ✅ supported — e2e-tested for real |
+| [NanoClaw](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanoclaw.md) (v1 + v2) | 🧪 cheat-sheet shipped, research-drafted — not yet e2e-verified |
+| [Nanobot](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanobot.md) | 🧪 cheat-sheet shipped, research-drafted — not yet e2e-verified |
 | Claude Code, OpenCode | 📋 planned — BOOTSTRAP's no-cheat-sheet path works today; [contribute a sheet](CONTRIBUTING.md) |
 
 New here? The human-facing walkthrough is [docs/INSTALL.md](docs/INSTALL.md).
@@ -105,7 +105,7 @@ Six commitments make the loop work (plain-words tour in [docs/CONCEPTS.md](docs/
 - **Your personalization is untouchable.** Interviews write `MOD.md` files that upstream
   never ships or merges; a `git pull` can't eat your nuances — by construction.
 - **The adapter is knowledge, not code.** Supporting a harness means writing a
-  [cheat-sheet](capabilities/capability-lifecycle/harnesses/hermes.md) that teaches its own LLM the mapping —
+  [cheat-sheet](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md) that teaches its own LLM the mapping —
   six sections, zero glue code. And it's an aid, not a gate: with no cheat-sheet,
   BOOTSTRAP has the agent derive the mapping itself.
 - **Every capability has one face.** An entry skill named after the capability is the
@@ -122,7 +122,7 @@ Six commitments make the loop work (plain-words tour in [docs/CONCEPTS.md](docs/
 BOOTSTRAP.md               ← agents start here (the install sequence)
 CONTRIBUTING.md            ← humans with a PR start here
 capabilities/<id>/         ← the built capabilities (see table above); cheat-sheets live in
-                             capability-lifecycle/harnesses/<runtime>.md, one per harness runtime
+                             capability-lifecycle's reference/harness-<runtime>.md, one per runtime
 docs/                      ← concepts, install & usage guides, testing, gap ledger
 tools/ · tests/            ← deterministic lint + golden-render checks (CI)
 ```

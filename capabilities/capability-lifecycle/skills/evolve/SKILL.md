@@ -27,7 +27,8 @@ appended record (`reference/overlay.md`).
      and hand over — nothing lands in MOD.
 3. **[A]** Write the MOD.md change **first** (`reference/overlay.md`, Capture and fold —
    the MOD statement lands before anything depends on it), then apply to the pinned render in `personal/capabilities/<id>/` (and any native
-   artifacts per the cheat-sheet — load `harnesses/<harness-runtime>.md` now; native
+   artifacts per the cheat-sheet — the `capability-lifecycle` skill's
+   `reference/harness-<harness-runtime>.md`, load it now; native
    edit verbs where they exist), through the STAGE→GATE→EXECUTE phases.
 4. **[D]** `aos-lock rehash <id>` — refresh the recorded hashes in place so `verify`
    stays clean; the persist hook commits `personal/` (dated message). From now on

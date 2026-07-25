@@ -111,7 +111,7 @@ and installs that one capability; its skills do the rest, loading your harness r
 cheat-sheet at the steps that need it. Three mechanisms keep it honest:
 
 - **Cheat-sheets, not adapters.** Per-harness support is one lean doc
-  (`capabilities/capability-lifecycle/harnesses/<harness-runtime>.md`) teaching the mapping (agent → Hermes profile,
+  (`capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`) teaching the mapping (agent → Hermes profile,
   schedule → `hermes cron create`, secret → `.env`). Knowledge, not glue code — a new
   harness costs one document, and even that is an aid, not a gate: without one, the
   agent derives the mapping itself per BOOTSTRAP.
@@ -149,7 +149,7 @@ is. When building reveals the spec is wrong, the spec gets fixed — the
 | **overlay** | Your `MOD.md` files + `kb-registry.yaml`; user-owned, never shipped |
 | **base** | One KB instance == one git repo, registered in `kb-registry.yaml` |
 | **materialize** | The installer writing a capability's artifacts into your harness |
-| **cheat-sheet** | `capabilities/capability-lifecycle/harnesses/<harness-runtime>.md` — the harness half of the mapping, loaded per operation |
+| **cheat-sheet** | `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md` — the harness half of the mapping, loaded per operation |
 | **lockfile** | `.aos/installs.lock.yaml` — the honest record of what was installed |
 | **diff gate** | You see every write before it happens; never optional |
 | **degraded mode** | A capability's declared behavior when a host feature is absent |

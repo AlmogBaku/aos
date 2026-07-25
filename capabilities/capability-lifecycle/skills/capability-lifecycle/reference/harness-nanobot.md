@@ -1,5 +1,15 @@
 # Nanobot cheat-sheet
 
+## Contents
+
+- Primitive mapping
+- Materialization guide
+- Introspection guide
+- Secrets
+- Removal
+- Feature notes
+
+
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
 Nanobot (obot-platform/nanobot, the MCP-host agent runtime). The aos half of the install
 contract — provenance, lockfile, markers, secret references, degraded-mode meanings,
@@ -16,6 +26,7 @@ scheduled tasks); schedules exist only there and are mutated only through the ru
 `*ScheduledTask` tools. `nanobot.yaml`, `agents/*.md`, and `nanobot.env` are plain files
 you may edit — through the diff gate, then restart `nanobot run` (config loads at
 startup; hot-reload is unverified).
+
 
 ## Primitive mapping
 
