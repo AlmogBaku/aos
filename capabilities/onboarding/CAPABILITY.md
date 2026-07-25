@@ -1,6 +1,6 @@
 ---
 id: onboarding
-version: 0.2.1
+version: 0.3.0
 tags: [infra]
 summary: The interview engine — reads a capability's ONBOARDING.md, interviews the user, and writes their MOD.md overlay; owns the global bootstrap interview.
 skills:
@@ -27,7 +27,13 @@ transform reads.
 
 1. **The `onboarding` entry skill** — the whole capability: one skill, no narrower
    siblings. It goes to the front agent only; no agents, schedules, or KB zones.
-2. **No dependencies — first through the installer, alongside `kb`.** Every other
+2. **The global context block.** Distill the global MOD's identity facts (timezone,
+   working hours, sacred time, red lines — the facts every conversation needs, not the
+   whole file) into the front agent's identity file per the cheat-sheet's context-block
+   row, inside `<!-- aos:onboarding@<version> -->` markers. This is what makes the
+   interview's answers ambient: capabilities read MOD at render time, but the front
+   agent lives by its identity file.
+3. **No dependencies — first through the installer, alongside `kb`.** Every other
    capability's install narrative calls back into this one; this one calls into
    nothing, so it and `kb` are the first two capabilities `capability-installer`
    brings up at the bootstrap hand-over (BOOTSTRAP.md step 3).

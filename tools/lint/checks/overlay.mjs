@@ -6,7 +6,10 @@ import { questionIds } from './onboarding.mjs';
 // ARCHITECTURE §3.1 — THE inviolable contract. Upstream never ships, writes,
 // or merges any overlay-family path. tests/fixtures/ simulates the *user
 // clone* (where those files legitimately live), hence the exemption.
-export function checkOverlayPaths({ files, report }) {
+export function checkOverlayPaths({ files, report, personalRoot }) {
+  // The overlay family is banned from UPSTREAM; a personal root is where it belongs
+  // (ARCHITECTURE §3.1), so linting one skips this check rather than inverting it.
+  if (personalRoot) return;
   for (const rel of files) {
     if (OVERLAY_EXEMPT_PREFIXES.some((p) => rel.startsWith(p))) continue;
     const base = basename(rel);

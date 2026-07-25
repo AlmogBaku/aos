@@ -22,22 +22,25 @@ expect, what you'll be asked, and what ends up where.
 
 Paste into your agent:
 
-> Clone https://github.com/AlmogBaku/aos to ~/aos, read ~/aos/BOOTSTRAP.md, then set me up.
+> Fork and clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream (a plain clone
+> works too), read ~/aos/upstream/BOOTSTRAP.md, then set me up.
 
 ## What happens next
 
 1. **A welcome, first.** Before anything runs, your agent explains what aos is, what's
    about to happen, and the two promises (your answers stay yours; nothing lands without
    a visible diff) — and takes questions.
-2. **Prerequisites + clone.** git and `uv` verified (offered for install if missing);
-   the clone lands at `~/aos`.
+2. **Prerequisites + the household.** git and `uv` verified (offered for install if
+   missing); the kit clone lands at `~/aos/upstream` (forked by default — you're one
+   branch from contributing; a plain clone works too), and `~/aos/personal` is created
+   as your own private repo (a private remote is offered, never required).
 3. **The lifecycle capability installs itself.** One inline install puts the
    install/upgrade/remove/evolve skills and the `aos-lock` tool into your harness —
    from here on, "install X" is a skill, and the lockfile
-   (`.aos/installs.lock.yaml`, the record of everything materialized) is written by
+   (`~/aos/.aos/installs.lock.yaml`, the record of everything materialized) is written by
    the tool, never by hand.
 4. **The global interview.** Identity, timezone, working hours, sacred time, red lines.
-   Your answers become `~/aos/MOD.md` — typed answers in frontmatter, your phrasing and
+   Your answers become `~/aos/personal/MOD.md` — typed answers in frontmatter, your phrasing and
    nuances in prose. Anything marked secret goes to your harness's secret store; only a
    `{store, key}` reference lands in the file.
 5. **Knowledge base setup.** Have a KB already? It gets *adopted* — registered in
@@ -49,7 +52,7 @@ Paste into your agent:
    the briefing, personalizes the skills with your MOD.md, and materializes them per the
    cheat-sheet — skills into the right agents, the archiver agent created, its schedules
    registered, kb's `base` tool installed
-   (`uv tool install --from ~/aos/capabilities/kb/tool aos-base`).
+   (`uv tool install --from ~/aos/upstream/capabilities/kb/tool aos-base`).
 7. **Done.** The agent tells you what was installed, where, and any degraded modes in
    effect — specifically, not vaguely.
 
@@ -65,7 +68,7 @@ Everything else is a sentence, on demand:
 | You say | What happens |
 |---|---|
 | `install gtd-capture` | Briefing read → missing deps recursed → its interview → diff gate → materialize → lockfile |
-| `update` | After `git pull`: your hand-edits folded into MOD.md → backup → fresh upstream × MOD.md re-applied → diff gate |
+| `update` | After `git pull`: your hand-edits folded into MOD.md → fresh upstream × MOD.md re-rendered into `personal/` → diff gate |
 | "make the drain run at 22:00" | The evolve skill: change applied AND recorded in your MOD.md — survives every upgrade |
 | `remove gtd-capture` | The lockfile entry walked backwards; your `MOD.md` survives removal |
 
@@ -85,13 +88,15 @@ installing anyway is fine, silently pretending is not:
 
 | Thing | Where | Owned by |
 |---|---|---|
-| Your answers & nuances | `~/aos/MOD.md`, `~/aos/capabilities/*/MOD.md` | **you** — upstream never ships or writes these |
-| Your KB registry | `~/aos/kb-registry.yaml` | **you** |
+| Your answers & nuances | `~/aos/personal/MOD.md`, `~/aos/personal/capabilities/*/MOD.md` | **you** — upstream never ships or writes these |
+| Your rendered skills (what your harness links to) | `~/aos/personal/capabilities/*/skills/` | **you** — committed by your agent, every upgrade is a reviewable git diff |
+| Your KB registry | `~/aos/personal/kb-registry.yaml` | **you** |
 | Your KBs | wherever you keep them (each base is its own git repo) | **you** |
-| Materialized skills/agents/schedules | your harness's own locations (per cheat-sheet) | your agent, tracked in the lockfile |
-| Install record | `~/aos/.aos/installs.lock.yaml` | your agent, machine-local |
+| Skill links / agents / schedules | your harness's own locations (per cheat-sheet; skills are symlinks into `personal/`) | your agent, tracked in the lockfile |
+| Install record | `~/aos/.aos/installs.lock.yaml` (household level) | your agent, machine-local |
 
 Hand-editing materialized artifacts is fine — the agent folds your edits back into
-MOD.md when it notices (see [USAGE.md](USAGE.md)). Whether to keep your overlay in a
-private fork or local-only is your call (RFC-005 tracks the recommendation); the
-agent won't decide for you.
+MOD.md when it notices (see [USAGE.md](USAGE.md)). Everything yours lives in
+`~/aos/personal` — one private repo your agent commits for you; add a private remote
+and a new machine is `clone + clone + re-install` away (the lockfile is machine-local, so the install re-creates the links). Nothing personal ever enters the
+kit clone or any public remote.

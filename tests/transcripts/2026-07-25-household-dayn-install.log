@@ -1,0 +1,35 @@
+
+Materialized:
+
+- Front agent: `aos-test`
+  - `gtd-capture-gtd-capture`
+  - `gtd-capture-capture`
+- Capability agent: `aos-drainer`
+  - `gtd-capture-gtd-capture`
+  - `gtd-capture-drain`
+  - drainer-specific `SOUL.md`
+- Personal renders:
+  - `/home/anakin/aos/tests/.sandbox/aos-home/personal/capabilities/gtd-capture/skills/`
+- Schedule:
+  - `aos:gtd-capture:nightly-drain`
+  - owner: `aos-drainer`
+  - `47 22 * * *`
+  - job ID: `9c743206b2be`
+
+Also added and committed the required KB grants:
+
+- Personal KB: all three drainer zones
+- Shared KB: `raw/captures/**` bookkeeping only
+- `next_action` registered as a frontmatter extension on both bases
+
+Verification:
+
+- `aos-lock verify`: `clean: 4 entries verified`
+- Both front/drainer entry skills are valid symlinks into `personal/`
+- Upstream clean and untouched
+- Household personal repo clean
+- Both KB repos clean
+- Both KB lints: 0 criticals, 0 findings
+- Grant checks pass
+
+Operational caveat: Hermes outbound messaging is not configured, so reminders will be reported by the drainer rather than delivered to WhatsApp. The `aos-test` profile also had no credentials; I configured it to match the authenticated default model, but it still needs usable credentials before direct profile execution.

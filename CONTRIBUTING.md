@@ -16,6 +16,62 @@ reveals the spec is wrong, the spec gets fixed — every such mismatch gets a ro
 [docs/BUILD-GAPS.md](docs/BUILD-GAPS.md), artifact-side fixes land in the same `main`
 commit, spec-side fixes land on `spec`.
 
+## One way of working: your daily install is your dev checkout
+
+If you use aos, you are already set up to contribute — that's the point of the
+household layout
+([spec §3.1](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#31-the-overlay-the-personal-root-mirrored-paths)):
+
+- `~/aos/upstream` is both your install source and your working copy — pristine,
+  contributor-shaped from bootstrap (origin = your fork, upstream = canonical), and it
+  contains **nothing personal, ever** — so any branch you cut from it is clean by
+  construction.
+- `~/aos/personal` is your private repo — answers, tweaks, rendered skills, private
+  capabilities — auto-committed by your agent, restorable by cloning it. It never
+  enters a PR and never touches any public remote.
+- **PRs always.** Branch from canonical `main`, push to a PR-capable remote (your
+  fork; canonical if you have push rights), PR + green CI. Self-merge where the
+  merge policy allows is still a PR; `main` and `spec` are branch-protected —
+  maintainers included. Team and outsiders run the identical flow.
+- **Dogfood before you PR**: with your branch checked out, run a per-capability
+  upgrade — the version bump makes the upgrader see it, and you're now living on
+  your own change.
+
+### The promotion funnel
+
+Most contributions start as a personal tweak. The route out, lightest rung first:
+
+| Your change is… | Where it goes |
+|---|---|
+| Just for you (the default — no ceremony) | your MOD, in `personal/`, forever — preferences never promote |
+| Useful, but you can't tell how general | a **`promotion-signal` issue** naming the gap — the maintainers' demand ledger |
+| A missing knob (you fought the template) | a PR adding the `{{mod:}}` slot + ONBOARDING question; your answer stays yours |
+| Broken for everyone | a fix PR — CI is the witness, no second user needed |
+| A whole capability worth sharing | the builder's contribute flow (or the importer): package → scrub → PR |
+
+The governing principle: **one user's need is a MOD line; two users' need is a knob.**
+Maintainers watch the `promotion-signal` label and build the knob when the second
+signal arrives. After your PR merges and you upgrade, your agent offers to retire the
+now-redundant MOD line — the loop closes. Your agent knows this whole funnel
+(capability-lifecycle's evolver routes it; capability-builder's
+`capability-source-evolver` carries the mechanics) — saying *"promote this"* is enough.
+
+### Agent-drafted contributions
+
+aos users are agent operators, so most PRs here will be agent-drafted. Welcome — with
+backpressure:
+
+- **Issue-first for anything non-trivial**: an accepted (or at least filed)
+  `promotion-signal`/bug issue precedes the PR. Drive-by agent PRs with no issue and
+  no prior contact are closed without review.
+- **Disclose it**: name the tool and the extent of assistance in the PR body.
+- **A human owns every line**: the submitting human must be able to explain any line
+  without asking their agent. "My agent wrote it, I didn't read it" is a close.
+- **DCO**: sign your commits (`git commit -s`). No CLA, ever.
+- And the mirror rule, which every aos skill enforces on itself: **an agent never
+  opens a PR, files an issue, or +1s anything here without its user's explicit
+  approval.**
+
 ## The one gate
 
 ```bash
@@ -118,6 +174,8 @@ first — every decision is one of two kinds:
 - [ ] Capability files changed → `version` bumped
 - [ ] Install output changed → goldens re-rendered (real run, not simulated)
 - [ ] Spec mismatch discovered → `docs/BUILD-GAPS.md` row (+ spec-branch fix if spec-side)
+- [ ] Nothing personal in any committed file (the scrub — see the WARNING above)
+- [ ] Commits DCO-signed (`git commit -s`); agent assistance disclosed in the body
 - [ ] Nothing personal, no secrets, no real KB content
 - [ ] New docs/diagrams: relative links resolve; mermaid parses
 

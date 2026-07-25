@@ -8,16 +8,17 @@ carry everything else. Steps are **[D]** (mechanical — do it precisely, verify
 
 ## The experience
 
-You are already in the clone (the paste-block cloned it — silent, harmless). **Before any
-check or write, welcome your user**, in the voice defined by the `capability-lifecycle`
-entry skill's `## Experience` section
+You are already in the clone (the paste-block forked-and-cloned it — silent, harmless; a
+plain clone is fine too). **Before any check or write, welcome your user**, in the voice
+defined by the `capability-lifecycle` entry skill's `## Experience` section
 (`capabilities/capability-lifecycle/skills/capability-lifecycle/SKILL.md` — read it now;
 it binds every step below and every lifecycle interaction after): warm + expert, concept
 before mechanics, explain-then-act. Tell them, in your own friendly words: what aos is
 (batteries for the harness they already run), what's about to happen (~5 minutes — a short
 interview, then installs), and the two promises — *their answers become their `MOD.md`,
-forever theirs; nothing lands without a visible diff*. Answer questions if they have any,
-then proceed — the diff gate is the safety net, not repeated consent prompts.
+forever theirs in their own private repo; nothing lands without a visible diff*. Answer
+questions if they have any, then proceed — the diff gate is the safety net, not repeated
+consent prompts.
 
 ## 0. [D] Prerequisites
 
@@ -28,12 +29,36 @@ then proceed — the diff gate is the safety net, not repeated consent prompts.
   with the user's OK, verify; if they decline, stop honestly — the lockfile discipline
   cannot be prose.
 
-## 1. [D] Clone + state
+## 1. [D] The household
 
-Confirm the clone is at `~/aos` and clean (`git -C ~/aos status`). `.aos/` is
-machine-local and already gitignored. Whether the user tracks their overlay in a private
-fork or keeps it local is their choice (RFC-005) — don't decide it for them; if they ask,
-present both options neutrally.
+aos lives in one directory — **the household**, `~/aos/` by default (a plain directory,
+itself never a git repo; the user may name another location — every path below shifts
+with it, and `aos-lock --home` pins it). Two members, plus machine state:
+
+```
+~/aos/
+├── upstream/    # this clone — the kit, pristine; NOTHING personal ever lands here
+├── personal/    # the user's ONE private repo: answers, tweaks, private capabilities
+└── .aos/        # machine-local state (lockfile) — created by aos-lock init
+```
+
+Vocabulary for the user, if they ask: `upstream/` (and future org roots) are
+*distributions*; `personal/` is *their instance* — it syncs across machines via its
+private remote; only `.aos/` is machine-local.
+
+1. Confirm this clone is at `~/aos/upstream` and clean (`git -C ~/aos/upstream status`).
+   If the paste-block landed it elsewhere (e.g. `~/aos` directly — the pre-household
+   shape), stage the move: `mv ~/aos ~/aos-kit && mkdir ~/aos && mv ~/aos-kit
+   ~/aos/upstream` (a directory can't be moved inside itself in one step).
+2. Check remotes: the fork shape is `origin` = the user's fork, `upstream` = canonical.
+   A plain clone (origin = canonical) is fine — note once that forking later is one
+   command (`gh repo fork --remote`) and move on. **Forks are public** — which is safe,
+   because nothing personal ever enters this clone.
+3. Create the personal root: `git init ~/aos/personal`, seed the mirrored shape
+   (`capabilities/` directory). Offer — don't push — a private remote for backup/sync
+   (`gh repo create aos-personal --private` when `gh` is available; skippable, add one
+   any time). Everything personal (MOD files, rendered skills, private capabilities)
+   will live and be auto-committed here.
 
 ## 2. [D] Install the capability-lifecycle capability (inline — the only one)
 
@@ -41,18 +66,21 @@ present both options neutrally.
    `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/contract.md`
    **in full** — it is the install contract binding this step and every install after.
 2. Read `capabilities/capability-lifecycle/CAPABILITY.md` (the briefing), then:
-   `uv tool install --from ~/aos/capabilities/capability-lifecycle/tool aos-lock` and
-   `aos-lock --clone ~/aos init`.
+   `uv tool install --from ~/aos/upstream/capabilities/capability-lifecycle/tool aos-lock`
+   and `aos-lock --home ~/aos init`.
 3. Load your cheat-sheet: `capabilities/capability-lifecycle/harnesses/<harness-runtime>.md`,
    where the **harness runtime** is the program hosting you (OpenClaw →
    `harnesses/openclaw.md` · Hermes → `harnesses/hermes.md` · NanoClaw →
    `harnesses/nanoclaw.md` · Nanobot → `harnesses/nanobot.md`; Claude Code and OpenCode
    have no sheet yet). None for your harness → follow the entry skill's
    `reference/no-cheatsheet.md` — do not stop.
-4. **STAGE** the five skills for your front agent per the contract (mechanical — they have
-   no `{{mod}}` slots) → **GATE** (show the user the plan) → **EXECUTE** →
-   `aos-lock record capability-lifecycle --version <manifest version> --artifact …` per
-   materialized path.
+4. **STAGE** the five skills per the contract (mechanical — they have no `{{mod}}` slots):
+   render into `~/aos/personal/capabilities/capability-lifecycle/skills/…`, plan the
+   symlinks into your front agent's skills dir → **GATE** (show the user the plan) →
+   **EXECUTE** (commit the render in `personal/`, create the links) →
+   `aos-lock record capability-lifecycle --version <manifest version> --source-root upstream
+   --artifact <render-file>… --link <symlink>…` — render files go to `--artifact` (hashed),
+   symlinks to `--link` (a symlink passed as `--artifact` fails: exit 16).
 
 ## 3. Hand over
 
@@ -60,9 +88,9 @@ The lifecycle skills are live — from here `install <capability>` triggers
 `capability-installer`. Use it now, as ordinary installs:
 
 1. **onboarding** — its interview *is* the global one (identity, timezone, working hours,
-   sacred time, red lines → root `~/aos/MOD.md`).
+   sacred time, red lines → `~/aos/personal/MOD.md`).
 2. **kb** — its interview + KB setup (adopt existing KBs / init a fresh one →
-   `~/aos/kb-registry.yaml`).
+   `~/aos/personal/kb-registry.yaml`).
 
 Close per the Experience section: what was installed, where, which schedules, any
 degraded modes — specific and celebratory. Everything after is on demand:

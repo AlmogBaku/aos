@@ -23,7 +23,7 @@ does not exist — the config file is `openclaw.json` (JSON5).
 |---|---|---|
 | agent | **agent** — id + own workspace + per-agent state | `openclaw agents add <name> --workspace ~/.openclaw/workspace-<name>`; identity via `openclaw agents set-identity --agent <id> --from-identity` (reads workspace `IDENTITY.md`) |
 | front agent (`main`) | the reserved `main` agent — cannot be deleted | workspace `~/.openclaw/workspace/` |
-| skill | Agent Skills folder; identity = frontmatter `name` (lowercase-hyphen), **not** the folder path | roots by precedence: `<workspace>/skills` → `<workspace>/.agents/skills` → `~/.agents/skills` → `~/.openclaw/skills` (global) — per-workspace dirs are how `used_by` scoping works |
+| skill | Agent Skills folder — a **symlink** to the pinned render in `<home>/personal`; identity = frontmatter `name` (lowercase-hyphen), **not** the folder path | link at `<workspace>/skills/<capability>-<id>` per `used_by`; roots by precedence: `<workspace>/skills` → `<workspace>/.agents/skills` → `~/.agents/skills` → `~/.openclaw/skills` (global). OpenClaw's skill discovery follows symlinked dirs |
 | schedule | Gateway-hosted cron job (fires only while the Gateway runs; jobs persist) | `openclaw cron add …` (see Materialization); store `~/.openclaw/cron/jobs.json` |
 | context block | workspace bootstrap files, auto-injected each session | always: `AGENTS.md`, `SOUL.md`, `USER.md`, `IDENTITY.md`, `TOOLS.md`. **Sub-agent sessions get only `AGENTS.md` + `TOOLS.md`** — capability context for sub-agents goes there |
 | secret | `~/.openclaw/.env` line (+ SecretRef in config) | see Secrets |
@@ -41,19 +41,22 @@ agent's default doesn't already fit the class; never hardcode provider names.
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`, under the contract (reference/contract.md).
+Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle` entry skill's `reference/contract.md`).
 
 1. **Agents.** `openclaw agents add <name> --workspace ~/.openclaw/workspace-<name>
    --non-interactive`; persona → the workspace's `SOUL.md`, identity → `IDENTITY.md` then
    `openclaw agents set-identity --agent <id> --from-identity`; `workspace: shared` → skip
    creation, wire into `main`. Channel routing if the capability needs it:
    `--bind <channel[:account]>`.
-2. **Skills.** Skills land in the owning agent's `<workspace>/skills/` per `used_by`
-   (`~/.openclaw/skills/` only for genuinely every-agent skills); copy/naming rules per
-   the contract (reference/contract.md). OpenClaw takes skill identity from frontmatter, not the folder — set the
-   materialized copy's `name: <capability>-<id>`; `description` is required. `{baseDir}`
+2. **Skills.** The render lives once in
+   `<home>/personal/capabilities/<capability>/skills/<id>/` (contract); symlink it into
+   the owning agent's `<workspace>/skills/<capability>-<id>` per `used_by`
+   (`~/.openclaw/skills/` only for genuinely every-agent skills), record each link
+   (`aos-lock record … --link`); naming rules per
+   the install contract (the `capability-lifecycle` entry skill's `reference/contract.md`). OpenClaw takes skill identity from frontmatter, not the folder — set the
+   render's `name: <capability>-<id>`; `description` is required. `{baseDir}`
    resolves skill-local files. Do not route aos skills through
-   `openclaw skills install`/ClawHub — the clone is the source.
+   `openclaw skills install`/ClawHub — the pinned render in `<home>/personal` is the source.
 3. **Schedules.** Agent-type entries (`agent` + `prompt_ref`):
 
    ```
@@ -116,8 +119,9 @@ Drive everything from the lockfile entry, in order:
 1. Cron jobs: `openclaw cron remove <jobId>` per `schedules_owned` id
    (`cron disable <jobId>` to pause instead of delete).
 2. Skills: there is **no `skills uninstall` subcommand** — set
-   `skills.entries.<name>.enabled: false` via `openclaw config set` and/or delete the
-   materialized folder from every root the lockfile lists (copies, not links).
+   `skills.entries.<name>.enabled: false` via `openclaw config set` and delete the
+   symlink from every root the lockfile's `links` list names; the render dirs in
+   `<home>/personal` are deleted via a commit (contract).
 3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks from the
    bootstrap files.
 4. Config keys: `openclaw config unset <key>` per recorded key.
@@ -141,7 +145,7 @@ Drive everything from the lockfile entry, in order:
 | `email` | ⚠ via skill | `gog` (Gmail) + native Gmail PubSub hooks (`openclaw webhooks gmail setup`); absent ⇒ degraded mode |
 | `secrets-store` | ✓ | `.env` + config `env`/SecretRef (OS keyring via `gog`) |
 
-Degraded-mode wiring (meanings in reference/contract.md): `manual` ⇒ the invocable skill lands in
+Degraded-mode wiring (meanings in the entry skill's `reference/contract.md`): `manual` ⇒ the invocable skill lands in
 the workspace skills dir of the agent that would have owned the job; `inline` ⇒ no
 documented `cron edit` — recreate the target aos-owned job (`cron remove` + `cron add`,
 same name) with the appended prompt.

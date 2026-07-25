@@ -1,6 +1,6 @@
 ---
 id: capability-builder
-version: 0.3.0
+version: 0.4.0
 tags: [infra]
 summary: Detects use-case-shaped requests mid-conversation and turns them into an intake -> research -> design -> approval -> build procedure instead of ad hoc changes; also evolves capabilities that already exist.
 depends:
@@ -70,9 +70,13 @@ change actually touches.
 - Never writes a capability's files without an explicit, user-approved design. Research
   subagents are investigative only — nothing but the approved Build stage writes.
 - Package materialization (Build, and evolve's major Apply) never installs into the
-  harness and never opens a PR — output is a capability package in the user's clone,
-  same invariant as `importer`; the already-specified install flow picks it up from
-  there, and the user is told so. Evolve's small path is the one exception by design:
+  harness and never opens a PR on its own — output is a capability package in the
+  user's `personal/` root, same invariant as `importer`; the already-specified
+  install flow picks it up from there, and the user is told so. At build completion
+  the contribute question fires only when the generality judgment passes (niche
+  builds get a soft "say *contribute it* anytime"); the graduation flow's PR opens
+  only on the user's explicit confirm — never any upstream write (PR, issue, +1,
+  push, fork, remote branch) without explicit approval. Evolve's small path is the one exception by design:
   it adjusts the user's own overlay answers (through the onboarding skill, the only
   MOD.md writer) and syncs the live artifact those answers personalize — the §3.3
   round-trip, not an install.

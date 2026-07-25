@@ -4,7 +4,7 @@
 //   default      — validate committed snapshots under tests/golden/hermes/<name>/
 //   --live NAME  — validate the real materialized tree per PROTOCOL.md roots
 // Exits non-zero on any failure. No LLM anywhere in here.
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync, lstatSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { parse } from 'yaml';
@@ -21,14 +21,14 @@ const fail = (code, msg) => failures.push({ code, msg });
 function liveRoots(exp) {
   const roots = {
     front: join(homedir(), '.hermes', 'profiles', 'aos-test'),
-    clone: join(REPO_ROOT, 'tests', '.sandbox', 'aos-clone'),
+    home: join(REPO_ROOT, 'tests', '.sandbox', 'aos-home'),
   };
   for (const a of exp.agents ?? []) roots[a] = join(homedir(), '.hermes', 'profiles', `aos-${a}`);
   return roots;
 }
 
 function snapshotRoots(exp, snapDir) {
-  const roots = { front: join(snapDir, 'front'), clone: join(snapDir, 'clone') };
+  const roots = { front: join(snapDir, 'front'), home: join(snapDir, 'home') };
   for (const a of exp.agents ?? []) roots[a] = join(snapDir, a);
   return roots;
 }
@@ -48,7 +48,7 @@ function* walk(dir) {
   }
 }
 
-function runExpectations(expName, roots) {
+function runExpectations(expName, roots, liveMode = false) {
   const exp = parse(readFileSync(join(REPO_ROOT, 'tests', 'golden', 'expectations', `${expName}.yaml`), 'utf8'));
 
   for (const ref of exp.expect_files ?? []) {
@@ -116,14 +116,41 @@ function runExpectations(expName, roots) {
       if (!found) fail('golden/sentinel', `${expName}: "${s.text}" not found anywhere under ${s.in_dir}`);
     }
   }
+  // Symlink-install contract (§5.3): live trees must LINK harness skill dirs to the
+  // pinned render in personal/ — snapshots dereference, so this is live-only.
+  if (liveMode) {
+    for (const ref of exp.expect_links ?? []) {
+      const p = resolveRef(roots, ref);
+      if (!p || !existsSync(p)) { fail('golden/link-missing', `${expName}: expected link ${ref}`); continue; }
+      if (!lstatSync(p).isSymbolicLink()) fail('golden/not-a-link', `${expName}: ${ref} is not a symlink (copies are banned — §5.3)`);
+    }
+  }
   if (exp.lockfile_capabilities) {
-    const p = resolveRef(roots, 'clone:.aos/installs.lock.yaml');
+    const p = resolveRef(roots, 'home:.aos/installs.lock.yaml');
     if (!p || !existsSync(p)) {
       fail('golden/lockfile', `${expName}: lockfile missing`);
     } else {
-      const lock = readFileSync(p, 'utf8');
+      const lockText = readFileSync(p, 'utf8');
       for (const cap of exp.lockfile_capabilities) {
-        if (!lock.includes(cap)) fail('golden/lockfile', `${expName}: lockfile has no entry for "${cap}"`);
+        if (!lockText.includes(cap)) fail('golden/lockfile', `${expName}: lockfile has no entry for "${cap}"`);
+      }
+      // Snapshots dereference symlinks, so the lockfile's `links` map is the only
+      // deterministic residue of the symlink contract (§5.3) a committed tree can carry.
+      if (exp.lockfile_links_into_personal) {
+        const installs = parse(lockText)?.installs ?? {};
+        for (const cap of exp.lockfile_capabilities) {
+          const links = installs[cap]?.links ?? {};
+          const targets = Object.values(links);
+          if (!targets.length) {
+            fail('golden/links', `${expName}: ${cap} records no links (copies are banned — §5.3)`);
+            continue;
+          }
+          for (const t of targets) {
+            if (!String(t).includes('/personal/capabilities/')) {
+              fail('golden/links', `${expName}: ${cap} link target outside personal/: ${t}`);
+            }
+          }
+        }
       }
     }
   }
@@ -136,7 +163,7 @@ function runExpectations(expName, roots) {
 if (live) {
   for (const name of names.length ? names : ['full-install']) {
     const exp = parse(readFileSync(join(REPO_ROOT, 'tests', 'golden', 'expectations', `${name}.yaml`), 'utf8'));
-    runExpectations(name, liveRoots(exp));
+    runExpectations(name, liveRoots(exp), true);
   }
 } else {
   const goldenDir = join(REPO_ROOT, 'tests', 'golden', 'hermes');

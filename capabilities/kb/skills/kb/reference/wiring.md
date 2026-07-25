@@ -22,12 +22,12 @@ variance is **composition in the wrapper the installing LLM writes**, per the
 cheat-sheet:
 
 - The tool: installed once at capability install — `uv tool install --from
-  <clone>/capabilities/kb/tool aos-base` → the `base` command on PATH (lockfile
+  <home>/upstream/capabilities/kb/tool aos-base` → the `base` command on PATH (lockfile
   records it; removal uninstalls). One-off/degraded: `uvx --from
-  <clone>/capabilities/kb/tool base …`; `uv` itself is a one-line install.
+  <home>/upstream/capabilities/kb/tool base …`; `uv` itself is a one-line install.
 - Cron: e.g. Hermes `hermes cron create … -- base sync --all` as a script-only
-  job — **the wrapper must anchor the registry** (`AOS_REGISTRY=<clone>/kb-registry.yaml`
-  exported in the wrapper, or `base --registry <clone>/kb-registry.yaml sync --all`):
+  job — **the wrapper must anchor the registry** (`AOS_REGISTRY=<home>/personal/kb-registry.yaml`
+  exported in the wrapper, or `base --registry <home>/personal/kb-registry.yaml sync --all`):
   a bare `base sync` with no resolvable registry exits 0 having synced nothing.
 - Surfacing: optionally compose a notifier around the exec call:
   `… sync --all || <harness-notify "base sync needs attention">`. The file bus

@@ -49,6 +49,8 @@ between each**:
 - Report-only: research findings, gaps, anything the design proposal flags as
   uncertain — surfaced in the proposal, never resolved silently.
 - Ask first: the design itself — nothing proceeds to Build without explicit approval —
-  and anything touching the live harness (out of scope for this skill: Build only ever
-  writes into `capabilities/<id>/` in the user's clone, same as `importer`; installing
+  every write toward upstream (the contribute question's yes starts a flow whose PR
+  still opens only on explicit confirm; never any PR/issue/push without it), and
+  anything touching the live harness (out of scope for this skill: Build only ever
+  writes into `<home>/personal/capabilities/<id>/`, same as `importer`; installing
   what gets built is the separate, already-specified install flow).

@@ -12,12 +12,16 @@ if (!src || !dest) {
 }
 
 const SKIP = new Set(['config.yaml', 'profile.yaml',  // harness runtime state: provider/model details are run-varying and private
+  '.hub', 'index-cache', '.bundled_manifest',  // harness-owned skill-store metadata + caches (megabytes of run-varying JSON)
   'node_modules', '.git', 'sessions', 'logs', 'memories', 'state.db',
   'audio_cache', 'cache', '.env', 'auth.json', 'state-snapshots', 'bin',
   'executions.db', '.jobs.lock', 'auth.lock', 'state.db-shm', 'state.db-wal',
   '.skills_prompt_snapshot.json', '.update_check', 'context_length_cache.yaml',
   'verification_evidence.db', 'models_dev_cache.json']);
-const TEXT = /\.(md|ya?ml|json|txt|sh|tmpl)$/;
+// A known trailing suffix (e.g. `.sh.unused`, left when a harness renames a script)
+// must still normalize — otherwise absolute developer paths land in a committed
+// snapshot. Deliberately an allowlist: `.json.gz` must NOT be read as text.
+const TEXT = /\.(md|ya?ml|json|txt|sh|tmpl)(\.(unused|bak|orig|old|disabled))?$/;
 
 const HOME = process.env.HOME || '/home/user';
 function normalizeText(text) {

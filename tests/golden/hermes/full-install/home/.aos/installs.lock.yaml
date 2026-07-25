@@ -1,0 +1,103 @@
+installs:
+  capability-lifecycle:
+    artifacts:
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-evolver/SKILL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-installer/SKILL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-lifecycle/SKILL.md: <SHA256>
+      ? <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/contract.md
+      : <SHA256>
+      ? <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/no-cheatsheet.md
+      : <SHA256>
+      ? <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/overlay.md
+      : <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-remover/SKILL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-upgrader/SKILL.md: <SHA256>
+    config_keys: []
+    env_lines: []
+    links:
+      <HOME>/.hermes/profiles/aos-test/skills/capability-lifecycle-capability-evolver: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-evolver
+      <HOME>/.hermes/profiles/aos-test/skills/capability-lifecycle-capability-installer: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-installer
+      <HOME>/.hermes/profiles/aos-test/skills/capability-lifecycle-capability-lifecycle: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-lifecycle
+      <HOME>/.hermes/profiles/aos-test/skills/capability-lifecycle-capability-remover: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-remover
+      <HOME>/.hermes/profiles/aos-test/skills/capability-lifecycle-capability-upgrader: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-upgrader
+    schedules_owned: []
+    scripts: []
+    source_root: upstream
+    version: 0.2.0
+  gtd-capture:
+    artifacts:
+      <HOME>/.hermes/profiles/aos-drainer/SOUL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/gtd-capture/skills/capture/SKILL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/gtd-capture/skills/drain/SKILL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/gtd-capture/skills/gtd-capture/SKILL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/gtd-capture/skills/gtd-capture/reference/entry-format.md: <SHA256>
+    config_keys: []
+    env_lines: []
+    links:
+      <HOME>/.hermes/profiles/aos-drainer/skills/gtd-capture-drain: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/gtd-capture/skills/drain
+      <HOME>/.hermes/profiles/aos-drainer/skills/gtd-capture-gtd-capture: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/gtd-capture/skills/gtd-capture
+      <HOME>/.hermes/profiles/aos-test/skills/gtd-capture-capture: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/gtd-capture/skills/capture
+      <HOME>/.hermes/profiles/aos-test/skills/gtd-capture-gtd-capture: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/gtd-capture/skills/gtd-capture
+    schedules_owned:
+    - <ID>
+    scripts: []
+    source_root: upstream
+    version: 0.2.0
+  kb:
+    artifacts:
+      <HOME>/.hermes/profiles/aos-archiver/SOUL.md: <SHA256>
+      <HOME>/.hermes/scripts/aos-kb-sync.sh: <SHA256>
+      <HOME>/.local/share/uv/tools/aos-base/bin/base: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/adopt/SKILL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/import/SKILL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/import/reference/v1-migration.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/init/SKILL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/init/templates/AGENTS.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/init/templates/BASE.yaml: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/init/templates/gitattributes: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/init/templates/index.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/init/templates/log.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/init/templates/state.yaml: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/init/templates/zones/_ops.AGENTS.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/init/templates/zones/entities.AGENTS.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/init/templates/zones/profile.AGENTS.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/init/templates/zones/raw.AGENTS.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb/SKILL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb/reference/grants.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb/reference/lifecycle.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb/reference/wiring.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/recall/SKILL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/route/SKILL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/kb-registry.yaml: <SHA256>
+    config_keys: []
+    env_lines: []
+    links:
+      <HOME>/.hermes/profiles/aos-archiver/skills/kb-kb: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb
+      <HOME>/.hermes/profiles/aos-test/skills/kb-adopt: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/adopt
+      <HOME>/.hermes/profiles/aos-test/skills/kb-import: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/import
+      <HOME>/.hermes/profiles/aos-test/skills/kb-init: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/init
+      <HOME>/.hermes/profiles/aos-test/skills/kb-kb: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb
+      <HOME>/.hermes/profiles/aos-test/skills/kb-recall: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/recall
+      <HOME>/.hermes/profiles/aos-test/skills/kb-route: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/route
+    schedules_owned:
+    - <ID>
+    - <ID>
+    - <ID>
+    scripts:
+    - <HOME>/.hermes/scripts/aos-kb-sync.sh
+    source_root: upstream
+    version: 0.4.0
+  onboarding:
+    artifacts:
+      <HOME>/.hermes/profiles/aos-test/SOUL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/onboarding/skills/onboarding/SKILL.md: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/onboarding/skills/onboarding/reference/answer-validation.md: <SHA256>
+    config_keys: []
+    env_lines: []
+    links:
+      <HOME>/.hermes/profiles/aos-test/skills/onboarding-onboarding: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/onboarding/skills/onboarding
+    schedules_owned: []
+    scripts: []
+    source_root: upstream
+    version: 0.3.0
+version: 1

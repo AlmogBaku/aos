@@ -1,0 +1,5 @@
+# state.yaml — the rolling attention window for {{name}}.
+# One-line items pointing INTO the wiki pages; never knowledge itself.
+# Rewritten in place (git history is the archive). Hard cap: BASE.yaml state.max_items.
+# Managed via `base state add|bump|drop|check` — single writer: agent:main.
+items: []

@@ -1,0 +1,25 @@
+  - Personal renders removed and committed
+  - Lock entry removed
+- `capability-lifecycle`
+  - All five skill symlinks removed
+  - Personal renders removed and committed
+  - Lock entry removed
+  - `aos-lock` uninstalled
+
+Verification passed:
+
+- `.aos/installs.lock.yaml` contains `installs: {}`
+- No `x-aos-origin:` provenance in the scoped profiles/household
+- No `aos:` names or marker blocks
+- No links into `personal/`
+- No materialized render files remain
+- `aos-lock` and `base` commands are absent
+- All three `aos-*` profiles remain intact
+- No scheduled jobs remain
+- `MOD.md` ledgers remain:
+  - `personal/MOD.md`
+  - `personal/capabilities/gtd-capture/MOD.md`
+  - `personal/capabilities/kb/MOD.md`
+- Personal repo is clean
+
+I also corrected an intermediate mistake: gtd-capture’s MOD ledger was briefly removed with its renders, then restored and committed.

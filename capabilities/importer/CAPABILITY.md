@@ -1,6 +1,6 @@
 ---
 id: importer
-version: 0.2.0
+version: 0.3.0
 tags: [infra]
 summary: Wraps what you already built — inventories your harness, splits mechanism from nuance, and emits a reviewable capability draft.
 depends:
@@ -29,7 +29,7 @@ PRs itself.
    questions — the draft it emits produces its own `ONBOARDING.md`, and that draft's
    `MOD.md` format follows the onboarding skill's shape.
 
-A run produces, under the user's clone: `capabilities/<id>-draft/` (package skeleton),
+A run produces, under the user's personal root: `capabilities/<id>-draft/` (package skeleton),
 a draft `MOD.md` (personal nuance — never committed), and `GAP.md` (everything that
 didn't map; each entry becomes a spec fix or a documented limit).
 

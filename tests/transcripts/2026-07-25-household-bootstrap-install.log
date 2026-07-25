@@ -1,0 +1,49 @@
+Install complete.
+
+Materialized:
+
+- Front agent: `~/.hermes/profiles/aos-test`
+  - lifecycle: 5 skills
+  - onboarding: 1 skill
+  - kb: 6 skills
+- Capability agent: `~/.hermes/profiles/aos-archiver`
+  - kb entry skill only
+  - no messaging toolset
+- Tools:
+  - `aos-lock` v0.1.0
+  - `base` / `aos-base` v0.3.0
+
+KBs initialized:
+
+- `/home/anakin/aos/tests/.sandbox/kb/personal-kb`
+- `/home/anakin/aos/tests/.sandbox/kb/acme-kb`
+
+Schedules on `aos-archiver`:
+
+- `aos:kb:nightly-promote` — `30 23 * * *`
+- `aos:kb:weekly-lint` — `0 7 * * 6`
+- `aos:kb:sync` — every 5 minutes, no-agent, runs `base sync --all`
+
+The sync script is at:
+
+`/home/anakin/.hermes/scripts/aos-kb-sync.sh`
+
+Verification passed:
+
+- `aos-lock verify`: `clean: 3 entries verified`
+- Both KBs: 0 critical findings, 0 findings
+- Sync script executed successfully
+- All AOS symlinks resolve
+- Front-agent and archiver skill scoping is correct
+- Upstream clone remains clean
+- Personal repo is clean
+
+Lockfile:
+
+`/home/anakin/aos/tests/.sandbox/aos-home/.aos/installs.lock.yaml`
+
+Personal install commits were created in:
+
+`/home/anakin/aos/tests/.sandbox/aos-home/personal`
+
+`gtd-capture` was not installed.

@@ -5,8 +5,8 @@ sandbox bases. Each step has an observable expected outcome; a step without its
 outcome is a failure. Deterministic steps use the tool directly; agent steps drive the
 installed profiles with `hermes -p <profile> -z`. Transcript → `tests/transcripts/`.
 
-Env for tool steps: `AOS_REGISTRY=<sandbox>/aos-clone/kb-registry.yaml`,
-`AOS_AGENT=agent:main`, tool = the installed `base` command (or `uvx --from <sandbox>/aos-clone/capabilities/kb/tool base`).
+Env for tool steps: `AOS_REGISTRY=<sandbox>/aos-home/personal/kb-registry.yaml`,
+`AOS_AGENT=agent:main`, tool = the installed `base` command (or `uvx --from <sandbox>/aos-home/upstream/capabilities/kb/tool base`).
 
 | # | Step | Expected observable outcome |
 |---|---|---|

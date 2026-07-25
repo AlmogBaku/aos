@@ -118,15 +118,38 @@ def glob_to_re(pattern: str) -> re.Pattern:
     return re.compile("^" + "".join(out) + "$")
 
 
-def find_clone_root() -> Path:
-    env = os.environ.get("AOS_CLONE")
+def find_household() -> Path | None:
+    """The household root: <home>/{upstream,personal,.aos}. `.aos/` is the marker —
+    checked before any capabilities/ heuristic, so a render inside personal/ (which
+    also carries capabilities/) is never mistaken for the household or for upstream."""
+    env = os.environ.get("AOS_HOME")
     if env:
         return Path(env).expanduser()
-    # installed tool: discover the clone from cwd upward, else ~/aos
     for p in [Path.cwd(), *Path.cwd().parents]:
-        if (p / "kb-registry.yaml").exists() or (p / "capabilities" / "kb").is_dir():
+        if (p / ".aos").is_dir():
             return p
-    return Path.home() / "aos"
+    return None
+
+
+def find_upstream_root() -> Path:
+    home = find_household()
+    if home:
+        return home / "upstream"
+    # not inside a household: a bare kit checkout is its own upstream root
+    for p in [Path.cwd(), *Path.cwd().parents]:
+        if (p / "capabilities" / "kb" / "CAPABILITY.md").is_file():
+            return p
+    return Path.home() / "aos" / "upstream"
+
+
+def find_personal_root() -> Path:
+    home = find_household()
+    if home:
+        return home / "personal"
+    for p in [Path.cwd(), *Path.cwd().parents]:
+        if (p / "kb-registry.yaml").exists():
+            return p
+    return Path.home() / "aos" / "personal"
 
 
 def registry_path(args) -> Path:
@@ -135,7 +158,7 @@ def registry_path(args) -> Path:
     env = os.environ.get("AOS_REGISTRY")
     if env:
         return Path(env).expanduser()
-    return find_clone_root() / "kb-registry.yaml"
+    return find_personal_root() / "kb-registry.yaml"
 
 
 def load_registry(args) -> dict:
@@ -298,7 +321,7 @@ def cmd_init(args):
     if (root / "BASE.yaml").exists():
         die(f"{root} already has a BASE.yaml")
     tpl = Path(args.templates).expanduser() if args.templates else \
-        find_clone_root() / "capabilities" / "kb" / "skills" / "init" / "templates"
+        find_upstream_root() / "capabilities" / "kb" / "skills" / "init" / "templates"
     if not (tpl / "BASE.yaml").exists():
         die(f"templates not found at {tpl} (pass --templates)")
     root.mkdir(parents=True, exist_ok=True)
@@ -1105,7 +1128,7 @@ def main():
                     f"(layout {LAYOUT})")
     ap.add_argument("--base", help="base name (registry) or path; default: cwd/"
                     "registry default")
-    ap.add_argument("--registry", help="kb-registry.yaml path (default: clone root)")
+    ap.add_argument("--registry", help="kb-registry.yaml path (default: <home>/personal/kb-registry.yaml)")
     ap.add_argument("--agent", help="acting subject for log lines (default "
                     "$AOS_AGENT or agent:main)")
     sub = ap.add_subparsers(dest="cmd", required=True)

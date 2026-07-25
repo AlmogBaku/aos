@@ -10,7 +10,7 @@ starts on purpose; none runs from CI or from an implementation agent's own initi
       misroute rate < 5% (ARCHITECTURE Appendix B #2). Evidence feeds RFC-006.
 - [ ] **RFC-005 evidence**: run private-fork vs gitignored+backup overlay persistence side by side;
       count incidents.
-- [ ] Next live render: verify no literal `<clone>` survives in *transformed*
+- [ ] Next live render: verify no literal `<home>` survives in *transformed*
   capabilities' materialized copies (one bake miss shipped in the 2026-07-24 goldens —
   kb entry skill); add a forbid-sentinel to expectations with that render
 - [ ] Full **removal** after any dogfood install that isn't kept (cheatsheet Removal section);

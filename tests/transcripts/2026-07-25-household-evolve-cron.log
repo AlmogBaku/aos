@@ -1,0 +1,8 @@
+Changed the aos-test install’s gtd-capture drain schedule.
+
+- Profile: `aos-drainer`
+- Job: `aos:gtd-capture:nightly-drain`
+- New schedule: `0 22 * * *` — every day at 22:00
+- Next run: `2026-07-25 22:00 +03:00`
+- Front agent `aos-test`: no scheduled jobs, as expected
+- Job remains active with `gtd-capture-drain` attached

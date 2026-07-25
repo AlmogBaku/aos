@@ -1,6 +1,6 @@
 # Stage 5 — Emit
 
-Write under the user's clone:
+Write under the user's personal root (`<home>/personal`):
 
 - `capabilities/<id>-draft/` — full §2.1 skeleton: `CAPABILITY.md`, `README.md` (support
   matrix: this harness only, this user as runner), `skills/`, `agents/`, `ONBOARDING.md`,
@@ -14,4 +14,7 @@ Then:
 2. Print the punch list: GAP items, lint findings, the `<id>-draft` → `<id>` rename.
 3. State what a PR must not contain: their MOD.md, any secret, any personal KB content.
 
-Never open the PR yourself.
+Never open the PR yourself — the contribution flow (capability-builder's
+`capability-source-evolver` skill, contribute reference) drafts and offers; every
+upstream write waits for the user's explicit yes. Until then the draft lives
+happily in `personal/`.

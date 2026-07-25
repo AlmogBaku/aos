@@ -10,11 +10,14 @@ feedback already supply the context), keep the rest, sized down:
   removed, and why. Same bar as a new capability's Design stage — one artifact, not
   scattered across replies.
 - **Approval** — nothing applies until the user signs off on the diff.
-- **Apply** — same materialization rules as `capability-builder`'s Build stage: the
-  change lands in the capability package in the clone; bump the capability's
-  `version` per semver. The running install doesn't change until the
-  already-specified install/update flow re-renders it — say that explicitly, and
-  offer to walk the user into that flow now.
+- **Apply** — same materialization rules as `capability-builder`'s Build stage (lint
+  the tree you actually wrote: `--root <home>/personal` for the user's own packages): the
+  user's own package → the change lands in `personal/capabilities/<id>/`;
+  upstream-shipped → the change lands on a branch in `<home>/upstream` and continues
+  per [contribute.md](contribute.md). Bump the capability's `version` per semver
+  either way. The running install doesn't change until the already-specified
+  install/update flow re-renders it — say that explicitly, and offer to walk the
+  user into that flow now.
 
 Never installs, never opens a PR on its own — same invariant as everywhere else in this
-capability.
+capability; every upstream write waits for the user's explicit yes.

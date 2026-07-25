@@ -21,7 +21,7 @@ judgment is yours, mechanics are its.
 
 ## Where things live
 
-- `kb-registry.yaml` (clone root, user-owned) — every base: path, audience, purpose,
+- `kb-registry.yaml` (personal root, user-owned) — every base: path, audience, purpose,
   routing hints, which is default.
 - Each base: `BASE.yaml` (machine config — the tool enforces it), `AGENTS.md`
   (contract + Grants table — read before writing), `index.md` (the map; descriptions
@@ -35,7 +35,7 @@ base's state writer): `base state bump --note <substring>`.
 
 ## The tool
 
-`base --help` (installed at capability install: `uv tool install --from <clone>/capabilities/kb/tool aos-base`; one-off: `uvx --from <clone>/capabilities/kb/tool base`) — deterministic
+`base --help` (installed at capability install: `uv tool install --from <home>/upstream/capabilities/kb/tool aos-base`; one-off: `uvx --from <home>/upstream/capabilities/kb/tool base`) — deterministic
 verbs; every write logs itself. Key ones: `capture` (never hand-write into raw/),
 `inbox` (pending view), `state add|bump|drop|check`, `search` (check before creating
 ANY page — `EXISTS` means stop), `links`, `lint`, `grants check`, `index rebuild`,
