@@ -378,7 +378,10 @@ def lock_link_names(root, capability):
             # Only skill links participate — a linked script's basename is not a skill name.
             if "skills" not in Path(link).parts[:-1]:
                 continue
-            out.setdefault(Path(link).name, cap)
+            # .stem, not .name: a harness that installs skills as flat `<name>.md` files
+            # (Nanobot) records a link whose basename carries the extension, and it has to
+            # compare equal to a computed installed name at all three sites.
+            out.setdefault(Path(link).stem, cap)
     return {name: cap for name, cap in out.items() if capability is None or cap == capability}
 
 

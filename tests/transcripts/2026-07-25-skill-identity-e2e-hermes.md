@@ -66,7 +66,7 @@ job, wrapper, tool, and both `SOUL.md` marker blocks gone; three revertible comm
 
 - `node tests/golden/check.mjs --live full-install` → `golden: 0 failures`
 - `node tests/golden/check.mjs` (snapshot mode, re-snapshotted) → `golden: 0 failures`
-- `bash tools/check.sh` → tier 0 (54 + 62 tests) OK, 3 capabilities, 0 errors, 1 warning
+- `bash tools/check.sh` → tier 0 (54 + 71 tests) OK, 3 capabilities, 0 errors, 1 warning
   (`skill/all-main`, deliberate and documented in the manifest)
 
 ## Defects this run found, and fixed
@@ -91,6 +91,21 @@ job, wrapper, tool, and both `SOUL.md` marker blocks gone; three revertible comm
 5. **Protocol setup steps that were never written down.** A fresh profile has only
    `model.default` and dies with `Invalid length for parameter modelId`; the seeded
    `personal/` repo needs a git identity. Both are now in `PROTOCOL.md`.
+
+## Snapshot provenance
+
+Every file under `tests/golden/hermes/full-install/` came from this run, except the nine
+`capability-lifecycle` skill directories under `front/skills/` and
+`home/personal/capabilities/capability-lifecycle/skills/`. Those were re-rendered with
+`aos-lock render` (then `normalize.mjs`) after review found two prose defects baked into the
+originals — a hand-off sentence broken by a merge substitution, and two skill bodies still
+titled after deleted capabilities. Legitimate because these skills are `{{mod}}`-slot-free,
+so the render is deterministic: verified by rendering the untouched `remove` skill and
+confirming byte identity with the committed snapshot before regenerating the rest.
+`check.mjs` now asserts that re-normalizing a snapshot is a no-op, which is what caught the
+first attempt at this (it bypassed the normalizer and left a literal date where `<DATE>`
+belongs). Everything agentic in the snapshot — placement, symlinks, schedules, context
+blocks, the lockfile — is untouched from the live run.
 
 ## Observed, not fixed (out of scope)
 

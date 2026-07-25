@@ -2,14 +2,11 @@
 // Copy a rendered tree into a golden snapshot, normalizing run-varying values so
 // the committed diff shows only meaningful changes.
 // Usage: normalize.mjs <src-dir> <dest-dir>
-import { readdirSync, statSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmdirSync } from 'node:fs';
+import { readdirSync, statSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmdirSync, realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
 const [src, dest] = process.argv.slice(2);
-if (!src || !dest) {
-  console.error('usage: normalize.mjs <src-dir> <dest-dir>');
-  process.exit(1);
-}
 
 const SKIP = new Set(['config.yaml', 'profile.yaml',  // harness runtime state: provider/model details are run-varying and private
   '.hub', 'index-cache', '.bundled_manifest',  // harness-owned skill-store metadata + caches (megabytes of run-varying JSON)
@@ -98,9 +95,19 @@ function copy(s, d) {
   }
 }
 
-if (!existsSync(src)) {
-  console.error(`source ${src} does not exist`);
-  process.exit(1);
+export { copy as normalizeTree, SKIP };
+
+// Only act as a CLI when invoked directly — check.mjs imports the pipeline to assert
+// that re-normalizing a committed snapshot is a no-op.
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (!src || !dest) {
+    console.error('usage: normalize.mjs <src-dir> <dest-dir>');
+    process.exit(1);
+  }
+  if (!existsSync(src)) {
+    console.error(`source ${src} does not exist`);
+    process.exit(1);
+  }
+  copy(src, dest);
+  console.log(`normalized ${src} -> ${dest}`);
 }
-copy(src, dest);
-console.log(`normalized ${src} -> ${dest}`);

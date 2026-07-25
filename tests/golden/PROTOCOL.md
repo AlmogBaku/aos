@@ -68,6 +68,20 @@ Everything the run creates is identifiable and disposable:
 5. **Snapshot**: `node tests/golden/normalize.mjs <paths>` → commit under
    `tests/golden/hermes/<cap>/`. The commit diff is the reviewable render (RFC-002).
    Save the run transcript to `tests/transcripts/`.
+
+   **Re-rendering instead of re-running.** A prose fix to a `{{mod}}`-slot-free skill can be
+   re-rendered into the snapshot with `aos-lock render` rather than costing a whole live run —
+   the render is a pure function of source + version for those skills. Two conditions, both
+   non-negotiable: prove it first by rendering an *untouched* skill and confirming byte
+   identity with the committed snapshot, and pipe the output through `normalize.mjs` (skipping
+   it leaves un-normalized values that the next real run silently flips back). Record which
+   files came in that way, here or in the transcript. `check.mjs` asserts the snapshot equals
+   what the normalizer produces, which catches the second mistake but not the first. Anything
+   an agent *decided* — placement, links, schedules, context blocks — only a live run can
+   attest.
+
+   Done this way on 2026-07-25 for the nine `capability-lifecycle` skills, to carry two prose
+   fixes found in review (`tests/transcripts/2026-07-25-skill-identity-e2e-hermes.md`).
    **Evolve step (after the snapshot — it mutates install state)**: a fresh prompt —
    "change gtd-capture's drain schedule to 22:00" — must route through
    `capability-evolve`: the cron job changes, the change lands in

@@ -4,10 +4,12 @@
 //   default      — validate committed snapshots under tests/golden/hermes/<name>/
 //   --live NAME  — validate the real materialized tree per PROTOCOL.md roots
 // Exits non-zero on any failure. No LLM anywhere in here.
-import { existsSync, readFileSync, readdirSync, statSync, lstatSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync, lstatSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { homedir } from 'node:os';
 import { parse } from 'yaml';
+import { normalizeTree, SKIP } from './normalize.mjs';
 import { REPO_ROOT } from '../../tools/lib/repo.mjs';
 import { ORIGIN_FRONTMATTER_KEY } from '../../tools/lib/constants.mjs';
 
@@ -157,6 +159,45 @@ function runExpectations(expName, roots, liveMode = false) {
 }
 
 // Canary check lives in the protocol, not here: re-run tests/golden/prestate.sh to a
+// A committed snapshot must equal what `normalize.mjs` produces — re-normalizing it is a
+// no-op. Without this, a snapshot updated by any path that skips the normalizer (a hand
+// edit, a re-render copied in) silently stops matching the pipeline, and the next real
+// re-snapshot shows a diff that reads as a change but isn't.
+// Descends through SKIP-named directories instead of normalizing them: the household root
+// is literally `home`, which the normalizer drops as harness runtime state.
+function checkNormalizationIsIdempotent(name, root) {
+  const tmp = mkdtempSync(join(tmpdir(), 'aos-golden-'));
+  try {
+    for (const dir of normalizableRoots(root)) {
+      const rel = dir.slice(root.length + 1);
+      const out = join(tmp, rel);
+      normalizeTree(dir, out);
+      for (const file of walk(dir)) {
+        const mirrored = join(out, file.slice(dir.length + 1));
+        if (!existsSync(mirrored)) {
+          fail('golden/normalize-drop', `${name}: ${rel}/${file.slice(dir.length + 1)} does not survive re-normalization`);
+        } else if (readFileSync(file, 'utf8') !== readFileSync(mirrored, 'utf8')) {
+          fail('golden/normalize-idempotent',
+            `${name}: ${rel}/${file.slice(dir.length + 1)} is not what normalize.mjs produces — re-run it through the normalizer`);
+        }
+      }
+    }
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+function normalizableRoots(root) {
+  const out = [];
+  for (const entry of readdirSync(root)) {
+    const abs = join(root, entry);
+    if (!statSync(abs).isDirectory()) continue;
+    if (SKIP.has(entry)) out.push(...normalizableRoots(abs));
+    else out.push(abs);
+  }
+  return out;
+}
+
 // second file and `diff` it against the pre-install one — byte-equal or the install
 // touched something it must not.
 
@@ -173,6 +214,11 @@ if (live) {
     if (!existsSync(expPath)) continue;
     const exp = parse(readFileSync(expPath, 'utf8'));
     runExpectations(snap, snapshotRoots(exp, join(goldenDir, snap)));
+  }
+  for (const snap of snaps) {
+    if (existsSync(join(REPO_ROOT, 'tests', 'golden', 'expectations', `${snap}.yaml`))) {
+      checkNormalizationIsIdempotent(snap, join(goldenDir, snap));
+    }
   }
   if (!snaps.length) {
     console.log('golden: no committed snapshots yet');

@@ -40,6 +40,11 @@ and flat `<name>.md` files). Links this capability already owns are exempt, so r
 and upgrading are clean. A collision is resolved upstream by renaming the skill — never by
 renaming at install time.
 
+The first two sources need a household. It resolves from `--home`, `$AOS_HOME`, or by walking
+up from the capability directory (which is inside one) — but **read the `checked:` lines the
+clean report prints**: a source it could not reach is named in capitals. "Clean" against two
+of three sources is not clean, so pass `--home` and the harness's skills dirs explicitly.
+
 `render` is the mechanical half of materialization: it copies `skills/<id>/` whole (with
 `reference/`, `templates/`, `scripts/`) to `<out>/<installed-name>/`, rewrites the render's
 frontmatter `name` to the installed name, and stamps `x-aos-origin: <cap>@<version>`. It

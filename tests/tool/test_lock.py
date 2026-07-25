@@ -688,6 +688,18 @@ class SkillNameTest(unittest.TestCase):
         r = self.skills(cap, "--check", "--harness-skills", str(harness))
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 
+    def test_another_capabilitys_flat_form_link_still_collides(self):
+        """The mirror of the exemption test: a flat-form link owned by someone ELSE must
+        still be seen as a claim, so all three comparison sites have to agree on stems."""
+        harness = self.home / "harness" / "skills"
+        harness.mkdir(parents=True)
+        self.write_lock({"othercap": {"links": {
+            str(harness / "democap-sort.md"): "/elsewhere/skills/democap-sort.md"}}})
+        cap = self.cap("democap", ["democap", "sort"])
+        r = self.skills(cap, "--check")
+        self.assertEqual(r.returncode, 17, r.stdout + r.stderr)
+        self.assertIn("othercap", r.stderr)
+
     def test_render_destination_that_is_a_file_errors_cleanly(self):
         cap = self.cap("democap", ["democap", "sort"])
         out = Path(self.tmp.name) / "renders"
