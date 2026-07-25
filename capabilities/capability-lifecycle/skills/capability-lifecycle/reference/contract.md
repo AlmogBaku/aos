@@ -118,7 +118,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   `<!-- aos:<capability>@<version> begin -->` … `<!-- aos:<capability>@<version> end -->`
   markers; never touch text outside them. A capability that owns more than one block
   discriminates them the way schedules do — `aos:<capability>:<block-id>@<version>` — so each
-  is independently replaceable on upgrade.
+  is independently replaceable on upgrade. Leave a blank line before a block and a trailing
+  newline after it: an identity file that ends mid-marker makes the next capability's append
+  start on the `end -->` line, which corrupts both blocks.
 - **Secrets**: values go to the harness's store, never into files or chat — and never
   into `personal/` (it may be pushed to a private remote); `MOD.md` and configs carry
   references only — `{store: <name>, key: <key>}`.
