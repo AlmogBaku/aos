@@ -21,9 +21,11 @@ the overlay doctrine, and the Experience rules. Then:
    its interview included.
 4. **[D]** Load your cheat-sheet **now** — it travels with the `capability-lifecycle`
    skill as `reference/harness-<harness-runtime>.md` (load that skill, then read the file;
-   your harness runtime is the program hosting you). Feature
-   notes first: a `required` host feature missing → friendly stop with the reason;
-   `preferred` missing → note each schedule's declared degraded mode for recording.
+   your harness runtime is the program hosting you). Feature notes first, and read them as
+   what the *harness* can express, not as what the user has wired today (contract): a
+   `required` feature the table marks unsupported → friendly stop with the reason; a
+   supported-but-unconfigured channel → install, and say what they still need to set up;
+   `preferred` unsupported → note each schedule's declared degraded mode for recording.
 5. **[D]** **Name gate**, before anything is written:
    `aos-lock --home <home> skills <dir> --check --harness-skills <each skills dir this
    harness reads, per the cheat-sheet's Primitive mapping>`. Read its `checked:` lines —
