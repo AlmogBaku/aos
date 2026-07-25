@@ -167,7 +167,13 @@ schedules:
                                # by the capability's tool install (§2.4); a capability-relative
                                # path runs via the zero-install runner. exec programs are
                                # deterministic-only — they never call an LLM (§2.4); failures
-                               # surface via files/exit codes, not by summoning an agent
+                               # surface via files/exit codes, not by summoning an agent.
+                               # An exec entry names no agent, so the job is HOSTED BY the
+                               # agent that owns the capability's other schedules (the front
+                               # agent when it declares none): nothing but the scheduler runs
+                               # it, and a capability's jobs staying in one place is what
+                               # keeps the removal walk and §5.5's single-owner check
+                               # enumerable
 
 skill_prefix: gtd-             # OPTIONAL: what ids install under (§2.1). Absent or empty
                                # means the capability id. Ids stay bare; the prefix is
@@ -482,6 +488,8 @@ Terminology note: a capability's `adapters/<harness>/` directory holds its per-h
 The research finding stands — harness primitives don't rhyme — but the consequence is a **richer cheat-sheet per harness, not per-harness code**. When the wiring genuinely can't be expressed as instructions — native hooks, patches — that's the §2.4 `plugins/` escape hatch, and the cheat-sheet tells the LLM where to put them.
 
 The **installed name** (§2.1) is the same string in all four columns, and it is also the render directory's name and the render's frontmatter `name` — one identity end to end, so no harness needs a rename at materialization. An earlier draft prefixed only Hermes's link and left the frontmatter as shipped, which broke on every harness that keys skills by frontmatter name.
+
+A `depends.host` entry states what the **harness can express**, not what the user has configured today — the cheat-sheet's Feature notes table is the answer, and probing live configuration is not. A supported-but-unwired channel installs (and the user is told what to set up); `required` stops an install only when the harness cannot express the feature at all. Reading it the other way turns §5.5's degraded modes into dead vocabulary, and refuses installs that would have worked.
 
 The `depends.host` vocabulary is fixed and enumerated: `cron`, `messaging.inbound`, `messaging.outbound`, `voice.stt`, `voice.tts`, `calendar.read`, `calendar.write`, `email`, `secrets-store`. Adding a word requires updating every cheat-sheet — deliberate friction that keeps the neutral surface small.
 
