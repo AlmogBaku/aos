@@ -33,7 +33,7 @@ that ships a skill.
 | "change how <capability> behaves for me" | `capability-evolve` |
 | "promote my tweak" / "this should be for everyone" | `capability-evolve` classifies, then hands to `capability-contribute` |
 | "what's installed?" | `aos-lock list` |
-| your harness's mapping | `harnesses/<harness-runtime>.md` (this capability) — an aid, not a gate: loaded per operation, never standing context; none → `reference/no-cheatsheet.md` |
+| your harness's mapping | `reference/harness-<harness-runtime>.md` — an aid, not a gate: loaded per operation, never standing context; none → `reference/no-cheatsheet.md` |
 
 Manifest quick facts: CAPABILITY.md frontmatter is strict-typed (`aos-lock manifest
 <dir>` parses and validates it — its errors name the field and rule); the fields are

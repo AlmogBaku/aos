@@ -92,20 +92,47 @@ job, wrapper, tool, and both `SOUL.md` marker blocks gone; three revertible comm
    `model.default` and dies with `Invalid length for parameter modelId`; the seeded
    `personal/` repo needs a git identity. Both are now in `PROTOCOL.md`.
 
+## Second run — the cheat-sheet relocation (2026-07-25, same day)
+
+Re-run in full after the cheat-sheets moved into the entry skill's `reference/`, because the
+render's file set changes and the lockfile's artifact list is agent-decided. It proved the
+fix: `personal/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/`
+contains all four `harness-*.md` files, so an installed skill reaches its cheat-sheet
+without a path that only exists upstream. The expectations now assert that.
+
+Three more ambiguities surfaced, each one a case of two runs reading the same rule
+differently — which is the useful kind of e2e finding:
+
+6. **`messaging.inbound: required` refused the install.** The `aos-test` profile had no
+   messaging platform paired (it is seeded from a deliberately non-messaging worker
+   profile), and the agent read a `required` host feature as "configured right now" rather
+   than "the harness can express it" — which the Hermes sheet marks ✓. A `required` gate
+   that flips on configuration state refuses installs that would work and makes the whole
+   degraded-mode vocabulary pointless. The contract now says which reading is meant.
+7. **kb's `exec:` sync schedule landed in a different profile than last run** — front this
+   time, archiver before. An exec entry names no agent, so nothing said who hosts it. Now
+   it is the agent that owns the capability's other schedules.
+8. **The golden checks did not know about a referenced third-party skill.** `skill-creator`
+   correctly carries no `x-aos-origin` (not ours to tag) and correctly links into `vendor/`
+   rather than `personal/` — both of which the checks read as failures. `vendored:` in the
+   expectations names them.
+
+**The canary fired, and it was not us.** `~/.hermes/config.yaml`'s hash changed mid-run.
+Investigated rather than waved off: the diff is a "Meridian" provider block and a default
+model, with its own `config.yaml.bak-meridian-…` backup written at 15:54 — zero aos content
+(no skills, cron, or profiles), and the three canary fields an install would actually touch
+(profiles, root skills, root job ids) are byte-identical. An unrelated concurrent change in
+the environment, not an install violation.
+
 ## Snapshot provenance
 
-Every file under `tests/golden/hermes/full-install/` came from this run, except the nine
-`capability-lifecycle` skill directories under `front/skills/` and
-`home/personal/capabilities/capability-lifecycle/skills/`. Those were re-rendered with
-`aos-lock render` (then `normalize.mjs`) after review found two prose defects baked into the
-originals — a hand-off sentence broken by a merge substitution, and two skill bodies still
-titled after deleted capabilities. Legitimate because these skills are `{{mod}}`-slot-free,
-so the render is deterministic: verified by rendering the untouched `remove` skill and
-confirming byte identity with the committed snapshot before regenerating the rest.
-`check.mjs` now asserts that re-normalizing a snapshot is a no-op, which is what caught the
-first attempt at this (it bypassed the normalizer and left a literal date where `<DATE>`
-belongs). Everything agentic in the snapshot — placement, symlinks, schedules, context
-blocks, the lockfile — is untouched from the live run.
+Every file under `tests/golden/hermes/full-install/` comes from the second live run —
+install, day-N, the exec-schedule correction — with no hand edits and no re-rendered
+shortcuts. (The first run's snapshot did carry nine tool-re-rendered skill directories, to
+pick up two prose fixes found in review; the full re-run made that moot. `PROTOCOL.md`
+keeps the rule for when that shortcut is legitimate, since it will come up again.)
+`check.mjs` asserts a committed snapshot equals what `normalize.mjs` produces, so a file
+updated by any path that skips the normalizer is caught.
 
 ## Observed, not fixed (out of scope)
 

@@ -101,6 +101,11 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   rollback is `git revert`.
 - **Schedules** are named `aos:<capability>:<schedule-id>` and single-owner (§5.5): check
   across agents first — exists elsewhere → ask the user to reassign, never duplicate.
+  **An exec-type entry names no agent, so it is hosted by the agent that owns the
+  capability's other schedules** — the archiver for kb's `sync`, for instance — and by the
+  front agent when the capability declares no agent at all. Nothing runs it but the
+  scheduler, so placement is a bookkeeping choice, and keeping a capability's jobs in one
+  place is what makes the removal walk and the single-owner check enumerable.
   Exec-type entries run the tool the capability's briefing installs (verify
   `uv --version` before wiring); a path-form `exec:` runs as
   `uv run <home>/upstream/<path-and-args>` (personal capabilities:

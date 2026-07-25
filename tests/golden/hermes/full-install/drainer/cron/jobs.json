@@ -3,7 +3,7 @@
     {
       "id": "<ID>",
       "name": "aos:gtd-capture:nightly-drain",
-      "prompt": "Run the gtd-drain skill over every registered KB inbox your grants cover, oldest pending first. Close out per the skill’s own close-out report section — including surfacing base inbox --failed counts. DRAIN: inbox clean. is only the right output when both pending and failed are empty; a night with failed-but-no-pending items still gets a report, never silence.",
+      "prompt": "# nightly-drain\n\nRun the `gtd-drain` skill over every registered KB inbox your grants cover, oldest pending\nfirst. Close out per the skill's own close-out report section — including surfacing\n`base inbox --failed` counts. `DRAIN: inbox clean.` is only the right output when\n*both* pending and failed are empty; a night with failed-but-no-pending items still\ngets a report, never silence.",
       "skills": [
         "gtd-capture",
         "gtd-drain"
@@ -40,7 +40,7 @@
       "deliver": "local",
       "origin": null,
       "enabled_toolsets": null,
-      "workdir": "<HOME>/aos/tests/.sandbox/aos-home"
+      "workdir": null
     }
   ],
   "updated_at": "<TIMESTAMP>"

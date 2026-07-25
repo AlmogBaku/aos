@@ -16,15 +16,15 @@ adds your harness's half. Derive it yourself:
 1. **[A]** Introspect your harness: config layout, skills dirs, scheduler, secret store,
    agent primitive — read its docs and CLI help, list what already exists.
 2. **[A]** Draft
-   `<home>/upstream/capabilities/capability-lifecycle/harnesses/<harness-runtime>.md`
+   `<home>/upstream/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`
    answering §5.2's six sections (Primitive mapping, Materialization guide, Introspection
-   guide, Secrets, Removal, Feature notes — `harnesses/hermes.md` in the same directory
-   is the reference shape). Keep it lean: your harness's half only. Write it **on a
+   guide, Secrets, Removal, Feature notes — `harness-hermes.md` beside this file is
+   the reference shape). Keep it lean: your harness's half only. Write it **on a
    branch** (`git -C <home>/upstream switch -c cheatsheet-<harness>`): a cheat-sheet is
    generic knowledge, not personalization — the clone stays pristine on `main`, and the
    draft is born contribution-shaped.
 3. **[D]** Diff gate: show the user the full draft before writing it — then **commit it
-   on the branch** (`git -C <home>/upstream add capabilities/capability-lifecycle/harnesses/<h>.md`
+   on the branch** (`git -C <home>/upstream add capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<h>.md`
    + commit). Uncommitted, it would follow you back to `main` as an untracked file in a
    clone that must hold nothing but upstream's own content — and it would fail the
    contribution preflight's clean-status check.

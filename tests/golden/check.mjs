@@ -83,6 +83,9 @@ function runExpectations(expName, roots, liveMode = false) {
       // names from the manifest are exempt either way.
       if (relParts.length !== 2) continue;
       if (bundled.has(relParts[0]) || relParts[0] === '.hub') continue;
+      // A referenced third-party skill (installed from vendor/, never rendered) carries no
+      // origin tag by contract — it is not ours to modify. `exp.vendored` names them.
+      if ((exp.vendored ?? []).includes(relParts[0])) continue;
       if (!readFileSync(f, 'utf8').includes(`${ORIGIN_FRONTMATTER_KEY}:`)) {
         fail('golden/origin-tag', `${expName}: ${f} lacks ${ORIGIN_FRONTMATTER_KEY}`);
       }
@@ -148,8 +151,10 @@ function runExpectations(expName, roots, liveMode = false) {
             continue;
           }
           for (const t of targets) {
-            if (!String(t).includes('/personal/capabilities/')) {
-              fail('golden/links', `${expName}: ${cap} link target outside personal/: ${t}`);
+            // Renders live in personal/; a referenced third-party skill lives in vendor/
+            // and is linked from there (never copied, never rendered).
+            if (!String(t).includes('/personal/capabilities/') && !String(t).includes('/vendor/')) {
+              fail('golden/links', `${expName}: ${cap} link target neither a personal/ render nor a vendor/ reference: ${t}`);
             }
           }
         }

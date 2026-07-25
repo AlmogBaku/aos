@@ -21,8 +21,11 @@ package would ship.
 capability package sitting in `personal/`; installing it into the harness is the
 already-specified install flow, a separate step.
 
-Name every skill per `capability-lifecycle`'s `reference/naming.md` — action-oriented
-ids, bare (the prefix is applied at install) — and run the uniqueness gate before writing
+Follow `capability-lifecycle`'s `reference/naming.md` for both halves of authoring: name
+every skill action-oriented and bare (the prefix is applied at install), and place
+knowledge where it will still resolve once installed — only the skill's own folder travels,
+so depth goes in its `reference/`, another skill's knowledge is reached by naming that
+skill, and anything in the household is written from a root. Run the uniqueness gate before writing
 anything: `aos-lock --home <home> skills <package-dir> --check --harness-skills <the
 harness's skills dir(s)>`. Exit 17 means the name is taken; rename in the package, never at install time.
 For the skill's own craft — drafting, description triggering, evals — use the

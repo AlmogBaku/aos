@@ -39,7 +39,7 @@
       "deliver": "local",
       "origin": null,
       "enabled_toolsets": null,
-      "workdir": "<HOME>/aos/tests/.sandbox/aos-home"
+      "workdir": null
     },
     {
       "id": "<ID>",
@@ -80,7 +80,7 @@
       "deliver": "local",
       "origin": null,
       "enabled_toolsets": null,
-      "workdir": "<HOME>/aos/tests/.sandbox/aos-home"
+      "workdir": null
     },
     {
       "id": "<ID>",
@@ -104,7 +104,7 @@
       "schedule_display": "*/5 * * * *",
       "repeat": {
         "times": null,
-        "completed": 0
+        "completed": 1
       },
       "enabled": true,
       "state": "scheduled",
@@ -112,14 +112,15 @@
       "paused_reason": null,
       "created_at": "<TIMESTAMP>",
       "next_run_at": "<TIMESTAMP>",
-      "last_run_at": null,
-      "last_status": null,
+      "last_run_at": "<TIMESTAMP>",
+      "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
       "deliver": "local",
       "origin": null,
       "enabled_toolsets": null,
-      "workdir": null
+      "workdir": null,
+      "fire_claim": null
     }
   ],
   "updated_at": "<TIMESTAMP>"

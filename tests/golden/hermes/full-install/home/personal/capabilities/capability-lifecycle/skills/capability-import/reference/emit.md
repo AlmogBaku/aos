@@ -1,14 +1,14 @@
 # Stage 5 — Emit
 
-Write under the user's personal root (`<home>/personal`):
+Write under the user's personal root — every path below is relative to
+`<home>/personal/capabilities/<id>-draft/`:
 
-- `capabilities/<id>-draft/` — full §2.1 skeleton: `CAPABILITY.md`, `README.md` (support
+- the directory itself — full §2.1 skeleton: `CAPABILITY.md`, `README.md` (support
   matrix: this harness only, this user as runner), `skills/`, `agents/`, `ONBOARDING.md`,
   `MOD.example.md` (invented placeholder answers, zero personal data), `kb/` templates.
-- `capabilities/<id>-draft/MOD.md` — the user's actual nuances (overlay family: never in
-  a PR).
-- `capabilities/<id>-draft/GAP.md` — per the GAP format in `reference/gap-report.md`
-  (the skill's checklist links it).
+- `MOD.md` — the user's actual nuances (overlay family: never in a PR).
+- `GAP.md` — per the GAP format in `reference/gap-report.md` (the skill's checklist
+  links it).
 
 Then:
 1. Run the repo's tier-1 lint over the draft if `tools/` exists.

@@ -14,6 +14,13 @@ expect_files:
   - "front:skills/capability-lifecycle/SKILL.md"
   - "front:skills/capability-lifecycle/reference/contract.md"
   - "front:skills/capability-lifecycle/reference/naming.md"
+  # the cheat-sheets travel with the render — that is the point of them being reference
+  # files of the skill that reads them, rather than a capability-level directory
+  - "front:skills/capability-lifecycle/reference/harness-hermes.md"
+  - "front:skills/capability-lifecycle/reference/harness-nanoclaw.md"
+  - "front:skills/capability-lifecycle/reference/harness-openclaw.md"
+  - "front:skills/capability-lifecycle/reference/harness-nanobot.md"
+  - "front:skills/capability-lifecycle/reference/no-cheatsheet.md"
   - "front:skills/capability-install/SKILL.md"
   - "front:skills/capability-upgrade/SKILL.md"
   - "front:skills/capability-remove/SKILL.md"
@@ -73,6 +80,9 @@ forbid_files:
   - "front:skills/onboarding-onboarding/SKILL.md"
   - "front:skills/gtd-capture-gtd-capture/SKILL.md"
   - "front:skills/gtd-capture-capture/SKILL.md"
+  # the retired capability-level cheat-sheet directory: a path that resolves in the source
+  # tree and nowhere beside an installed skill
+  - "home:personal/capabilities/capability-lifecycle/harnesses/hermes.md"
   # capabilities absorbed into capability-lifecycle must leave no separate footprint
   - "home:personal/capabilities/onboarding/CAPABILITY.md"
   - "home:personal/capabilities/importer/CAPABILITY.md"
@@ -85,6 +95,10 @@ forbid_files:
   - "drainer:skills/gtd-drain/drain-prompt.md"
   - "front:skills/onboarding-interview/SKILL.md"
   - "front:skills/gtd-capture-format-entry/SKILL.md"
+
+# Third-party skills this capability references rather than ships: linked from
+# <home>/vendor/, never rendered, so no origin tag and no personal/ link target (§2.1).
+vendored: [skill-creator]
 
 # every materialized SKILL.md under these roots must carry the origin tag
 origin_tag_roots: ["front:skills", "drainer:skills", "archiver:skills"]

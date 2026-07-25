@@ -29,7 +29,8 @@ diff in the user's own repo.
 3. Per capability needing work:
    a. **[D]** `aos-lock verify <id>` — two classes, two responses. *Artifact drift*
       (a render file's hash changed = the user's hand-edit) → **[A]** fold each into
-      MOD.md first per `reference/overlay.md` (edit the statement that covers it — never
+      MOD.md first per the `capability-lifecycle` skill's `reference/overlay.md` (edit the
+      statement that covers it — never
       append a contradicting one) ("you changed X — keeping it").
       *Link damage* (`MISSING LINK`, `NOT A LINK (copies are banned)`, `RELINKED`,
       `DANGLING LINK`) is not a hand-edit and never folds: re-create the link from the
