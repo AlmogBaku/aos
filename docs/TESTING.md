@@ -15,11 +15,11 @@ here). Requires `uv`; skipped locally with a warning if absent, always on in CI.
 
     bash tools/check.sh
 
-Runs `tools/lint/aos-lint.mjs` (67 checks in 13 code families over the §2/§3/§5 contracts — the
+Runs `tools/lint/aos-lint.mjs` (85 checks in 14 code families over the §2/§3/§5 contracts — the
 schema/contract linter, useful any time you're authoring a capability, not just for
-testing), the lint selftest (`tools/lint/selftest/run.mjs` — every check must fire on a
-planted-violation fixture), and the golden structural checker. CI runs the same on every
-push/PR.
+testing), the lint selftest (`tools/lint/selftest/run.mjs` — every contract code must fire
+on a planted-violation fixture, and a code that fires without being listed is also a
+failure), and the golden structural checker. CI runs the same on every push/PR.
 
 ## Tier 2 — golden render (the e2e)
 

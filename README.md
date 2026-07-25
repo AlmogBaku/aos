@@ -36,7 +36,7 @@ Built and passing the [three CI tiers](docs/TESTING.md) today:
 |---|---|---|
 | [**kb**](capabilities/kb/) | infra | Multi-base knowledge infrastructure: registry, rules-first routing, the base engine (immutable `raw/` + current-truth wiki), and the deterministic [`base` tool](capabilities/kb/tool/) |
 | [**gtd-capture**](capabilities/gtd-capture/) | usecase | Capture a thought in under 5 seconds; a nightly drain turns pending captures into next-actions and reminders |
-| [**capability-lifecycle**](capabilities/capability-lifecycle/) | infra | The whole life of a capability, as skills in your harness: install · upgrade · remove · onboard (the interview engine → your `MOD.md`) · import (wrap what you already built) · build (a chat request that's really a use case → intake → design → approval) · contribute · evolve. Plus the [`aos-lock`](capabilities/capability-lifecycle/tool/) tool and the per-harness cheat-sheets |
+| [**capability-lifecycle**](capabilities/capability-lifecycle/) | infra | The whole life of a capability, as skills in your harness: install · upgrade · remove · onboard (the interview engine → your `MOD.md`) · import (wrap what you already built) · build (a chat request that's really a use case → intake → design → approval) · contribute · evolve. Owns the household and its pinned renders, the [`aos-lock`](capabilities/capability-lifecycle/tool/) tool (lockfile + computed skill names), the per-harness cheat-sheets, and Anthropic's [`skill-creator`](https://github.com/anthropics/skills) by reference |
 
 Planned next, in [build order](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#7-reference-capabilities--build-order) — each step proves one new seam:
 **time-blocking** (calendar writes + degraded modes) · **ptt-mode** (voice) ·
@@ -53,11 +53,21 @@ Paste into your agent:
 
 That's the whole funnel — there is no installer binary. Your harness's own agent performs
 the install: it interviews you (identity, timezone, sacred time, red lines), writes your
-answers to a `MOD.md` it will never overwrite — in `~/aos/personal`, your own private
-repo, alongside every rendered skill and any capability you build for yourself —
-materializes skills/agents/schedules per its cheat-sheet, and records every artifact in a
-lockfile so removal is exact. The fork is the default because every user is one branch
-away from being a contributor; it's never a gate.
+answers to a `MOD.md` it will never overwrite, renders each skill against them, links the
+render into your harness, creates agents and schedules per its cheat-sheet, and records
+every artifact in a lockfile so removal is exact. Everything lands in one directory — the
+**household**:
+
+```text
+~/aos/
+├── upstream/    ← the kit clone: pristine, nothing personal ever lands here
+├── personal/    ← your private repo: MOD.md files, every rendered skill, your own capabilities
+├── vendor/      ← third-party skills the kit references rather than ships
+└── .aos/        ← machine-local: the install lockfile
+```
+
+The fork is the default because every user is one branch away from being a contributor
+(`upstream/` is your dev checkout too); it's never a gate.
 
 > [!IMPORTANT]
 > Nothing lands in your harness without your approval: the installer shows the full diff
@@ -95,15 +105,20 @@ gaps. Day-to-day details: [docs/USAGE.md](docs/USAGE.md).
 
 ## How it works
 
-![aos architecture: use-case capabilities compose on infra capabilities, which break into skills/agents/tools; the user-owned MOD.md overlay sits beside them; the harness LLM installs everything guided by per-harness cheat-sheets](docs/diagram.svg)
+![aos architecture: use-case capabilities compose on infra capabilities (knowledge base, capability lifecycle), which break down into skills; the user-owned MOD.md overlay sits beside them; both live in the household — upstream/, personal/, vendor/, .aos/ — and the harness LLM turns capability × MOD.md × cheat-sheet into a pinned render symlinked into your harness](docs/diagram.svg)
 
-Six commitments make the loop work (plain-words tour in [docs/CONCEPTS.md](docs/CONCEPTS.md)):
+Seven commitments make the loop work (plain-words tour in [docs/CONCEPTS.md](docs/CONCEPTS.md)):
 
 - **Protocol, not runtime.** A capability is a directory of skills, agent specs, schedules,
   and templates your harness's LLM installs — `install`/`update`/`remove` are conversations,
   never a program.
 - **Your personalization is untouchable.** Interviews write `MOD.md` files that upstream
-  never ships or merges; a `git pull` can't eat your nuances — by construction.
+  never ships or merges; a `git pull` can't eat your nuances — by construction. They live
+  in your own repo beside every rendered skill, so an upgrade is a git diff you review and
+  a rollback is `git revert`.
+- **One render, linked — never copied.** Applying your answers to a skill is judgment, so
+  the result is written once into `personal/`, committed, and symlinked into your harness.
+  One canonical copy means "what's installed" has exactly one answer.
 - **The adapter is knowledge, not code.** Supporting a harness means writing a
   [cheat-sheet](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md) that teaches its own LLM the mapping —
   six sections, zero glue code. And it's an aid, not a gate: with no cheat-sheet,
@@ -117,6 +132,9 @@ Six commitments make the loop work (plain-words tour in [docs/CONCEPTS.md](docs/
   judgment-free software: files and exit codes, no LLM inside.
 
 ## Repo layout
+
+This repo is the kit — what lands at `~/aos/upstream`, pristine (your own things live one
+directory over, in `~/aos/personal`):
 
 ```text
 BOOTSTRAP.md               ← agents start here (the install sequence)

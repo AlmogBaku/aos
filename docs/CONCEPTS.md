@@ -56,6 +56,33 @@ Two files have special roles:
   agents for roles. The rules live in the lifecycle capability's
   `reference/naming.md`.
 
+## The household — where aos lives on your machine
+
+([§3.1](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#31-the-overlay-the-personal-root-mirrored-paths))
+Everything aos touches sits in one directory — the **household**, `~/aos` by default (a
+plain directory, not itself a repo):
+
+```text
+~/aos/
+├── upstream/    # the kit clone — pristine; nothing personal ever lands here
+├── personal/    # your ONE private repo: answers, rendered skills, private capabilities
+├── vendor/      # third-party skills the kit references rather than ships (on demand)
+└── .aos/        # machine-local state: the lockfile
+```
+
+The words worth keeping: `upstream/` (and any future org root) is a **distribution**;
+`personal/` is **your instance**, which travels between machines via its own private
+remote; only `.aos/` is machine-local. The split is what lets your daily install double as
+your dev checkout — a branch cut from `upstream/` is clean by construction
+([CONTRIBUTING](../CONTRIBUTING.md)).
+
+**Renders are pinned, and harnesses link to them.** Installing doesn't copy a skill into
+your harness. Filling a skill's `{{mod}}` slots with your answers is a judgment call, not a
+substitution, so the result is written once into `personal/` and committed — that commit
+*is* the render's record, an upgrade reviews as a git diff, and rollback is `git revert`.
+Your harness then symlinks to that one canonical copy. No second source of truth, and
+nothing to reconcile when you edit the render by hand.
+
 ## The overlay — why upgrades can't eat your personalization
 
 The one **inviolable** contract
@@ -108,7 +135,7 @@ There is no installer program — and after bootstrap, not even a bootstrap file
 **capability-lifecycle** capability puts install/upgrade/remove/evolve into your harness
 as skills. [`BOOTSTRAP.md`](../BOOTSTRAP.md) only welcomes you, checks prerequisites,
 and installs that one capability; its skills do the rest, loading your harness runtime's
-cheat-sheet at the steps that need it. Three mechanisms keep it honest:
+cheat-sheet at the steps that need it. Four mechanisms keep it honest:
 
 - **Cheat-sheets, not adapters.** Per-harness support is one lean doc
   (`capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`) teaching the mapping (agent → Hermes profile,
@@ -118,14 +145,32 @@ cheat-sheet at the steps that need it. Three mechanisms keep it honest:
 - **The diff gate.** Every write is shown to you in full before it lands. Never
   optional.
 - **The lockfile.** Everything materialized is recorded in `.aos/installs.lock.yaml`
-  (paths, hashes, owned schedule ids) — written and verified by the `aos-lock` tool,
+  (paths, hashes, links, owned schedule ids) — written and verified by the `aos-lock` tool,
   never by the model. Removal walks it backwards; no record, no artifact. And your
   `MOD.md` *states what you changed*: upgrades re-apply it to fresh upstream, and the evolve skill
   writes your changes into it so they survive.
+- **One render, linked.** What the installer writes is a render committed in `personal/`;
+  what your harness gets is a symlink to it. Copies are refused, so "what is installed" has
+  exactly one answer, and the safety net for all of it is your `personal/` git history.
+
+A skill the kit doesn't own is referenced, never vendored in: `capability-lifecycle` keeps
+Anthropic's [`skill-creator`](https://github.com/anthropics/skills) under `vendor/` (or via
+your harness's plugin mechanism) and links to it — recorded like anything else, so removal
+is exact. It's best-effort: no network, no `skill-creator`, no drama.
 
 If a host feature is missing (no cron, no `uv`), the capability **degrades, declared**:
 schedules become invocable run-cards, tools fall back to prose procedures — each
-capability names its degraded modes up front.
+capability names its degraded modes up front. "Missing" means the *harness* can't express
+the feature, read off the cheat-sheet — a channel it supports but you haven't paired yet is
+a setup note, not a refused install.
+
+**What aos writes into your own agent is one block, and only one.** Agents aos *creates*
+(the drainer, the archiver) get their whole identity file from us. The agent you already
+had is yours: it receives a single marked context block — the rule that says *stop and plan
+before creating standing automation* — and nothing else. Your identity facts stay in
+`MOD.md` and are applied at render time, because your harness already owns user context and
+a second copy would only drift
+([§5.3](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#53-what-the-cheat-sheets-direct-the-llm-to-write)).
 
 ## How decisions evolve
 
@@ -143,12 +188,17 @@ is. When building reveals the spec is wrong, the spec gets fixed — the
 |---|---|
 | **harness** | The agent product you already run (Hermes, NanoClaw, OpenClaw, …) |
 | **harness runtime** | The program hosting your agent — names its cheat-sheet (see BOOTSTRAP.md) |
+| **household** | `~/aos` — the one directory aos lives in: `upstream/`, `personal/`, `vendor/`, `.aos/` |
+| **distribution / instance** | `upstream/` (and future org roots) ship capabilities; `personal/` is *your* instance of them |
 | **capability** | An installable directory of skills/agents/tools/crons/patches |
 | **entry skill** | `skills/<id>/` — the capability's runtime face and map |
 | **installed name** | The name a skill ships under: `<skill_prefix><id>`, computed by `aos-lock skills`, unique across the harness |
 | **overlay** | Your `MOD.md` files + `kb-registry.yaml`; user-owned, never shipped |
 | **base** | One KB instance == one git repo, registered in `kb-registry.yaml` |
 | **materialize** | The installer writing a capability's artifacts into your harness |
+| **render (pinned)** | A capability's files with your `MOD.md` applied, committed in `personal/`; your harness symlinks to it |
+| **vendor** | `~/aos/vendor` — third-party skills the kit references and keeps current, never copies into itself |
+| **context block** | A marked (`aos:<capability>:<block-id>@<version>`) passage aos maintains inside an agent's own file |
 | **cheat-sheet** | `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md` — the harness half of the mapping, loaded per operation |
 | **lockfile** | `.aos/installs.lock.yaml` — the honest record of what was installed |
 | **diff gate** | You see every write before it happens; never optional |

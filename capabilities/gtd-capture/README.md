@@ -16,6 +16,6 @@ Spec one-pager: [gtd-capture.md](https://github.com/AlmogBaku/aos/blob/spec/capa
 
 | Harness | Status | Runner |
 |---|---|---|
-| Hermes | hook | @AlmogBaku |
-| NanoClaw | unsupported (no runner yet) | — |
-| OpenClaw | unsupported (no runner yet) | — |
+| Hermes | ✅ e2e-tested for real (install · capture burst · drain · removal) | @AlmogBaku |
+| NanoClaw (v1+v2), OpenClaw, Nanobot | 🧪 cheat-sheet shipped, research-drafted — no runner yet | — |
+| Claude Code, OpenCode | 📋 no sheet yet — the no-cheat-sheet path applies | — |

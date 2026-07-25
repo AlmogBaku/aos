@@ -1,6 +1,6 @@
 ---
 id: capability-lifecycle
-version: 0.3.0
+version: 0.3.1
 tags: [infra]
 summary: The capability lifecycle as one capability — install, upgrade, remove, onboard, import, build, contribute, and evolve as skills for the front agent; the MOD.md overlay with its promote/retire exit side; the household layout with pinned renders and symlink installs; the per-harness cheat-sheets; and the aos-lock tool that owns the lockfile and computes every skill's installed name.
 skill_prefix: capability-
@@ -189,9 +189,10 @@ A household installed before 0.3.0 has four lockfile entries where there is now 
 (`capability-lifecycle`, `onboarding`, `importer`, `capability-builder`) and skills under
 the old names. `capability-upgrade` walks it: unlink the absorbed capabilities' skill
 links, `aos-lock remove <capability>` each absorbed entry, then render and record the
-merged one. The old `aos:onboarding@…` and `aos:capability-builder@…` context-block
-markers are replaced by the two named blocks above. This is a documented walk, not an
-automated migration — no released users exist yet.
+merged one. The old `aos:capability-builder@…` marker is replaced by the single
+mode-boundary block above; `aos:onboarding@…` — the distilled identity block — is
+**removed outright, not renamed** (item 4: the harness owns user context). This is a
+documented walk, not an automated migration — no released users exist yet.
 
 ## Removal
 
