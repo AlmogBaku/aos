@@ -101,6 +101,11 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   rollback is `git revert`.
 - **Schedules** are named `aos:<capability>:<schedule-id>` and single-owner (§5.5): check
   across agents first — exists elsewhere → ask the user to reassign, never duplicate.
+  **An exec-type entry names no agent, so it is hosted by the agent that owns the
+  capability's other schedules** — the archiver for kb's `sync`, for instance — and by the
+  front agent when the capability declares no agent at all. Nothing runs it but the
+  scheduler, so placement is a bookkeeping choice, and keeping a capability's jobs in one
+  place is what makes the removal walk and the single-owner check enumerable.
   Exec-type entries run the tool the capability's briefing installs (verify
   `uv --version` before wiring); a path-form `exec:` runs as
   `uv run <home>/upstream/<path-and-args>` (personal capabilities:
@@ -113,7 +118,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   `<!-- aos:<capability>@<version> begin -->` … `<!-- aos:<capability>@<version> end -->`
   markers; never touch text outside them. A capability that owns more than one block
   discriminates them the way schedules do — `aos:<capability>:<block-id>@<version>` — so each
-  is independently replaceable on upgrade.
+  is independently replaceable on upgrade. Leave a blank line before a block and a trailing
+  newline after it: an identity file that ends mid-marker makes the next capability's append
+  start on the `end -->` line, which corrupts both blocks.
 - **Secrets**: values go to the harness's store, never into files or chat — and never
   into `personal/` (it may be pushed to a private remote); `MOD.md` and configs carry
   references only — `{store: <name>, key: <key>}`.

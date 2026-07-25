@@ -33,7 +33,7 @@ base init <name> --path <path> --audience <a> --sync <s> --purpose "<p>" \
   [--remote <url>] [--default]
 ```
 
-(Templates default to `<HOME>/aos/tests/.sandbox/aos-home/upstream/capabilities/kb/skills/init/templates`;
+(Templates default to `<home>/upstream/capabilities/kb/skills/init/templates`;
 override with `--templates` when running from elsewhere.)
 
 The tool renders templates (BASE.yaml, AGENTS.md + Grants seed, index, log,

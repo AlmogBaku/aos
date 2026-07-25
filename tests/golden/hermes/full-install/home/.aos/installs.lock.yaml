@@ -1,7 +1,7 @@
 installs:
   capability-lifecycle:
     artifacts:
-      <HOME>/.hermes/profiles/aos-test/home/.local/share/uv/tools/aos-lock/bin/aos-lock: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/.local/share/uv/tools/aos-lock/bin/aos-lock: <SHA256>
       <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-build/SKILL.md: <SHA256>
       ? <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-build/reference/build.md
       : <SHA256>
@@ -99,8 +99,7 @@ installs:
     version: 0.3.0
   kb:
     artifacts:
-      <HOME>/.hermes/profiles/aos-archiver/scripts/aos-kb-sync.sh: <SHA256>
-      <HOME>/.hermes/profiles/aos-test/home/.local/share/uv/tools/aos-base/bin/base: <SHA256>
+      <HOME>/aos/tests/.sandbox/aos-home/.local/share/uv/tools/aos-base/bin/base: <SHA256>
       <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb-adopt/SKILL.md: <SHA256>
       <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb-import/SKILL.md: <SHA256>
       <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb-import/reference/v1-migration.md: <SHA256>

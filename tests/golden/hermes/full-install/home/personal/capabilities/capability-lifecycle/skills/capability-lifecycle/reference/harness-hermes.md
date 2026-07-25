@@ -63,7 +63,7 @@ Work top-down from `CAPABILITY.md`, under the install contract (the `capability-
      --name 'aos:<capability>:<schedule-id>' [--skill <installed-name> …] [--deliver <target>]
    ```
 
-   (`main` ⇒ no `-p`.) **Exec-type entries (`exec:`)** are script-only jobs — no agent,
+   (`main` ⇒ no `-p`.) **Exec-type entries (`exec:`)** are script-only jobs — hosted by the profile that owns the capability's other schedules (the front profile when it declares no agent), no agent,
    no LLM: materialize with Hermes's script job form
    (`hermes cron create '<cron>' --script "<exec command>"
    --no-agent --name 'aos:<capability>:<schedule-id>'`; if this Hermes build lacks

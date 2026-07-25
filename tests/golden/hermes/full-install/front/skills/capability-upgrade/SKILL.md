@@ -75,8 +75,10 @@ diff in the user's own repo.
    `capability-builder` into `capability-lifecycle`). Say what happened, then: unlink that
    entry's skill links, `aos-lock remove <absorbed-id>`, and let the absorbing capability's
    own upgrade render the replacements. Retired context-block markers
-   (`aos:onboarding@…`, `aos:capability-builder@…`) come out in the same pass — the new
-   blocks carry their own markers. `MOD.md` files never move on their own: if the absorbing
+   (`aos:onboarding@…`, `aos:capability-builder@…`) come out in the same pass — the
+   mode-boundary block carries its own marker. A pre-0.3.0 install also has an identity
+   block distilled from the global MOD: remove it, say why (the harness owns user context;
+   `MOD.md` remains the authoritative store), and write nothing in its place. `MOD.md` files never move on their own: if the absorbing
    capability's interview covers the same questions, offer the merge; otherwise leave the
    file and say it is now unused.
 5. Report per capability: upstream changes taken, MOD statements re-applied, statements

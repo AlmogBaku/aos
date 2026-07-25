@@ -126,11 +126,22 @@ model, with its own `config.yaml.bak-meridian-…` backup written at 15:54 — z
 (profiles, root skills, root job ids) are byte-identical. An unrelated concurrent change in
 the environment, not an install violation.
 
+## Third run — no identity block (2026-07-25)
+
+Re-run once more after the front agent's identity block was dropped: SOUL.md content is
+agent-written, so only a live run can attest its *absence*. The agent's own staging summary
+named "the single MARS mode-boundary block", and the installed file confirms it — one
+aos-owned block, and zero occurrences of the fixture's identity facts (Lisbon, choir,
+working hours, the user's name). The harness's own `memories/USER.md` is left to do what it
+already does. `forbid_texts` in the expectations now asserts the identity marker and the
+retired `aos:onboarding` one are both absent, so this cannot silently come back.
+
+Canary byte-identical across the whole run.
+
 ## Snapshot provenance
 
-Every file under `tests/golden/hermes/full-install/` comes from the second live run —
-install, day-N, the exec-schedule correction — with no hand edits and no re-rendered
-shortcuts. (The first run's snapshot did carry nine tool-re-rendered skill directories, to
+Every file under `tests/golden/hermes/full-install/` comes from the third live run —
+install, day-N — with no hand edits and no re-rendered shortcuts. (The first run's snapshot did carry nine tool-re-rendered skill directories, to
 pick up two prose fixes found in review; the full re-run made that moot. `PROTOCOL.md`
 keeps the rule for when that shortcut is legitimate, since it will come up again.)
 `check.mjs` asserts a committed snapshot equals what `normalize.mjs` produces, so a file
