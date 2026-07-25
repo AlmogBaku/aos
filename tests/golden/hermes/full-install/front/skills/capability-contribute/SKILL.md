@@ -11,7 +11,7 @@ Whose package decides where that is: the user's own capabilities live in
 `<home>/personal/capabilities/<id>/` (theirs — edit directly); upstream-shipped ones
 live in `<home>/upstream/capabilities/<id>/` and are **never silently edited** — changes
 to them are contributions, drafted on a branch. Changing how an installed capability
-behaves *for this user* is `capability-evolve` (capability-lifecycle) — the overlay,
+behaves *for this user* is `capability-evolve` — the overlay,
 not the source.
 
 **Hard invariant: you never open a PR, file an issue, +1, push, fork, or create a

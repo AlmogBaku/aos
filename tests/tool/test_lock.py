@@ -554,10 +554,6 @@ class SkillNameTest(unittest.TestCase):
         cap = self.cap("democap", ["democap", "sort"])
         self.assertEqual(self.skills(cap, "--check").returncode, 0)
 
-    def test_missing_harness_dir_errors(self):
-        cap = self.cap("democap", ["democap"])
-        r = self.skills(cap, "--check", "--harness-skills", str(self.home / "nope"))
-        self.assertEqual(r.returncode, 16)
 
     def test_explicit_home_without_state_dir_errors(self):
         cap = self.cap("democap", ["democap"])
@@ -644,6 +640,79 @@ class SkillNameTest(unittest.TestCase):
         cap = self.cap("readme", ["readme"])
         r = self.skills(cap, "--check", "--harness-skills", str(harness))
         self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_collision_found_when_cwd_is_outside_the_household(self):
+        """The regression that mattered: on a real machine the agent's cwd is the harness
+        workspace, not the household, and no documented invocation passes --home. Relying
+        on cwd made --check skip the household and lockfile sources and still say clean."""
+        self.cap("othercap", ["othercap", "sort"], prefix="democap-", root="personal")
+        cap = self.cap("democap", ["democap", "sort"])
+        elsewhere = Path(self.tmp.name) / "elsewhere"
+        elsewhere.mkdir()
+        r = run(["skills", str(cap), "--check"], cwd=str(elsewhere))
+        self.assertEqual(r.returncode, 17, r.stdout + r.stderr)
+        self.assertIn("othercap", r.stderr)
+
+    def test_clean_report_names_the_sources_it_could_not_check(self):
+        """A skipped source must never be indistinguishable from an empty one."""
+        lone = Path(self.tmp.name) / "lone" / "lonecap"
+        (lone / "skills" / "lonecap").mkdir(parents=True)
+        (lone / "CAPABILITY.md").write_text(
+            "---\nid: lonecap\nversion: 1.0.0\ntags: [infra]\nsummary: No household.\n"
+            "skills:\n  - id: lonecap\n    used_by: [main]\n---\nbody\n")
+        (lone / "README.md").write_text("# lonecap\n")
+        (lone / "skills" / "lonecap" / "SKILL.md").write_text(SKILL_MD.format(name="lonecap"))
+        r = run(["skills", str(lone), "--check"], cwd=str(Path(self.tmp.name) / "lone"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("NO HOUSEHOLD RESOLVED", r.stdout)
+        self.assertIn("NO --harness-skills GIVEN", r.stdout)
+
+    def test_clean_report_names_the_sources_it_did_check(self):
+        harness = self.home / "harness" / "skills"
+        harness.mkdir(parents=True)
+        cap = self.cap("democap", ["democap"])
+        r = self.skills(cap, "--check", "--harness-skills", str(harness))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("household", r.stdout)
+        self.assertIn("1 harness skills dir", r.stdout)
+
+    def test_reinstall_over_our_own_flat_form_link_is_clean(self):
+        """Nanobot installs skills as skills/<name>.md, so the lockfile records a link
+        whose basename carries .md — it still has to match our own exemption."""
+        harness = self.home / "harness" / "skills"
+        harness.mkdir(parents=True)
+        (harness / "democap-sort.md").write_text("flat form\n")
+        self.write_lock({"democap": {"links": {
+            str(harness / "democap-sort.md"): "/elsewhere/skills/democap-sort.md"}}})
+        cap = self.cap("democap", ["democap", "sort"])
+        r = self.skills(cap, "--check", "--harness-skills", str(harness))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_render_destination_that_is_a_file_errors_cleanly(self):
+        cap = self.cap("democap", ["democap", "sort"])
+        out = Path(self.tmp.name) / "renders"
+        out.mkdir()
+        (out / "democap-sort").write_text("a file sits where the render goes\n")
+        r = run(["render", str(cap), "sort", "--out", str(out)])
+        self.assertEqual(r.returncode, 1)
+        self.assertNotIn("Traceback", r.stderr)
+
+    def test_render_destination_that_is_a_symlink_errors_cleanly(self):
+        cap = self.cap("democap", ["democap", "sort"])
+        out = Path(self.tmp.name) / "renders"
+        out.mkdir()
+        target = Path(self.tmp.name) / "someone-elses-dir"
+        target.mkdir()
+        (out / "democap-sort").symlink_to(target)
+        r = run(["render", str(cap), "sort", "--out", str(out), "--force"])
+        self.assertEqual(r.returncode, 1)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertTrue(target.is_dir())      # never rmtree'd through the link
+
+    def test_bad_harness_skills_arg_is_a_generic_error(self):
+        cap = self.cap("democap", ["democap"])
+        r = self.skills(cap, "--check", "--harness-skills", str(self.home / "nope"))
+        self.assertEqual(r.returncode, 1)
 
     def test_render_unknown_skill_errors(self):
         cap = self.cap("democap", ["democap"])

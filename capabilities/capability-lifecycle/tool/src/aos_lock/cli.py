@@ -298,10 +298,14 @@ def frontmatter_soft(path):
     return data if isinstance(data, dict) else None
 
 
-def find_home_soft(args):
-    """The household if one is resolvable, else None. An explicit --home that isn't a
-    household is an error; absence of any household is not (the check still runs on
-    --harness-skills alone, e.g. in CI)."""
+def find_home_soft(args, cap_dir=None):
+    """The household if one is resolvable, else None.
+
+    Discovery walks up from the CAPABILITY DIRECTORY as well as the cwd, because that is
+    the one path every caller supplies: a capability lives at
+    `<home>/{upstream,personal}/capabilities/<id>`, while the agent's cwd is wherever the
+    harness put it. Relying on cwd alone made `--check` skip the household and lockfile
+    sources on a real machine and still report "clean" — a silent no-op in the gate."""
     if args.home:
         root = Path(args.home).expanduser()
         if not (root / ".aos").is_dir():
@@ -309,11 +313,13 @@ def find_home_soft(args):
         return root
     if os.environ.get("AOS_HOME"):
         root = Path(os.environ["AOS_HOME"]).expanduser()
-        return root if (root / ".aos").is_dir() else None
-    cur = Path.cwd()
-    for cand in [cur, *cur.parents]:
-        if (cand / ".aos").is_dir():
-            return cand
+        if (root / ".aos").is_dir():
+            return root
+    starts = ([Path(cap_dir).resolve()] if cap_dir else []) + [Path.cwd()]
+    for start in starts:
+        for cand in [start, *start.parents]:
+            if (cand / ".aos").is_dir():
+                return cand
     return None
 
 
@@ -381,7 +387,7 @@ def harness_owners(dirs, ours):
     for d in dirs:
         p = Path(d).expanduser()
         if not p.is_dir():
-            fail(16, f"--harness-skills: not a directory: {d}")
+            fail(1, f"--harness-skills: not a directory: {d}")
         for child in sorted(p.iterdir()):
             if child.is_dir():
                 name = child.name
@@ -389,23 +395,32 @@ def harness_owners(dirs, ours):
                 name = child.stem   # Nanobot's flat skills/<name>.md form
             else:
                 continue
-            if name in ours:
-                continue            # our own link from a previous install of this capability
+            if Path(name).stem in ours:
+                continue        # our own link from a previous install of this capability
             owners.setdefault(name, f"skill already in the harness at {child}")
     return owners
 
 
-def skill_collisions(args, cap_id, rows):
-    taken, ours = {}, set()
-    root = find_home_soft(args)
+def skill_collisions(args, cap_id, rows, cap_dir=None):
+    """(collisions, sources consulted). The caller reports the sources: a source that was
+    skipped must never be indistinguishable from a source that came back empty."""
+    taken, ours, sources = {}, set(), []
+    root = find_home_soft(args, cap_dir)
     if root:
-        ours = set(lock_link_names(root, cap_id))
+        ours = {Path(n).stem for n in lock_link_names(root, cap_id)}
         taken.update(household_owners(root, cap_id))
         for name, cap in lock_link_names(root, None).items():
             if cap != cap_id:
                 taken.setdefault(name, f"installed capability '{cap}' (lockfile link)")
+        sources.append(f"household {root} (capabilities + lockfile links)")
+    else:
+        sources.append("NO HOUSEHOLD RESOLVED — other capabilities and the lockfile were "
+                       "NOT checked (pass --home)")
     for name, where in harness_owners(args.harness_skills, ours).items():
         taken.setdefault(name, where)
+    sources.append(f"{len(args.harness_skills)} harness skills dir(s)"
+                   if args.harness_skills else
+                   "NO --harness-skills GIVEN — skills already in the harness were NOT checked")
 
     out, seen = [], {}
     for r in rows:
@@ -417,14 +432,14 @@ def skill_collisions(args, cap_id, rows):
         if name in taken:
             out.append(f"COLLISION {name} (from {cap_id}:{r['id']}) is already claimed by "
                        f"{taken[name]}")
-    return out
+    return out, sources
 
 
 def cmd_skills(args):
     cap_dir = Path(args.dir).resolve()
     data, rows = skill_rows(cap_dir)
     if args.check:
-        collisions = skill_collisions(args, cap_dir.name, rows)
+        collisions, sources = skill_collisions(args, cap_dir.name, rows, cap_dir)
         if collisions:
             for line in collisions:
                 print(line, file=sys.stderr)
@@ -440,6 +455,8 @@ def cmd_skills(args):
             print(f"{r['id']}\t{r['installed_name']}\t{','.join(r['used_by'])}")
     if args.check:
         print(f"clean: {len(rows)} skill name{'' if len(rows) == 1 else 's'} unclaimed")
+        for s in sources:
+            print(f"  checked: {s}")
 
 
 def stamp_render(path, name, origin):
@@ -473,7 +490,12 @@ def cmd_render(args):
         fail(14, f"{cap_dir.name}: no declared skill '{args.skill}'")
     src = cap_dir / "skills" / args.skill
     dest = Path(args.out).expanduser() / row["installed_name"]
-    if dest.exists() and any(dest.iterdir()) and not args.force:
+    if dest.is_symlink():
+        # A link where the render belongs is someone else's artifact, not ours to rmtree.
+        fail(1, f"{dest} is a symlink — remove it first (renders are real directories)")
+    if dest.exists() and not dest.is_dir():
+        fail(1, f"{dest} exists and is not a directory")
+    if dest.is_dir() and any(dest.iterdir()) and not args.force:
         fail(1, f"{dest} exists and is not empty (pass --force to re-render in place)")
     if dest.exists():
         shutil.rmtree(dest)

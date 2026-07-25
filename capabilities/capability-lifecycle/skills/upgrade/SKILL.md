@@ -36,8 +36,8 @@ diff in the user's own repo.
       is gone (that is a broken install, not an upgrade). A
       fold that reaches beyond the `{{mod}}` slots is mechanism-shaped — note it for
       the promotion judgment (overlay.md, Promote and retire), end of conversation.
-   b. **[D]** Name gate: `aos-lock skills <dir> --check --harness-skills <each skills dir
-      this harness reads>`. Upstream may have renamed or added a skill, so the installed
+   b. **[D]** Name gate: `aos-lock --home <home> skills <dir> --check --harness-skills
+      <each skills dir this harness reads>`. Upstream may have renamed or added a skill, so the installed
       names can differ from the recorded links — a rename means link the new name and drop
       the old one in step d. Exit 17 → stop and report; never rename locally. This
       capability's own links are exempt, so a plain re-render is always clean.

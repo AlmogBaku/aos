@@ -4,7 +4,7 @@ description: Imports an existing use case from this harness into an aos capabili
 x-aos-origin: capability-lifecycle@0.3.0
 ---
 
-# importer
+# capability-import
 
 **Invariant: read-only on the live harness, write-only into the draft it owns** — never
 mutates the live setup, never installs, never opens the PR itself.
@@ -33,7 +33,7 @@ Copy this checklist and work the stages in order:
 ```
 
 Skill names in the draft follow `capability-lifecycle`'s `reference/naming.md` —
-action-oriented, bare ids, and `aos-lock skills <draft-dir> --check` before you emit, so a
+action-oriented, bare ids, and `aos-lock --home <home> skills <draft-dir> --check` before you emit, so a
 name the harness already uses is caught in the draft rather than at install.
 
 ## Authority

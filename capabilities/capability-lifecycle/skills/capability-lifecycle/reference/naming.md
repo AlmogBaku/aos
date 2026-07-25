@@ -58,7 +58,9 @@ so a skill name is single-owner — the same rule schedules have (§5.5).
 
 - In the kit, two capabilities computing the same installed name is an error.
   (`skills/installed-collision`)
-- At install, `aos-lock skills <cap-dir> --check --harness-skills <dir>…` is the gate. It
+- At install, `aos-lock --home <home> skills <cap-dir> --check --harness-skills <dir>…` is
+  the gate. On a harness that installs skills as flat `<name>.md` files (Nanobot), pass the
+  same directory — the gate reads both forms. It
   checks three places: every capability in the household, the skill links the lockfile
   records for other capabilities, and the skills the harness already has — including ones
   aos never installed. Exit 17 means a collision; the report names the owner.
@@ -67,6 +69,10 @@ so a skill name is single-owner — the same rule schedules have (§5.5).
   (`capability-evolve` → the source, not the overlay). Renaming locally would make the
   user's harness disagree with everyone else's.
 - Links this capability already owns are exempt, so re-installing and upgrading are clean.
+- **Read the `checked:` lines it prints.** A clean result names every source it consulted,
+  and says so in capitals when one could not be reached (no household resolved, no
+  `--harness-skills` given). "Clean" against two of three sources is not clean — pass
+  `--home` and the harness's skills dirs.
 
 ## Agent Skills conformance
 

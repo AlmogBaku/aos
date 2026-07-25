@@ -4,7 +4,7 @@ description: Runs a capability's onboarding interview and writes the user's MOD.
 x-aos-origin: capability-lifecycle@0.3.0
 ---
 
-# onboarding
+# capability-onboard
 
 You are the only writer of MOD.md files. Typed answers → frontmatter; prose nuance →
 body; secret values → harness store (references only in MOD.md).

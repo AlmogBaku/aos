@@ -116,6 +116,8 @@ sentinels:
   # facts, so the render legitimately rewords them ("Thursday choir practice, 19:00–21:00").
   # A verbatim assertion here would contradict the contract it is testing.
   - {text: "choir", in_dir: "drainer:"}
+  # …and the time fact itself, so the sentinel keeps its signal
+  - {text: "19:00", in_dir: "drainer:"}
   # exec schedule: the sync job's command must invoke the tool, not an agent prompt
   - {text: "base sync --all", in_dir: "archiver:"}
 

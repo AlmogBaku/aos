@@ -94,10 +94,12 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
      `git -C <home>/vendor/anthropic-skills pull --ff-only`; the clone's
      `git rev-parse HEAD` is its version, so nothing new is recorded in the lockfile
      schema.
-   - Record it under **this** capability (`--link` the symlink, `--artifact` the vendored
-     `SKILL.md`) so `verify` sees drift, `remove` unlinks it, and the collision gate
-     recognizes the name as ours on the next install instead of reporting a conflict
-     against itself.
+   - Record it under **this** capability so `verify` sees drift, `remove` unlinks it, and
+     the collision gate recognizes the name as ours on the next install instead of
+     reporting a conflict against itself. The clone path records both (`--link` the
+     symlink, `--artifact` the vendored `SKILL.md`); the plugin path creates no symlink of
+     ours, so record the harness's installed `SKILL.md` as an `--artifact` and say in the
+     summary that the harness owns its lifecycle.
    - **Best-effort, never a gate**: no network, no git, or a declined plugin install →
      say so in the install summary and carry on. Our procedure stands on its own; this is
      an aid, exactly as a cheat-sheet is.
@@ -125,8 +127,8 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
 - **A skill name is single-owner.** Harnesses keep one flat skill namespace, so two
   capabilities shipping one name is a silent override. `aos-lock skills --check` is the
   gate — against every capability in the household, the lockfile's recorded links, and the
-  skills the harness already has. A collision is fixed upstream by renaming, never by
-  renaming at install time.
+  skills the harness already has. A collision is fixed by renaming in the package, never
+  at install time.
 - The nine skills are the runtime face of ARCHITECTURE §5–§6 and §9 plus
   design/install-flow.md §2–§4; the entry skill carries the shared depth (`reference/`)
   and the Experience rules every lifecycle interaction obeys.

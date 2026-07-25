@@ -23,8 +23,10 @@ the overlay doctrine, and the Experience rules. Then:
    notes first: a `required` host feature missing → friendly stop with the reason;
    `preferred` missing → note each schedule's declared degraded mode for recording.
 5. **[D]** **Name gate**, before anything is written:
-   `aos-lock skills <dir> --check --harness-skills <each skills dir this harness reads,
-   per the cheat-sheet's Primitive mapping>`. Exit 17 → stop and report which name is
+   `aos-lock --home <home> skills <dir> --check --harness-skills <each skills dir this
+   harness reads, per the cheat-sheet's Primitive mapping>`. Read its `checked:` lines —
+   a source it could not reach is named in capitals, and "clean" against two of three
+   sources is not clean. Exit 17 → stop and report which name is
    taken and by whom; a collision is fixed in the package (`capability-contribute`, or the
    user's own source), never by renaming here. Clean → the printed installed names are
    what every later step uses (`reference/naming.md`).

@@ -18,6 +18,9 @@ const SKIP = new Set(['config.yaml', 'profile.yaml',  // harness runtime state: 
   // Harness runtime state inside a profile. `home` is the agent's own sandbox HOME
   // (npm/node caches — megabytes, and it carries absolute developer paths a snapshot
   // must never commit); `lsp` is language-server state. Neither is ever an aos artifact.
+  // NOTE: SKIP matches on basename, so these two names are also unusable as source dir
+  // names anywhere in a snapshotted tree. Acceptable for harness runtime state; do not
+  // add a name a capability might legitimately ship (`skills`, `reference`, `templates`).
   'home', 'lsp',
   // Harness-written marker/notice files: presence depends on the build and the model in
   // use, not on anything an install did.

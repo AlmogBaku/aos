@@ -23,9 +23,9 @@ appended record (`reference/overlay.md`).
    - the change restores the shipped default → delete the entry; MOD only states
      differences;
    - nothing covers the subject yet → add one imperative statement;
-   - actually an upstream bug or explicitly for *everyone* → this is
-     territory: its `capability-contribute` skill evolves the shipped source
-     (building mode, approval-gated). Say so and hand over — nothing lands in MOD.
+   - actually an upstream bug or explicitly for *everyone* → the `capability-contribute`
+     skill owns it: it changes the shipped source (building mode, approval-gated). Say so
+     and hand over — nothing lands in MOD.
 3. **[A]** Write the MOD.md change **first** (`reference/overlay.md`, Capture and fold —
    the MOD statement lands before anything depends on it), then apply to the pinned render in `personal/capabilities/<id>/` (and any native
    artifacts per the cheat-sheet — load `harnesses/<harness-runtime>.md` now; native

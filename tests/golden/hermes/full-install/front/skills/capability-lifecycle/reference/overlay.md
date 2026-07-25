@@ -128,7 +128,7 @@ describes a difference from the default, and `personal/` git history holds what 
 ## Persist (durability)
 
 After every MOD write and every render, commit `personal/` with a dated one-line
-message ("evolve gtd-capture: drain 22:00 — <DATE>") — you do this, silently; the
+message ("evolve gtd-capture: drain 22:00 — 2026-07-25") — you do this, silently; the
 user never runs git. Restore on a new machine = clone `upstream/` + clone `personal/`, then **re-install**
 (the lockfile is machine-local state, not something you carry): the renders are already
 there, so install re-creates the links and records a fresh lockfile. `personal/`'s only remote is private; nothing personal ever

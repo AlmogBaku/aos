@@ -97,7 +97,7 @@ gaps. Day-to-day details: [docs/USAGE.md](docs/USAGE.md).
 
 ![aos architecture: use-case capabilities compose on infra capabilities, which break into skills/agents/tools; the user-owned MOD.md overlay sits beside them; the harness LLM installs everything guided by per-harness cheat-sheets](docs/diagram.svg)
 
-Five commitments make the loop work (plain-words tour in [docs/CONCEPTS.md](docs/CONCEPTS.md)):
+Six commitments make the loop work (plain-words tour in [docs/CONCEPTS.md](docs/CONCEPTS.md)):
 
 - **Protocol, not runtime.** A capability is a directory of skills, agent specs, schedules,
   and templates your harness's LLM installs — `install`/`update`/`remove` are conversations,

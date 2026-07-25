@@ -77,7 +77,7 @@ private remote; only `.aos/` is machine-local.
    `reference/no-cheatsheet.md` — do not stop.
 4. **Name gate**, then STAGE the nine skills per the contract (mechanical — they have no
    `{{mod}}` slots):
-   `aos-lock skills ~/aos/upstream/capabilities/capability-lifecycle --check
+   `aos-lock --home ~/aos skills ~/aos/upstream/capabilities/capability-lifecycle --check
    --harness-skills <each skills dir your harness reads, per the cheat-sheet>` — exit 17
    means one of the names is already taken in this harness; stop and report it rather than
    renaming anything. Then `aos-lock render ~/aos/upstream/capabilities/capability-lifecycle
@@ -88,9 +88,9 @@ private remote; only `.aos/` is machine-local.
    `aos-lock record capability-lifecycle --version <manifest version> --source-root upstream
    --artifact <render-file>… --link <symlink>…` — render files go to `--artifact` (hashed),
    symlinks to `--link` (a symlink passed as `--artifact` fails: exit 16).
-5. The briefing's remaining two items, in order: the **global bootstrap interview** (step 3
-   below runs it) and **`skill-creator`** — referenced, not copied, and best-effort: if the
-   clone or plugin install fails, say so and continue.
+5. Then the briefing's remaining items: the two **context blocks** on your identity file,
+   the **global bootstrap interview** (§3 runs it), and **`skill-creator`** — referenced,
+   not copied, and best-effort: if the clone or plugin install fails, say so and continue.
 
 ## 3. Hand over
 

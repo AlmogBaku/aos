@@ -69,7 +69,8 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 - **A skill's installed name is computed, and it is single-owner.** `aos-lock skills <cap-dir>`
   gives you the name each skill ships under (`<skill_prefix><id>`; the entry skill keeps the
   capability id). **Gate before you materialize**:
-  `aos-lock skills <cap-dir> --check --harness-skills <each skills dir this harness reads>`
+  `aos-lock --home <home> skills <cap-dir> --check --harness-skills <each skills dir this
+  harness reads>`
   — exit 17 means the name is already claimed by another capability in the household, by a
   lockfile-recorded link, or by a skill the harness already has (aos-installed or not).
   Stop and report it; **never rename at install time** — the name belongs to the package, so

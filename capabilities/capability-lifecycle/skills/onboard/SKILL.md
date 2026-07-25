@@ -3,7 +3,7 @@ name: onboard
 description: Runs a capability's onboarding interview and writes the user's MOD.md overlay. Use when installing or re-onboarding any aos capability, when the user asks to redo/refresh their answers, or when bootstrapping the global MOD.md for a new user.
 ---
 
-# onboarding
+# capability-onboard
 
 You are the only writer of MOD.md files. Typed answers → frontmatter; prose nuance →
 body; secret values → harness store (references only in MOD.md).

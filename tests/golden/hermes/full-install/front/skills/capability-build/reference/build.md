@@ -23,8 +23,8 @@ already-specified install flow, a separate step.
 
 Name every skill per `capability-lifecycle`'s `reference/naming.md` — action-oriented
 ids, bare (the prefix is applied at install) — and run the uniqueness gate before writing
-anything: `aos-lock skills <package-dir> --check --harness-skills <the harness's skills
-dir(s)>`. Exit 17 means the name is taken; rename in the package, never at install time.
+anything: `aos-lock --home <home> skills <package-dir> --check --harness-skills <the
+harness's skills dir(s)>`. Exit 17 means the name is taken; rename in the package, never at install time.
 For the skill's own craft — drafting, description triggering, evals — use the
 `skill-creator` skill if it is installed; the aos rules above still win on names.
 
