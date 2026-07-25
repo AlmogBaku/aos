@@ -385,7 +385,25 @@ def lock_link_names(root, capability):
     return {name: cap for name, cap in out.items() if capability is None or cap == capability}
 
 
-def harness_owners(dirs, ours):
+def aos_owned(entry, root):
+    """Is this harness entry something aos materialized? Provenance answers it without the
+    lockfile: a render is a symlink into the household, and every rendered SKILL.md carries
+    the origin tag. The lockfile is machine-local and gitignored — if it is lost, a gate
+    that trusted it alone would refuse every re-install of an already-installed capability,
+    turning a recoverable state into a stuck one. Cross-capability conflicts are still
+    caught: both capabilities are in the household, which the source scan reads."""
+    if entry.is_symlink():
+        target = os.path.normpath(os.path.join(str(entry.parent), os.readlink(entry)))
+        if root and (str(root) + os.sep) in target + os.sep:
+            return True
+    skill_md = entry / "SKILL.md" if entry.is_dir() else entry
+    try:
+        return ORIGIN_KEY in skill_md.read_text()
+    except (OSError, UnicodeDecodeError):
+        return False
+
+
+def harness_owners(dirs, ours, root=None):
     owners = {}
     for d in dirs:
         p = Path(d).expanduser()
@@ -399,7 +417,9 @@ def harness_owners(dirs, ours):
             else:
                 continue
             if Path(name).stem in ours:
-                continue        # our own link from a previous install of this capability
+                continue        # our own link, per the lockfile
+            if aos_owned(child, root):
+                continue        # ...or per its provenance, when the lockfile cannot say
             owners.setdefault(name, f"skill already in the harness at {child}")
     return owners
 
@@ -419,7 +439,7 @@ def skill_collisions(args, cap_id, rows, cap_dir=None):
     else:
         sources.append("NO HOUSEHOLD RESOLVED — other capabilities and the lockfile were "
                        "NOT checked (pass --home)")
-    for name, where in harness_owners(args.harness_skills, ours).items():
+    for name, where in harness_owners(args.harness_skills, ours, root).items():
         taken.setdefault(name, where)
     sources.append(f"{len(args.harness_skills)} harness skills dir(s)"
                    if args.harness_skills else

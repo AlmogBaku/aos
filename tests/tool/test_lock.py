@@ -700,6 +700,32 @@ class SkillNameTest(unittest.TestCase):
         self.assertEqual(r.returncode, 17, r.stdout + r.stderr)
         self.assertIn("othercap", r.stderr)
 
+    def test_lost_lockfile_does_not_block_reinstall(self):
+        """.aos/ is machine-local and gitignored. If it is lost, a gate that trusted it
+        alone would see our own installed skills as strangers and refuse every re-install —
+        turning a recoverable state into a stuck one. Provenance answers instead."""
+        harness = self.home / "harness" / "skills"
+        harness.mkdir(parents=True)
+        cap = self.cap("democap", ["democap", "sort"])
+        render = self.home / "personal" / "capabilities" / "democap" / "skills" / "democap-sort"
+        render.mkdir(parents=True)
+        (render / "SKILL.md").write_text(
+            "---\nname: democap-sort\ndescription: d. Use when.\nx-aos-origin: democap@1.0.0\n---\nb\n")
+        (harness / "democap-sort").symlink_to(render)
+        # no lockfile entry at all — the household knows nothing about this install
+        r = self.skills(cap, "--check", "--harness-skills", str(harness))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_a_stranger_still_blocks_when_the_lockfile_is_lost(self):
+        """The other half: provenance exempts our renders, not every name in the dir."""
+        harness = self.home / "harness" / "skills"
+        (harness / "democap-sort").mkdir(parents=True)
+        (harness / "democap-sort" / "SKILL.md").write_text(
+            "---\nname: democap-sort\ndescription: someone else got here first.\n---\nb\n")
+        cap = self.cap("democap", ["democap", "sort"])
+        r = self.skills(cap, "--check", "--harness-skills", str(harness))
+        self.assertEqual(r.returncode, 17, r.stdout + r.stderr)
+
     def test_render_destination_that_is_a_file_errors_cleanly(self):
         cap = self.cap("democap", ["democap", "sort"])
         out = Path(self.tmp.name) / "renders"
