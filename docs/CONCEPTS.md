@@ -122,11 +122,36 @@ work KB your colleagues pull — all registered in your user-owned `kb-registry.
   writes. Capture latency is sacred: routing never blocks a capture on a question.
 - **The base engine** ([§4.4](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#44-the-base-engine-store-curation-state)):
   immutable `raw/` captures + current-truth wiki pages; a skeptical nightly promotion
-  (most captures aren't knowledge — default is empty); one capped `state.yaml`
-  attention window per base.
+  (most captures aren't knowledge — default is empty); one capped attention window per
+  base.
 - **The `base` tool** is the deterministic executor for all of it — capture, inbox,
   search, lint, sync, grants — files and exit codes, no LLM, no agent. Agents use it;
   they don't reimplement it.
+- **Git is the audit trail.** Every write is its own commit: the **author** is the
+  person whose knowledge it is, the **committer** is the agent that applied it. That is
+  git's own two-identity model, so `blame` and every forge already understand it, and
+  there is no second log file to drift from the truth.
+
+### When more than one person shares a base
+
+A shared base is a repo other humans pull, so a handful of things that were free for one
+person stop being free.
+
+- **Everyone ingests their own.** Your agent captures with your context — that is the
+  whole advantage, and it stays. `base inbox` shows *your* pending captures; somebody
+  else's raw material never enters your agent's context, which matters because that
+  agent can write shared knowledge.
+- **Every shared record is one file.** Captures, review-queue entries, and each person's
+  attention window are separate files, so two machines syncing have nothing to merge.
+  This is the same rule that made the inbox a view rather than a file, applied
+  everywhere it should have been.
+- **Who promotes is a choice you make, not a setting.** Either everyone curates their
+  own captures (the default), or one person holds the wiki write grants and the others
+  capture and propose. The grants table already says which; no new configuration exists.
+- **A janitor runs in CI.** The deterministic checks — the grants audit, "no LLM-routed
+  write ever reached this base", index drift, unattributed commits — run on every push,
+  with no API key. On a private repo on a free plan that is the *only* enforcement
+  available, since branch protection is not.
 
 ## Install — the LLM is the installer
 

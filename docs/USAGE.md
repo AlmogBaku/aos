@@ -40,7 +40,8 @@ with plausible inventions. Wiki pages carry current truth only; history lives in
 
 ## State — "where's my head?"
 
-Each base keeps one capped `state.yaml` attention window: one-liners pointing into
+Each base keeps one capped attention window — `state.yaml`, or `state/<principal>.yaml`
+on a base several people share: one-liners pointing into
 pages. *"Where do things stand?"* reads them, private bases first. Items age out
 (staleness is linted); the cap forces eviction, so the window stays a window.
 

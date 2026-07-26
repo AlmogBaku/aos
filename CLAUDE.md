@@ -20,7 +20,7 @@ Narrower invocations:
 
 - **One base-tool test**: `uv run tests/tool/test_base.py BaseToolTest.test_capture_lands_pending_with_log_line` (aos-lock suite: `uv run tests/tool/test_lock.py`)
 - **Lint diff-aware (version-bump check)**: `node tools/lint/aos-lint.mjs --base origin/main` — the `version/bump` check only fires with `--base`, requiring a `CAPABILITY.md` version bump when a capability's files change.
-- **Run the `base` tool ad hoc**: `uvx --from capabilities/kb/tool base --help` (verbs: `init adopt capture inbox state search links lint grants index sync verify import survey`).
+- **Run the `base` tool ad hoc**: `uvx --from capabilities/kb/tool base --help` (verbs: `init adopt capture inbox state search links lint grants index sync commit history refuse verify import survey`). Git is the base's audit substrate — every write verb makes its own commit (author = the human principal, committer = the acting agent, `aos-verb` trailer); there is no `log.md`.
 - **The e2e (tier 2 live)** is a REAL install into a disposable `aos-test` Hermes profile — never simulated. Exact prompts + steps: `tests/golden/PROTOCOL.md`; then `node tests/golden/check.mjs --live full-install` and `node tests/golden/normalize.mjs`. See `docs/TESTING.md`.
 
 ## Document map
