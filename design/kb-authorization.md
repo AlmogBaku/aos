@@ -15,6 +15,14 @@ extraction-source: Almog's production KB — this pattern has run live since Jun
 > executable by a dumb script or trivially checkable when an LLM does it) or
 > **[A] agentic** (LLM judgment, backstopped, never trusted alone).
 >
+> **Sweep owed (2026-07-27).** `log.md` was retired — git commits carry the audit trail
+> now, one per write, author = the human principal and committer = the acting agent
+> (kb-methodology §6.5). §4.5's enforcement layers are corrected below; the remaining
+> `log.md` mentions in this document (§1 component table, §2.5's line grammar, the §3
+> sequence diagrams, the §5 D/A table, the §6 worked example) still describe the retired
+> mechanism and are owed a pass. §8 gains the principal question. RFC-010 carries the
+> reasoning.
+
 > Where ARCHITECTURE already decided, this document is **normative** and cites the section.
 > Where it goes deeper than the spec, items are marked **(proposed)** — they are inputs to
 > RFC-006/007, not decisions. Everything here is extracted from, and checked against, a KB
@@ -409,15 +417,24 @@ The three layers, weakest to strongest:
    LLM executing it auditable line-by-line.
 2. **After-the-fact deterministic audit [D].** Weekly (and on-demand) lint audits
    violations. What it can *actually* catch, concretely:
-   - **Writes outside granted zones** — walk `git log` per author identity between lint
-     runs; diff touched paths against the Grants table for that author's subject. Any
-     touched path with no matching `write` grant → violation block in
-     `_ops/needs-review.md` + `flag` line in `log.md`. This works because every KB is a
-     git repo and every agent commits under its own identity (normative: `kb init`
-     configures per-agent `user.name`; the sync script preserves it).
-   - **Unlogged writes** — every commit's touched paths must be covered by `log.md`
-     lines in the same window. Diff-but-no-log-line → "unattributed write" violation.
-     An agent that skips the log doesn't escape the audit — skipping *is* the finding.
+   - **Writes outside granted zones** — walk `git log` between lint runs; diff each
+     commit's touched paths against the Grants table for the **committer's** subject.
+     Any touched path with no matching `write` grant → violation entry in
+     `_ops/needs-review/`. This works because every KB is a git repo and **every write
+     is its own commit**: author = the human principal whose knowledge it is, committer
+     = the acting agent (kb-methodology §6.5). Nothing is batched under one identity, so
+     the audit has no exemption to make beyond `bootstrap`, which scaffolds the tree
+     before any grant row exists.
+   - **Unattributed writes** — a commit whose author is outside the base's
+     `principals:` roster, or one that reached git only through the sync sweep rather
+     than a verb. Both are reported. An agent that skips attribution doesn't escape the
+     audit — skipping *is* the finding.
+     > Superseded (2026-07-27): this bullet previously required every commit's paths to
+     > be covered by `log.md` lines in the same window. That check was **never built**,
+     > and the tool meanwhile exempted its own batched `auto-sync` commits *on the
+     > grounds that the log covered them* — so layer 2 was, in practice, checking
+     > nothing at all. Per-write commits remove both the batching and the second
+     > substrate.
    - **Frontmatter violations** — missing/invalid `kb_routing` on routed files;
      LLM-method records pointing at `audience: shared` KBs (**must be zero, ever** —
      this single check is the §4.3 normative rule made falsifiable); `confidence` below
@@ -598,6 +615,18 @@ composition across bases, private first). What remains authorization-relevant he
 ---
 
 ## 8. Open questions (genuinely open — RFC-006/007 must settle)
+
+0. **A human principal, on a base several people write to (RFC-007 §8 Q2, RFC-010).**
+   §4.1's subject forms — `user` / `agent:<name>` / `capability:<id>` / `*` — have room
+   for exactly one human: `user` is defined as "**The human.** Root of all authority",
+   singular. So a shared base cannot express "Alice's agent may write here, Bob's may
+   not", and cannot say whose captures are whose. Built on `main` as evidence, not as a
+   decision: git's own author/committer split (author = the human whose knowledge it is,
+   committer = the acting agent) plus a `BASE.yaml principals:` roster mapping author
+   email → subject. Absent a roster every write is `user`, so private bases are
+   unchanged. This is the sanctioned door Q2 already anticipated when it warned the
+   answer "may change the table format" — walking through it, and asking Q2 to confirm
+   or replace the shape.
 
 1. **Rule-tier precedence vs. shared-KB keywords (RFC-006).** §2.1 proposes
    channel-tier-first, which sends every work-item-on-WhatsApp through the review queue

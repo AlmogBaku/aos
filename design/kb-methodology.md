@@ -79,24 +79,34 @@ divergence without rewriting it:
   AGENTS.md          # narrative contract: layers, write rules, page-shape prose,
                      #   reading order, and the ## Grants table (kb-authorization.md)
   index.md           # hierarchical map-of-content — the navigation entry point (§8)
-  log.md             # append-only audit, five-field grammar (§6.5)
-  state.yaml         # the rolling attention window (§7)
+  state.yaml         # the rolling attention window (§7). A SHARED base has
+  state/             #   state/<principal>.yaml instead — one writer per file
+                     #   (there is no log file: git is the audit trail, §6.5)
 
   raw/               # immutable-after-triage source material
     captures/        #   ambient captures land here with triage: pending (§6.1)
     meetings/  clippings/  emails/  ...
   entities/  concepts/  projects/  ...   # wiki pages — zones per BASE.yaml, themed at init
   profile/           # slow-tempo pages about the user/org (identity, principles, career)
-  _ops/              # shared machinery content: needs-review queue, lint reports
+  _ops/              # shared machinery content: lint reports, and
+    needs-review/    #   the review queue — ONE FILE PER ENTRY
   _archive/          # let-it-rot graveyard (moved, never deleted)
   .base/             # gitignored, machine-local DERIVED caches: search index, link graph.
                      #   Rebuildable from the tree; deleting it loses nothing — the law.
 ```
 
 Notes against the previous design: `SCHEMA.md` no longer exists (machine parts → BASE.yaml,
-prose → AGENTS.md); `state/` the directory no longer exists (the rolling window is one file,
-§7; slow identity documents are ordinary wiki pages in `profile/`); `ops/` no longer exists —
-**the inbox is a view, not a place** (§6.1).
+prose → AGENTS.md); slow identity documents are ordinary wiki pages in `profile/`; `ops/` no
+longer exists — **the inbox is a view, not a place** (§6.1).
+
+**One file per record, everywhere** (2026-07-27). The inbox-as-view rule was right and was
+applied in exactly one place. The three artifacts it was *not* applied to — the log, the
+review queue, and state — were the three that conflicted on every sync, and they did so for
+one user with one base on two machines, before anybody shared anything. So the log is gone
+(§6.5), the queue is a directory, and a shared base's state shards per principal (§7). A
+base now has no shared append-target and no shared rewrite-target, which is why none of this
+needs a git merge driver: `merge=union` scrambles line order under rebase, deduplicates only
+when hunk boundaries coincide, and is ignored outright by forge-side merges.
 
 **Large non-text files ride git-LFS** (practice-learned): `base init` scaffolds a
 `.gitattributes` with the common binary patterns (images, audio, video, PDFs, archives)
@@ -201,9 +211,9 @@ set; the body carries any non-ASCII title.
 Format v0.1 (`type` required; `title`/`description`/`tags`/`timestamp` as specified there;
 our extra fields ride OKF's preserve-unknown-keys contract), and `index.md` follows OKF's
 shape (frontmatter-less link list with one-line descriptions). One deliberate divergence:
-**`log.md` keeps our five-field grammar** (§6.5) instead of OKF's prose log — ours is
-load-bearing for the grants audit and must stay machine-parseable. A base is thereby a
-consumable OKF bundle with declared extensions.
+**a base ships no log file at all** — OKF specifies a prose log, and ours is git (§6.5),
+because the audit has to stay machine-parseable and a second copy of what git already
+holds only drifts. A base is thereby a consumable OKF bundle with declared extensions.
 
 ---
 
@@ -328,19 +338,45 @@ pages cited as sole support, **state_stale** (§7), timeline-shape violations (o
 timeline exists), triage `failed` items, log-grammar violations, and the grants audit
 (kb-authorization.md §4.5).
 
-### 6.5 The log
+### 6.5 The audit trail is git
 
-Every mutation appends one line to `log.md` — **written by the tool itself as part of each
-write verb**, never left to prose discipline:
+Every mutation is **its own commit**, made by the tool as part of each write verb, never
+left to prose discipline:
 
 ```
-YYYY-MM-DDTHH:MM±TZ | <agent> | <verb> | <path> | <one-line summary>
+<verb>: <one-line summary>
+
+aos-verb: capture
+aos-path: raw/captures/2026-06-30-call.md
 ```
 
 Verbs: `create | promote | merge | archive | flag | resolve | sync-conflict | lint | route |
-refuse | capture | state | verify | bootstrap`. Append-only. This file plus git history are the two
-audit substrates; the grants audit cross-checks them (a write without a log line *is* the
-finding). This is why log.md deliberately diverges from OKF's prose log format.
+refuse | capture | state | verify | bootstrap` — the same closed vocabulary, carried by an
+`aos-verb` trailer. **Author = the human principal whose knowledge it is; committer = the
+acting agent.** That is git's own two-identity model — "who wrote it" versus "who applied
+it" — so rebase preserves the author, `blame` and every forge already display it, and the
+grants audit reads authorship directly. Trailers are the carrier because they survive
+rebase and cherry-pick (only squash destroys them); `git notes` would not, being neither
+pushed nor fetched by default.
+
+Writes made outside a verb — an agent editing a wiki page with its own file tools — are
+attributed with `base commit`. Anything that still reaches git only through the sync
+sweep is committed rather than refused (data safety first) but marked, and the lint
+reports it as a write with no acting subject.
+
+> **This replaced an earlier design (2026-07-27), and the reason is worth keeping.**
+> `log.md` was an append-only file carrying the same five fields, described here as one
+> of "two audit substrates" that the grants audit "cross-checks". The cross-check was
+> never built: nothing correlated log lines against the grants table, and the tool's own
+> comment deferred unattributable `auto-sync` commits to a check that did not exist — so
+> the file was write-only, the exact failure that retired the distilled identity block.
+> It also cost a guaranteed conflict on every sync, since every verb appended to one
+> file; that bit a single user with one base on two machines, before anyone shared
+> anything. Git already held everything the file did, attributably, once writes stopped
+> being batched. Two substrates for one job was the smell.
+
+The §4 note about diverging from the Open Knowledge Format's prose log no longer applies:
+a base now has no log file at all.
 
 ### 6.6 Answers filed back
 
@@ -418,9 +454,13 @@ scan *could* recompute doesn't belong in it.
 
 - **Hard cap** (`state.max_items` in BASE.yaml, default 20): adding when full forces an
   eviction decision at write time. Caps convert silent bloat into explicit choices.
-- **Single writer per base** — the agent that owns the base relationship (grants name it).
-  Across multiple harnesses this is a *logical* writer: git rebase-sync merges, conflicts
-  surface to the user, and the spec does not pretend otherwise.
+- **Single writer per state file** — the agent that owns the base relationship (grants
+  name it). On a private base that is one `state.yaml`. On a **shared** base the window
+  shards to `state/<principal>.yaml`, one per person, because an attention window is one
+  person's by nature and a single file everyone rewrites in place is the one shape git
+  cannot merge. Across multiple harnesses belonging to the same person this remains a
+  *logical* writer: sync merges, conflicts surface to the user, and the spec does not
+  pretend otherwise.
 - **Bump on use:** when work materially leaned on a state item, the writer refreshes its
   `since:`. Foreign readers never write. (This approximates "when was this last relevant"
   without runtime usage tracking — honestly imperfect, cheaply useful.)
@@ -429,13 +469,19 @@ scan *could* recompute doesn't belong in it.
   After the birth, "expecting" doesn't decay away: it is *replaced* by "newborn" the next
   time the writer touches state, and the eviction proposal is the safety net for what
   merely faded.
-- **state_stale lint:** durable files changed after `state.yaml`'s timestamp → flag. State
-  freshness is a mechanical predicate, checked portably (no harness hooks required).
+- **state_stale lint:** durable files changed after a state file's timestamp → flag, per
+  shard. State freshness is a mechanical predicate, checked portably (no harness hooks
+  required).
 
 **Cold start & composition:** an agent orients by reading the state files of every base it
 is registered into, **private first**. "Where is my head overall" is the composition — not
 a stored artifact that would drift (one canonical location per fact). A shared base's state
-is the *team's* current-truth and travels with the repo — that is a feature.
+is the *team's* current-truth and travels with the repo — that is a feature, and sharding
+is what makes it one: the union across shards is the team view, while each shard keeps
+exactly one writer. That resolves a contradiction this document previously carried against
+`kb-authorization.md` §7, which called two distinct authors inside a lint window a
+violation — both statements were true of a single shared file, and could not both be
+satisfied by it.
 
 **What state is not:** the slow self — north star, principles, career, soul — those are
 wiki pages in `profile/` (slow tempo, accumulating, quotable), not attention items. The old
@@ -489,23 +535,25 @@ choices, not spec — the contract is the verb set and boundary.
 |---|---|---|
 | `init` | scaffold from templates + write BASE.yaml + register | interview answers in, tree out |
 | `adopt` | register existing tree + lint report | **zero writes** to the tree |
-| `capture` | frontmatter + sha256 dedup + `triage: pending` + log | the fast-capture landing (§6.1) |
-| `inbox` | list pending / failed items | the inbox-as-view |
+| `capture` | frontmatter + per-principal sha256 dedup + `triage: pending` + commit | the fast-capture landing (§6.1) |
+| `inbox` | list this principal's pending / failed items (`--all` for everyone's) | the inbox-as-view; scoping is what keeps one person's raw material out of another's agent context |
 | `state add\|bump\|drop\|check` | attention-window ops, cap-enforced | grammar guarded by the tool (§7) |
 | `search` | BM25 over the base (scopeable), exact/alias hits first | rebuilt per query today; `.base/` is the sanctioned cache location |
 | `links <page>` | backlinks / neighbors / orphans | link graph maintained at catalog time |
-| `lint` | the §6.4 catalog, BASE.yaml-driven | report-only; the report is the interface |
+| `lint` | the §6.4 catalog, BASE.yaml-driven | report-only; the report is the interface. `--ci` returns a verdict instead, for an unattended janitor |
 | `grants check` | subject × object × verb lookup | kb-authorization.md |
 | `index rebuild` | regenerate index.md from tree + descriptions | |
-| `sync` | rebase-pull/push per registry | conflict → safe state + review block + exit≠0 |
-| `verify <page>` | flip a page to `verified: true` | user-confirmed only; logged |
-| `refuse` | record a refused write | `refuse` log line + needs-review block (§4.3 twin) |
+| `sync` | ff-pull, merge only on divergence, push with jittered retry | refuses while a git operation is mid-flight; conflict → safe state + review entry + exit≠0 |
+| `verify <page>` | flip a page to `verified: true` | user-confirmed only; committed |
+| `refuse` | record a refused write | `refuse` commit + needs-review entry (§4.3 twin) |
+| `commit` | attribute a hand-write (author, committer, `aos-verb`) | the swap for the log line an agent used to append |
+| `history` | recent activity from git, in a pinned format | the orientation read (§6.5) |
 | `import survey <src>` | inventory + shape detection of a foreign tree | the import skill's ONLY tool verb — import itself is an agent procedure (§6.7) |
 
 **The boundary (absolute):** deterministic operations only; the tool never calls an LLM and
 never invokes an agent. Skills call the tool; the tool answers in exit codes, stdout, and
 files — a sync conflict becomes a review-queue block the Archiver reads later, not a
-callback. Every write verb appends its own log line. On `layout:` mismatch every verb fails
+callback. Every write verb makes its own attributed commit. On `layout:` mismatch every verb fails
 loudly and points at migration. Prose execution of the same contracts is the documented
 degraded mode for harnesses that cannot run the tool.
 
