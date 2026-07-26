@@ -68,7 +68,9 @@ Rules the table can't carry:
 1. This file. 2. `index.md` (the map — one-line descriptions are the ToC).
 3. `base history` — recent activity, from git. 4. `base state show` — to orient into
 where things stand. The archiver additionally consults `base inbox` and the review
-queue.
+queue. On a base more than one person writes to, `base inbox` shows **your** pending
+captures — somebody else's raw material is not yours to read, and it is not the
+archiver's either unless it is the designated curator (`--all`).
 
 ## Write rules
 

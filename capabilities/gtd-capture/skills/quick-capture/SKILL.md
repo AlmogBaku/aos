@@ -7,7 +7,7 @@ description: Instant capture, no classification. Use when the user fires off a t
 
 1. Resolve the target base with kb's `kb-route` skill. Never ask the user where it goes.
 2. Write it: `base --base <name> capture --text <verbatim content> --source <channel>`
-   — frontmatter, sha256 dedup, `triage: pending`, and the log line come free from the
+   — frontmatter, sha256 dedup, `triage: pending`, and an attributed commit come free from the
    tool (the same call kb's own `kb-route` skill makes). Content verbatim — no cleanup, no
    summarizing.
 3. A correction to something already captured is a new capture, never an edit — see the

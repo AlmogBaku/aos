@@ -13,9 +13,15 @@ two is the one mistake to never make here.
 
 ## The pending view
 
-- `base inbox` — every `triage: pending` capture, oldest first. This is what you drain.
+- `base inbox` — the `triage: pending` captures **belonging to this principal**, oldest
+  first. This is what you drain. On a base only one person writes to that is all of
+  them; on a shared one it is deliberately not, because somebody else's raw material
+  should not enter your context at all — and if every household drained everything, the
+  same captures would be promoted once per household.
 - `base inbox --failed` — previously-failed captures. You don't retry them; you surface
   them in your close-out report so a human notices.
+- `--all` exists, and is for a designated curator only. Don't reach for it to "be
+  thorough".
 
 ## Per capture, oldest pending first
 

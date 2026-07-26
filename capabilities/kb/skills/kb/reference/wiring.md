@@ -42,5 +42,5 @@ cheat-sheet:
   tell the user what to run and when ("run `base sync --all` when you finish a
   session"; "ask the archiver to promote nightly").
 - No uv/python: the tool's contracts are performed by hand per each base's AGENTS.md
-  (capture frontmatter + sha256 + log line; grants lookup by reading the table; lint
+  (capture frontmatter + sha256 + commit; grants lookup by reading the table; lint
   by checklist). Slower, same rules — the files remain the contract.

@@ -509,6 +509,19 @@ def cmd_init(args):
     if (tpl / "gitattributes").exists():
         render(tpl / "gitattributes", root / ".gitattributes")
 
+    # A shared base gets the janitor. It is the only neutral actor a base several people
+    # write to can have — and on a private repo on the free plan it is the only
+    # enforcement available at all, since branch protection is not.
+    if args.audience == "shared" and not args.no_ci:
+        wf = tpl.parents[2] / "adapters" / "github" / "workflows" / "kb-janitor.yml"
+        if wf.exists():
+            dst = root / ".github" / "workflows" / "kb-janitor.yml"
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            dst.write_text(wf.read_text(encoding="utf-8"), encoding="utf-8")
+        else:
+            print(f"note: no janitor workflow at {wf} — skipping CI wiring "
+                  f"(the base is fine; add it by hand from the github adapter).")
+
     subprocess.run(["git", "init", "-q"], cwd=root, check=False)
     lfs = subprocess.run(["git", "lfs", "version"], capture_output=True, check=False)
     if lfs.returncode == 0:
@@ -1153,7 +1166,12 @@ def cmd_lint(args):
         agent, author, _ = acting(args, base)
         base.commit("lint", dst, f"{len(critical)} critical, {len(findings)} findings",
                     agent, author)
-    # report-only: the report is the interface; exit code carries no verdict.
+    # Report-only by default: the report is the interface, and the exit code carries no
+    # verdict. `--ci` is the one exception — a janitor running unattended needs a
+    # verdict, and on a private repo without branch protection a failing check is the
+    # only enforcement surface a shared base actually has.
+    if getattr(args, "ci", False) and critical:
+        sys.exit(1)
 
 
 def cmd_grants(args):
@@ -1483,6 +1501,8 @@ def main():
     p.add_argument("--tag")
     p.add_argument("--default", action="store_true")
     p.add_argument("--templates")
+    p.add_argument("--no-ci", action="store_true",
+                   help="skip the janitor workflow on a shared base")
     p.add_argument("--kb-version", default=VERSION)
     p.set_defaults(func=cmd_init)
 
@@ -1535,6 +1555,9 @@ def main():
                        "the report is the interface)")
     p.add_argument("--write-report", action="store_true")
     p.add_argument("--audit-days", type=int, default=8)
+    p.add_argument("--ci", action="store_true",
+                   help="exit 1 on any critical — for an unattended janitor, which "
+                        "needs a verdict rather than a report")
     p.set_defaults(func=cmd_lint)
 
     p = sub.add_parser("grants", help="grant lookup")

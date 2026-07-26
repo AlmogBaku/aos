@@ -14,6 +14,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -121,6 +122,15 @@ class BaseToolTest(unittest.TestCase):
         self.assertEqual(an, "Dana Fixture")     # the human whose knowledge it is
         self.assertEqual(ae, "dana@example.com")
         self.assertEqual(cn, "agent:archiver")   # the agent that applied it
+
+    def test_capture_stays_well_inside_the_quick_capture_budget(self):
+        # Capture now writes a file *and* commits, so the budget is worth pinning:
+        # gtd-capture promises under 5s end to end. Measured here at ~0.12s including
+        # process launch (the commit itself is ~30ms); the bound is deliberately loose
+        # so this catches a regression, not a slow machine.
+        start = time.perf_counter()
+        self.b("capture", "--text", "how long does this take")
+        self.assertLess(time.perf_counter() - start, 2.0)
 
     def test_duplicate_capture_dropped(self):
         self.b("capture", "--text", "same content")
@@ -231,6 +241,15 @@ class BaseToolTest(unittest.TestCase):
         (self.root / "concepts").mkdir(exist_ok=True)
         (self.root / "concepts" / "x.md.backup.1").write_text("old")
         self.assertIn("backup file", self.b("lint").stdout)
+
+    def test_lint_is_report_only_unless_ci_asks_for_a_verdict(self):
+        (self.root / "concepts").mkdir(exist_ok=True)
+        (self.root / "concepts" / "x.md.backup.1").write_text("old")
+        self.assertEqual(self.b("lint").returncode, 0)      # the report is the interface
+        self.assertNotEqual(self.b("lint", "--ci").returncode, 0)  # a janitor needs one
+
+    def test_private_base_gets_no_ci_wiring(self):
+        self.assertFalse((self.root / ".github").exists())
 
     def test_lint_failed_capture_critical(self):
         self.b("capture", "--text", "will fail")
@@ -615,6 +634,14 @@ class SharedBaseTest(unittest.TestCase):
 
     def b(self, *args, who=None):
         return run(["--base", str(self.root), *args], {**self.env, **(who or {})})
+
+    def test_shared_base_gets_the_janitor_workflow_verbatim(self):
+        wf = self.root / ".github" / "workflows" / "kb-janitor.yml"
+        self.assertTrue(wf.exists())
+        # Anti-drift by test rather than by discipline: the template repo's copy is
+        # not hand-maintained — it IS what `base init --audience shared` emits.
+        src = REPO / "capabilities/kb/adapters/github/workflows/kb-janitor.yml"
+        self.assertEqual(wf.read_text(), src.read_text())
 
     def test_state_is_sharded_per_principal(self):
         self.b("state", "add", "--note", "alice's thread", who=self.ALICE)

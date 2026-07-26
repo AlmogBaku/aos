@@ -3,10 +3,10 @@
 For each registered base:
 
 1. `base lint --write-report` — the deterministic catalog runs in the tool; the
-   report lands in `_ops/lint-report-YYYY-WW.md` with its log line.
+   report lands in `_ops/lint-report-YYYY-WW.md`, committed.
 2. Read the report. Mechanical fixes you may apply directly: rebuild the index
    (`base index rebuild`), archive stale seedlings the report names (move to
-   `_archive/`, log `archive`). Judgment findings (Contested inventory, duplicate
+   `_archive/`, then `base commit --verb archive`). Judgment findings (Contested inventory, duplicate
    suspicions, unverified-with-inbound, grants-audit hits) → surface in
    `_ops/needs-review/` with evidence and a stated default; never resolve them
    yourself.
