@@ -1,6 +1,6 @@
 ---
 id: gtd-capture
-version: 0.3.0
+version: 0.3.1
 tags: [usecase]
 summary: Voice/text → instant capture into kb's raw/captures/; a nightly drain turns pending captures into next-actions and reminders.
 depends:

@@ -36,6 +36,6 @@ Spec one-pager: [kb.md](https://github.com/AlmogBaku/aos/blob/spec/capabilities/
 
 | Harness | Status | Runner |
 |---|---|---|
-| Hermes | hook | @AlmogBaku |
-| NanoClaw | unsupported (no runner yet) | — |
-| OpenClaw | unsupported (no runner yet) | — |
+| Hermes | ✅ e2e-tested for real (install · promote · recall · removal) | @AlmogBaku |
+| NanoClaw (v1+v2), OpenClaw, Nanobot | 🧪 cheat-sheet shipped, research-drafted — no runner yet | — |
+| Claude Code, OpenCode | 📋 no sheet yet — the no-cheat-sheet path applies | — |
