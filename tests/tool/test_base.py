@@ -47,11 +47,22 @@ class BaseToolTest(unittest.TestCase):
     def b(self, *args):
         return run(["--base", str(self.root), *args], self.env)
 
+    def git(self, *args, root=None):
+        return subprocess.run(["git", *args], cwd=root or self.root,
+                              capture_output=True, text=True, check=False).stdout
+
+    def log_lines(self, fmt="%s", root=None, n="-20"):
+        """git is the audit substrate now, so the assertions read it directly."""
+        return self.git("log", n, f"--pretty={fmt}", root=root).splitlines()
+
     # -- init / scaffold ---------------------------------------------------
     def test_init_scaffolds_and_registers(self):
-        for f in ["BASE.yaml", "AGENTS.md", "index.md", "log.md", "state.yaml",
+        for f in ["BASE.yaml", "AGENTS.md", "index.md", "state.yaml",
                   ".gitignore"]:
             self.assertTrue((self.root / f).exists(), f)
+        # log.md is gone: git holds the audit trail, and a single append-only file
+        # written by every verb was the one thing guaranteed to conflict on sync.
+        self.assertFalse((self.root / "log.md").exists())
         self.assertTrue((self.root / "raw" / "captures").is_dir())
         self.assertIn("name: b", self.reg.read_text())
         self.assertIn("default: b", self.reg.read_text())
@@ -86,7 +97,7 @@ class BaseToolTest(unittest.TestCase):
         self.assertIn("Refusing to guess", r.stderr)
 
     # -- capture -----------------------------------------------------------
-    def test_capture_lands_pending_with_log_line(self):
+    def test_capture_lands_pending_with_attributed_commit(self):
         r = self.b("capture", "--text", "Call the accountant", "--source", "t:x")
         self.assertIn("triage: pending", r.stdout)
         caps = list((self.root / "raw" / "captures").glob("*.md"))
@@ -94,8 +105,22 @@ class BaseToolTest(unittest.TestCase):
         text = caps[0].read_text()
         self.assertIn("source_sha256:", text)
         self.assertIn("triage: pending", text)
-        log = (self.root / "log.md").read_text()
-        self.assertRegex(log, r"\| agent:main \| capture \| raw/captures/")
+        # One write, one commit: the committer is the acting agent, and the trailers
+        # carry what the five-field log line used to.
+        body = self.git("log", "-1", "--pretty=%cn%n%s%n%b")
+        self.assertIn("agent:main", body)
+        self.assertIn("capture:", body)
+        self.assertIn("aos-verb: capture", body)
+        self.assertRegex(body, r"aos-path: raw/captures/")
+
+    def test_capture_author_is_the_principal_committer_is_the_agent(self):
+        self.b("--author-name", "Dana Fixture", "--author-email", "dana@example.com",
+               "--agent", "agent:archiver",
+               "capture", "--text", "who wrote this")
+        an, ae, cn = self.git("log", "-1", "--pretty=%an%n%ae%n%cn").splitlines()[:3]
+        self.assertEqual(an, "Dana Fixture")     # the human whose knowledge it is
+        self.assertEqual(ae, "dana@example.com")
+        self.assertEqual(cn, "agent:archiver")   # the agent that applied it
 
     def test_duplicate_capture_dropped(self):
         self.b("capture", "--text", "same content")
@@ -218,26 +243,48 @@ class BaseToolTest(unittest.TestCase):
         os.utime(self.root / "state.yaml", (1, 1))  # state far in the past
         self.assertIn("state_stale", self.b("lint").stdout)
 
-    def test_lint_log_grammar(self):
-        with open(self.root / "log.md", "a") as f:
-            f.write("not a log line at all\n")
-        self.assertIn("five-field grammar", self.b("lint").stdout)
+    def test_lint_reports_uncommitted_writes(self):
+        # A hand-write that never became a commit has no acting subject recorded.
+        self._page("concepts/loose.md", "Loose")
+        self.assertIn("uncommitted changes", self.b("lint").stdout)
+
+    def test_lint_reports_sequencer_state_as_critical(self):
+        # Left-behind operation state is what blocks every later sync, so the lint
+        # has to see it rather than let the next tick fail silently forever.
+        (self.root / ".git" / "MERGE_HEAD").write_text("0" * 40 + "\n")
+        self.assertIn("mid-MERGE_HEAD", self.b("lint").stdout)
 
     def test_lint_timeline_shape(self):
         self._page("concepts/tl.md", "TL",
                    body="Truth.\n\n---\n\n## Timeline\n- undated event\n")
         self.assertIn("timeline entry not dated", self.b("lint").stdout)
 
-    # -- write verbs log themselves ---------------------------------------
-    def test_every_write_verb_logs(self):
-        self.b("capture", "--text", "log me")
+    # -- write verbs commit themselves ------------------------------------
+    def test_every_write_verb_commits(self):
+        self.b("capture", "--text", "commit me")
         self.b("state", "add", "--note", "item")
         self._page("concepts/v.md", "V", verified="false")
+        self.b("commit", "--verb", "create", "--path", "concepts/v.md",
+               "--summary", "new page")
         self.b("verify", "concepts/v")
         self.b("index", "rebuild")
-        log = (self.root / "log.md").read_text()
+        trailers = "\n".join(self.log_lines("%b"))
         for verb in ["capture", "state", "verify", "create", "bootstrap"]:
-            self.assertRegex(log, rf"\| {verb} \|", f"missing log verb {verb}")
+            self.assertIn(f"aos-verb: {verb}", trailers, f"missing aos-verb {verb}")
+
+    def test_commit_rejects_a_verb_outside_the_vocabulary(self):
+        self._page("concepts/w.md", "W")
+        r = self.b("commit", "--verb", "yolo", "--path", "concepts/w.md",
+                   "--summary", "nope")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("unknown aos-verb", r.stderr)
+
+    def test_history_renders_recent_activity(self):
+        self.b("capture", "--text", "orient me")
+        out = self.b("history", "--limit", "5").stdout
+        self.assertIn("capture:", out)
+        self.assertIn("agent:main", out)
+        self.assertIn("raw/captures/", out)
 
     def test_lint_via_grammar(self):
         am = self.root / "AGENTS.md"
@@ -353,7 +400,7 @@ class BaseToolTest(unittest.TestCase):
                        cwd=self.root, check=True)
         r = self.b("sync")
         self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
-        self.assertNotRegex((self.root / "log.md").read_text(), r"\| sync-conflict \|")
+        self.assertNotIn("aos-verb: sync-conflict", "\n".join(self.log_lines("%b")))
 
     def test_adopt_layout_guard_before_registry(self):
         foreign = self.dir / "f99"
@@ -363,13 +410,16 @@ class BaseToolTest(unittest.TestCase):
         self.assertEqual(r.returncode, 11)
         self.assertNotIn("f99", self.reg.read_text())  # nothing half-registered
 
-    def test_refuse_records_log_and_review(self):
+    def test_refuse_records_commit_and_review_entry(self):
         r = self.b("refuse", "--path", "state.yaml",
                    "--subject", "capability:sideload-x", "--reason", "no grant")
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertRegex((self.root / "log.md").read_text(), r"\| refuse \|")
-        self.assertIn("refused write",
-                      (self.root / "_ops" / "needs-review.md").read_text())
+        self.assertIn("aos-verb: refuse", "\n".join(self.log_lines("%b")))
+        # One file per queue entry — a single appended queue file is written by every
+        # agent on every machine, which is exactly what conflicts on every sync.
+        entries = list((self.root / "_ops" / "needs-review").glob("*.md"))
+        self.assertEqual(len(entries), 1)
+        self.assertIn("refused write", entries[0].read_text())
 
     def test_inbox_failed_with_scalar_meta_survives(self):
         self.b("capture", "--text", "will fail oddly")
@@ -432,10 +482,12 @@ class BaseToolTest(unittest.TestCase):
         self._page("concepts/citer.md", "Citer", body="builds on [[concepts/hunch]]")
         self.assertIn("unverified pages with inbound", self.b("lint").stdout)
 
-    def test_lint_illegal_log_verb(self):
-        with open(self.root / "log.md", "a") as f:
-            f.write("2026-07-24T10:00+03:00 | agent:main | destroy | x.md | nope\n")
-        self.assertIn("illegal verb", self.b("lint").stdout)
+    def test_lint_reports_a_sweep_commit_as_unattributed(self):
+        # sync commits a hand-write rather than dropping it — data safety first — but
+        # marks it, so the audit sees a write with no acting subject.
+        self._page("concepts/swept.md", "Swept")
+        self.b("sync")
+        self.assertIn("swept by sync", self.b("lint").stdout)
 
     def test_lint_invalid_triage_and_missing_frontmatter(self):
         raw = self.root / "raw" / "captures"
@@ -487,13 +539,26 @@ class BaseToolTest(unittest.TestCase):
 
         r = self.b("sync")
         self.assertEqual(r.returncode, 3)
-        self.assertIn("sync-conflict", (self.root / "log.md").read_text())
-        self.assertIn("sync conflict",
-                      (self.root / "_ops" / "needs-review.md").read_text())
-        # repo left consistent (no rebase in progress)
+        self.assertIn("aos-verb: sync-conflict", "\n".join(self.log_lines("%b")))
+        entries = list((self.root / "_ops" / "needs-review").glob("*.md"))
+        self.assertTrue(any("sync conflict" in e.read_text() for e in entries))
+        # repo left consistent — nothing mid-flight, so the next tick can run
         st = subprocess.run(["git", "status"], cwd=self.root, capture_output=True,
                             text=True).stdout
         self.assertNotIn("rebase in progress", st)
+        self.assertNotIn("You have unmerged paths", st)
+
+    def test_sync_refuses_while_an_operation_is_mid_flight(self):
+        # The permanent-stall bug: staging a conflicted worktree commits the conflict
+        # markers, and git then refuses to start another operation over the leftover
+        # state, so every later tick fails too. Refusing up front keeps it recoverable.
+        (self.root / ".git" / "MERGE_HEAD").write_text("0" * 40 + "\n")
+        (self.root / "AGENTS.md").write_text("<<<<<<< HEAD\nUNMERGED-SENTINEL\n")
+        r = self.b("sync")
+        self.assertEqual(r.returncode, 5)
+        self.assertIn("mid-MERGE_HEAD", r.stderr)
+        # and it did NOT commit the conflicted worktree
+        self.assertNotIn("UNMERGED-SENTINEL", self.git("show", "HEAD:AGENTS.md"))
 
     # -- adopt -------------------------------------------------------------
     def test_adopt_zero_writes_and_most_restrictive_audience(self):
@@ -516,6 +581,119 @@ class BaseToolTest(unittest.TestCase):
         r = run(["adopt", str(foreign)], self.env)
         self.assertIn("no BASE.yaml", r.stdout)
         self.assertIn("convergence path", r.stdout)
+
+
+class SharedBaseTest(unittest.TestCase):
+    """A base two people share.
+
+    Every property here only appears once there is more than one principal — which is
+    exactly the question the single-user design never had to answer."""
+
+    ALICE = {"AOS_PRINCIPAL_NAME": "Alice Example",
+             "AOS_PRINCIPAL_EMAIL": "alice@example.com"}
+    BOB = {"AOS_PRINCIPAL_NAME": "Bob Example",
+           "AOS_PRINCIPAL_EMAIL": "bob@example.com"}
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main"}
+        self.root = self.dir / "team"
+        r = run(["init", "team", "--path", str(self.root), "--audience", "shared",
+                 "--purpose", "team base", "--templates", str(TEMPLATES),
+                 "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        cfg = self.root / "BASE.yaml"
+        cfg.write_text(cfg.read_text() +
+                       "\nprincipals:\n"
+                       "  alice@example.com: user:alice\n"
+                       "  bob@example.com: user:bob\n")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args, who=None):
+        return run(["--base", str(self.root), *args], {**self.env, **(who or {})})
+
+    def test_state_is_sharded_per_principal(self):
+        self.b("state", "add", "--note", "alice's thread", who=self.ALICE)
+        self.b("state", "add", "--note", "bob's thread", who=self.BOB)
+        alice = self.root / "state" / "user-alice.yaml"
+        bob = self.root / "state" / "user-bob.yaml"
+        self.assertTrue(alice.exists() and bob.exists())
+        # Each shard has exactly one writer, so neither rewrites the other's file —
+        # which is what makes "single writer" literally true on a shared base.
+        self.assertIn("alice's thread", alice.read_text())
+        self.assertNotIn("bob's thread", alice.read_text())
+
+    def test_inbox_shows_only_this_principals_captures(self):
+        self.b("capture", "--text", "alice note", who=self.ALICE)
+        self.b("capture", "--text", "bob note", who=self.BOB)
+        mine = self.b("inbox", who=self.ALICE).stdout
+        self.assertIn("(1 pending item)", mine)
+        self.assertIn("belong to other principals", mine)
+        # A count, never a path: the other principal's material must not land in
+        # this agent's context at all.
+        self.assertNotIn("bob", mine.lower())
+        self.assertIn("(2 pending items)", self.b("inbox", "--all",
+                                                  who=self.ALICE).stdout)
+
+    def test_dedup_does_not_drop_another_principals_identical_capture(self):
+        self.b("capture", "--text", "the same link", who=self.ALICE)
+        r = self.b("capture", "--text", "the same link", who=self.BOB)
+        self.assertNotIn("duplicate", r.stdout)
+        self.assertEqual(len(list((self.root / "raw" / "captures").glob("*.md"))), 2)
+        self.assertNotIn("alice", r.stdout.lower())  # no path disclosure either
+
+    def test_dedup_still_drops_the_same_principals_resend(self):
+        self.b("capture", "--text", "double send", who=self.ALICE)
+        self.assertIn("duplicate",
+                      self.b("capture", "--text", "double send",
+                             who=self.ALICE).stdout)
+
+    def test_llm_routed_write_into_a_shared_base_is_critical(self):
+        self.b("capture", "--text", "routed by a classifier", who=self.ALICE)
+        cap = next((self.root / "raw" / "captures").glob("*.md"))
+        cap.write_text(cap.read_text().replace(
+            "triage: pending",
+            "triage: pending\nkb_routing:\n  method: llm\n  confidence: 0.9\n"
+            "  status: routed"))
+        self.assertIn("no LLM-routed write may ever land here",
+                      self.b("lint", who=self.ALICE).stdout)
+
+    def test_unrostered_author_is_reported_as_unattributed(self):
+        self.b("capture", "--text", "who are you",
+               who={"AOS_PRINCIPAL_NAME": "Stranger",
+                    "AOS_PRINCIPAL_EMAIL": "nobody@elsewhere.test"})
+        self.assertIn("is not in the BASE.yaml principals roster",
+                      self.b("lint", who=self.ALICE).stdout)
+
+    def test_two_machines_capturing_concurrently_do_not_conflict(self):
+        remote = self.dir / "team.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+        subprocess.run(["git", "remote", "add", "origin", str(remote)],
+                       cwd=self.root, check=True)
+        self.assertEqual(self.b("sync", who=self.ALICE).returncode, 0)
+
+        clone = self.dir / "bobs-machine"
+        subprocess.run(["git", "clone", "-q", str(remote), str(clone)],
+                       check=True, capture_output=True)
+
+        # Both capture before either syncs — the real shape of two machines on one
+        # interval. One file per record means there is simply nothing to merge.
+        self.b("capture", "--text", "alice's find", who=self.ALICE)
+        run(["--base", str(clone), "capture", "--text", "bob's find"],
+            {**self.env, **self.BOB})
+
+        self.assertEqual(self.b("sync", who=self.ALICE).returncode, 0)
+        r = run(["--base", str(clone), "sync"], {**self.env, **self.BOB})
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+
+        caps = list((clone / "raw" / "captures").glob("*.md"))
+        self.assertEqual(len(caps), 2, [p.name for p in caps])
+        self.assertFalse(list((clone / "_ops" / "needs-review").glob("*.md"))
+                         if (clone / "_ops" / "needs-review").is_dir() else [])
 
 
 if __name__ == "__main__":

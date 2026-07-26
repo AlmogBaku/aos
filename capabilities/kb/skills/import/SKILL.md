@@ -78,8 +78,8 @@ point; any executor can drain it). Then batches of ~20:
   decides the pace, and can stop anytime. Re-entry is free: unticked lines +
   origin/sha checks resume exactly where things stopped.
 - Judgment you can't settle from the agreement (ambiguous type, two source pages
-  describing one entity, content that contradicts existing pages) → `_ops/
-  needs-review.md` with evidence and a stated default; never guess silently.
+  describing one entity, content that contradicts existing pages) →
+  `_ops/needs-review/` with evidence and a stated default; never guess silently.
 
 ## 5. Report [mechanical]
 

@@ -31,8 +31,10 @@ cheat-sheet:
   a bare `base sync` with no resolvable registry exits 0 having synced nothing.
 - Surfacing: optionally compose a notifier around the exec call:
   `… sync --all || <harness-notify "base sync needs attention">`. The file bus
-  (`_ops/needs-review.md`, `log.md`, exit codes) is the portable interface either way.
-- Env: `AOS_REGISTRY` (registry path), `AOS_AGENT` (acting subject for log lines).
+  (`_ops/needs-review/`, git history, exit codes) is the portable interface either way.
+- Env: `AOS_REGISTRY` (registry path), `AOS_AGENT` (acting subject — the committer of
+  every write), `AOS_PRINCIPAL_NAME`/`AOS_PRINCIPAL_EMAIL` (the human a write belongs
+  to — the git author; defaults to the repo's own git identity).
 
 ## Degraded modes
 

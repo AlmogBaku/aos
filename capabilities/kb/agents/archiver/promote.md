@@ -14,7 +14,7 @@ it; your job on it is only promotion judgment. For each pending capture:
 
 1. `kb_routing.status: uncertain` items: re-classify with full context. Target
    **private** → move (`git mv`, log `route`, rewrite the routing record, keep
-   history). Target **shared** → append a proposal to `_ops/needs-review.md`;
+   history). Target **shared** → append a proposal to `_ops/needs-review/`;
    NEVER auto-move.
 2. Promote or not — **default-empty**: most captures become no page at all. The bar:
    *would the user plausibly look this up again?* When in doubt, DON'T create — a junk
@@ -32,7 +32,7 @@ it; your job on it is only promotion judgment. For each pending capture:
 ## 2. State evictions (propose, never apply)
 
 `base state check` per base; for each stale item append a proposal to
-`_ops/needs-review.md`: "«item» — in state since <date>, untouched — drop from state?
+`_ops/needs-review/`: "«item» — in state since <date>, untouched — drop from state?
 (the knowledge stays in the base)."
 
 ## 3. Close

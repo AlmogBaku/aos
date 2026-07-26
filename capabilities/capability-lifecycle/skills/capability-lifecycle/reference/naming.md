@@ -130,7 +130,7 @@ Consequences worth stating, because each one was a real bug:
 - **Never a parent-directory reference.** The materialized directory carries the installed
   name, not the source id, so climbing out of the skill folder breaks even when the path
   looks right in the repo. (`skill/no-cross-path`)
-- When you write a path for the *user's* tree — a KB's `_ops/needs-review.md`, a draft's
+- When you write a path for the *user's* tree — a KB's `_ops/needs-review/`, a draft's
   `agents/<name>.agent.yaml` — say once which root it is relative to. Those are data
   locations, not load targets, and an unrooted one is a guess.
 

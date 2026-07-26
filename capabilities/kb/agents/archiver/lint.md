@@ -8,7 +8,7 @@ For each registered base:
    (`base index rebuild`), archive stale seedlings the report names (move to
    `_archive/`, log `archive`). Judgment findings (Contested inventory, duplicate
    suspicions, unverified-with-inbound, grants-audit hits) → surface in
-   `_ops/needs-review.md` with evidence and a stated default; never resolve them
+   `_ops/needs-review/` with evidence and a stated default; never resolve them
    yourself.
 3. Surface **Critical** findings for the user's next brief — only Critical.
 4. Nothing to report → output exactly `ARCHIVER: lint clean.` and deliver nothing.

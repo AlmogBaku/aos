@@ -6,7 +6,7 @@ purpose: >
   skeptically (default-empty — most captures never become pages), runs the weekly
   lint, proposes state evictions, keeps the audit trail via the base tool. It has no
   opinions about the user's life or business — every judgment call it cannot make
-  mechanically goes to the base's _ops/needs-review.md with evidence and a stated
+  mechanically goes to the base's _ops/needs-review/ with evidence and a stated
   default, never to chat. Anything crossing into a shared base is proposed, never
   applied. It reads state.yaml only through `base state check` output (eviction
   proposals), and it must have no messaging tools — enforce that with the harness's

@@ -24,8 +24,8 @@ Two scheduled agents divide the thinking so you don't have to do it at capture t
 |---|---|---|
 | 23:00 | gtd-capture's **drainer** | Walks pending captures (`base inbox`): actionable ones become next-actions or reminders; two-minute items get flagged; its pass is additive bookkeeping only |
 | 23:30 | kb's **archiver** | Promotes the captures that are actually *knowledge* into current-truth wiki pages — skeptical, default-empty — then files the log line; cross-base re-routing proposals land in your review queue |
-| (cron) | `base sync` | Rebase-pull/push per base; a conflict aborts safely into `_ops/needs-review.md` — no agent ever resolves your merge |
-| Sat 07:00 | kb's **archiver** again | The weekly `base lint` pass per base — the report files itself in `_ops/`; mechanical fixes (index rebuild, archiving stale seedlings) are applied, judgment findings go to `_ops/needs-review.md`, and only *Critical* reaches you |
+| (cron) | `base sync` | Rebase-pull/push per base; a conflict aborts safely into `_ops/needs-review/` — no agent ever resolves your merge |
+| Sat 07:00 | kb's **archiver** again | The weekly `base lint` pass per base — the report files itself in `_ops/`; mechanical fixes (index rebuild, archiving stale seedlings) are applied, judgment findings go to `_ops/needs-review/`, and only *Critical* reaches you |
 
 No cron on your harness? The same runs exist as run-cards: *"drain the inbox now."*
 

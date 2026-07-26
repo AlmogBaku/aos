@@ -33,7 +33,7 @@ Resolution order — stop at the first match:
 4. **[D] Fallback.** Default base, `status: uncertain`. The archiver's nightly
    promote pass re-routes:
    into a private base → may move directly (logged, reversible); into a shared base →
-   proposed in `_ops/needs-review.md`, never auto-applied.
+   proposed in `_ops/needs-review/`, never auto-applied.
 
 **The write itself**: `base --base <name> capture --text … --source <channel>` —
 frontmatter, sha256 dedup, `triage: pending`, and the log line come free. Stamp the
