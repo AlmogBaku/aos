@@ -148,21 +148,22 @@ class BaseToolTest(unittest.TestCase):
     # -- capture -----------------------------------------------------------
     def test_capture_lands_pending_with_attributed_commit(self):
         r = self.b("capture", "--text", "Call the accountant", "--source", "t:x")
-        self.assertIn("triage: pending", r.stdout)
-        # _raw/AGENTS.md is the zone contract, not a capture — the zone is flat now, so
-        # the glob has to say so.
-        caps = self.captures()
+        self.assertIn("pending", r.stdout)
+        # A capture waits in .kb/pending/ until `kb ingest` moves it: location is the
+        # state, so there is nothing in _raw/ yet.
+        caps = list((self.root / ".kb" / "pending").glob("*.md"))
         self.assertEqual(len(caps), 1)
+        self.assertEqual(self.captures(), [])
         text = caps[0].read_text()
         self.assertIn("source_sha256:", text)
-        self.assertIn("triage: pending", text)
+        self.assertIn("waits_on: agent", text)
         # One write, one commit: the committer is the acting agent, and the trailers
         # carry what the five-field log line used to.
         body = self.git("log", "-1", "--pretty=%cn%n%s%n%b")
         self.assertIn("agent:main", body)
         self.assertIn("capture:", body)
         self.assertIn("aos-verb: capture", body)
-        self.assertRegex(body, r"aos-path: _raw/")
+        self.assertRegex(body, r"aos-path: \.kb/pending/")
 
     def test_capture_author_is_the_principal_committer_is_the_agent(self):
         # One flag where there were two: the id is the identity, and the display name
@@ -188,7 +189,7 @@ class BaseToolTest(unittest.TestCase):
         self.b("capture", "--text", "same content")
         r = self.b("capture", "--text", "same content")
         self.assertIn("duplicate", r.stdout)
-        self.assertEqual(len(self.captures()), 1)
+        self.assertEqual(len(list((self.root / ".kb" / "pending").glob("*.md"))), 1)
 
     def test_inbox_lists_pending(self):
         self.b("capture", "--text", "hello world")
@@ -312,10 +313,15 @@ class BaseToolTest(unittest.TestCase):
         self.assertFalse((self.root / ".github").exists())
 
     def test_lint_failed_capture_critical(self):
+        # `failed:` replaces triage: failed, and the item STAYS in .kb/pending/ — an
+        # error is not a change of location.
         self.b("capture", "--text", "will fail")
-        cap = next((self.root / "_raw").glob("*.md"))
-        cap.write_text(cap.read_text().replace("triage: pending", "triage: failed"))
-        self.assertIn("failed state", self.b("lint").stdout)
+        cap = next((self.root / ".kb" / "pending").glob("*.md"))
+        cap.write_text(cap.read_text().replace(
+            "kind: capture", "kind: capture\nfailed: no route-into grant"))
+        out = self.b("lint").stdout
+        self.assertIn("capture failed", out)
+        self.assertTrue(cap.exists())
 
     def test_lint_state_stale(self):
         self._page("concepts/new.md", "New")
@@ -363,7 +369,7 @@ class BaseToolTest(unittest.TestCase):
         out = self.b("history", "--limit", "5").stdout
         self.assertIn("capture:", out)
         self.assertIn("agent:main", out)
-        self.assertIn("_raw/", out)
+        self.assertIn(".kb/pending/", out)
 
     def test_lint_via_grammar(self):
         am = self.root / "AGENTS.md"
@@ -504,9 +510,9 @@ class BaseToolTest(unittest.TestCase):
 
     def test_inbox_failed_with_scalar_meta_survives(self):
         self.b("capture", "--text", "will fail oddly")
-        cap = next((self.root / "_raw").glob("*.md"))
+        cap = next((self.root / ".kb" / "pending").glob("*.md"))
         cap.write_text(cap.read_text()
-                       .replace("triage: pending", "triage: failed")
+                       .replace("kind: capture", "kind: capture\nfailed: odd")
                        .replace("verified: false", "verified: false\nmeta: broken"))
         r = self.b("inbox", "--failed")
         self.assertEqual(r.returncode, 0, r.stderr)
@@ -570,16 +576,17 @@ class BaseToolTest(unittest.TestCase):
         self.b("sync")
         self.assertIn("swept by sync", self.b("lint").stdout)
 
-    def test_lint_invalid_triage_and_missing_frontmatter(self):
+    def test_lint_invalid_kind_and_missing_frontmatter(self):
+        # triage: is gone, so the closed set lint checks is the queue's own vocabulary.
         raw = self.root / "_raw"
         raw.mkdir(parents=True, exist_ok=True)
         (raw / "weird.md").write_text("no frontmatter at all\n")
-        self.b("capture", "--text", "triage test")
-        cap = next(p for p in self.captures() if p.name != "weird.md")
-        cap.write_text(cap.read_text().replace("triage: pending", "triage: maybe"))
+        self.b("capture", "--text", "a thought")
+        pend = next((self.root / ".kb" / "pending").glob("*.md"))
+        pend.write_text(pend.read_text().replace("kind: capture", "kind: maybe"))
         out = self.b("lint").stdout
         self.assertIn("raw file without frontmatter", out)
-        self.assertIn("not in ['done', 'failed', 'pending']", out)
+        self.assertIn("kind 'maybe' not in", out)
 
     def test_lint_grants_audit_flags_ungranted_author(self):
         def git(*a):
@@ -705,6 +712,9 @@ class SharedBaseTest(unittest.TestCase):
     def b(self, *args, who=None):
         return run(["--base", str(self.root), *args], {**self.env, **(who or {})})
 
+    def fm(self, p):
+        return yaml.safe_load(p.read_text().split("---")[1])
+
     def captures(self, root=None):
         """`_raw/` is flat and carries its own zone AGENTS.md, which is a contract
         rather than source material."""
@@ -746,7 +756,7 @@ class SharedBaseTest(unittest.TestCase):
         self.b("capture", "--text", "the same link", who=self.ALICE)
         r = self.b("capture", "--text", "the same link", who=self.BOB)
         self.assertNotIn("duplicate", r.stdout)
-        self.assertEqual(len(self.captures()), 2)
+        self.assertEqual(len(list((self.root / ".kb" / "pending").glob("*.md"))), 2)
         self.assertNotIn("alice", r.stdout.lower())  # no path disclosure either
 
     def test_dedup_still_drops_the_same_principals_resend(self):
@@ -757,10 +767,10 @@ class SharedBaseTest(unittest.TestCase):
 
     def test_llm_routed_write_into_a_shared_base_is_critical(self):
         self.b("capture", "--text", "routed by a classifier", who=self.ALICE)
-        cap = next((self.root / "_raw").glob("*.md"))
+        cap = next((self.root / ".kb" / "pending").glob("*.md"))
         cap.write_text(cap.read_text().replace(
-            "triage: pending",
-            "triage: pending\nkb_routing:\n  method: llm\n  confidence: 0.9\n"
+            "kind: capture",
+            "kind: capture\nkb_routing:\n  method: llm\n  confidence: 0.9\n"
             "  status: routed"))
         self.assertIn("no LLM-routed write may ever land here",
                       self.b("lint", who=self.ALICE).stdout)
@@ -798,10 +808,15 @@ class SharedBaseTest(unittest.TestCase):
         r = run(["--base", str(clone), "sync"], {**self.env, **self.BOB})
         self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
 
-        caps = self.captures(clone)
+        # One file per record is what makes this true, and it holds in the queue as
+        # much as in _raw/: two people capturing on two machines write two distinct
+        # filenames, so there is simply nothing to merge.
+        caps = sorted((clone / ".kb" / "pending").glob("*.md"))
         self.assertEqual(len(caps), 2, [p.name for p in caps])
-        pend = clone / ".kb" / "pending"
-        self.assertFalse(list(pend.glob("*.md")) if pend.is_dir() else [])
+        # "No conflict was surfaced" is now a question about KIND, not about the
+        # directory being empty: the captures themselves live in the same queue.
+        kinds = {self.fm(p).get("kind") for p in caps}
+        self.assertEqual(kinds, {"capture"}, "a sync conflict was surfaced")
 
 
 class PrincipalTest(unittest.TestCase):
@@ -1121,8 +1136,8 @@ class QueryTest(unittest.TestCase):
         self.assertIn("routed", r.stdout)
 
     def test_every_fetch_verb_takes_the_query(self):
-        for verb in (["find"], ["inbox"], ["search", "cfp"], ["links", "--orphans"],
-                     ["state", "show"]):
+        for verb in (["find"], ["inbox"], ["pending", "list"], ["search", "cfp"],
+                     ["links", "--orphans"], ["state", "show"]):
             r = self.b(*verb, "--where", "type=project")
             self.assertEqual(r.returncode, 0, f"{verb}: {r.stderr}")
 
@@ -1153,6 +1168,159 @@ class QueryTest(unittest.TestCase):
         r = self.b("find", "--where", "type=concept")
         self.assertIn("type=concept", r.stdout)
         self.assertIn("(1 match)", r.stdout)
+
+
+class PendingTest(unittest.TestCase):
+    """One queue. A queue FILE is only justified when the work item has no artifact of
+    its own; a refusal and a sync conflict are the only two things with nothing to
+    attach to, because nothing was written and nothing was committed."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "dana@example.com",
+                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "queue",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args, who=None):
+        return run(["--base", str(self.root), *args], {**self.env, **(who or {})})
+
+    def git(self, *args):
+        return subprocess.run(["git", *args], cwd=self.root, capture_output=True,
+                              text=True, check=False).stdout
+
+    def log_lines(self, fmt="%s", n="-20"):
+        return self.git("log", n, f"--pretty={fmt}").splitlines()
+
+    def fm(self, p):
+        return yaml.safe_load(p.read_text().split("---")[1])
+
+    def pending(self):
+        return sorted((self.root / ".kb" / "pending").glob("*.md"))
+
+    def pending_rels(self):
+        return [f".kb/pending/{p.name}" for p in self.pending()]
+
+    def captures(self):
+        return [p for p in sorted((self.root / "_raw").glob("*.md"))
+                if "AGENTS" not in p.name]
+
+    def test_a_capture_lands_pending_and_moves_to_raw_on_ingest(self):
+        r = self.b("capture", "--text", "Robin says the venue is booked")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        pend = self.pending()
+        self.assertEqual(len(pend), 1)
+        fm = self.fm(pend[0])
+        self.assertEqual(fm["kind"], "capture")
+        self.assertEqual(fm["waits_on"], "agent")
+        self.assertNotIn("triage", fm, "location is the state")
+        r = self.b("ingest", self.pending_rels()[0])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse(pend[0].exists())
+        moved = self.captures()
+        self.assertEqual(len(moved), 1)
+        self.assertNotIn("kind", self.fm(moved[0]))
+        self.assertNotIn("waits_on", self.fm(moved[0]))
+
+    def test_raw_is_flat(self):
+        self.b("capture", "--text", "x")
+        self.b("ingest", *self.pending_rels())
+        for p in (self.root / "_raw").rglob("*.md"):
+            self.assertEqual(p.parent.name, "_raw", f"{p} is not flat")
+
+    def test_ingest_preserves_history_across_the_move(self):
+        self.b("capture", "--text", "traceable")
+        self.b("ingest", self.pending_rels()[0])
+        moved = self.captures()[0]
+        # `--follow` takes exactly one pathspec, and it must be the path as git knows
+        # it — the whole point is that it traces back through the rename.
+        log = self.git("log", "--follow", "--pretty=%s", "--",
+                       f"_raw/{moved.name}")
+        self.assertIn("ingest:", log)
+        self.assertIn("capture:", log, "--follow lost the file across the move")
+
+    def test_refusal_and_conflict_are_the_artifactless_kinds(self):
+        self.b("refuse", "--path", "entities/x.md", "--reason", "no grant")
+        kinds = {self.fm(p).get("kind") for p in self.pending()}
+        self.assertEqual(kinds, {"refusal"})
+        self.assertEqual(self.fm(self.pending()[0])["waits_on"], "human")
+
+    def test_pending_add_takes_a_file_or_stdin(self):
+        src = self.dir / "note.md"
+        src.write_text("a longer body from a file\n")
+        r = self.b("pending", "add", "--kind", "capture", "--waits-on", "agent",
+                   "--title", "from a file", "--file", str(src))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        landed = [p for p in self.pending() if "from-a-file" in p.name]
+        self.assertIn("a longer body from a file", landed[0].read_text())
+
+    def test_an_unknown_kind_or_waits_on_is_refused(self):
+        r = self.b("pending", "add", "--kind", "nonsense", "--waits-on", "agent",
+                   "--title", "t", "--body", "b")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("capture", r.stderr)   # the closed set is in the message
+        r = self.b("pending", "add", "--kind", "capture", "--waits-on", "nobody",
+                   "--title", "t", "--body", "b")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("human", r.stderr)
+
+    def test_pending_list_is_a_query_over_the_directory(self):
+        self.b("pending", "add", "--kind", "entity", "--waits-on", "human",
+               "--title", "Acme Corp mentioned", "--body", "no page yet")
+        r = self.b("pending", "list", "--where", "kind=entity")
+        self.assertIn("Acme Corp", r.stdout)
+        r = self.b("pending", "list", "--where", "waits_on=agent")
+        self.assertNotIn("Acme Corp", r.stdout)
+
+    def test_pending_resolve_removes_the_entry_with_a_commit(self):
+        self.b("refuse", "--path", "entities/x.md", "--reason", "no grant")
+        r = self.b("pending", "resolve", self.pending_rels()[0])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.pending(), [])
+        self.assertIn("resolve:", self.log_lines()[0])
+
+    def test_a_failed_capture_keeps_failed_and_stays_put(self):
+        # An error is not a state change of location: the item is still pending.
+        self.b("capture", "--text", "will fail")
+        target = self.pending()[-1]
+        target.write_text(target.read_text().replace(
+            "kind: capture", "kind: capture\nfailed: no route-into grant"))
+        r = self.b("lint")
+        self.assertIn("failed", r.stdout)
+        self.assertTrue(target.exists())
+
+    def test_ingest_refuses_a_non_capture_kind(self):
+        self.b("refuse", "--path", "entities/x.md", "--reason", "no grant")
+        r = self.b("ingest", self.pending_rels()[0])
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("capture", r.stderr)
+
+    def test_inbox_is_the_pending_view_scoped_to_this_principal(self):
+        self.b("capture", "--text", "mine")
+        r = self.b("inbox", who={"AOS_PRINCIPAL_ID": "bob@example.com"})
+        self.assertNotIn("mine", r.stdout)
+        # A count, never a path: the point is to say the queue is not empty for
+        # someone else, not to show what they captured.
+        self.assertIn("belong to other principals", r.stdout)
+        self.assertNotIn(".kb/pending/", r.stdout)
+
+    def test_the_pending_queue_has_no_triage_vocabulary_left(self):
+        self.b("capture", "--text", "a plain thought")
+        self.assertNotIn("triage", self.pending()[0].read_text())
+        self.b("ingest", *self.pending_rels())
+        self.assertNotIn("triage", self.captures()[0].read_text())
+        self.assertNotIn("triage", self.b("lint").stdout)
 
 
 class PackagingTest(unittest.TestCase):

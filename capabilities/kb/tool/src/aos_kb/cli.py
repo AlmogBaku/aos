@@ -46,12 +46,18 @@ LAYOUT = 2
 AOS_VERBS = {
     "create", "promote", "merge", "archive", "flag", "resolve", "sync-conflict",
     "lint", "route", "refuse", "capture", "state", "verify", "bootstrap",
+    "ingest", "pending",
 }
 UNIVERSAL_FIELDS = {"title", "description", "type", "created", "timestamp", "tags",
                     "aliases", "verified", "origin", "growth_stage", "meta"}
-RAW_FIELDS = {"source", "source_sha256", "captured_at", "triage", "kb_routing",
-              "captured_by", "source_origin"}
-TRIAGE_STATES = {"pending", "done", "failed"}
+RAW_FIELDS = {"source", "source_sha256", "captured_at", "kb_routing",
+              "captured_by", "source_origin", "corrects"}
+# .kb/pending/ — one file per item. A queue FILE is only justified when the work item
+# has no artifact of its own; a refusal and a sync conflict are the only two things
+# with nothing to attach to, because nothing was written and nothing was committed.
+PENDING_KINDS = {"capture", "refusal", "conflict", "entity", "finding"}
+WAITS_ON = {"agent", "human"}
+PENDING_FIELDS = {"kind", "waits_on", "raised_by", "failed"}
 WIKILINK_RE = re.compile(r"\[\[([^\]|#\n]+?)(?:[|#][^\]]*)?\]\]")
 # Dedup is scoped to the acting principal: same principal, same sha256, no new file —
 # import/capture idempotency depends on it, and the flaky-client double-send is the
@@ -556,11 +562,20 @@ class Base:
                            text=True, check=False, env=env)
         return r.returncode == 0
 
-    def review(self, title: str, body: str, agent: str = "") -> Path:
-        """One file per review-queue entry. A single appended queue file is written by
-        every agent on every machine, which is precisely the shape that conflicts on
-        every sync; distinct filenames never do. The queue is a view over the
-        directory, exactly like the inbox is a view over raw/captures/."""
+    def pending_add(self, kind: str, waits_on: str, title: str, body: str,
+                    agent: str = "", extra: dict = None) -> Path:
+        """One file per pending item. A single appended queue file is written by every
+        agent on every machine, which is precisely the shape that conflicts on every
+        sync; distinct filenames never do. The queue is a view over the directory.
+
+        There is no `status:` field: an entry in the directory is open, and resolving it
+        removes the file. Location is the state here too."""
+        if kind not in PENDING_KINDS:
+            die(f"unknown kind {kind!r} — the closed set is "
+                f"{' '.join(sorted(PENDING_KINDS))}")
+        if waits_on not in WAITS_ON:
+            die(f"unknown --waits-on {waits_on!r} — the closed set is "
+                f"{' '.join(sorted(WAITS_ON))}")
         d = self.pending_dir
         d.mkdir(parents=True, exist_ok=True)
         stamp = _dt.datetime.now().astimezone().strftime("%Y%m%dT%H%M%S")
@@ -570,8 +585,9 @@ class Base:
         while dst.exists():
             dst = d / f"{stamp}-{slug}-{n}.md"
             n += 1
-        fm = {"title": title, "created": today(), "raised_by": agent or "unknown",
-              "status": "open"}
+        fm = {"title": title, "kind": kind, "waits_on": waits_on,
+              "created": today(), "raised_by": agent or "unknown"}
+        fm.update(extra or {})
         write_frontmatter(dst, fm, body if body.endswith("\n") else body + "\n")
         return dst
 
@@ -833,12 +849,12 @@ def cmd_adopt(args):
 
 def _do_capture(base: Base, content: str, title: str, source: str, agent: str,
                 author: tuple[str, str] | None = None, principal: str = "user",
-                quiet: bool = False):
+                quiet: bool = False, corrects: str = ""):
     """Core capture: dedup + frontmatter + commit. Returns dest Path or None (dup)."""
     sha = hashlib.sha256(content.encode("utf-8")).hexdigest()
-    cap_dir = base.raw_dir
-    cap_dir.mkdir(parents=True, exist_ok=True)
-    for p in base.raw_dir.rglob("*.md"):
+    # Dedup scans both halves: a capture waiting in .kb/pending/ and one already
+    # ingested into _raw/ are the same fact, so either is a duplicate.
+    for p in list(base.pending_dir.glob("*.md")) + list(base.raw_dir.rglob("*.md")):
         pfm, _ = read_frontmatter(p)
         if not pfm or pfm.get("source_sha256") != sha:
             continue
@@ -850,18 +866,16 @@ def _do_capture(base: Base, content: str, title: str, source: str, agent: str,
         if not quiet:
             print(f"duplicate: matches {base.rel(p)} — dropped.")
         return None
-    slug = slugify(title)
-    dst = cap_dir / f"{today()}-{slug}.md"
-    n = 2
-    while dst.exists():
-        dst = cap_dir / f"{today()}-{slug}-{n}.md"
-        n += 1
-    fm = {"title": title, "type": "capture", "created": today(),
-          "timestamp": today(), "source": source,
-          "source_sha256": sha,
-          "captured_at": now_ts(), "captured_by": principal,
-          "triage": "pending", "verified": False}
-    write_frontmatter(dst, fm, content if content.endswith("\n") else content + "\n")
+    # No triage: — location IS the state. In .kb/pending/ means pending; in _raw/ means
+    # ingested and immutable.
+    extra = {"type": "capture", "timestamp": today(), "source": source,
+             "source_sha256": sha, "captured_at": now_ts(),
+             "captured_by": principal, "verified": False}
+    if corrects:
+        extra["corrects"] = corrects
+    dst = base.pending_add("capture", "agent", title,
+                           content if content.endswith("\n") else content + "\n",
+                           agent, extra)
     base.commit("capture", dst, f"pending: {title[:50]}", agent, author)
     return dst
 
@@ -886,7 +900,7 @@ def cmd_capture(args):
     dst = _do_capture(base, content, title, args.source or "manual",
                       agent, author, author[1])
     if dst:
-        print(f"captured: {base.rel(dst)} (triage: pending)")
+        print(f"captured: {base.rel(dst)} (pending, waits_on: agent)")
 
 
 def cmd_find(args):
@@ -907,6 +921,85 @@ def cmd_find(args):
     print(f"({hits} match{'es' if hits != 1 else ''})")
 
 
+def cmd_ingest(args):
+    """.kb/pending/ -> _raw/. Location is the state, so this move IS the state change.
+    `git mv` rather than write-then-delete: `git log --follow` has to keep tracing the
+    capture across it."""
+    base = resolve_base(args)
+    agent, author, _ = acting(args, base)
+    for rel in args.path:
+        src = (base.root / rel).resolve()
+        if not src.exists():
+            die(f"no such pending item: {rel}")
+        fm, body = read_frontmatter(src)
+        if (fm or {}).get("kind") != "capture":
+            die(f"{rel}: only kind: capture is ingested "
+                f"(this is {(fm or {}).get('kind')!r})")
+        base.raw_dir.mkdir(parents=True, exist_ok=True)
+        dst = base.raw_dir / src.name
+        n = 2
+        while dst.exists():
+            dst = base.raw_dir / f"{dst.stem}-{n}.md"
+            n += 1
+        git(base.root, "mv", base.rel(src), base.rel(dst))
+        if src.exists():                     # not a repo, or mv declined
+            src.rename(dst)
+        # The queue's own fields go with the queue: they described where the item was
+        # waiting, and it is not waiting any more.
+        fm = {k: v for k, v in (fm or {}).items()
+              if k not in ("kind", "waits_on", "raised_by")}
+        write_frontmatter(dst, fm, body)
+        base.commit("ingest", [base.rel(dst)], f"ingested {src.name}", agent, author)
+        print(f"ingested: {base.rel(dst)}")
+
+
+def cmd_pending(args):
+    """The queue is a view over a directory. `add` needs --body, --file or - (stdin):
+    agents were hand-writing markdown into queue files, and --file is what makes a
+    long body practical."""
+    base = resolve_base(args)
+    if args.op == "list":
+        where, without = query_of(args)
+        hits = 0
+        for p in sorted(base.pending_dir.glob("*.md")):
+            fm, _ = read_frontmatter(p)
+            if not fm or not match_query(fm, where, without):
+                continue
+            hits += 1
+            flag = f"  FAILED: {fm['failed']}" if fm.get("failed") else ""
+            print(f"{base.rel(p)}  {fm.get('kind', '?')}/"
+                  f"{fm.get('waits_on', '?')}  {fm.get('title', '')}{flag}")
+        print(f"({hits} pending item{'s' if hits != 1 else ''})")
+        return
+
+    agent, author, _ = acting(args, base)
+    if args.op == "add":
+        if args.file == "-":
+            body = sys.stdin.read()
+        elif args.file:
+            body = Path(args.file).expanduser().read_text(encoding="utf-8")
+        else:
+            body = args.body or ""
+        if not body.strip():
+            die("empty pending entry — pass --body, --file <path>, or --file - "
+                "for stdin")
+        entry = base.pending_add(args.kind, args.waits_on, args.title, body, agent)
+        base.commit("pending", entry, f"{args.kind} pending: {args.title[:50]}",
+                    agent, author)
+        print(f"pending: {base.rel(entry)}")
+        return
+
+    # resolve
+    for rel in args.path:
+        p = base.root / rel
+        if not p.exists():
+            die(f"no such pending item: {rel}")
+        if git(base.root, "rm", "-q", "--", base.rel(p)).returncode != 0:
+            p.unlink()
+        base.commit("resolve", [rel], f"resolved {Path(rel).name}", agent, author)
+        print(f"resolved: {rel}")
+
+
 def cmd_inbox(args):
     """The inbox is a view, and by default it is *this principal's* view.
 
@@ -920,11 +1013,14 @@ def cmd_inbox(args):
     principal = resolve_principal(args, base.cfg.get("name", base.root.name),
                                  base.root, persist=False)
     where, without = query_of(args)
-    want = "failed" if args.failed else "pending"
     found = others = 0
-    for p in sorted(base.raw_dir.rglob("*.md")):
+    for p in sorted(base.pending_dir.glob("*.md")):
         fm, _ = read_frontmatter(p)
-        if not fm or fm.get("triage") != want:
+        if not fm or fm.get("waits_on") != "agent":
+            continue
+        # --failed narrows to items that errored; they stay in the queue, because an
+        # error is not a change of location.
+        if bool(fm.get("failed")) != bool(args.failed):
             continue
         if not match_query(fm, where, without):
             continue
@@ -932,9 +1028,9 @@ def cmd_inbox(args):
             others += 1
             continue
         found += 1
-        meta = fm.get("meta") if isinstance(fm.get("meta"), dict) else {}
-        extra = f"  error: {meta.get('error', '')}" if want == "failed" else ""
+        extra = f"  error: {fm['failed']}" if fm.get("failed") else ""
         print(f"{base.rel(p)}  [{fm.get('captured_at', '?')}]{extra}")
+    want = "failed" if args.failed else "pending"
     print(f"({found} {want} item{'s' if found != 1 else ''})")
     if others:
         # A count, never a path: the point is to say the queue is not empty for
@@ -1179,7 +1275,8 @@ def cmd_lint(args):
             info.append(f"{rel}: no description (index entries come from it)")
         if types and fm.get("type") not in types:
             findings.append(f"{rel}: type {fm.get('type')!r} not in base.yml types")
-        unknown = set(fm) - UNIVERSAL_FIELDS - extensions - RAW_FIELDS
+        unknown = set(fm) - UNIVERSAL_FIELDS - extensions - RAW_FIELDS \
+            - PENDING_FIELDS
         if unknown:
             findings.append(f"{rel}: fields outside schema (move under meta:): "
                             f"{sorted(unknown)}")
@@ -1245,7 +1342,8 @@ def cmd_lint(args):
         if not (base.root / f"{t}.md").exists() and not (base.root / t).exists():
             findings.append(f"index drift: dead index entry [[{t}]]")
 
-    # raw checks
+    # raw checks. _raw/ is flat and immutable; there is no triage: to validate, because
+    # being here IS "ingested".
     for p in base.raw_dir.rglob("*.md") if base.raw_dir.is_dir() else []:
         if "AGENTS" in p.name:
             continue
@@ -1254,13 +1352,41 @@ def cmd_lint(args):
         if fm is None:
             findings.append(f"{rel}: raw file without frontmatter")
             continue
-        tri = fm.get("triage")
-        if tri not in TRIAGE_STATES:
-            findings.append(f"{rel}: triage {tri!r} not in {sorted(TRIAGE_STATES)}")
-        if tri == "failed":
-            critical.append(f"{rel}: capture in failed state — needs review")
+        if p.parent != base.raw_dir:
+            findings.append(f"{rel}: _raw/ is flat — type: and source: already carry "
+                            f"what a subdirectory would say")
         if "source_sha256" not in fm:
             findings.append(f"{rel}: missing source_sha256 (dedup key)")
+        for gone in ("kind", "waits_on"):
+            if gone in fm:
+                findings.append(f"{rel}: ingested files carry no {gone}: — that field "
+                                f"belongs to the queue the item has left")
+
+    # pending queue checks
+    for p in sorted(base.pending_dir.glob("*.md")) if base.pending_dir.is_dir() else []:
+        rel = base.rel(p)
+        fm, _ = read_frontmatter(p)
+        if fm is None:
+            findings.append(f"{rel}: pending entry without frontmatter")
+            continue
+        if fm.get("kind") not in PENDING_KINDS:
+            findings.append(f"{rel}: kind {fm.get('kind')!r} not in "
+                            f"{sorted(PENDING_KINDS)}")
+        if fm.get("waits_on") not in WAITS_ON:
+            findings.append(f"{rel}: waits_on {fm.get('waits_on')!r} not in "
+                            f"{sorted(WAITS_ON)}")
+        if fm.get("failed"):
+            critical.append(f"{rel}: capture failed ({fm['failed']}) — it stays in the "
+                            f"queue until a human or a retry clears it")
+        created = str(fm.get("created", ""))
+        if fm.get("waits_on") == "human" and created:
+            try:
+                age = (_dt.date.today() - _dt.date.fromisoformat(created[:10])).days
+                if age > args.stale_pending_days:
+                    findings.append(f"{rel}: waiting on a human for {age}d — nothing "
+                                    f"will move it but a person")
+            except ValueError:
+                findings.append(f"{rel}: unparseable created {created!r}")
 
     # backups + LFS dodgers
     lfs_patterns = []
@@ -1403,7 +1529,12 @@ def cmd_lint(args):
     # a list filter, not a threshold, so the check is an existence test — and it is
     # the falsifiable half of the rule the route skill states in prose.
     bar = float((load_registry(args) or {}).get("confidence_bar", 0.7) or 0.7)
-    for p in base.raw_dir.rglob("*.md") if base.raw_dir.is_dir() else []:
+    # Both halves of the capture path: an LLM-routed capture is a violation the moment
+    # it is written, not only once it is ingested — checking _raw/ alone would let one
+    # sit in the queue unreported.
+    routable = (list(base.raw_dir.rglob("*.md")) if base.raw_dir.is_dir() else []) \
+        + (sorted(base.pending_dir.glob("*.md")) if base.pending_dir.is_dir() else [])
+    for p in routable:
         if "AGENTS" in p.name:
             continue
         fm, _ = read_frontmatter(p)
@@ -1581,8 +1712,8 @@ def _sync_one(root: Path, name: str, agent: str = "agent:main",
         if pull.returncode != 0 and not _remote_ref_missing(pull):
             git(root, "merge", "--abort")
             if base:
-                entry = base.review(
-                    f"sync conflict ({name})",
+                entry = base.pending_add(
+                    "conflict", "human", f"sync conflict ({name})",
                     "`git pull` hit a conflict and was aborted cleanly. The base is "
                     "consistent but behind its remote — resolve by hand, then push.",
                     agent)
@@ -1605,14 +1736,14 @@ def _sync_one(root: Path, name: str, agent: str = "agent:main",
 
 
 def cmd_refuse(args):
-    """Record a refused write: a `refuse` commit plus a review-queue entry ([D] per
+    """Record a refused write: a `refuse` commit plus a pending entry ([D] per
     kb-authorization §3.1). The payload stays with the caller — this only records.
     A refusal is one of the events git could not otherwise hold, since by definition
     nothing else changed; the queue entry is what gives it a file to commit."""
     base = resolve_base(args)
     agent, author, _ = acting(args, base)
-    entry = base.review(
-        f"refused write — {args.path}",
+    entry = base.pending_add(
+        "refusal", "human", f"refused write — {args.path}",
         f"Subject `{args.subject or agent}` was refused `{args.verb}` on "
         f"`{args.path}`: {args.reason or 'no grant'}. The payload stays with the "
         f"caller; install the capability properly (grants via the diff gate) or "
@@ -1803,6 +1934,22 @@ def main():
     p.add_argument("--audit-days", type=int, default=8)
     p.set_defaults(func=cmd_adopt)
 
+    p = sub.add_parser("ingest", help="pending capture -> _raw/ (a git mv: location is "
+                       "the state, and history has to follow)")
+    p.add_argument("path", nargs="+")
+    p.set_defaults(func=cmd_ingest)
+
+    p = sub.add_parser("pending", help="the one queue: add | list | resolve")
+    p.add_argument("op", choices=["add", "list", "resolve"])
+    p.add_argument("path", nargs="*", help="resolve: the entries to clear")
+    p.add_argument("--kind", choices=sorted(PENDING_KINDS), default="finding")
+    p.add_argument("--waits-on", choices=sorted(WAITS_ON), default="human")
+    p.add_argument("--title", default="pending item")
+    p.add_argument("--body", help="short body inline")
+    p.add_argument("--file", help="body from a file, or - for stdin")
+    add_query_args(p)
+    p.set_defaults(func=cmd_pending)
+
     p = sub.add_parser("find", help="metadata query over every page (`search` is the "
                        "full-text one — different question, both stay)")
     add_query_args(p)
@@ -1852,6 +1999,8 @@ def main():
                        "the report is the interface)")
     p.add_argument("--write-report", action="store_true")
     p.add_argument("--audit-days", type=int, default=8)
+    p.add_argument("--stale-pending-days", type=int, default=14,
+                   help="an entry waiting on a human longer than this is a finding")
     p.add_argument("--ci", action="store_true",
                    help="exit 1 on any critical — for a hook or an unattended runner "
                         "that needs a verdict rather than a report")
