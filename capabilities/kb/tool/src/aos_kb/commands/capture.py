@@ -167,13 +167,18 @@ def cmd_pending_add(
 ):
     """agents were hand-writing markdown into queue files, and --file is what makes a
     long body practical."""
-    base = resolve_base(ctx.obj)
+    # Argparse's choices= validated --kind/--waits-on before the subcommand body ever
+    # ran, so a bad value was always the reported error even with no resolvable base.
+    # PENDING_KINDS/WAITS_ON are runtime sets, not literals, so they can't become a
+    # static Literal[...] the way audience/sync/curation did — checked by hand here,
+    # deliberately BEFORE resolve_base(), to keep that ordering.
     if kind not in PENDING_KINDS:
         die(f"unknown --kind {kind!r} — the closed set is "
             f"{' '.join(sorted(PENDING_KINDS))}")
     if waits_on not in WAITS_ON:
         die(f"unknown --waits-on {waits_on!r} — the closed set is "
             f"{' '.join(sorted(WAITS_ON))}")
+    base = resolve_base(ctx.obj)
     agent, author, _ = acting(ctx.obj, base)
     if file == "-":
         body = sys.stdin.read()
