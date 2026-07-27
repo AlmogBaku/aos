@@ -7,12 +7,12 @@ if [ ! -d node_modules ]; then
   npm ci --no-audit --no-fund
 fi
 
-# tier 0 — the base tool: unit suite + the shipped example base must lint clean
+# tier 0 — the kb tool: unit suite + the shipped example base must lint clean
 # (template/example/tool drift breaks the build here, before anything else runs)
 if command -v uv >/dev/null 2>&1; then
-  uv run --quiet tests/tool/test_base.py
+  uv run --quiet tests/tool/test_kb.py
   uv run --quiet tests/tool/test_lock.py
-  uv run --quiet --project capabilities/kb/tool base \
+  uv run --quiet --project capabilities/kb/tool kb \
     --base tests/fixtures/example-base lint | tee /tmp/example-base-lint.txt
   grep -q "Critical (0)" /tmp/example-base-lint.txt
   grep -q "Findings (0)" /tmp/example-base-lint.txt

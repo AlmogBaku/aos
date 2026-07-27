@@ -1,12 +1,12 @@
-# aos-base — the kb capability's tool
+# aos-kb — the kb capability's tool
 
 Capability-shipped deterministic executor (ARCHITECTURE §2.4; RFC-004's outcome).
 Installed at capability-install time:
 
-    uv tool install --from <home>/upstream/capabilities/kb/tool aos-base
+    uv tool install --from <home>/upstream/capabilities/kb/tool aos-kb
 
 …which puts the `base` command on PATH (recorded in the lockfile; removal =
-`uv tool uninstall aos-base`). Zero-install alternative for one-off use:
+`uv tool uninstall aos-kb`). Zero-install alternative for one-off use:
 
     uvx --from <home>/upstream/capabilities/kb/tool base --help
 

@@ -3,8 +3,8 @@ revision = 3
 requires-python = ">=3.9"
 
 [[package]]
-name = "aos-base"
-version = "0.3.0"
+name = "aos-kb"
+version = "0.7.0"
 source = { editable = "." }
 dependencies = [
     { name = "pyyaml" },

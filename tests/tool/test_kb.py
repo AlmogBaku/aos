@@ -3,11 +3,11 @@
 # requires-python = ">=3.9"
 # dependencies = ["pyyaml>=6.0"]
 # ///
-"""Tier-0 tests for the kb capability's `base` tool (capabilities/kb/tool).
+"""Tier-0 tests for the kb capability's `kb` tool (capabilities/kb/tool).
 
 Pattern (per the spec's testing doctrine): black-box subprocess invocation against
 throwaway bases — the report/stdout text is the contract; no imports of tool
-internals. Run: uv run tests/tool/test_base.py
+internals. Run: uv run tests/tool/test_kb.py
 """
 import os
 import re
@@ -46,7 +46,7 @@ def git_env(extra=None):
 
 def run(args, env_extra=None, cwd=None):
     return subprocess.run(["uv", "run", "--quiet", "--project", str(TOOL_DIR),
-                           "base", *args],
+                           "kb", *args],
                           capture_output=True, text=True,
                           env=git_env(env_extra), cwd=cwd)
 
@@ -753,6 +753,30 @@ class SharedBaseTest(unittest.TestCase):
         self.assertEqual(len(caps), 2, [p.name for p in caps])
         self.assertFalse(list((clone / "_ops" / "needs-review").glob("*.md"))
                          if (clone / "_ops" / "needs-review").is_dir() else [])
+
+
+class PackagingTest(unittest.TestCase):
+    """The command is `kb`, because `base<TAB>` is ambiguous against base32/base64/
+    basename on every Linux box. `base == repo` survives as the *concept* — a command
+    needn't be named after its object (`git` acts on repositories)."""
+
+    def test_the_command_is_kb(self):
+        # `--version` also reports the layout; that it reads 2 is LayoutTest's
+        # assertion, since LAYOUT flips in the task that can honour it.
+        r = run(["--version"])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("kb 0.7.0", r.stdout)
+
+    def test_the_old_command_name_is_gone(self):
+        pyproject = (TOOL_DIR / "pyproject.toml").read_text()
+        self.assertIn('name = "aos-kb"', pyproject)
+        self.assertIn('kb = "aos_kb.cli:main"', pyproject)
+        # The old names, spelled defensively: a `sed` sweep of the module name would
+        # otherwise rewrite these assertions into tautologies.
+        old_pkg, old_mod = "aos" + "-base", "aos" + "_base"
+        self.assertNotIn(old_pkg, pyproject)
+        self.assertNotIn(old_mod, pyproject)
+        self.assertFalse((TOOL_DIR / "src" / old_mod).exists())
 
 
 if __name__ == "__main__":
