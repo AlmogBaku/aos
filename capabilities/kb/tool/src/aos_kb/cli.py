@@ -108,6 +108,114 @@ def write_frontmatter(path: Path, fm: dict, body: str):
     path.write_text(f"---\n{front}\n---\n{body}", encoding="utf-8")
 
 
+# ---------------------------------------------------------------- query
+#
+# Generic over frontmatter on purpose: kb does not need to know a field to filter on
+# it, which is what lets work-tracker own `due:` while `--where due<today+3d` still
+# works. Date arithmetic lives HERE rather than in a prompt — an LLM computing
+# "7 days before 2026-08-03" gets it wrong silently.
+OPS = ("<=", ">=", "<", ">", "=")
+REL_RE = re.compile(r"^today(?:([+-])(\d+)([dw]))?$")
+
+
+def resolve_date(token: str):
+    """`today`, `today+7d`, `today-2w` -> a date. Anything else -> None."""
+    m = REL_RE.match(token.strip())
+    if not m:
+        return None
+    sign, n, unit = m.groups()
+    if not sign:
+        return _dt.date.today()
+    days = int(n) * (7 if unit == "w" else 1)
+    return _dt.date.today() + _dt.timedelta(days=days if sign == "+" else -days)
+
+
+def parse_where(exprs) -> list:
+    out = []
+    for raw in exprs or []:
+        for op in OPS:                      # longest first: <= before <
+            i = raw.find(op)
+            if i > 0:
+                key, val = raw[:i].strip(), raw[i + len(op):].strip()
+                if not key or not val or any(o in val for o in ("<", ">", "=")):
+                    die(f"--where {raw!r} doesn't parse as key<op>value "
+                        f"(ops: {' '.join(OPS)})")
+                if val.startswith("today") and resolve_date(val) is None:
+                    die(f"--where {raw!r}: relative dates are today[+-]N[d|w]")
+                out.append((key, op, val))
+                break
+        else:
+            die(f"--where {raw!r} doesn't parse as key<op>value "
+                f"(ops: {' '.join(OPS)})")
+    return out
+
+
+def fm_get(fm: dict, dotted: str):
+    """Dotted paths reach nested frontmatter (meta.status)."""
+    cur = fm
+    for part in dotted.split("."):
+        if not isinstance(cur, dict) or part not in cur:
+            return None
+        cur = cur[part]
+    return cur
+
+
+def _coerce(a, b):
+    """Compare as dates when both sides look like dates, else as strings."""
+    def as_date(raw):
+        s = str(raw)
+        d = resolve_date(s)
+        if d is not None:
+            return d
+        try:
+            return _dt.date.fromisoformat(s[:10])
+        except ValueError:
+            return None
+    da, db = as_date(a), as_date(b)
+    if da and db:
+        return da, db
+    return str(a), str(resolve_date(str(b)) or b)
+
+
+def match_query(fm: dict, where: list, without=None) -> bool:
+    for key in without or []:
+        if fm_get(fm, key) is not None:
+            return False
+    for key, op, val in where:
+        got = fm_get(fm, key)
+        if got is None:
+            return False        # a missing field never satisfies a comparison
+        if op == "=":
+            if str(got).strip().lower() != val.strip().lower():
+                return False
+            continue
+        left, right = _coerce(got, val)
+        if op == "<" and not left < right:
+            return False
+        if op == "<=" and not left <= right:
+            return False
+        if op == ">" and not left > right:
+            return False
+        if op == ">=" and not left >= right:
+            return False
+    return True
+
+
+def add_query_args(p):
+    """Every fetch verb takes the same two flags — deterministic filtering by metadata
+    on ALL fetch methods, not just inbox."""
+    p.add_argument("--where", action="append", default=[], metavar="key<op>value",
+                   help="repeatable; dotted paths; ops < <= > >= = ; relative dates "
+                        "today[+-]N[d|w]")
+    p.add_argument("--without", action="append", default=[], metavar="key",
+                   help="the field is absent")
+
+
+def query_of(args):
+    """(where, without) for a verb that called add_query_args."""
+    return parse_where(getattr(args, "where", None)), getattr(args, "without", None)
+
+
 def glob_to_re(pattern: str) -> re.Pattern:
     """git-style glob: ** crosses /, * does not."""
     out = []
@@ -781,6 +889,24 @@ def cmd_capture(args):
         print(f"captured: {base.rel(dst)} (triage: pending)")
 
 
+def cmd_find(args):
+    """`kb find` answers a metadata question; `kb search` answers a full-text one.
+    Both stay: they are different questions."""
+    base = resolve_base(args)
+    where, without = query_of(args)
+    hits = 0
+    for p in list(base.md_files(kinds=("wiki", "raw"))) + \
+            sorted(base.pending_dir.glob("*.md")):
+        fm, _ = read_frontmatter(p)
+        if not fm or not match_query(fm, where, without):
+            continue
+        hits += 1
+        fields = [f"{k}={fm_get(fm, k)}" for k, _, _ in where] or \
+                 [f"type={fm.get('type', '?')}"]
+        print(f"{base.rel(p)}  {' '.join(fields)}")
+    print(f"({hits} match{'es' if hits != 1 else ''})")
+
+
 def cmd_inbox(args):
     """The inbox is a view, and by default it is *this principal's* view.
 
@@ -793,11 +919,14 @@ def cmd_inbox(args):
     # Read-only, so it resolves without establishing: see resolve_principal's `persist`.
     principal = resolve_principal(args, base.cfg.get("name", base.root.name),
                                  base.root, persist=False)
+    where, without = query_of(args)
     want = "failed" if args.failed else "pending"
     found = others = 0
     for p in sorted(base.raw_dir.rglob("*.md")):
         fm, _ = read_frontmatter(p)
         if not fm or fm.get("triage") != want:
+            continue
+        if not match_query(fm, where, without):
             continue
         if not args.all and fm.get("captured_by", "user") != principal:
             others += 1
@@ -826,17 +955,28 @@ def cmd_state(args):
         base.commit("state", sp, summary, agent, author)
 
     if args.op == "show":
+        # Here the query filters ITEMS, not files — an item is a dict, so match_query
+        # works on it unchanged.
+        where, without = query_of(args)
+
+        def keep(data: dict) -> dict:
+            if not where and not without:
+                return data
+            return {**data, "items": [it for it in (data.get("items") or [])
+                                      if isinstance(it, dict)
+                                      and match_query(it, where, without)]}
+
         if getattr(args, "all", False):
             # The union across shards is the team's current-truth view; each shard
             # still has exactly one writer, which is what keeps it mergeable.
             for p in base.state_paths():
                 data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
                 print(f"# {base.rel(p)}")
-                print(yaml.safe_dump(data, sort_keys=False,
+                print(yaml.safe_dump(keep(data), sort_keys=False,
                                      allow_unicode=True).strip())
                 print()
             return
-        print(yaml.safe_dump(st, sort_keys=False, allow_unicode=True).strip())
+        print(yaml.safe_dump(keep(st), sort_keys=False, allow_unicode=True).strip())
         return
     if args.op == "check":
         stale = []
@@ -909,7 +1049,11 @@ def _collect_pages(base: Base):
 
 def cmd_search(args):
     base = resolve_base(args)
-    pages = _collect_pages(base)
+    where, without = query_of(args)
+    # The filter narrows the candidate set, so it composes with the full-text ranking
+    # rather than replacing it: `find` asks a metadata question, `search` a text one.
+    pages = [pg for pg in _collect_pages(base)
+             if match_query(pg["fm"], where, without)]
     q = args.query.strip()
     ql = q.lower()
 
@@ -943,8 +1087,9 @@ def cmd_search(args):
     print(f"-- create_safety: {'exists' if exact else ('probable' if rows else 'unknown')}")
 
 
-def _link_graph(base: Base):
-    """Return (outlinks: rel -> set(rel), known: set of page rel-stems)."""
+def _link_graph(base: Base, where=None, without=None):
+    """Return outlinks: rel -> set(rel). A query narrows which pages are *reported*,
+    never which are resolvable — a link into a filtered-out page is still a link."""
     pages = list(base.md_files(kinds=("wiki", "raw")))
     stems = {}
     for p in pages:
@@ -976,11 +1121,19 @@ def _link_graph(base: Base):
 
 def cmd_links(args):
     base = resolve_base(args)
+    where, without = query_of(args)
     graph = _link_graph(base)
+
+    def selected(rel: str) -> bool:
+        if not where and not without:
+            return True
+        fm, _ = read_frontmatter(base.root / rel)
+        return bool(fm) and match_query(fm, where, without)
+
     if args.orphans:
         inbound = {t for targets in graph.values() for t in targets}
         for rel in sorted(graph):
-            if rel not in inbound and not rel.startswith("raw/"):
+            if rel not in inbound and not rel.startswith("_raw/") and selected(rel):
                 print(f"orphan  {rel}")
         return
     page = args.page
@@ -1650,7 +1803,12 @@ def main():
     p.add_argument("--audit-days", type=int, default=8)
     p.set_defaults(func=cmd_adopt)
 
-    p = sub.add_parser("capture", help="instant mechanical capture into raw/captures/")
+    p = sub.add_parser("find", help="metadata query over every page (`search` is the "
+                       "full-text one — different question, both stay)")
+    add_query_args(p)
+    p.set_defaults(func=cmd_find)
+
+    p = sub.add_parser("capture", help="instant mechanical capture into .kb/pending/")
     p.add_argument("--text")
     p.add_argument("--file")
     p.add_argument("--title")
@@ -1663,6 +1821,7 @@ def main():
     p.add_argument("--all", action="store_true",
                    help="include other principals' items (designated-curator and CI "
                         "path); default is yours alone")
+    add_query_args(p)
     p.set_defaults(func=cmd_inbox)
 
     p = sub.add_parser("state", help="attention-window ops (capped)")
@@ -1673,17 +1832,20 @@ def main():
     p.add_argument("--stale-days", type=int, default=42)
     p.add_argument("--all", action="store_true",
                    help="show: the union across every principal's shard")
+    add_query_args(p)
     p.set_defaults(func=cmd_state)
 
     p = sub.add_parser("search", help="BM25 over the base; exact/alias hits first "
                        "with a create-safety verdict")
     p.add_argument("query")
     p.add_argument("--limit", type=int, default=10)
+    add_query_args(p)
     p.set_defaults(func=cmd_search)
 
     p = sub.add_parser("links", help="backlinks / outbound / orphans")
     p.add_argument("page", nargs="?")
     p.add_argument("--orphans", action="store_true")
+    add_query_args(p)
     p.set_defaults(func=cmd_links)
 
     p = sub.add_parser("lint", help="the deterministic check catalog (report-only; "

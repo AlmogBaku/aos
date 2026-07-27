@@ -9,6 +9,7 @@ Pattern (per the spec's testing doctrine): black-box subprocess invocation again
 throwaway bases — the report/stdout text is the contract; no imports of tool
 internals. Run: uv run tests/tool/test_kb.py
 """
+import datetime as _dt
 import os
 import re
 import subprocess
@@ -1030,6 +1031,128 @@ class LayoutTest(unittest.TestCase):
     def test_the_registry_entry_carries_no_methodology(self):
         # The seam dissolved — kb IS the methodology — so the field had no reader.
         self.assertNotIn("methodology", self.reg.read_text())
+
+
+class QueryTest(unittest.TestCase):
+    """`--where` / `--without` on every fetch verb.
+
+    Generic over frontmatter on purpose: kb does not need to know a field to filter on
+    it, which is what lets work-tracker own `due:` while `--where due<today+3d` still
+    works. Date arithmetic lives in the tool — an LLM computing "7 days before
+    2026-08-03" gets it wrong silently."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "dana@example.com",
+                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "queries",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        d = _dt.date.today()
+        self.page("projects/cfp.md", type="project", status="next",
+                  due=(d + _dt.timedelta(days=3)).isoformat(), estimate="45m")
+        self.page("projects/old.md", type="project", status="next",
+                  due=(d - _dt.timedelta(days=1)).isoformat())
+        self.page("projects/someday.md", type="project", status="someday")
+        self.page("concepts/bm25.md", type="concept",
+                  expires=(d + _dt.timedelta(days=2)).isoformat())
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args):
+        return run(["--base", str(self.root), *args], self.env)
+
+    def page(self, rel, body="Body text.", **fm):
+        p = self.root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        fm.setdefault("title", p.stem)
+        fm.setdefault("created", _dt.date.today().isoformat())
+        front = "\n".join(f"{k}: {v}" for k, v in fm.items())
+        p.write_text(f"---\n{front}\n---\n{body}\n")
+        return p
+
+    def test_where_equality_and_repeatability(self):
+        r = self.b("find", "--where", "type=project", "--where", "status=next")
+        self.assertIn("projects/cfp.md", r.stdout)
+        self.assertIn("projects/old.md", r.stdout)
+        self.assertNotIn("someday", r.stdout)
+        self.assertNotIn("bm25", r.stdout)
+
+    def test_without_finds_absence(self):
+        # A query language that cannot ask "is this field missing" is half a language:
+        # "committed but unscheduled" is exactly --without block.
+        r = self.b("find", "--where", "type=project", "--without", "due")
+        self.assertIn("someday", r.stdout)
+        self.assertNotIn("cfp", r.stdout)
+
+    def test_comparisons_and_relative_dates(self):
+        r = self.b("find", "--where", "due<today+7d")
+        self.assertIn("cfp", r.stdout)
+        self.assertIn("old", r.stdout)
+        r = self.b("find", "--where", "due<today")
+        self.assertIn("old", r.stdout)
+        self.assertNotIn("cfp", r.stdout)
+        r = self.b("find", "--where", "expires<today+7d")
+        self.assertIn("bm25", r.stdout)
+
+    def test_relative_weeks_and_negative_offsets(self):
+        r = self.b("find", "--where", "due>today-2w")
+        self.assertIn("old", r.stdout)
+
+    def test_inclusive_comparisons(self):
+        today = _dt.date.today().isoformat()
+        self.page("projects/now.md", type="project", due=today)
+        self.assertIn("now.md", self.b("find", "--where", "due<=today").stdout)
+        self.assertIn("now.md", self.b("find", "--where", "due>=today").stdout)
+        self.assertNotIn("now.md", self.b("find", "--where", "due<today").stdout)
+
+    def test_dotted_paths_reach_into_nested_frontmatter(self):
+        self.page("concepts/routed.md", type="concept",
+                  meta="{status: uncertain, method: rule}")
+        r = self.b("find", "--where", "meta.status=uncertain")
+        self.assertIn("routed", r.stdout)
+
+    def test_every_fetch_verb_takes_the_query(self):
+        for verb in (["find"], ["inbox"], ["search", "cfp"], ["links", "--orphans"],
+                     ["state", "show"]):
+            r = self.b(*verb, "--where", "type=project")
+            self.assertEqual(r.returncode, 0, f"{verb}: {r.stderr}")
+
+    def test_search_narrows_to_the_query(self):
+        # The two verbs answer different questions — `find` a metadata one, `search` a
+        # full-text one — and the filter has to compose with the second, not replace it.
+        self.page("concepts/cfp-notes.md", type="concept", body="cfp thoughts")
+        out = self.b("search", "cfp", "--where", "type=project").stdout
+        self.assertIn("projects/cfp.md", out)
+        self.assertNotIn("cfp-notes", out)
+
+    def test_a_malformed_query_is_refused_not_silently_empty(self):
+        r = self.b("find", "--where", "due<<today")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("--where", r.stderr)
+        r = self.b("find", "--where", "due<today+3q")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("d|w", r.stderr)
+        r = self.b("find", "--where", "nonsense")
+        self.assertNotEqual(r.returncode, 0)
+
+    def test_comparing_a_missing_field_excludes_rather_than_crashes(self):
+        r = self.b("find", "--where", "nosuchfield<today")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("(0 ", r.stdout)
+
+    def test_find_reports_a_count_and_the_fields_asked_about(self):
+        r = self.b("find", "--where", "type=concept")
+        self.assertIn("type=concept", r.stdout)
+        self.assertIn("(1 match)", r.stdout)
 
 
 class PackagingTest(unittest.TestCase):
