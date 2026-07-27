@@ -1,0 +1,323 @@
+"""The three verbs that create or convert a base's on-disk identity: `init`
+scaffolds one, `adopt` registers an existing tree, `migrate` carries a LAYOUT 1 base
+to LAYOUT 2. Grouped together because each shares the "does this tree already have a
+.kb/base.yml?" question at the top, and `migrate` deliberately shadows the global
+`--base` (the shared one resolves through `Base()`, which refuses a layout 1 tree by
+design — migrate is the one verb that must accept one)."""
+
+import shutil
+import subprocess
+from pathlib import Path
+
+import yaml
+
+from ..constants import LAYOUT
+from ..frontmatter import slugify, read_frontmatter, write_frontmatter
+from ..identity import (
+    today, die, agent_subject, is_repo, git, is_weak_principal, principal_file,
+    resolve_principal, principal_name,
+)
+from ..registry import load_registry, save_registry, find_upstream_root
+from ..base import Base, acting
+# cmd_adopt calls into lint's report-generation logic directly (a mutated Namespace
+# today; an explicit-defaults function call once the typer port lands). No cycle:
+# lint.py imports from wiki.py, never from lifecycle.py.
+from .lint import cmd_lint
+
+
+def cmd_init(args):
+    root = Path(args.path).expanduser().resolve()
+    if (root / ".kb" / "base.yml").exists():
+        die(f"{root} already has a .kb/base.yml")
+    tpl = Path(args.templates).expanduser() if args.templates else \
+        find_upstream_root() / "capabilities" / "kb" / "skills" / "init" / "templates"
+    if not (tpl / "base.yml").exists():
+        die(f"templates not found at {tpl} (pass --templates)")
+    root.mkdir(parents=True, exist_ok=True)
+
+    subs = {"{{name}}": args.name, "{{today}}": today(),
+            "{{version}}": args.kb_version, "{{audience}}": args.audience,
+            "{{purpose}}": (args.purpose or "").strip(),
+            "{{sync_mode}}": args.sync,
+            "{{curation}}": args.curation,          # self | designated
+            "{{curator}}": args.curator or ""}      # principal id, iff designated
+
+    rendered = []
+
+    def render(src: Path, dst: Path):
+        text = src.read_text(encoding="utf-8")
+        for k, v in subs.items():
+            text = text.replace(k, v)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_text(text, encoding="utf-8")
+        rendered.append(dst)
+
+    render(tpl / "base.yml", root / ".kb" / "base.yml")
+    for name in ["AGENTS.md", "index.md"]:
+        render(tpl / name, root / name)
+
+    base = Base(root)
+    pid = resolve_principal(args, args.name, root)
+    render(tpl / "state.yml", base.state_path(pid))
+
+    for zone, d in base.zones().items():
+        (root / zone).mkdir(exist_ok=True)
+        zone_tpl = tpl / "zones" / f"{zone}.AGENTS.md"
+        if zone_tpl.exists():
+            render(zone_tpl, root / zone / "AGENTS.md")
+        for sub in (d or {}).get("subdirs", []) if isinstance(d, dict) else []:
+            (root / zone / sub).mkdir(exist_ok=True)
+    for d in (base.pending_dir, base.work_dir, base.cache_dir, base.raw_dir):
+        d.mkdir(parents=True, exist_ok=True)
+    (root / ".gitignore").write_text(".kb/cache/\n", encoding="utf-8")
+    if (tpl / "gitattributes").exists():
+        render(tpl / "gitattributes", root / ".gitattributes")
+
+    # A missing substitution is silent otherwise, and an unrendered {{curation}} in a
+    # committed base.yml is a parse error waiting to happen.
+    for p in rendered:
+        if "{{" in p.read_text(encoding="utf-8"):
+            die(f"{base.rel(p)}: unrendered placeholder left after templating — "
+                f"a template introduced a variable this tool does not substitute", 14)
+
+    subprocess.run(["git", "init", "-q"], cwd=root, check=False)
+    lfs = subprocess.run(["git", "lfs", "version"], capture_output=True, check=False)
+    if lfs.returncode == 0:
+        subprocess.run(["git", "lfs", "install", "--local"], cwd=root,
+                       capture_output=True, check=False)
+    else:
+        print("note: git-lfs not installed — large non-text files won't be "
+              "LFS-tracked until it is (`git lfs install --local` later).")
+    # The user's own git identity authors every write from here on. We deliberately do
+    # NOT overwrite it with a per-base agent identity: that erased the one attribution
+    # git gives for free, and on a base two people share it made both of them the same
+    # author. The acting agent is recorded as the committer instead.
+    if is_weak_principal(pid):
+        print(f"note: writes will be authored by {pid!r}, a synthesized identity — "
+              f"`kb lint` reports it. Fix it in {principal_file()}, or let kb's "
+              f"onboarding interview ask.")
+    if args.remote:
+        subprocess.run(["git", "remote", "add", "origin", args.remote],
+                       cwd=root, check=False)
+
+    reg = load_registry(args)
+    existing = next((k for k in reg["kbs"] if k.get("name") == args.name), None)
+    if existing:
+        # A pre-seeded registry entry (interview ran first) is fine iff it points at
+        # this path and the tree doesn't exist yet — init fills it in. Anything else
+        # is a genuine duplicate.
+        if Path(existing.get("path", "")).expanduser().resolve() != root:
+            die(f"base {args.name!r} already registered at a different path")
+        existing.setdefault("tag", args.tag or args.name)
+        if (args.purpose or "").strip():
+            existing["purpose"] = args.purpose.strip()
+    else:
+        entry = {"name": args.name, "tag": args.tag or args.name,
+                 "path": str(root), "remote": args.remote,
+                 "sync": args.sync, "audience": args.audience,
+                 # No methodology: field — the seam dissolved (kb IS the methodology),
+                 # so the line wrote a value with no reader.
+                 "purpose": (args.purpose or "").strip(),
+                 "routing": {"channels": [], "keywords": []}}
+        reg["kbs"].append(entry)
+    if args.default or not reg.get("default"):
+        reg["default"] = args.name
+    reg.setdefault("confidence_bar", 0.7)
+    save_registry(args, reg)
+
+    base.commit("bootstrap", ".", f"base {args.name} scaffolded (layout {LAYOUT})",
+                agent_subject(args), (principal_name(args, root, pid), pid))
+    print(f"base {args.name}: scaffolded at {root}, registered"
+          f"{' as default' if reg.get('default') == args.name else ''}.")
+
+
+def cmd_adopt(args):
+    root = Path(args.path).expanduser().resolve()
+    if not root.is_dir():
+        die(f"{root} is not a directory")
+    reg = load_registry(args)
+    if any(Path(k.get("path", "")).expanduser() == root for k in reg["kbs"]):
+        die(f"{root} already registered")
+    name = args.name or root.name
+    has_cfg = (root / ".kb" / "base.yml").exists()
+    audience = args.audience
+    if has_cfg:
+        Base(root)  # layout guard first: a mismatched tree must fail BEFORE registering
+        cfg = yaml.safe_load(
+            (root / ".kb" / "base.yml").read_text(encoding="utf-8")) or {}
+        # most-restrictive rule: base-side shared wins over a private claim
+        if cfg.get("audience") == "shared":
+            audience = "shared"
+    entry = {"name": name, "tag": name, "path": str(root), "remote": None,
+             "sync": "manual", "audience": audience,
+             "purpose": (args.purpose or "").strip(),
+             "routing": {"channels": [], "keywords": []}}
+    reg["kbs"].append(entry)
+    reg.setdefault("confidence_bar", 0.7)
+    save_registry(args, reg)
+    print(f"adopted {name} at {root} (audience: {audience}, sync: manual).")
+    print()
+    if has_cfg:
+        args.base = str(root)
+        args.write_report = False
+        cmd_lint(args)
+    else:
+        print("divergence: no .kb/base.yml — not a kit-native base. Report:")
+        for probe, label in [("AGENTS.md", "root contract"), ("index.md", "index"),
+                             (".kb/state", "state shards"), ("_raw", "_raw/ zone")]:
+            status = "present" if (root / probe).exists() else "MISSING"
+            print(f"  - {label}: {status}")
+        print("  convergence path: create .kb/base.yml (owner-approved zones/types), "
+              "then re-run `kb lint`. Nothing was written into the tree.")
+
+
+def cmd_migrate(args):
+    """LAYOUT 1 -> 2, with `git mv` for every move so history follows. Refuses a dirty
+    worktree: a migration that mixes with uncommitted work cannot be reverted cleanly,
+    and revert is the only undo this has."""
+    root = Path(getattr(args, "migrate_base", None) or args.base
+                or ".").expanduser().resolve()
+    if (root / ".kb" / "base.yml").exists():
+        print(f"{root}: already layout 2 — nothing to do.")
+        return
+    if not (root / "BASE.yaml").exists():
+        die(f"{root} is not a base (no BASE.yaml, no .kb/base.yml)", 10)
+    if is_repo(root) and git(root, "status", "--porcelain").stdout.strip():
+        die("uncommitted changes — commit or stash first. A migration that mixes "
+            "with uncommitted work cannot be reverted cleanly.", 13)
+
+    cfg = yaml.safe_load((root / "BASE.yaml").read_text(encoding="utf-8")) or {}
+    moved, dropped = [], []
+
+    def mv(src: str, dst: str):
+        s_path = root / src
+        if not s_path.exists():
+            return False
+        (root / dst).parent.mkdir(parents=True, exist_ok=True)
+        if is_repo(root) and git(root, "mv", src, dst).returncode == 0:
+            moved.append(f"{src} -> {dst}")
+            return True
+        s_path.rename(root / dst)
+        moved.append(f"{src} -> {dst}")
+        return True
+
+    def rm(rel: str):
+        p = root / rel
+        if not p.exists():
+            return
+        if not (is_repo(root) and git(root, "rm", "-r", "-q", "--", rel).returncode == 0):
+            shutil.rmtree(p, ignore_errors=True) if p.is_dir() else p.unlink()
+        dropped.append(rel)
+
+    # 1. the config, then rewritten in place below
+    mv("BASE.yaml", ".kb/base.yml")
+
+    # 2. state -> one shard per principal. The old flat file is this principal's by
+    #    definition: a layout 1 private base had exactly one writer.
+    pid = resolve_principal(args, cfg.get("name", root.name), root)
+    if (root / "state.yaml").exists():
+        mv("state.yaml", f".kb/state/{slugify(pid)}.yml")
+    old_shards = root / "state"
+    if old_shards.is_dir():
+        for shard in sorted(old_shards.glob("*.yaml")):
+            mv(f"state/{shard.name}", f".kb/state/{shard.stem}.yml")
+
+    # 3. raw/ -> _raw/ flat, and triage: becomes location. A pending capture goes to
+    #    .kb/pending/ instead, because that is now what "pending" means.
+    old_raw = root / "raw"
+    if old_raw.is_dir():
+        for p in sorted(old_raw.rglob("*.md")):
+            rel = p.relative_to(root).as_posix()
+            if "AGENTS" in p.name:
+                rm(rel)                       # the zone contract is re-rendered, not moved
+                continue
+            fm, body = read_frontmatter(p)
+            triage = str((fm or {}).get("triage", "done"))
+            dst_dir = ".kb/pending" if triage == "pending" else "_raw"
+            dst = f"{dst_dir}/{p.name}"
+            n = 2
+            while (root / dst).exists():
+                dst = f"{dst_dir}/{p.stem}-{n}.md"
+                n += 1
+            if not mv(rel, dst):
+                continue
+            if fm is None:
+                continue
+            fm.pop("triage", None)
+            if triage == "pending":
+                # The queue's own fields, added on the way in.
+                fm = {"title": fm.get("title", p.stem), "kind": "capture",
+                      "waits_on": "agent",
+                      **{k: v for k, v in fm.items() if k != "title"}}
+            elif triage == "failed":
+                fm["failed"] = "carried over from layout 1 triage: failed"
+            write_frontmatter(root / dst, fm, body)
+        rm("raw")
+
+    # 4. the review queue -> .kb/pending/, with the kind read off the old title
+    old_q = root / "_ops" / "needs-review"
+    if old_q.is_dir():
+        for p in sorted(old_q.glob("*.md")):
+            rel = p.relative_to(root).as_posix()
+            fm, body = read_frontmatter(p)
+            title = str((fm or {}).get("title", p.stem))
+            low = title.lower()
+            kind = ("refusal" if "refus" in low else
+                    "conflict" if "conflict" in low else
+                    "entity" if "entit" in low or "mention" in low else "finding")
+            dst = f".kb/pending/{p.name}"
+            if not mv(rel, dst):
+                continue
+            fm = fm or {"title": title}
+            fm.pop("status", None)            # in the directory IS open
+            fm = {"title": title, "kind": kind, "waits_on": "human",
+                  **{k: v for k, v in fm.items() if k != "title"}}
+            write_frontmatter(root / dst, fm, body)
+
+    # 5. import working files -> .kb/work/
+    for name in ("import-agreement.md", "import-progress.md"):
+        mv(f"_ops/{name}", f".kb/work/{name}")
+
+    # 6. what does not come forward. _archive/ is git rm'd rather than copied: the
+    #    history IS the archive, which is the whole argument for the directory going.
+    rm("_archive")
+    rm("_ops")
+    rm(".base")
+
+    # 7. the config, rewritten to layout 2
+    cfg["layout"] = LAYOUT
+    cfg.pop("methodology", None)              # the seam dissolved: kb IS the methodology
+    cfg.pop("principals", None)               # the grants table is the roster now
+    cfg.setdefault("curation", "self")
+    cfg.setdefault("curator", "")
+    zones = {}
+    for zone, d in (cfg.get("zones") or {}).items():
+        kind = (d or {}).get("kind") if isinstance(d, dict) else None
+        if kind in ("machinery", "archive"):
+            continue                          # both directories are gone
+        zones["_raw" if zone == "raw" else zone] = d
+    cfg["zones"] = zones
+    (root / ".kb" / "base.yml").write_text(
+        yaml.safe_dump(cfg, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    (root / ".gitignore").write_text(".kb/cache/\n", encoding="utf-8")
+    for d in (root / ".kb" / "pending", root / ".kb" / "work",
+              root / ".kb" / "cache", root / "_raw"):
+        d.mkdir(parents=True, exist_ok=True)
+
+    base = Base(root)
+    agent, author, _ = acting(args, base)
+    git(root, "add", "-A")
+    base.commit("migrate", ["."], f"{base.cfg.get('name', root.name)}: layout 1 -> "
+                f"{LAYOUT}", agent, author)
+
+    print(f"migrated {root} to layout {LAYOUT}.")
+    for m in moved:
+        print(f"  moved   {m}")
+    for d in dropped:
+        print(f"  dropped {d} (history keeps it)")
+    print()
+    print("Two things to do by hand:")
+    print("  1. `uv tool uninstall aos-base` — the old `base` command otherwise keeps "
+          "shadowing on PATH.")
+    print("  2. Re-read AGENTS.md: its grants rows still name layout 1 paths "
+          "(raw/**, _ops/**, state.yaml), and a stale glob refuses SILENTLY.")
