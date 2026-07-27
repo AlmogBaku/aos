@@ -5,8 +5,14 @@ frontmatter is a lint finding, not a crash."""
 import re
 import unicodedata
 from pathlib import Path
+from typing import Any, Optional
 
 import yaml
+
+# A page's `---`-delimited YAML block, once parsed: keys are whatever the schema
+# (UNIVERSAL_FIELDS/RAW_FIELDS/PENDING_FIELDS + a base's own extensions) allows —
+# too open for a TypedDict to buy anything over documenting the shape in one place.
+Frontmatter = dict[str, Any]
 
 
 def slugify(text: str, max_len: int = 60) -> str:
@@ -18,7 +24,7 @@ def slugify(text: str, max_len: int = 60) -> str:
 FRONTMATTER_RE = re.compile(r"^---\r?\n(.*?)\r?\n---\r?\n?", re.S)
 
 
-def read_frontmatter(path: Path):
+def read_frontmatter(path: Path) -> tuple[Optional[Frontmatter], str]:
     """Return (frontmatter dict or None, body str). Tolerant: bad YAML -> None.
     One parser for both halves: the same regex bounds the fm block and the body."""
     try:
@@ -37,7 +43,7 @@ def read_frontmatter(path: Path):
     return fm, text[m.end():]
 
 
-def write_frontmatter(path: Path, fm: dict, body: str):
+def write_frontmatter(path: Path, fm: Frontmatter, body: str):
     front = yaml.safe_dump(fm, sort_keys=False, allow_unicode=True).strip()
     path.write_text(f"---\n{front}\n---\n{body}", encoding="utf-8")
 

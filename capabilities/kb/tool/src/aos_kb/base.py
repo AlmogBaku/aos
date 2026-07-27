@@ -11,6 +11,7 @@ import datetime as _dt
 import os
 import subprocess
 from pathlib import Path
+from typing import NamedTuple
 
 import yaml
 
@@ -21,6 +22,14 @@ from .identity import (
     principal_name,
 )
 from .registry import load_registry
+
+
+class GrantRow(NamedTuple):
+    """One row of AGENTS.md's '## Grants' table: who (subject), on what
+    (object — a space-separated set of git-style globs), doing which verbs."""
+    subject: str
+    object: str
+    verbs: list[str]
 
 
 class Base:
@@ -112,8 +121,8 @@ class Base:
         every private base and needs no configuration at all."""
         pid = (pid or "").strip().lower()
         for row in self.grants():
-            if row["subject"].strip().lower() == pid:
-                return row["subject"]
+            if row.subject.strip().lower() == pid:
+                return row.subject
         return "user"
 
     # -- commits -----------------------------------------------------------
@@ -223,7 +232,7 @@ class Base:
         return int((self.cfg.get("state") or {}).get("max_items", 20))
 
     # -- grants ------------------------------------------------------------
-    def grants(self):
+    def grants(self) -> list[GrantRow]:
         """Parse the first markdown table under '## Grants' in AGENTS.md."""
         agents_md = self.root / "AGENTS.md"
         if not agents_md.exists():
@@ -241,19 +250,19 @@ class Base:
                     in_table = True
                     continue
                 if in_table and len(cells) >= 3:
-                    rows.append({"subject": cells[0], "object": cells[1],
-                                 "verbs": cells[2].split()})
+                    rows.append(GrantRow(subject=cells[0], object=cells[1],
+                                         verbs=cells[2].split()))
             elif in_table and line.strip():
                 break
         return rows
 
     def grant_check(self, subject: str, verb: str, path: str) -> bool:
         for row in self.grants():
-            subj_ok = row["subject"] == subject or (
-                row["subject"] == "*" and subject != "(unregistered)")
-            if not subj_ok or verb not in row["verbs"]:
+            subj_ok = row.subject == subject or (
+                row.subject == "*" and subject != "(unregistered)")
+            if not subj_ok or verb not in row.verbs:
                 continue
-            for pat in row["object"].split():
+            for pat in row.object.split():
                 if glob_to_re(pat).match(path):
                     return True
         return False

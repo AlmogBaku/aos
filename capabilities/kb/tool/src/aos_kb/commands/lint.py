@@ -278,7 +278,7 @@ def _lint_grants_audit(base: Base, global_opts, critical: list, findings: list,
     # in any grant row is somebody who left, or a typo that silently made a new person.
     # Only sharded state has an owner in its filename; the flat file belongs to
     # whoever holds the base, so its name says nothing about drift.
-    known = {r["subject"].strip().lower() for r in grants} | {pid.lower(), "user"}
+    known = {r.subject.strip().lower() for r in grants} | {pid.lower(), "user"}
     known_slugs = {slugify(k) for k in known}
     for sp in (base.state_paths() if base.audience() == "shared" else []):
         who = sp.stem
