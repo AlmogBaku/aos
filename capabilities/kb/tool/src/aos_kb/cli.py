@@ -46,10 +46,10 @@ LAYOUT = 2
 AOS_VERBS = {
     "create", "promote", "merge", "archive", "flag", "resolve", "sync-conflict",
     "lint", "route", "refuse", "capture", "state", "verify", "bootstrap",
-    "ingest", "pending",
+    "ingest", "pending", "prune", "set", "config", "migrate",
 }
 UNIVERSAL_FIELDS = {"title", "description", "type", "created", "timestamp", "tags",
-                    "aliases", "verified", "origin", "growth_stage", "meta"}
+                    "aliases", "verified", "origin", "meta", "expires", "review_by"}
 RAW_FIELDS = {"source", "source_sha256", "captured_at", "kb_routing",
               "captured_by", "source_origin", "corrects"}
 # .kb/pending/ — one file per item. A queue FILE is only justified when the work item
@@ -893,12 +893,17 @@ def cmd_capture(args):
         title = args.title or (content.strip().splitlines() or ["capture"])[0][:60]
     if not content.strip():
         die("empty capture")
+    corrects = (args.corrects or "").strip()
+    if corrects and not (base.root / corrects).exists():
+        # A path, not an id: lifecycle.md states "Identity is the file path (no slug
+        # field)", so inventing an id here would contradict a standing doctrine.
+        die(f"no such path to correct: {corrects}")
     agent, author, _ = acting(args, base)
     # Scoped by the principal ID, not their grants subject: dedup and the queue are
     # per *person*, and two people can share one grant row (or hold none, falling
     # back to `user`) without becoming one identity.
     dst = _do_capture(base, content, title, args.source or "manual",
-                      agent, author, author[1])
+                      agent, author, author[1], corrects=corrects)
     if dst:
         print(f"captured: {base.rel(dst)} (pending, waits_on: agent)")
 
@@ -1308,15 +1313,9 @@ def cmd_lint(args):
                     break
         if "Contested" in body:
             info.append(f"{rel}: carries a Contested marker (unresolved by design)")
-        stage = fm.get("growth_stage")
-        if stage == "seedling":
-            try:
-                age = (_dt.date.today()
-                       - _dt.date.fromisoformat(str(fm.get("created")))).days
-                if age > 30:
-                    findings.append(f"{rel}: stale seedling ({age}d) — grow or archive")
-            except ValueError:
-                pass
+        # The stale-seedling rule is gone with growth_stage, its only reader. `expires:`
+        # is the whole of what kb knows about a page's lifetime, and nothing else keys
+        # on age.
 
     for title, rels in titles_seen.items():
         if len(rels) > 1:
@@ -1735,6 +1734,165 @@ def _sync_one(root: Path, name: str, agent: str = "agent:main",
     return 4
 
 
+def _in_base(base: Base, rel: str) -> Path:
+    """Resolve a base-relative path, refusing anything that escapes the tree."""
+    p = (base.root / rel).resolve()
+    try:
+        p.relative_to(base.root)
+    except ValueError:
+        die(f"{rel}: outside the base — refusing to write there", 13)
+    return p
+
+
+def cmd_set(args):
+    """Generic frontmatter mutation, one attributed commit. Every key is validated
+    against the base's schema, so `kb set` cannot quietly introduce a field lint will
+    then flag as outside it."""
+    base = resolve_base(args)
+    agent, author, _ = acting(args, base)
+    p = _in_base(base, args.path)
+    if not p.exists():
+        die(f"no such page: {args.path}")
+    fm, body = read_frontmatter(p)
+    if fm is None:
+        die(f"{args.path}: no frontmatter to set (a page needs one first)")
+    allowed = UNIVERSAL_FIELDS | RAW_FIELDS | PENDING_FIELDS | set(
+        (base.cfg.get("frontmatter") or {}).get("extensions") or [])
+    for pair in args.assignment:
+        if "=" not in pair:
+            die(f"{pair!r} doesn't parse as key=value")
+        key, val = pair.split("=", 1)
+        key, val = key.strip(), val.strip()
+        root_key = key.split(".")[0]
+        if root_key not in allowed:
+            die(f"{root_key!r} is outside the base schema — add it to "
+                f".kb/base.yml frontmatter.extensions first, or nest it under meta:",
+                14)
+        cur, parts = fm, key.split(".")
+        for part in parts[:-1]:
+            cur = cur.setdefault(part, {})
+            if not isinstance(cur, dict):
+                die(f"{key}: {part} is not a mapping")
+        cur[parts[-1]] = yaml.safe_load(val)
+    write_frontmatter(p, fm, body)
+    base.commit("set", [base.rel(p)],
+                f"{args.path}: {' '.join(args.assignment)[:80]}", agent, author)
+    print(f"set: {base.rel(p)}  {' '.join(args.assignment)}")
+
+
+def cmd_prune(args):
+    """`expires:` is the ONLY thing kb knows about a page's lifetime. Passed means
+    gone, and git is the undo. `due:` is a deadline (work-tracker's field, never
+    interpreted here) and `review_by:` means "ask me again" — the opposite of expires.
+    _raw/ never expires: source material is the trust chain."""
+    base = resolve_base(args)
+    agent, author, _ = acting(args, base)
+    gone = []
+    for p in base.md_files(kinds=("wiki",)):     # NOT raw
+        fm, _ = read_frontmatter(p)
+        exp = (fm or {}).get("expires")
+        if not exp:
+            continue
+        try:
+            if _dt.date.fromisoformat(str(exp)[:10]) > _dt.date.today():
+                continue
+        except ValueError:
+            print(f"{base.rel(p)}: unparseable expires {exp!r} — left in place")
+            continue
+        gone.append(base.rel(p))
+    if not gone:
+        print("prune: nothing has expired.")
+        return
+    for rel in gone:
+        print(f"pruned: {rel} (expired)")
+    if args.dry_run:
+        print(f"({len(gone)} would be pruned — dry run, nothing changed)")
+        return
+    for rel in gone:
+        if git(base.root, "rm", "-q", "--", rel).returncode != 0:
+            (base.root / rel).unlink()
+    base.commit("prune", gone, f"{len(gone)} expired page(s)", agent, author)
+    print(f"({len(gone)} pruned — git history is the undo)")
+
+
+def cmd_archive(args):
+    """A `git rm` plus an attributed commit carrying the reason. There is no _archive/
+    directory: the history IS the archive, which is the whole argument for removing it.
+
+    Note this is NOT `kb commit --verb archive` on a hand-move — that older form meant
+    "I moved a file into _archive/", and the two mean opposite things now."""
+    base = resolve_base(args)
+    agent, author, _ = acting(args, base)
+    rels = []
+    for rel in args.path:
+        p = _in_base(base, rel)
+        if not p.exists():
+            die(f"no such page: {rel}")
+        rels.append(base.rel(p))
+    for rel in rels:
+        if git(base.root, "rm", "-q", "--", rel).returncode != 0:
+            (base.root / rel).unlink()
+    base.commit("archive", rels, f"{args.reason or 'archived'} ({len(rels)} page(s))",
+                agent, author)
+    for rel in rels:
+        print(f"archived: {rel} — {args.reason or 'no reason given'}")
+    print("(git history is the archive; nothing was copied anywhere)")
+
+
+def cmd_config(args):
+    """get/set, with principal.* routed to the machine-local file and everything else to
+    .kb/base.yml. This is what replaces the init step: the tool establishes itself on
+    first use, and config is how you correct it afterwards."""
+    if args.op == "set" and "=" not in args.assignment:
+        die("config set takes key=value")
+    args.key, _, args.value = args.assignment.partition("=")
+    args.key = args.key.strip()
+    args.value = args.value.strip()
+    base = None if args.key.startswith("principal.") else resolve_base(args)
+
+    if args.key.startswith("principal."):
+        field = args.key.split(".", 1)[1]
+        if field != "id":
+            die(f"principal.{field} is not settable — the file holds ids and their "
+                f"base globs; edit {principal_file()} for anything richer")
+        entries = load_principals()
+        if args.op == "get":
+            print(entries[0]["id"] if entries else "(none)")
+            return
+        save_principals([{"id": args.value, "bases": ["*"]}]
+                        + [e for e in entries
+                           if isinstance(e, dict) and e.get("id") != args.value])
+        print(f"principal.id = {args.value}  ({principal_file()})")
+        return
+
+    cfg_path = base.kb_dir / "base.yml"
+    parts = args.key.split(".")
+    if args.op == "get":
+        cur = base.cfg
+        for part in parts:
+            if not isinstance(cur, dict) or part not in cur:
+                die(f"{args.key}: not set in {base.rel(cfg_path)}")
+            cur = cur[part]
+        print(cur if not isinstance(cur, (dict, list))
+              else yaml.safe_dump(cur, sort_keys=False).strip())
+        return
+
+    agent, author, _ = acting(args, base)
+    cur = base.cfg
+    for part in parts[:-1]:
+        cur = cur.setdefault(part, {})
+        if not isinstance(cur, dict):
+            die(f"{args.key}: {part} is not a mapping")
+    cur[parts[-1]] = yaml.safe_load(args.value)
+    # Rewritten wholesale: the file is the tool's own, and a surgical edit that
+    # preserved comments would have to parse YAML twice and could disagree with itself.
+    cfg_path.write_text(yaml.safe_dump(base.cfg, sort_keys=False,
+                                       allow_unicode=True), encoding="utf-8")
+    base.commit("config", [base.rel(cfg_path)], f"{args.key} = {args.value}",
+                agent, author)
+    print(f"{args.key} = {args.value}  ({base.rel(cfg_path)})")
+
+
 def cmd_refuse(args):
     """Record a refused write: a `refuse` commit plus a pending entry ([D] per
     kb-authorization §3.1). The payload stays with the caller — this only records.
@@ -1960,7 +2118,30 @@ def main():
     p.add_argument("--file")
     p.add_argument("--title")
     p.add_argument("--source", help="channel provenance, e.g. whatsapp:voice")
+    p.add_argument("--corrects", help="path of the item this supersedes — a link, so "
+                                     "the drain never has to LLM-match free text")
     p.set_defaults(func=cmd_capture)
+
+    p = sub.add_parser("set", help="mutate frontmatter (one attributed commit)")
+    p.add_argument("path")
+    p.add_argument("assignment", nargs="+", metavar="key=value")
+    p.set_defaults(func=cmd_set)
+
+    p = sub.add_parser("prune", help="delete what `expires:` says is over (git is the "
+                       "undo); _raw/ is never pruned")
+    p.add_argument("--dry-run", action="store_true")
+    p.set_defaults(func=cmd_prune)
+
+    p = sub.add_parser("archive", help="git rm + a reason — the history IS the archive")
+    p.add_argument("path", nargs="+")
+    p.add_argument("--reason")
+    p.set_defaults(func=cmd_archive)
+
+    p = sub.add_parser("config", help="get/set base config; principal.* is "
+                       "machine-local")
+    p.add_argument("op", choices=["get", "set"])
+    p.add_argument("assignment", metavar="key[=value]")
+    p.set_defaults(func=cmd_config)
 
     p = sub.add_parser("inbox", help="the inbox is a view: this principal's pending "
                        "items (--all for everyone's)")

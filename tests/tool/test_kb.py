@@ -556,14 +556,6 @@ class BaseToolTest(unittest.TestCase):
         sy.write_text(items)
         self.assertIn("over cap", self.b("lint").stdout)
 
-    def test_lint_stale_seedling(self):
-        self._page("concepts/old-seed.md", "Old Seed",
-                   growth_stage="seedling")
-        p = self.root / "concepts" / "old-seed.md"
-        p.write_text(p.read_text().replace("created: 2026-01-01",
-                                           "created: 2025-01-01"))
-        self.assertIn("stale seedling", self.b("lint").stdout)
-
     def test_lint_unverified_with_inbound_info(self):
         self._page("concepts/hunch.md", "Hunch", verified="false")
         self._page("concepts/citer.md", "Citer", body="builds on [[concepts/hunch]]")
@@ -1321,6 +1313,217 @@ class PendingTest(unittest.TestCase):
         self.b("ingest", *self.pending_rels())
         self.assertNotIn("triage", self.captures()[0].read_text())
         self.assertNotIn("triage", self.b("lint").stdout)
+
+
+class WriteVerbTest(unittest.TestCase):
+    """Every write is a verb. Agents were hand-writing markdown; `kb set` mutates
+    frontmatter, `kb archive` is a git rm carrying a reason, and `kb capture --corrects`
+    records a link instead of prose the drain has to LLM-match."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "alice@example.com",
+                    "AOS_PRINCIPAL_NAME": "Alice Example"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "writes",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args):
+        return run(["--base", str(self.root), *args], self.env)
+
+    def git(self, *args):
+        return subprocess.run(["git", *args], cwd=self.root, capture_output=True,
+                              text=True, check=False).stdout
+
+    def log_lines(self, fmt="%s", n="-20"):
+        return self.git("log", n, f"--pretty={fmt}").splitlines()
+
+    def fm(self, p):
+        return yaml.safe_load(p.read_text().split("---")[1])
+
+    def page(self, rel, **fm):
+        p = self.root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        fm.setdefault("title", p.stem)
+        fm.setdefault("created", _dt.date.today().isoformat())
+        front = "\n".join(f"{k}: {v}" for k, v in fm.items())
+        p.write_text(f"---\n{front}\n---\nBody.\n")
+        self.b("commit", "--verb", "create", "--path", rel, "--summary", "seed")
+        return p
+
+    def pending_rels(self):
+        return [f".kb/pending/{p.name}"
+                for p in sorted((self.root / ".kb" / "pending").glob("*.md"))]
+
+    def test_set_mutates_frontmatter_in_one_attributed_commit(self):
+        self.page("projects/cfp.md", type="project")
+        before = len(self.log_lines())
+        exp = (_dt.date.today() + _dt.timedelta(days=90)).isoformat()
+        r = self.b("set", "projects/cfp.md", "verified=true", f"expires={exp}")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        fm = self.fm(self.root / "projects/cfp.md")
+        self.assertEqual(fm["verified"], True)
+        self.assertEqual(str(fm["expires"]), exp)
+        self.assertEqual(len(self.log_lines()) - before, 1, "one write, one commit")
+        self.assertIn("set:", self.log_lines()[0])
+        self.assertEqual(self.log_lines("%an")[0], "Alice Example")   # author
+        self.assertEqual(self.log_lines("%cn")[0], "agent:main")      # committer
+
+    def test_set_refuses_a_path_outside_the_base(self):
+        r = self.b("set", "../escape.md", "x=1")
+        self.assertNotEqual(r.returncode, 0)
+
+    def test_set_refuses_a_field_outside_the_schema(self):
+        # Otherwise `kb set` quietly introduces a field lint will then flag. `status:`
+        # is the honest example: it is work-tracker's field, and kb refusing it is the
+        # layering working — the base declares its extensions or nests under meta:.
+        self.page("projects/cfp.md", type="project")
+        r = self.b("set", "projects/cfp.md", "status=next")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("outside the base schema", r.stderr)
+        cfg = self.root / ".kb" / "base.yml"
+        cfg.write_text(cfg.read_text().replace("extensions: []",
+                                               "extensions: [status]"))
+        r = self.b("set", "projects/cfp.md", "status=next")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.fm(self.root / "projects/cfp.md")["status"], "next")
+
+    def test_archive_is_a_git_rm_plus_a_reason(self):
+        self.page("concepts/dead.md", type="concept")
+        r = self.b("archive", "concepts/dead.md", "--reason", "superseded by bm25")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse((self.root / "concepts/dead.md").exists())
+        self.assertFalse((self.root / "_archive").exists())
+        self.assertIn("superseded by bm25", self.log_lines()[0])
+        self.assertIn("archive",
+                      self.log_lines("%(trailers:key=aos-verb,valueonly)")[0])
+        # The history IS the archive — that is the whole argument for the directory
+        # not existing.
+        self.assertTrue(self.git("log", "--all", "--pretty=%H", "--",
+                                 "concepts/dead.md").strip())
+
+    def test_config_get_set_round_trips(self):
+        r = self.b("config", "set", "state.max_items=30")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("30", self.b("config", "get", "state.max_items").stdout)
+        # principal.* is machine-local; the rest is base-local
+        r = self.b("config", "set", "principal.id=alice@personal.dev")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        pfile = self.home / ".aos" / "kb-principal.yml"
+        self.assertIn("alice@personal.dev", pfile.read_text())
+        self.assertNotIn("principal", (self.root / ".kb" / "base.yml").read_text())
+
+    def test_config_set_on_the_base_makes_one_commit(self):
+        before = len(self.log_lines())
+        self.b("config", "set", "curation=designated")
+        self.assertEqual(len(self.log_lines()) - before, 1)
+        self.assertIn("config:", self.log_lines()[0])
+
+    def test_capture_corrects_records_a_link_not_prose(self):
+        self.b("capture", "--text", "the venue costs 400")
+        first = self.pending_rels()[0]
+        r = self.b("capture", "--text", "the venue costs 450", "--corrects", first)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        corrected = [p for p in (self.root / ".kb" / "pending").glob("*.md")
+                     if "450" in p.read_text()][0]
+        self.assertEqual(self.fm(corrected)["corrects"], first)
+
+    def test_corrects_takes_a_path_and_refuses_a_missing_one(self):
+        # lifecycle.md: "Identity is the file path (no slug field)" — introducing an id
+        # would contradict a standing doctrine.
+        r = self.b("capture", "--text", "x", "--corrects", ".kb/pending/nope.md")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("no such", r.stderr.lower())
+
+    def test_the_new_verbs_are_in_the_closed_trailer_vocabulary(self):
+        # AOS_VERBS is a closed set: a verb missing from it produces an assertion at
+        # commit time rather than a clear error.
+        for verb in ("ingest", "prune", "pending", "set", "config", "migrate"):
+            r = self.b("commit", "--verb", verb, "--path", "index.md",
+                       "--summary", "probe")
+            self.assertNotIn("illegal aos-verb", r.stderr, f"{verb} not in AOS_VERBS")
+
+
+class ExpiryTest(WriteVerbTest):
+    """`expires:` is the ONLY thing kb knows about a page's lifetime.
+
+    expires passed -> `kb prune` deletes it, git is the undo. No expires -> forever.
+    There is no second staleness concept, because nothing would key on one."""
+
+    def test_prune_deletes_what_expired_and_reports_what_went(self):
+        self.page("concepts/gone.md", type="concept",
+                  expires=(_dt.date.today() - _dt.timedelta(days=1)).isoformat())
+        r = self.b("prune")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse((self.root / "concepts/gone.md").exists())
+        self.assertIn("concepts/gone.md", r.stdout)
+        self.assertIn("prune",
+                      self.log_lines("%(trailers:key=aos-verb,valueonly)")[0])
+
+    def test_a_page_with_no_expires_is_never_pruned(self):
+        self.page("concepts/forever.md", type="concept")
+        self.b("prune")
+        self.assertTrue((self.root / "concepts/forever.md").exists())
+
+    def test_a_due_date_in_the_past_never_causes_a_prune(self):
+        # due: is work-tracker's field and a deadline is not an end of life.
+        self.page("projects/call.md", type="project",
+                  due=(_dt.date.today() - _dt.timedelta(days=30)).isoformat())
+        self.b("prune")
+        self.assertTrue((self.root / "projects/call.md").exists())
+
+    def test_review_by_is_not_expires_and_never_prunes(self):
+        # review_by means "ask me again"; expires means "delete it". Opposites.
+        self.page("profile/goal.md", type="note",
+                  review_by=(_dt.date.today() - _dt.timedelta(days=5)).isoformat())
+        self.b("prune")
+        self.assertTrue((self.root / "profile/goal.md").exists())
+        self.b("state", "add", "--note", "revisit the goal",
+               "--review-by", (_dt.date.today() - _dt.timedelta(days=5)).isoformat())
+        r = self.b("state", "check")
+        self.assertIn("review_by", r.stdout + r.stderr)
+
+    def test_raw_is_never_pruned_even_carrying_an_expires(self):
+        self.b("capture", "--text", "trust chain")
+        self.b("ingest", *self.pending_rels())
+        raw = [p for p in (self.root / "_raw").glob("*.md")
+               if "AGENTS" not in p.name][0]
+        raw.write_text(raw.read_text().replace(
+            "type: capture",
+            f"type: capture\nexpires: "
+            f"{(_dt.date.today() - _dt.timedelta(days=1)).isoformat()}"))
+        self.b("prune")
+        self.assertTrue(raw.exists())
+
+    def test_prune_dry_run_changes_nothing(self):
+        self.page("concepts/gone.md", type="concept",
+                  expires=(_dt.date.today() - _dt.timedelta(days=1)).isoformat())
+        r = self.b("prune", "--dry-run")
+        self.assertIn("concepts/gone.md", r.stdout)
+        self.assertTrue((self.root / "concepts/gone.md").exists())
+
+    def test_an_unparseable_expires_is_reported_and_left_alone(self):
+        self.page("concepts/odd.md", type="concept", expires="soon-ish")
+        r = self.b("prune")
+        self.assertIn("unparseable", r.stdout)
+        self.assertTrue((self.root / "concepts/odd.md").exists())
+
+    def test_growth_stage_is_gone_from_the_schema(self):
+        self.page("concepts/x.md", type="concept", growth_stage="seedling",
+                  created="2020-01-01")
+        out = self.b("lint").stdout
+        self.assertNotIn("stale seedling", out)
+        self.assertIn("outside schema", out)   # it is now an unknown field
 
 
 class PackagingTest(unittest.TestCase):
