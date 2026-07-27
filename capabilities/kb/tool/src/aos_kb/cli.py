@@ -30,6 +30,7 @@ import json
 import os
 import random
 import re
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -1524,8 +1525,10 @@ def cmd_lint(args):
             for line in out.splitlines():
                 if "\x1f" in line:
                     sha, _an, ae, committer, subject = line.split("\x1f", 4)
-                    # `bootstrap` scaffolds the tree before any grant row exists.
-                    skip_commit = subject.startswith("bootstrap")
+                    # `bootstrap` scaffolds the tree before any grant row exists;
+                    # `migrate` carries a layout 1 tree whose rows named layout 1
+                    # paths — the same "before this table meant anything" exemption.
+                    skip_commit = subject.startswith(("bootstrap", "migrate:"))
                     if subject.startswith("sweep:"):
                         findings.append(
                             f"commit {sha[:8]}: {subject} — swept by sync rather than "
@@ -1925,6 +1928,158 @@ def cmd_config(args):
     print(f"{args.key} = {args.value}  ({base.rel(cfg_path)})")
 
 
+def cmd_migrate(args):
+    """LAYOUT 1 -> 2, with `git mv` for every move so history follows. Refuses a dirty
+    worktree: a migration that mixes with uncommitted work cannot be reverted cleanly,
+    and revert is the only undo this has."""
+    root = Path(getattr(args, "migrate_base", None) or args.base
+                or ".").expanduser().resolve()
+    if (root / ".kb" / "base.yml").exists():
+        print(f"{root}: already layout 2 — nothing to do.")
+        return
+    if not (root / "BASE.yaml").exists():
+        die(f"{root} is not a base (no BASE.yaml, no .kb/base.yml)", 10)
+    if is_repo(root) and git(root, "status", "--porcelain").stdout.strip():
+        die("uncommitted changes — commit or stash first. A migration that mixes "
+            "with uncommitted work cannot be reverted cleanly.", 13)
+
+    cfg = yaml.safe_load((root / "BASE.yaml").read_text(encoding="utf-8")) or {}
+    moved, dropped = [], []
+
+    def mv(src: str, dst: str):
+        s_path = root / src
+        if not s_path.exists():
+            return False
+        (root / dst).parent.mkdir(parents=True, exist_ok=True)
+        if is_repo(root) and git(root, "mv", src, dst).returncode == 0:
+            moved.append(f"{src} -> {dst}")
+            return True
+        s_path.rename(root / dst)
+        moved.append(f"{src} -> {dst}")
+        return True
+
+    def rm(rel: str):
+        p = root / rel
+        if not p.exists():
+            return
+        if not (is_repo(root) and git(root, "rm", "-r", "-q", "--", rel).returncode == 0):
+            shutil.rmtree(p, ignore_errors=True) if p.is_dir() else p.unlink()
+        dropped.append(rel)
+
+    # 1. the config, then rewritten in place below
+    mv("BASE.yaml", ".kb/base.yml")
+
+    # 2. state -> one shard per principal. The old flat file is this principal's by
+    #    definition: a layout 1 private base had exactly one writer.
+    pid = resolve_principal(args, cfg.get("name", root.name), root)
+    if (root / "state.yaml").exists():
+        mv("state.yaml", f".kb/state/{slugify(pid)}.yml")
+    old_shards = root / "state"
+    if old_shards.is_dir():
+        for shard in sorted(old_shards.glob("*.yaml")):
+            mv(f"state/{shard.name}", f".kb/state/{shard.stem}.yml")
+
+    # 3. raw/ -> _raw/ flat, and triage: becomes location. A pending capture goes to
+    #    .kb/pending/ instead, because that is now what "pending" means.
+    old_raw = root / "raw"
+    if old_raw.is_dir():
+        for p in sorted(old_raw.rglob("*.md")):
+            rel = p.relative_to(root).as_posix()
+            if "AGENTS" in p.name:
+                rm(rel)                       # the zone contract is re-rendered, not moved
+                continue
+            fm, body = read_frontmatter(p)
+            triage = str((fm or {}).get("triage", "done"))
+            dst_dir = ".kb/pending" if triage == "pending" else "_raw"
+            dst = f"{dst_dir}/{p.name}"
+            n = 2
+            while (root / dst).exists():
+                dst = f"{dst_dir}/{p.stem}-{n}.md"
+                n += 1
+            if not mv(rel, dst):
+                continue
+            if fm is None:
+                continue
+            fm.pop("triage", None)
+            if triage == "pending":
+                # The queue's own fields, added on the way in.
+                fm = {"title": fm.get("title", p.stem), "kind": "capture",
+                      "waits_on": "agent",
+                      **{k: v for k, v in fm.items() if k != "title"}}
+            elif triage == "failed":
+                fm["failed"] = "carried over from layout 1 triage: failed"
+            write_frontmatter(root / dst, fm, body)
+        rm("raw")
+
+    # 4. the review queue -> .kb/pending/, with the kind read off the old title
+    old_q = root / "_ops" / "needs-review"
+    if old_q.is_dir():
+        for p in sorted(old_q.glob("*.md")):
+            rel = p.relative_to(root).as_posix()
+            fm, body = read_frontmatter(p)
+            title = str((fm or {}).get("title", p.stem))
+            low = title.lower()
+            kind = ("refusal" if "refus" in low else
+                    "conflict" if "conflict" in low else
+                    "entity" if "entit" in low or "mention" in low else "finding")
+            dst = f".kb/pending/{p.name}"
+            if not mv(rel, dst):
+                continue
+            fm = fm or {"title": title}
+            fm.pop("status", None)            # in the directory IS open
+            fm = {"title": title, "kind": kind, "waits_on": "human",
+                  **{k: v for k, v in fm.items() if k != "title"}}
+            write_frontmatter(root / dst, fm, body)
+
+    # 5. import working files -> .kb/work/
+    for name in ("import-agreement.md", "import-progress.md"):
+        mv(f"_ops/{name}", f".kb/work/{name}")
+
+    # 6. what does not come forward. _archive/ is git rm'd rather than copied: the
+    #    history IS the archive, which is the whole argument for the directory going.
+    rm("_archive")
+    rm("_ops")
+    rm(".base")
+
+    # 7. the config, rewritten to layout 2
+    cfg["layout"] = LAYOUT
+    cfg.pop("methodology", None)              # the seam dissolved: kb IS the methodology
+    cfg.pop("principals", None)               # the grants table is the roster now
+    cfg.setdefault("curation", "self")
+    cfg.setdefault("curator", "")
+    zones = {}
+    for zone, d in (cfg.get("zones") or {}).items():
+        kind = (d or {}).get("kind") if isinstance(d, dict) else None
+        if kind in ("machinery", "archive"):
+            continue                          # both directories are gone
+        zones["_raw" if zone == "raw" else zone] = d
+    cfg["zones"] = zones
+    (root / ".kb" / "base.yml").write_text(
+        yaml.safe_dump(cfg, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    (root / ".gitignore").write_text(".kb/cache/\n", encoding="utf-8")
+    for d in (root / ".kb" / "pending", root / ".kb" / "work",
+              root / ".kb" / "cache", root / "_raw"):
+        d.mkdir(parents=True, exist_ok=True)
+
+    base = Base(root)
+    agent, author, _ = acting(args, base)
+    git(root, "add", "-A")
+    base.commit("migrate", ["."], f"{base.cfg.get('name', root.name)}: layout 1 -> "
+                f"{LAYOUT}", agent, author)
+
+    print(f"migrated {root} to layout {LAYOUT}.")
+    for m in moved:
+        print(f"  moved   {m}")
+    for d in dropped:
+        print(f"  dropped {d} (history keeps it)")
+    print()
+    print("Two things to do by hand:")
+    print("  1. `uv tool uninstall aos-base` — the old `base` command otherwise keeps "
+          "shadowing on PATH.")
+    print("  2. Re-read AGENTS.md: its grants rows still name layout 1 paths "
+          "(raw/**, _ops/**, state.yaml), and a stale glob refuses SILENTLY.")
+
+
 def cmd_refuse(args):
     """Record a refused write: a `refuse` commit plus a pending entry ([D] per
     kb-authorization §3.1). The payload stays with the caller — this only records.
@@ -2153,6 +2308,14 @@ def main():
     p.add_argument("--corrects", help="path of the item this supersedes — a link, so "
                                      "the drain never has to LLM-match free text")
     p.set_defaults(func=cmd_capture)
+
+    p = sub.add_parser("migrate", help="carry a layout 1 base to layout 2 (git mv "
+                       "throughout, so history follows)")
+    # Its own --base, deliberately: the global one resolves through Base(), which
+    # refuses a layout 1 tree by design. Migrate is the one verb that must accept one.
+    p.add_argument("--base", dest="migrate_base",
+                   help="the layout 1 base to carry across (default: cwd)")
+    p.set_defaults(func=cmd_migrate)
 
     p = sub.add_parser("set", help="mutate frontmatter (one attributed commit)")
     p.add_argument("path")

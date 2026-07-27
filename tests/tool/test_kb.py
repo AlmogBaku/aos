@@ -1640,6 +1640,206 @@ class CurationTest(unittest.TestCase):
                       self.b("lint", who=self.ALICE).stdout)
 
 
+class MigrateTest(unittest.TestCase):
+    """A real user has a LAYOUT 1 base on disk. History is the whole point of the
+    store, so every move is a `git mv`.
+
+    The layout-1 tree is built here rather than committed as a second fixture: the
+    migration's inputs belong next to the assertions about them, and a committed
+    layout-1 tree would be a thing the retired-token gate then has to exempt."""
+
+    LAYOUT1 = {
+        "BASE.yaml": (
+            "layout: 1\n"
+            "name: old\n"
+            "audience: private\n"
+            "methodology: karpathy-llm-wiki\n"
+            "principals:\n"
+            "  alice@example.com: user:alice\n"
+            "types: [person, concept, capture, note]\n"
+            "zones:\n"
+            "  raw:      {kind: raw}\n"
+            "  entities: {kind: wiki, subdirs: [people]}\n"
+            "  concepts: {kind: wiki}\n"
+            "  profile:  {kind: wiki}\n"
+            "  _ops:     {kind: machinery}\n"
+            "  _archive: {kind: archive}\n"
+            "state:\n"
+            "  max_items: 20\n"
+            "frontmatter:\n"
+            "  extensions: []\n"),
+        "AGENTS.md": "# AGENTS — old\n\n## Grants\n\n"
+                     "| subject | object | verbs | grantor | granted | via | notes |\n"
+                     "|---|---|---|---|---|---|---|\n"
+                     "| user | `**` | read write grant | — | 2026-01-01 | — | root |\n",
+        "index.md": "# index\n\n- [[entities/people/robin]]\n",
+        "state.yaml": "items:\n- note: a thread\n  since: 2026-01-01\n",
+        ".gitignore": ".base/\n",
+        "raw/AGENTS.md": "# raw/\n",
+        "raw/captures/2026-01-02-ingested.md": (
+            "---\ntitle: already ingested\ntype: capture\ncreated: '2026-01-02'\n"
+            "source: manual\nsource_sha256: abc123\ntriage: done\n"
+            "captured_by: alice@example.com\n---\nan ingested capture\n"),
+        "raw/captures/2026-01-03-still-pending.md": (
+            "---\ntitle: still pending\ntype: capture\ncreated: '2026-01-03'\n"
+            "source: manual\nsource_sha256: def456\ntriage: pending\n"
+            "captured_by: alice@example.com\n---\na pending capture\n"),
+        "entities/people/robin.md": (
+            "---\ntitle: Robin\ntype: person\ncreated: '2026-01-01'\n---\nA person.\n"),
+        "profile/goal.md": (
+            "---\ntitle: Goal\ntype: note\ncreated: '2026-01-01'\n"
+            "review_by: '2026-02-01'\n---\nAsk me again about this.\n"),
+        "_ops/needs-review/2026-01-04-a-refusal.md": (
+            "---\ntitle: refused write — entities/x.md\ncreated: '2026-01-04'\n"
+            "raised_by: agent:main\nstatus: open\n---\nno grant\n"),
+        "_archive/old-page.md": (
+            "---\ntitle: Old Page\ntype: concept\ncreated: '2025-01-01'\n"
+            "---\nSuperseded long ago.\n"),
+        ".base/cache.json": "{}\n",
+    }
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "alice@example.com",
+                    "AOS_PRINCIPAL_NAME": "Alice Example"}
+        self.old = self.dir / "old"
+        for rel, text in self.LAYOUT1.items():
+            p = self.old / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(text)
+        self.git("init", "-q")
+        self.git("add", "-A")
+        self.git("commit", "-qm", "the layout 1 base, as it stood")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def git(self, *args):
+        return subprocess.run(["git", *args], cwd=self.old, capture_output=True,
+                              text=True, check=False, env=git_env()).stdout
+
+    def fm(self, p):
+        return yaml.safe_load(p.read_text().split("---")[1])
+
+    def migrate(self):
+        return run(["migrate", "--base", str(self.old)], self.env)
+
+    def test_migrate_produces_layout_2(self):
+        r = self.migrate()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        cfg = self.old / ".kb" / "base.yml"
+        self.assertTrue(cfg.exists())
+        data = yaml.safe_load(cfg.read_text())
+        self.assertEqual(data["layout"], 2)
+        self.assertEqual(data["curation"], "self")
+        self.assertNotIn("methodology", data)
+        self.assertNotIn("principals", data)
+        self.assertEqual({z.get("kind") for z in data["zones"].values()},
+                         {"raw", "wiki"})
+        for gone in ("BASE.yaml", "state.yaml", "_ops", "_archive", "raw", ".base"):
+            self.assertFalse((self.old / gone).exists(), f"{gone} survived")
+
+    def test_history_survives_every_move(self):
+        self.migrate()
+        moved = [p for p in (self.old / "_raw").glob("*.md")][0]
+        log = self.git("log", "--follow", "--pretty=%s", "--",
+                       f"_raw/{moved.name}")
+        self.assertGreater(len(log.splitlines()), 1,
+                           "--follow lost the file across the move")
+
+    def test_triage_becomes_location(self):
+        self.migrate()
+        pend = list((self.old / ".kb" / "pending").glob("*.md"))
+        names = [p.name for p in pend]
+        self.assertTrue(any("still-pending" in n for n in names),
+                        f"a triage: pending capture belongs in .kb/pending/: {names}")
+        for p in pend:
+            self.assertNotIn("triage", self.fm(p))
+        raw = [p for p in (self.old / "_raw").glob("*.md") if "AGENTS" not in p.name]
+        self.assertTrue(any("ingested" in p.name for p in raw))
+        for p in raw:
+            self.assertNotIn("triage", self.fm(p))
+
+    def test_the_old_review_queue_becomes_pending_entries(self):
+        self.migrate()
+        entries = [p for p in (self.old / ".kb" / "pending").glob("*.md")
+                   if "refusal" in p.read_text() or "refused" in p.read_text()]
+        self.assertTrue(entries, "the _ops/needs-review/ entry was lost")
+        fm = self.fm(entries[0])
+        self.assertEqual(fm["kind"], "refusal")
+        self.assertEqual(fm["waits_on"], "human")
+        self.assertNotIn("status", fm)   # in the directory IS open
+
+    def test_state_becomes_a_principal_shard(self):
+        self.migrate()
+        shards = sorted((self.old / ".kb" / "state").glob("*.yml"))
+        self.assertEqual([p.name for p in shards], ["alice-example-com.yml"])
+        self.assertIn("a thread", shards[0].read_text())
+
+    def test_review_by_is_never_turned_into_expires(self):
+        # The single most dangerous rename in this change: review_by means "ask me
+        # again", expires means "delete it".
+        self.migrate()
+        fm = self.fm(self.old / "profile" / "goal.md")
+        self.assertIn("review_by", fm)
+        self.assertNotIn("expires", fm)
+
+    def test_archive_contents_are_removed_but_reachable_in_history(self):
+        self.migrate()
+        self.assertFalse((self.old / "_archive").exists())
+        log = self.git("log", "--all", "--pretty=%H", "--", "_archive/old-page.md")
+        self.assertTrue(log.strip(), "the archived page left no history behind")
+
+    def test_the_migrated_base_lints_without_layout_complaints(self):
+        """The tool has to accept its own output.
+
+        Scoped to what migration controls: the grants audit fires on this fixture's
+        SEED commit (a hand-built layout 1 tree, committed before any grant row
+        existed) — that is the fixture's history, not a migration defect. What must
+        be absent is every complaint ABOUT THE LAYOUT, and the migrate commit itself
+        must not be one of the audit's unattributed hits."""
+        self.migrate()
+        r = run(["--base", str(self.old), "lint"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        for must_not in ("layout", "triage", "not in ['agent', 'human']",
+                         "not in ['capture'", "is flat", "orphaned state shard",
+                         "no state file", "outside schema", "without frontmatter"):
+            self.assertNotIn(must_not, r.stdout, f"migration left {must_not!r} behind")
+        migrate_sha = self.git("log", "-1", "--pretty=%H").strip()[:8]
+        self.assertNotIn(migrate_sha, r.stdout,
+                         "the migrate commit itself tripped the grants audit — it "
+                         "wrote .kb/** paths no layout 1 grant row could have named")
+
+    def test_migrate_is_idempotent(self):
+        self.migrate()
+        r = self.migrate()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("already layout 2", r.stdout)
+
+    def test_migrate_refuses_a_dirty_worktree(self):
+        (self.old / "scratch.md").write_text("uncommitted\n")
+        r = self.migrate()
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("uncommitted", r.stderr)
+
+    def test_migrate_refuses_a_tree_that_is_not_a_base(self):
+        plain = self.dir / "plain"
+        plain.mkdir()
+        r = run(["migrate", "--base", str(plain)], self.env)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("not a base", r.stderr)
+
+    def test_the_report_names_the_old_command_uninstall(self):
+        r = self.migrate()
+        self.assertIn("uv tool uninstall aos-base", r.stdout)
+
+
 class PackagingTest(unittest.TestCase):
     """The command is `kb`, because `base<TAB>` is ambiguous against base32/base64/
     basename on every Linux box. `base == repo` survives as the *concept* — a command
