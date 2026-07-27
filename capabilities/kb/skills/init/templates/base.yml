@@ -1,0 +1,36 @@
+layout: 2                      # format generation — tools fail loudly on mismatch
+name: {{name}}
+audience: {{audience}}         # private | shared — mirrored in the registry; effective = most restrictive
+
+# Who curates the queue. `self` (default): everyone drains only their own captures,
+# which costs nothing and needs no configuration. `designated`: one principal holds
+# the wiki write grants and reads everyone's raw material — name them in `curator`.
+# Rule of two — a third mode earns a richer field, not before.
+curation: {{curation}}
+curator: {{curator}}
+purpose: >
+  {{purpose}}
+
+types: [person, company, product, concept, project, meeting, capture, clipping, note]
+# Closed per-base vocabulary. Adding a type = edit this file FIRST (owner approval on
+# shared bases), commit, then use.
+
+zones:
+  _raw:     {kind: raw}
+  entities: {kind: wiki, subdirs: [people, companies]}
+  concepts: {kind: wiki}
+  projects: {kind: wiki}
+  profile:  {kind: wiki}
+# Two kinds, and that is all: raw is immutable source material, wiki is synthesis.
+# `.kb/` is the tool's own and is not a zone. Zone changes are schema changes
+# (owner-approved). Deeper subdirectories are free — create them as needed, updating
+# index.md in the same commit.
+
+state:
+  max_items: 20                # hard cap per state file; adding when full = evict first
+  # Always sharded: `.kb/state/<principal>.yml`, one per person, never conditional on
+  # audience. The attention window is one person's, and a single file everyone
+  # rewrites in place is the one shape git cannot merge.
+
+frontmatter:
+  extensions: []               # per-base fields; a meta: field used by 2+ docs graduates here

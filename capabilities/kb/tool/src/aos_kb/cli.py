@@ -2,20 +2,21 @@
 
 Deterministic operations ONLY: this tool never calls an LLM and never invokes an
 agent. Skills call it; it answers in exit codes, stdout, and files — files are the
-async message bus (a sync conflict becomes a _ops/needs-review/ entry, not a
+async message bus (a sync conflict becomes a .kb/pending/ entry, not a
 callback). Every write verb makes its own commit: author = the human principal whose
 knowledge it is, committer = the acting agent, with aos-verb/aos-path trailers. Git is
 the single audit substrate — there is no log.md.
 
-Every shared record is one file per record (captures, review-queue entries, per-
-principal state). That is what keeps a base conflict-free when several machines — or
+Every shared record is one file per record (captures, pending entries, per-principal
+state). That is what keeps a base conflict-free when several machines — or
 several people — sync it; nothing here relies on a merge driver.
 
 Reports (lint, adopt) are report-only and written for an LLM to judge: the report is
 the interface. Search/links exit codes carry no information beyond "ran".
 
-Layout guard: every base-scoped verb validates BASE.yaml `layout` and fails loudly
-on mismatch — never path-guesses across format generations.
+Layout guard: every base-scoped verb validates .kb/base.yml `layout` and fails loudly
+on mismatch — never path-guesses across format generations. A layout 1 tree (root
+BASE.yaml) is recognised only to point at `kb migrate`.
 
 Spec: design/kb-methodology.md (spec branch). Contract = verb set + boundary; the
 implementation language is a build choice.
@@ -39,7 +40,7 @@ from pathlib import Path
 import yaml
 
 VERSION = "0.7.0"
-LAYOUT = 1
+LAYOUT = 2
 # The closed `aos-verb` trailer vocabulary — the same words the five-field log.md
 # grammar used, now carried by the commit that made the change.
 AOS_VERBS = {
@@ -70,7 +71,7 @@ def today() -> str:
 
 
 def die(msg: str, code: int = 1):
-    print(f"base: error: {msg}", file=sys.stderr)
+    print(f"kb: error: {msg}", file=sys.stderr)
     sys.exit(code)
 
 
@@ -332,15 +333,42 @@ class Base:
 
     def __init__(self, root: Path, check_layout: bool = True):
         self.root = root.resolve()
-        cfg_path = self.root / "BASE.yaml"
+        cfg_path = self.root / ".kb" / "base.yml"
         if not cfg_path.exists():
-            die(f"{self.root} has no BASE.yaml — not a base (adopt it first?)", 10)
+            # Recognise the old tree so the message is a pointer, not a guess.
+            if (self.root / "BASE.yaml").exists():
+                die(f"{self.root} is a layout 1 base (root BASE.yaml). This tool "
+                    f"speaks layout {LAYOUT} — run `kb migrate --base {self.root}`. "
+                    f"Refusing to guess at paths.", 11)
+            die(f"{self.root} has no .kb/base.yml — not a base (adopt it first?)", 10)
         self.cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
         if check_layout:
             layout = self.cfg.get("layout")
             if layout != LAYOUT:
-                die(f"{self.root}: BASE.yaml layout={layout!r}, this tool speaks "
-                    f"layout={LAYOUT}. Refusing to guess — run a migration.", 11)
+                die(f"{self.root}: base.yml layout={layout!r}, this tool speaks "
+                    f"layout={LAYOUT}. Refusing to guess — run `kb migrate`.", 11)
+
+    # -- .kb/ — three subdirectories, three tests: waiting on someone · in progress ·
+    # rebuildable. Anything that fits none of the three does not belong under .kb/.
+    @property
+    def kb_dir(self) -> Path:
+        return self.root / ".kb"
+
+    @property
+    def pending_dir(self) -> Path:
+        return self.kb_dir / "pending"
+
+    @property
+    def work_dir(self) -> Path:
+        return self.kb_dir / "work"
+
+    @property
+    def cache_dir(self) -> Path:
+        return self.kb_dir / "cache"
+
+    @property
+    def raw_dir(self) -> Path:
+        return self.root / "_raw"
 
     # -- structure ---------------------------------------------------------
     def zones(self) -> dict:
@@ -425,7 +453,7 @@ class Base:
         every agent on every machine, which is precisely the shape that conflicts on
         every sync; distinct filenames never do. The queue is a view over the
         directory, exactly like the inbox is a view over raw/captures/."""
-        d = self.root / "_ops" / "needs-review"
+        d = self.pending_dir
         d.mkdir(parents=True, exist_ok=True)
         stamp = _dt.datetime.now().astimezone().strftime("%Y%m%dT%H%M%S")
         slug = slugify(title)
@@ -441,22 +469,18 @@ class Base:
 
     # -- state -------------------------------------------------------------
     def state_path(self, principal: str | None = None) -> Path:
-        """A shared base shards state per principal. The rolling attention window is
-        one person's by nature, and a single file rewritten in place by everyone is
-        the one shape git cannot merge. Sharding makes methodology §7's single writer
-        literally true, while "the team's current-truth" survives as the union of the
-        shards. A private base keeps the flat file — nothing changes for it."""
-        if self.audience() != "shared":
-            return self.root / "state.yaml"
-        return self.root / "state" / f"{slugify(principal or 'user')}.yaml"
+        """One shard per principal, ALWAYS — never conditional on audience. The rolling
+        attention window is one person's by nature, and a single file rewritten in place
+        by everyone is the one shape git cannot merge. Sharding makes methodology §7's
+        single writer literally true, while "the team's current-truth" survives as the
+        union of the shards. The old private-base special case was a second code path
+        that only the shared case ever exercised."""
+        return self.kb_dir / "state" / f"{slugify(principal or 'user')}.yml"
 
     def state_paths(self) -> list[Path]:
         """Every state file in the base — the union view."""
-        if self.audience() != "shared":
-            p = self.root / "state.yaml"
-            return [p] if p.exists() else []
-        d = self.root / "state"
-        return sorted(d.glob("*.yaml")) if d.is_dir() else []
+        d = self.kb_dir / "state"
+        return sorted(d.glob("*.yml")) if d.is_dir() else []
 
     def load_state(self, principal: str | None = None) -> dict:
         p = self.state_path(principal)
@@ -469,7 +493,7 @@ class Base:
     def save_state(self, data: dict, principal: str | None = None):
         header = ("# state — rolling attention window. One-line items pointing "
                   "into the wiki pages.\n# Managed via `kb state ...`; capped by "
-                  "BASE.yaml state.max_items; git history is the archive.\n")
+                  ".kb/base.yml state.max_items; git history is the archive.\n")
         p = self.state_path(principal)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(header + yaml.safe_dump(data, sort_keys=False,
@@ -529,7 +553,7 @@ def resolve_base(args) -> Base:
     # cwd inside a base?
     cur = Path.cwd()
     for p in [cur, *cur.parents]:
-        if (p / "BASE.yaml").exists():
+        if (p / ".kb" / "base.yml").exists():
             return Base(p)
     reg = load_registry(args)
     default = reg.get("default")
@@ -555,18 +579,22 @@ def acting(args, base: Base) -> tuple[str, tuple[str, str], str]:
 
 def cmd_init(args):
     root = Path(args.path).expanduser().resolve()
-    if (root / "BASE.yaml").exists():
-        die(f"{root} already has a BASE.yaml")
+    if (root / ".kb" / "base.yml").exists():
+        die(f"{root} already has a .kb/base.yml")
     tpl = Path(args.templates).expanduser() if args.templates else \
         find_upstream_root() / "capabilities" / "kb" / "skills" / "init" / "templates"
-    if not (tpl / "BASE.yaml").exists():
+    if not (tpl / "base.yml").exists():
         die(f"templates not found at {tpl} (pass --templates)")
     root.mkdir(parents=True, exist_ok=True)
 
     subs = {"{{name}}": args.name, "{{today}}": today(),
             "{{version}}": args.kb_version, "{{audience}}": args.audience,
             "{{purpose}}": (args.purpose or "").strip(),
-            "{{sync_mode}}": args.sync}
+            "{{sync_mode}}": args.sync,
+            "{{curation}}": args.curation,          # self | designated
+            "{{curator}}": args.curator or ""}      # principal id, iff designated
+
+    rendered = []
 
     def render(src: Path, dst: Path):
         text = src.read_text(encoding="utf-8")
@@ -574,13 +602,15 @@ def cmd_init(args):
             text = text.replace(k, v)
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_text(text, encoding="utf-8")
+        rendered.append(dst)
 
-    for name in ["BASE.yaml", "AGENTS.md", "index.md"]:
+    render(tpl / "base.yml", root / ".kb" / "base.yml")
+    for name in ["AGENTS.md", "index.md"]:
         render(tpl / name, root / name)
 
     base = Base(root)
-    # A shared base shards state per principal; a private one keeps the flat file.
-    render(tpl / "state.yaml", base.state_path())
+    pid = resolve_principal(args, args.name, root)
+    render(tpl / "state.yml", base.state_path(pid))
 
     for zone, d in base.zones().items():
         (root / zone).mkdir(exist_ok=True)
@@ -589,10 +619,18 @@ def cmd_init(args):
             render(zone_tpl, root / zone / "AGENTS.md")
         for sub in (d or {}).get("subdirs", []) if isinstance(d, dict) else []:
             (root / zone / sub).mkdir(exist_ok=True)
-    (root / "raw" / "captures").mkdir(parents=True, exist_ok=True)
-    (root / ".gitignore").write_text(".base/\n", encoding="utf-8")
+    for d in (base.pending_dir, base.work_dir, base.cache_dir, base.raw_dir):
+        d.mkdir(parents=True, exist_ok=True)
+    (root / ".gitignore").write_text(".kb/cache/\n", encoding="utf-8")
     if (tpl / "gitattributes").exists():
         render(tpl / "gitattributes", root / ".gitattributes")
+
+    # A missing substitution is silent otherwise, and an unrendered {{curation}} in a
+    # committed base.yml is a parse error waiting to happen.
+    for p in rendered:
+        if "{{" in p.read_text(encoding="utf-8"):
+            die(f"{base.rel(p)}: unrendered placeholder left after templating — "
+                f"a template introduced a variable this tool does not substitute", 14)
 
     subprocess.run(["git", "init", "-q"], cwd=root, check=False)
     lfs = subprocess.run(["git", "lfs", "version"], capture_output=True, check=False)
@@ -606,7 +644,6 @@ def cmd_init(args):
     # NOT overwrite it with a per-base agent identity: that erased the one attribution
     # git gives for free, and on a base two people share it made both of them the same
     # author. The acting agent is recorded as the committer instead.
-    pid = resolve_principal(args, args.name, root)
     if is_weak_principal(pid):
         print(f"note: writes will be authored by {pid!r}, a synthesized identity — "
               f"`kb lint` reports it. Fix it in {principal_file()}, or let kb's "
@@ -630,7 +667,8 @@ def cmd_init(args):
         entry = {"name": args.name, "tag": args.tag or args.name,
                  "path": str(root), "remote": args.remote,
                  "sync": args.sync, "audience": args.audience,
-                 "methodology": "karpathy-llm-wiki",
+                 # No methodology: field — the seam dissolved (kb IS the methodology),
+                 # so the line wrote a value with no reader.
                  "purpose": (args.purpose or "").strip(),
                  "routing": {"channels": [], "keywords": []}}
         reg["kbs"].append(entry)
@@ -653,17 +691,17 @@ def cmd_adopt(args):
     if any(Path(k.get("path", "")).expanduser() == root for k in reg["kbs"]):
         die(f"{root} already registered")
     name = args.name or root.name
-    has_baseyaml = (root / "BASE.yaml").exists()
+    has_cfg = (root / ".kb" / "base.yml").exists()
     audience = args.audience
-    if has_baseyaml:
+    if has_cfg:
         Base(root)  # layout guard first: a mismatched tree must fail BEFORE registering
-        cfg = yaml.safe_load((root / "BASE.yaml").read_text(encoding="utf-8")) or {}
+        cfg = yaml.safe_load(
+            (root / ".kb" / "base.yml").read_text(encoding="utf-8")) or {}
         # most-restrictive rule: base-side shared wins over a private claim
         if cfg.get("audience") == "shared":
             audience = "shared"
     entry = {"name": name, "tag": name, "path": str(root), "remote": None,
              "sync": "manual", "audience": audience,
-             "methodology": "karpathy-llm-wiki" if has_baseyaml else "none",
              "purpose": (args.purpose or "").strip(),
              "routing": {"channels": [], "keywords": []}}
     reg["kbs"].append(entry)
@@ -671,17 +709,17 @@ def cmd_adopt(args):
     save_registry(args, reg)
     print(f"adopted {name} at {root} (audience: {audience}, sync: manual).")
     print()
-    if has_baseyaml:
+    if has_cfg:
         args.base = str(root)
         args.write_report = False
         cmd_lint(args)
     else:
-        print("divergence: no BASE.yaml — not a kit-native base. Report:")
+        print("divergence: no .kb/base.yml — not a kit-native base. Report:")
         for probe, label in [("AGENTS.md", "root contract"), ("index.md", "index"),
-                             ("state.yaml", "state file"), ("raw", "raw/ zone")]:
+                             (".kb/state", "state shards"), ("_raw", "_raw/ zone")]:
             status = "present" if (root / probe).exists() else "MISSING"
             print(f"  - {label}: {status}")
-        print("  convergence path: create BASE.yaml (owner-approved zones/types), "
+        print("  convergence path: create .kb/base.yml (owner-approved zones/types), "
               "then re-run `kb lint`. Nothing was written into the tree.")
 
 
@@ -690,9 +728,9 @@ def _do_capture(base: Base, content: str, title: str, source: str, agent: str,
                 quiet: bool = False):
     """Core capture: dedup + frontmatter + commit. Returns dest Path or None (dup)."""
     sha = hashlib.sha256(content.encode("utf-8")).hexdigest()
-    cap_dir = base.root / "raw" / "captures"
+    cap_dir = base.raw_dir
     cap_dir.mkdir(parents=True, exist_ok=True)
-    for p in (base.root / "raw").rglob("*.md"):
+    for p in base.raw_dir.rglob("*.md"):
         pfm, _ = read_frontmatter(p)
         if not pfm or pfm.get("source_sha256") != sha:
             continue
@@ -757,7 +795,7 @@ def cmd_inbox(args):
                                  base.root, persist=False)
     want = "failed" if args.failed else "pending"
     found = others = 0
-    for p in sorted((base.root / "raw").rglob("*.md")):
+    for p in sorted(base.raw_dir.rglob("*.md")):
         fm, _ = read_frontmatter(p)
         if not fm or fm.get("triage") != want:
             continue
@@ -987,7 +1025,7 @@ def cmd_lint(args):
         if "description" not in fm:
             info.append(f"{rel}: no description (index entries come from it)")
         if types and fm.get("type") not in types:
-            findings.append(f"{rel}: type {fm.get('type')!r} not in BASE.yaml types")
+            findings.append(f"{rel}: type {fm.get('type')!r} not in base.yml types")
         unknown = set(fm) - UNIVERSAL_FIELDS - extensions - RAW_FIELDS
         if unknown:
             findings.append(f"{rel}: fields outside schema (move under meta:): "
@@ -1055,7 +1093,7 @@ def cmd_lint(args):
             findings.append(f"index drift: dead index entry [[{t}]]")
 
     # raw checks
-    for p in (base.root / "raw").rglob("*.md") if (base.root / "raw").is_dir() else []:
+    for p in base.raw_dir.rglob("*.md") if base.raw_dir.is_dir() else []:
         if "AGENTS" in p.name:
             continue
         rel = base.rel(p)
@@ -1109,8 +1147,7 @@ def cmd_lint(args):
                 findings.append(f"state_stale: wiki pages changed after {rel} — "
                                 f"refresh the attention window")
     else:
-        findings.append("no state file (state.yaml, or state/<principal>.yaml on a "
-                        "shared base)")
+        findings.append("no state file (.kb/state/<principal>.yml)")
 
     # git health — git is the audit substrate, so its condition is a lint subject.
     if is_repo(base.root):
@@ -1197,7 +1234,7 @@ def cmd_lint(args):
                 if not line.strip() or skip_commit or not grants:
                     continue
                 path = line.strip()
-                if path.startswith(".base/"):
+                if path.startswith(".kb/cache/"):
                     continue
                 subj = committer if committer.startswith(
                     ("agent:", "capability:", "user")) else f"agent:{committer}"
@@ -1213,7 +1250,7 @@ def cmd_lint(args):
     # a list filter, not a threshold, so the check is an existence test — and it is
     # the falsifiable half of the rule the route skill states in prose.
     bar = float((load_registry(args) or {}).get("confidence_bar", 0.7) or 0.7)
-    for p in (base.root / "raw").rglob("*.md") if (base.root / "raw").is_dir() else []:
+    for p in base.raw_dir.rglob("*.md") if base.raw_dir.is_dir() else []:
         if "AGENTS" in p.name:
             continue
         fm, _ = read_frontmatter(p)
@@ -1253,8 +1290,8 @@ def cmd_lint(args):
 
     if getattr(args, "write_report", False):
         week = _dt.date.today().isocalendar()
-        dst = base.root / "_ops" / f"lint-report-{week[0]}-{week[1]:02d}.md"
-        dst.parent.mkdir(exist_ok=True)
+        dst = base.work_dir / f"lint-report-{week[0]}-{week[1]:02d}.md"
+        dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_text(report, encoding="utf-8")
         agent, author, _ = acting(args, base)
         base.commit("lint", dst, f"{len(critical)} critical, {len(findings)} findings",
@@ -1349,7 +1386,8 @@ def _sync_one(root: Path, name: str, agent: str = "agent:main",
               file=sys.stderr)
         return 5
 
-    base = Base(root, check_layout=False) if (root / "BASE.yaml").exists() else None
+    base = Base(root, check_layout=False) \
+        if (root / ".kb" / "base.yml").exists() else None
 
     # Sweep anything written outside a tool verb — an agent editing a wiki page by
     # hand. Data safety comes first, so it is committed rather than refused, but the
@@ -1451,7 +1489,7 @@ def cmd_verify(args):
 # The source is READ-ONLY, always.
 
 IMPORT_SKIP_DEFAULT = ["**/.git/**", "**/.obsidian/**", "**/node_modules/**",
-                       "**/.base/**", "**/*.backup.*", "**/*.bak"]
+                       "**/.kb/**", "**/*.backup.*", "**/*.bak"]
 
 
 def _src_files(src: Path, skips):
@@ -1470,8 +1508,8 @@ def cmd_import_survey(args):
     if not src.is_dir():
         die(f"{src} is not a directory")
     # shape detection
-    if (src / "BASE.yaml").exists():
-        shape = "base-v2"
+    if (src / ".kb" / "base.yml").exists() or (src / "BASE.yaml").exists():
+        shape = "base-native"
     elif (src / "SCHEMA.md").exists() and ((src / "state").is_dir()
                                            or (src / "ops" / "inbox.md").exists()):
         shape = "old-methodology"
@@ -1506,8 +1544,8 @@ def cmd_import_survey(args):
         return
     print(f"# import survey — {src}\n")
     print(f"shape: {shape}"
-          + ("  (has BASE.yaml — use `kb adopt`, not import)"
-             if shape == "base-v2" else ""))
+          + ("  (already a base — use `kb adopt`, not import)"
+             if shape == "base-native" else ""))
     print(f"markdown files: {md} · wikilinks: {links} · large binaries: {big}")
     print("\nby top-level dir:")
     for d, n in sorted(by_dir.items(), key=lambda x: -x[1]):
@@ -1596,6 +1634,11 @@ def main():
     p.add_argument("--default", action="store_true")
     p.add_argument("--templates")
     p.add_argument("--kb-version", default=VERSION)
+    p.add_argument("--curation", choices=["self", "designated"], default="self",
+                   help="self: everyone drains their own queue (default). designated: "
+                        "one principal holds the wiki write grants and reads everyone's "
+                        "raw material — name them with --curator")
+    p.add_argument("--curator", help="principal id, iff --curation designated")
     p.set_defaults(func=cmd_init)
 
     p = sub.add_parser("adopt", help="register an existing tree; report divergence; "

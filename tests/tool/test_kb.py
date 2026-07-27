@@ -89,15 +89,29 @@ class BaseToolTest(unittest.TestCase):
         """git is the audit substrate now, so the assertions read it directly."""
         return self.git("log", n, f"--pretty={fmt}", root=root).splitlines()
 
+    def state_file(self, root=None):
+        """State is ALWAYS sharded per principal — there is no flat state.yaml to
+        point at, so the tests resolve the one shard the fixture's principal owns."""
+        return (root or self.root) / ".kb" / "state" / "dana-example-com.yml"
+
+    def cfg_file(self, root=None):
+        return (root or self.root) / ".kb" / "base.yml"
+
+    def captures(self, root=None):
+        """Ingested captures. `_raw/` is flat and carries its own AGENTS.md, which is
+        the zone contract rather than source material."""
+        return [p for p in sorted(((root or self.root) / "_raw").glob("*.md"))
+                if "AGENTS" not in p.name]
+
     # -- init / scaffold ---------------------------------------------------
     def test_init_scaffolds_and_registers(self):
-        for f in ["BASE.yaml", "AGENTS.md", "index.md", "state.yaml",
-                  ".gitignore"]:
+        for f in [".kb/base.yml", "AGENTS.md", "index.md", ".gitignore"]:
             self.assertTrue((self.root / f).exists(), f)
+        self.assertTrue(self.state_file().exists())
         # log.md is gone: git holds the audit trail, and a single append-only file
         # written by every verb was the one thing guaranteed to conflict on sync.
         self.assertFalse((self.root / "log.md").exists())
-        self.assertTrue((self.root / "raw" / "captures").is_dir())
+        self.assertTrue((self.root / "_raw").is_dir())
         self.assertIn("name: b", self.reg.read_text())
         self.assertIn("default: b", self.reg.read_text())
 
@@ -109,7 +123,7 @@ class BaseToolTest(unittest.TestCase):
         r = run(["init", "p", "--path", str(pre), "--purpose", "preseeded",
                  "--templates", str(TEMPLATES)], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertTrue((pre / "BASE.yaml").exists())
+        self.assertTrue((pre / ".kb" / "base.yml").exists())
         self.assertEqual(self.reg.read_text().count("name: p"), 1)  # no duplicate
 
     def test_init_refuses_double(self):
@@ -124,8 +138,8 @@ class BaseToolTest(unittest.TestCase):
 
     # -- layout guard ------------------------------------------------------
     def test_layout_mismatch_fails_loudly(self):
-        by = self.root / "BASE.yaml"
-        by.write_text(by.read_text().replace("layout: 1", "layout: 99"))
+        by = self.cfg_file()
+        by.write_text(by.read_text().replace("layout: 2", "layout: 99"))
         r = self.b("inbox")
         self.assertEqual(r.returncode, 11)
         self.assertIn("Refusing to guess", r.stderr)
@@ -134,7 +148,9 @@ class BaseToolTest(unittest.TestCase):
     def test_capture_lands_pending_with_attributed_commit(self):
         r = self.b("capture", "--text", "Call the accountant", "--source", "t:x")
         self.assertIn("triage: pending", r.stdout)
-        caps = list((self.root / "raw" / "captures").glob("*.md"))
+        # _raw/AGENTS.md is the zone contract, not a capture — the zone is flat now, so
+        # the glob has to say so.
+        caps = self.captures()
         self.assertEqual(len(caps), 1)
         text = caps[0].read_text()
         self.assertIn("source_sha256:", text)
@@ -145,7 +161,7 @@ class BaseToolTest(unittest.TestCase):
         self.assertIn("agent:main", body)
         self.assertIn("capture:", body)
         self.assertIn("aos-verb: capture", body)
-        self.assertRegex(body, r"aos-path: raw/captures/")
+        self.assertRegex(body, r"aos-path: _raw/")
 
     def test_capture_author_is_the_principal_committer_is_the_agent(self):
         # One flag where there were two: the id is the identity, and the display name
@@ -171,7 +187,7 @@ class BaseToolTest(unittest.TestCase):
         self.b("capture", "--text", "same content")
         r = self.b("capture", "--text", "same content")
         self.assertIn("duplicate", r.stdout)
-        self.assertEqual(len(list((self.root / "raw" / "captures").glob("*.md"))), 1)
+        self.assertEqual(len(self.captures()), 1)
 
     def test_inbox_lists_pending(self):
         self.b("capture", "--text", "hello world")
@@ -189,7 +205,7 @@ class BaseToolTest(unittest.TestCase):
         self.assertNotIn("Wife expecting", self.b("state", "show").stdout)
 
     def test_state_cap_forces_eviction(self):
-        by = self.root / "BASE.yaml"
+        by = self.cfg_file()
         by.write_text(by.read_text().replace("max_items: 20", "max_items: 2"))
         self.b("state", "add", "--note", "one")
         self.b("state", "add", "--note", "two")
@@ -199,7 +215,7 @@ class BaseToolTest(unittest.TestCase):
 
     def test_state_check_flags_stale(self):
         self.b("state", "add", "--note", "old thing")
-        sy = self.root / "state.yaml"
+        sy = self.state_file()
         sy.write_text(sy.read_text().replace("since: ", "since: 2020-01-01 #"))
         r = self.b("state", "check")
         self.assertIn("stale:", r.stdout)
@@ -269,7 +285,7 @@ class BaseToolTest(unittest.TestCase):
         p = self.root / "concepts" / "t.md"
         p.write_text(p.read_text().replace("type: note", "type: alien\nweird: 1"))
         out = self.b("lint").stdout
-        self.assertIn("not in BASE.yaml types", out)
+        self.assertIn("not in base.yml types", out)
         self.assertIn("outside schema", out)
 
     def test_lint_backup_file_critical(self):
@@ -296,13 +312,13 @@ class BaseToolTest(unittest.TestCase):
 
     def test_lint_failed_capture_critical(self):
         self.b("capture", "--text", "will fail")
-        cap = next((self.root / "raw" / "captures").glob("*.md"))
+        cap = next((self.root / "_raw").glob("*.md"))
         cap.write_text(cap.read_text().replace("triage: pending", "triage: failed"))
         self.assertIn("failed state", self.b("lint").stdout)
 
     def test_lint_state_stale(self):
         self._page("concepts/new.md", "New")
-        os.utime(self.root / "state.yaml", (1, 1))  # state far in the past
+        os.utime(self.state_file(), (1, 1))  # state far in the past
         self.assertIn("state_stale", self.b("lint").stdout)
 
     def test_lint_reports_uncommitted_writes(self):
@@ -346,7 +362,7 @@ class BaseToolTest(unittest.TestCase):
         out = self.b("history", "--limit", "5").stdout
         self.assertIn("capture:", out)
         self.assertIn("agent:main", out)
-        self.assertIn("raw/captures/", out)
+        self.assertIn("_raw/", out)
 
     def test_lint_via_grammar(self):
         am = self.root / "AGENTS.md"
@@ -362,10 +378,10 @@ class BaseToolTest(unittest.TestCase):
     # -- grants ------------------------------------------------------------
     def test_grants_granted_and_denied(self):
         ok = self.b("grants", "check", "--subject", "agent:main", "--verb", "write",
-                    "--path", "state.yaml")
+                    "--path", ".kb/state/dana-example-com.yml")
         self.assertEqual(ok.returncode, 0)
         no = self.b("grants", "check", "--subject", "capability:sideload-x",
-                    "--verb", "write", "--path", "state.yaml")
+                    "--verb", "write", "--path", ".kb/state/dana-example-com.yml")
         self.assertEqual(no.returncode, 1)
 
     def test_grants_glob_semantics(self):
@@ -427,7 +443,7 @@ class BaseToolTest(unittest.TestCase):
         self.assertIn("shape: old-methodology", r.stdout)
         self.assertIn("markdown files:", r.stdout)
         r = run(["import", "survey", str(self.root)], self.env)
-        self.assertIn("shape: base-v2", r.stdout)
+        self.assertIn("shape: base-native", r.stdout)
         self.assertIn("adopt", r.stdout)
 
     def test_import_survey_is_read_only(self):
@@ -442,9 +458,9 @@ class BaseToolTest(unittest.TestCase):
         # `**/x.md` must not match `not-x.md` (ACL over-grant regression)
         am = self.root / "AGENTS.md"
         am.write_text(am.read_text().replace(
-            "| agent:archiver | `raw/**` |",
+            "| agent:archiver | `_raw/**` |",
             "| agent:x | `**/secret.md` | write | user | 2026-01-01 | — | t |\n"
-            "| agent:archiver | `raw/**` |"))
+            "| agent:archiver | `_raw/**` |"))
         deep = self.b("grants", "check", "--subject", "agent:x", "--verb", "write",
                       "--path", "a/b/secret.md")
         self.assertEqual(deep.returncode, 0)
@@ -467,25 +483,27 @@ class BaseToolTest(unittest.TestCase):
     def test_adopt_layout_guard_before_registry(self):
         foreign = self.dir / "f99"
         foreign.mkdir()
-        (foreign / "BASE.yaml").write_text("layout: 99\nname: f99\nzones: {}\n")
+        (foreign / ".kb").mkdir(parents=True, exist_ok=True)
+        (foreign / ".kb" / "base.yml").write_text(
+            "layout: 99\nname: f99\nzones: {}\n")
         r = run(["adopt", str(foreign), "--name", "f99"], self.env)
         self.assertEqual(r.returncode, 11)
         self.assertNotIn("f99", self.reg.read_text())  # nothing half-registered
 
     def test_refuse_records_commit_and_review_entry(self):
-        r = self.b("refuse", "--path", "state.yaml",
+        r = self.b("refuse", "--path", ".kb/state/dana-example-com.yml",
                    "--subject", "capability:sideload-x", "--reason", "no grant")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("aos-verb: refuse", "\n".join(self.log_lines("%b")))
         # One file per queue entry — a single appended queue file is written by every
         # agent on every machine, which is exactly what conflicts on every sync.
-        entries = list((self.root / "_ops" / "needs-review").glob("*.md"))
+        entries = list((self.root / ".kb" / "pending").glob("*.md"))
         self.assertEqual(len(entries), 1)
         self.assertIn("refused write", entries[0].read_text())
 
     def test_inbox_failed_with_scalar_meta_survives(self):
         self.b("capture", "--text", "will fail oddly")
-        cap = next((self.root / "raw" / "captures").glob("*.md"))
+        cap = next((self.root / "_raw").glob("*.md"))
         cap.write_text(cap.read_text()
                        .replace("triage: pending", "triage: failed")
                        .replace("verified: false", "verified: false\nmeta: broken"))
@@ -525,11 +543,11 @@ class BaseToolTest(unittest.TestCase):
         self.assertIn("duplicate title", self.b("lint").stdout)
 
     def test_lint_state_over_cap_critical(self):
-        sy = self.root / "state.yaml"
+        sy = self.state_file()
         items = "items:\n" + "".join(
             f"- note: n{i}\n  since: 2026-01-01\n" for i in range(25))
         sy.write_text(items)
-        self.assertIn("state.yaml over cap", self.b("lint").stdout)
+        self.assertIn("over cap", self.b("lint").stdout)
 
     def test_lint_stale_seedling(self):
         self._page("concepts/old-seed.md", "Old Seed",
@@ -552,11 +570,11 @@ class BaseToolTest(unittest.TestCase):
         self.assertIn("swept by sync", self.b("lint").stdout)
 
     def test_lint_invalid_triage_and_missing_frontmatter(self):
-        raw = self.root / "raw" / "captures"
+        raw = self.root / "_raw"
         raw.mkdir(parents=True, exist_ok=True)
         (raw / "weird.md").write_text("no frontmatter at all\n")
         self.b("capture", "--text", "triage test")
-        cap = next(p for p in raw.glob("*.md") if p.name != "weird.md")
+        cap = next(p for p in self.captures() if p.name != "weird.md")
         cap.write_text(cap.read_text().replace("triage: pending", "triage: maybe"))
         out = self.b("lint").stdout
         self.assertIn("raw file without frontmatter", out)
@@ -608,7 +626,7 @@ class BaseToolTest(unittest.TestCase):
         r = self.b("sync")
         self.assertEqual(r.returncode, 3)
         self.assertIn("aos-verb: sync-conflict", "\n".join(self.log_lines("%b")))
-        entries = list((self.root / "_ops" / "needs-review").glob("*.md"))
+        entries = list((self.root / ".kb" / "pending").glob("*.md"))
         self.assertTrue(any("sync conflict" in e.read_text() for e in entries))
         # repo left consistent — nothing mid-flight, so the next tick can run
         st = subprocess.run(["git", "status"], cwd=self.root, capture_output=True,
@@ -632,8 +650,9 @@ class BaseToolTest(unittest.TestCase):
     def test_adopt_zero_writes_and_most_restrictive_audience(self):
         foreign = self.dir / "foreign"
         foreign.mkdir()
-        (foreign / "BASE.yaml").write_text(
-            "layout: 1\nname: f\naudience: shared\nzones: {}\n")
+        (foreign / ".kb").mkdir()
+        (foreign / ".kb" / "base.yml").write_text(
+            "layout: 2\nname: f\naudience: shared\nzones: {}\n")
         before = sorted(p.name for p in foreign.rglob("*"))
         r = run(["adopt", str(foreign), "--name", "f", "--audience", "private"],
                 self.env)
@@ -647,7 +666,7 @@ class BaseToolTest(unittest.TestCase):
         foreign.mkdir()
         (foreign / "notes.md").write_text("# notes\n")
         r = run(["adopt", str(foreign)], self.env)
-        self.assertIn("no BASE.yaml", r.stdout)
+        self.assertIn("no .kb/base.yml", r.stdout)
         self.assertIn("convergence path", r.stdout)
 
 
@@ -685,6 +704,12 @@ class SharedBaseTest(unittest.TestCase):
     def b(self, *args, who=None):
         return run(["--base", str(self.root), *args], {**self.env, **(who or {})})
 
+    def captures(self, root=None):
+        """`_raw/` is flat and carries its own zone AGENTS.md, which is a contract
+        rather than source material."""
+        return [p for p in sorted(((root or self.root) / "_raw").glob("*.md"))
+                if "AGENTS" not in p.name]
+
     def test_a_shared_base_gets_no_workflow_either(self):
         """`--audience shared` used to emit a janitor workflow. It no longer does: a
         shared base has no neutral actor today, and shipping a workflow that implies
@@ -696,8 +721,8 @@ class SharedBaseTest(unittest.TestCase):
         self.b("state", "add", "--note", "bob's thread", who=self.BOB)
         # Named for the person, not their grants row: two people can share one row
         # (or hold none, falling back to `user`) without collapsing into one shard.
-        alice = self.root / "state" / "alice-example-com.yaml"
-        bob = self.root / "state" / "bob-example-com.yaml"
+        alice = self.root / ".kb" / "state" / "alice-example-com.yml"
+        bob = self.root / ".kb" / "state" / "bob-example-com.yml"
         self.assertTrue(alice.exists() and bob.exists())
         # Each shard has exactly one writer, so neither rewrites the other's file —
         # which is what makes "single writer" literally true on a shared base.
@@ -720,7 +745,7 @@ class SharedBaseTest(unittest.TestCase):
         self.b("capture", "--text", "the same link", who=self.ALICE)
         r = self.b("capture", "--text", "the same link", who=self.BOB)
         self.assertNotIn("duplicate", r.stdout)
-        self.assertEqual(len(list((self.root / "raw" / "captures").glob("*.md"))), 2)
+        self.assertEqual(len(self.captures()), 2)
         self.assertNotIn("alice", r.stdout.lower())  # no path disclosure either
 
     def test_dedup_still_drops_the_same_principals_resend(self):
@@ -731,7 +756,7 @@ class SharedBaseTest(unittest.TestCase):
 
     def test_llm_routed_write_into_a_shared_base_is_critical(self):
         self.b("capture", "--text", "routed by a classifier", who=self.ALICE)
-        cap = next((self.root / "raw" / "captures").glob("*.md"))
+        cap = next((self.root / "_raw").glob("*.md"))
         cap.write_text(cap.read_text().replace(
             "triage: pending",
             "triage: pending\nkb_routing:\n  method: llm\n  confidence: 0.9\n"
@@ -745,7 +770,7 @@ class SharedBaseTest(unittest.TestCase):
         is legitimate — so the drift worth reporting is a shard nobody owns: someone who
         left, or a typo that silently made a second person."""
         self.b("state", "add", "--note", "a thread", who=self.ALICE)
-        stray = self.root / "state" / "someone-who-left.yaml"
+        stray = self.root / ".kb" / "state" / "someone-who-left.yml"
         stray.write_text("items: []\n")
         out = self.b("lint", who=self.ALICE).stdout
         self.assertIn("orphaned state shard", out)
@@ -772,10 +797,10 @@ class SharedBaseTest(unittest.TestCase):
         r = run(["--base", str(clone), "sync"], {**self.env, **self.BOB})
         self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
 
-        caps = list((clone / "raw" / "captures").glob("*.md"))
+        caps = self.captures(clone)
         self.assertEqual(len(caps), 2, [p.name for p in caps])
-        self.assertFalse(list((clone / "_ops" / "needs-review").glob("*.md"))
-                         if (clone / "_ops" / "needs-review").is_dir() else [])
+        pend = clone / ".kb" / "pending"
+        self.assertFalse(list(pend.glob("*.md")) if pend.is_dir() else [])
 
 
 class PrincipalTest(unittest.TestCase):
@@ -894,7 +919,7 @@ class PrincipalTest(unittest.TestCase):
         # The template's commented-out roster block is Plan 2's to remove; what matters
         # here is that nothing READS it, so a base carrying one behaves identically.
         root = self.base("b")
-        cfg = root / "BASE.yaml"
+        cfg = root / ".kb" / "base.yml"
         cfg.write_text(cfg.read_text() +
                        "\nprincipals:\n  alice@example.com: user:alice\n")
         r = run(["--base", str(root), "capture", "--text", "rostered or not"],
@@ -917,6 +942,94 @@ class PrincipalTest(unittest.TestCase):
                  "alice@example.com", "--verb", "write", "--path", "profile/x.md"],
                 self.env)
         self.assertIn("GRANTED", r.stdout)
+
+
+class LayoutTest(unittest.TestCase):
+    """LAYOUT 2: the tool's own files live under `.kb/`, source material under `_raw/`.
+
+    Three subdirectories, three tests — waiting on someone · in progress · rebuildable.
+    Anything fitting none of the three does not belong under `.kb/`."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "alice@example.com",
+                    "AOS_PRINCIPAL_NAME": "Alice Example"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "test base",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args):
+        return run(["--base", str(self.root), *args], self.env)
+
+    def test_the_version_reports_layout_2(self):
+        self.assertIn("layout 2", run(["--version"]).stdout)
+
+    def test_the_tree_is_layout_2(self):
+        self.assertTrue((self.root / ".kb" / "base.yml").exists())
+        self.assertTrue((self.root / ".kb" / "pending").is_dir())
+        self.assertTrue((self.root / ".kb" / "work").is_dir())
+        self.assertTrue((self.root / "_raw").is_dir())
+        self.assertEqual(yaml.safe_load(
+            (self.root / ".kb" / "base.yml").read_text())["layout"], 2)
+
+    def test_state_is_always_sharded_never_conditional_on_audience(self):
+        # A private base used to keep a flat state.yaml. One shape, always: the
+        # conditional was a second code path that only the shared case exercised.
+        shards = sorted((self.root / ".kb" / "state").glob("*.yml"))
+        self.assertEqual([p.name for p in shards], ["alice-example-com.yml"])
+
+    def test_agents_md_stays_at_the_root(self):
+        # A harness-recognised filename: moved, the archiver stops reading its own
+        # contract. This is a hard constraint, not a preference.
+        self.assertTrue((self.root / "AGENTS.md").exists())
+        self.assertFalse((self.root / ".kb" / "AGENTS.md").exists())
+
+    def test_layout_1_artifacts_are_absent(self):
+        for gone in ("BASE.yaml", "state.yaml", "_ops", "_archive", "raw", ".base"):
+            self.assertFalse((self.root / gone).exists(), f"{gone} survived")
+
+    def test_cache_is_gitignored(self):
+        self.assertIn(".kb/cache/", (self.root / ".gitignore").read_text())
+
+    def test_nothing_unrendered_survives_in_a_scaffolded_file(self):
+        # A missing substitution is silent otherwise, and an unrendered {{curation}}
+        # in a committed base.yml is a parse error waiting to happen.
+        for p in self.root.rglob("*"):
+            if p.is_file() and ".git/" not in str(p):
+                self.assertNotIn("{{", p.read_text(encoding="utf-8", errors="ignore"),
+                                 f"unrendered placeholder in {p}")
+
+    def test_a_layout_1_tree_is_refused_with_a_pointer_not_a_guess(self):
+        old = self.dir / "old"
+        old.mkdir()
+        (old / "BASE.yaml").write_text("layout: 1\nname: old\nzones: {}\n")
+        r = run(["--base", str(old), "lint"], self.env)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("layout 1", r.stderr.lower())
+        self.assertIn("kb migrate", r.stderr)
+
+    def test_zone_kinds_are_exactly_raw_and_wiki(self):
+        kinds = {z.get("kind") for z in yaml.safe_load(
+            (self.root / ".kb" / "base.yml").read_text())["zones"].values()}
+        self.assertEqual(kinds, {"raw", "wiki"})
+
+    def test_curation_defaults_to_self(self):
+        cfg = yaml.safe_load((self.root / ".kb" / "base.yml").read_text())
+        self.assertEqual(cfg["curation"], "self")
+
+    def test_the_registry_entry_carries_no_methodology(self):
+        # The seam dissolved — kb IS the methodology — so the field had no reader.
+        self.assertNotIn("methodology", self.reg.read_text())
 
 
 class PackagingTest(unittest.TestCase):
