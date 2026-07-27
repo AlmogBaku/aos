@@ -122,11 +122,42 @@ work KB your colleagues pull — all registered in your user-owned `kb-registry.
   writes. Capture latency is sacred: routing never blocks a capture on a question.
 - **The base engine** ([§4.4](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#44-the-base-engine-store-curation-state)):
   immutable `raw/` captures + current-truth wiki pages; a skeptical nightly promotion
-  (most captures aren't knowledge — default is empty); one capped `state.yaml`
-  attention window per base.
+  (most captures aren't knowledge — default is empty); one capped attention window per
+  base.
 - **The `base` tool** is the deterministic executor for all of it — capture, inbox,
   search, lint, sync, grants — files and exit codes, no LLM, no agent. Agents use it;
   they don't reimplement it.
+- **Git is the audit trail.** Every write is its own commit: the **author** is the
+  person whose knowledge it is, the **committer** is the agent that applied it. That is
+  git's own two-identity model, so `blame` and every forge already understand it, and
+  there is no second log file to drift from the truth.
+
+### When more than one person shares a base
+
+A shared base is a repo other humans pull, so a handful of things that were free for one
+person stop being free.
+
+- **Everyone ingests their own.** Your agent captures with your context — that is the
+  whole advantage, and it stays. `base inbox` shows *your* pending captures; somebody
+  else's raw material never enters your agent's context, which matters because that
+  agent can write shared knowledge.
+- **Every shared record is one file.** Captures, review-queue entries, and each person's
+  attention window are separate files, so two machines syncing have nothing to merge.
+  This is the same rule that made the inbox a view rather than a file, applied
+  everywhere it should have been.
+- **Who promotes is a choice you make, not a setting.** Either everyone curates their
+  own captures (the default), or one person holds the wiki write grants and the others
+  capture and propose. The grants table already says which; no new configuration exists.
+- **Nothing neutral watches a shared base yet.** The deterministic checks exist — the
+  grants audit, "no LLM-routed write ever reached this base", index drift, unattributed
+  commits — and any member can run them with `base lint`. What does not exist is a
+  neutral actor to run them on everyone's behalf: whichever household runs the checks is
+  also the one whose agent reads everybody else's raw material. CI was the obvious
+  candidate and is deliberately not shipped, because it answers the mechanical half while
+  the half that matters — who decides what gets promoted — is still open. Worth knowing
+  if you are relying on a forge to enforce anything: on a private repo, GitHub gates
+  rulesets, branch protection and CODEOWNERS to its paid plans, so a free-plan repo
+  cannot block a bad push at all.
 
 ## Install — the LLM is the installer
 

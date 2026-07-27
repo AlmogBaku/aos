@@ -1,6 +1,6 @@
 ---
 id: gtd-capture
-version: 0.3.1
+version: 0.4.0
 tags: [usecase]
 summary: Voice/text → instant capture into kb's raw/captures/; a nightly drain turns pending captures into next-actions and reminders.
 depends:
@@ -79,7 +79,7 @@ thinking, walking kb's own pending view instead of a capability-owned inbox file
    (`route-into raw/captures/**`) already comes free from kb's own install —
    gtd-capture doesn't redeclare that grant. **On a shared base**, register only the
    `raw/captures/**` bookkeeping row: drain never writes next-actions directly into a
-   repo colleagues pull — its judgment outputs land as `_ops/needs-review.md`
+   repo colleagues pull — its judgment outputs land as `_ops/needs-review/`
    proposals there (same posture as kb's archiver).
 5. **Onboarding** asks capture channels, reminder target, drain hour, and next-action
    phrasing; answers fill the capture skill's `{{mod: capture_preferences}}` slot and

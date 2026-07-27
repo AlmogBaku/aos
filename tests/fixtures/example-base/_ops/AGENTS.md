@@ -1,6 +1,6 @@
 # _ops/ — the base's machinery (shared content)
 
-- `needs-review.md` — judgment calls, refusals, sync conflicts, eviction proposals,
+- `needs-review/` — judgment calls, refusals, sync conflicts, eviction proposals,
   failed captures. Appended by agents and the tool; **drained by the user** (or their
   chief-of-staff agent). The archiver never resolves its own judgment calls.
 - `needs-entity-queue.md` — unresolved `@mentions` awaiting deliberate entity

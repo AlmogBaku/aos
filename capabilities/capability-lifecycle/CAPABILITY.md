@@ -1,6 +1,6 @@
 ---
 id: capability-lifecycle
-version: 0.3.1
+version: 0.3.2
 tags: [infra]
 summary: The capability lifecycle as one capability — install, upgrade, remove, onboard, import, build, contribute, and evolve as skills for the front agent; the MOD.md overlay with its promote/retire exit side; the household layout with pinned renders and symlink installs; the per-harness cheat-sheets; and the aos-lock tool that owns the lockfile and computes every skill's installed name.
 skill_prefix: capability-

@@ -31,8 +31,10 @@ cheat-sheet:
   a bare `base sync` with no resolvable registry exits 0 having synced nothing.
 - Surfacing: optionally compose a notifier around the exec call:
   `… sync --all || <harness-notify "base sync needs attention">`. The file bus
-  (`_ops/needs-review.md`, `log.md`, exit codes) is the portable interface either way.
-- Env: `AOS_REGISTRY` (registry path), `AOS_AGENT` (acting subject for log lines).
+  (`_ops/needs-review/`, git history, exit codes) is the portable interface either way.
+- Env: `AOS_REGISTRY` (registry path), `AOS_AGENT` (acting subject — the committer of
+  every write), `AOS_PRINCIPAL_NAME`/`AOS_PRINCIPAL_EMAIL` (the human a write belongs
+  to — the git author; defaults to the repo's own git identity).
 
 ## Degraded modes
 
@@ -40,5 +42,5 @@ cheat-sheet:
   tell the user what to run and when ("run `base sync --all` when you finish a
   session"; "ask the archiver to promote nightly").
 - No uv/python: the tool's contracts are performed by hand per each base's AGENTS.md
-  (capture frontmatter + sha256 + log line; grants lookup by reading the table; lint
+  (capture frontmatter + sha256 + commit; grants lookup by reading the table; lint
   by checklist). Slower, same rules — the files remain the contract.

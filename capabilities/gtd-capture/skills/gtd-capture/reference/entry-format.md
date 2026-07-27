@@ -21,7 +21,7 @@ base --base <name> capture --text "<verbatim content>" --source <channel>
 - `--source`: channel provenance — `whatsapp`, `voice`, `chat`, or `<agent>:<ref>` for
   agent-originated captures.
 
-Everything else — the filename, dedup, `triage: pending`, the log line, and (once
+Everything else — the filename, dedup, `triage: pending`, the commit, and (once
 `kb-route` runs) the `kb_routing` record — is the tool's and that skill's job, never
 gtd-capture's to hand-roll.
 

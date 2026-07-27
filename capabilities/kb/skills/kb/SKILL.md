@@ -25,7 +25,8 @@ judgment is yours, mechanics are its.
   routing hints, which is default.
 - Each base: `BASE.yaml` (machine config — the tool enforces it), `AGENTS.md`
   (contract + Grants table — read before writing), `index.md` (the map; descriptions
-  are the ToC), `log.md` (audit), `state.yaml`, zones per BASE.yaml.
+  are the ToC), state (`state.yaml`, or `state/<principal>.yaml` when shared), zones
+  per BASE.yaml. The audit trail is git — `base history` reads it.
 
 ## Cold start ("where do things stand?")
 
@@ -57,7 +58,7 @@ same rules.
 ## Authority
 
 - May freely: read anything granted; capture; bump state; run `search`/`links`/`lint`.
-- Report-only: lint findings, sync conflicts (they land in `_ops/needs-review.md` —
+- Report-only: lint findings, sync conflicts (they land in `_ops/needs-review/` —
   the user drains that queue, never you).
 - Ask first: creating pages in a **shared** base (review queue always), zone/type
   changes (BASE.yaml is owner-approved), anything `profile/`, flipping `verified`.
