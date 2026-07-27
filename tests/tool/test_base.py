@@ -23,12 +23,32 @@ TOOL_DIR = REPO / "capabilities/kb/tool"
 TEMPLATES = REPO / "capabilities/kb/skills/init/templates"
 
 
-def run(args, env_extra=None, cwd=None):
+# A CI runner has no git identity, and `git commit` exits 128 without one. Several tests
+# make ordinary git commits (seeding a remote, letting sync's merge commit), so the
+# identity is supplied here rather than in the workflow: a test that needs one should
+# carry it, or it only passes on a developer's machine.
+#
+# Deliberately NOT `git config --global` — that would mutate the runner. These env vars
+# lose to the tool's own --author/AOS_PRINCIPAL_* handling, which is what the
+# attribution tests assert, so they change no behavior those tests measure.
+GIT_IDENTITY = {
+    "GIT_AUTHOR_NAME": "Test Runner", "GIT_AUTHOR_EMAIL": "runner@example.test",
+    "GIT_COMMITTER_NAME": "Test Runner", "GIT_COMMITTER_EMAIL": "runner@example.test",
+}
+
+
+def git_env(extra=None):
     env = dict(os.environ)
-    env.update(env_extra or {})
+    env.update(GIT_IDENTITY)
+    env.update(extra or {})
+    return env
+
+
+def run(args, env_extra=None, cwd=None):
     return subprocess.run(["uv", "run", "--quiet", "--project", str(TOOL_DIR),
                            "base", *args],
-                          capture_output=True, text=True, env=env, cwd=cwd)
+                          capture_output=True, text=True,
+                          env=git_env(env_extra), cwd=cwd)
 
 
 class BaseToolTest(unittest.TestCase):
@@ -529,13 +549,18 @@ class BaseToolTest(unittest.TestCase):
 
     def test_lint_grants_audit_flags_ungranted_author(self):
         def git(*a):
-            subprocess.run(["git", *a], cwd=self.root, check=True,
+            subprocess.run(["git", *a], cwd=self.root, check=True, env=git_env(),
                            capture_output=True)
         (self.root / "concepts").mkdir(exist_ok=True)
         (self.root / "concepts" / "rogue.md").write_text("---\ntitle: R\n---\nx\n")
         git("add", "-A")
-        git("-c", "user.name=agent:rogue", "-c", "user.email=r@x",
-            "commit", "-qm", "rogue write")
+        # This commit's whole point is WHO made it, so it names its own identity via
+        # env rather than `-c`: GIT_COMMITTER_* from git_env() would otherwise win over
+        # a `-c user.name`, and the audit reads the committer.
+        subprocess.run(["git", "commit", "-qm", "rogue write"], cwd=self.root,
+                       check=True, capture_output=True,
+                       env=git_env({"GIT_COMMITTER_NAME": "agent:rogue",
+                                    "GIT_COMMITTER_EMAIL": "r@x"}))
         self.assertIn("grants audit: agent:rogue", self.b("lint").stdout)
 
     # -- sync conflict -----------------------------------------------------
@@ -544,7 +569,8 @@ class BaseToolTest(unittest.TestCase):
         subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
 
         def git(*a, cwd=self.root):
-            subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True)
+            subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True,
+                           env=git_env())
 
         git("remote", "add", "origin", str(remote))
         git("add", "-A")
