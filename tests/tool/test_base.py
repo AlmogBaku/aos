@@ -242,11 +242,16 @@ class BaseToolTest(unittest.TestCase):
         (self.root / "concepts" / "x.md.backup.1").write_text("old")
         self.assertIn("backup file", self.b("lint").stdout)
 
-    def test_lint_is_report_only_unless_ci_asks_for_a_verdict(self):
+    def test_lint_reports_by_default_and_returns_a_verdict_on_demand(self):
+        """Report-only is the contract, and --ci is what makes it falsifiable: "the
+        report is the interface" only means something if there is a second mode to
+        contrast with. The flag outlived the CI janitor it was built for — a user's own
+        hook or Action still needs an exit code, and parsing the report text instead
+        would be far worse."""
         (self.root / "concepts").mkdir(exist_ok=True)
         (self.root / "concepts" / "x.md.backup.1").write_text("old")
-        self.assertEqual(self.b("lint").returncode, 0)      # the report is the interface
-        self.assertNotEqual(self.b("lint", "--ci").returncode, 0)  # a janitor needs one
+        self.assertEqual(self.b("lint").returncode, 0)
+        self.assertNotEqual(self.b("lint", "--ci").returncode, 0)
 
     def test_no_base_gets_ci_wiring(self):
         """The shared-KB CI infrastructure is descoped. A base is a git repo and

@@ -1154,9 +1154,10 @@ def cmd_lint(args):
         base.commit("lint", dst, f"{len(critical)} critical, {len(findings)} findings",
                     agent, author)
     # Report-only by default: the report is the interface, and the exit code carries no
-    # verdict. `--ci` is the one exception — a janitor running unattended needs a
-    # verdict, and on a private repo without branch protection a failing check is the
-    # only enforcement surface a shared base actually has.
+    # verdict. `--ci` is the one exception, and it outlived the CI janitor it was built
+    # for: a user wiring lint into their own hook or Action needs an exit code, and the
+    # alternative is parsing the report text. The default staying report-only is the
+    # contract; --ci is what makes that contract falsifiable rather than a preference.
     if getattr(args, "ci", False) and critical:
         sys.exit(1)
 
@@ -1541,8 +1542,8 @@ def main():
     p.add_argument("--write-report", action="store_true")
     p.add_argument("--audit-days", type=int, default=8)
     p.add_argument("--ci", action="store_true",
-                   help="exit 1 on any critical — for an unattended janitor, which "
-                        "needs a verdict rather than a report")
+                   help="exit 1 on any critical — for a hook or an unattended runner "
+                        "that needs a verdict rather than a report")
     p.set_defaults(func=cmd_lint)
 
     p = sub.add_parser("grants", help="grant lookup")
