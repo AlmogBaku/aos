@@ -23,6 +23,7 @@ implementation language is a build choice.
 
 import argparse
 import datetime as _dt
+import fnmatch
 import hashlib
 import json
 import os
@@ -208,18 +209,104 @@ def is_repo(root: Path) -> bool:
     return (root / ".git").exists()
 
 
-def author_identity(args, root: Path) -> tuple[str, str]:
-    """git's `author` — the human whose knowledge this is. We read the identity they
-    already have rather than inventing one; the env overrides exist for service
-    accounts and tests. Empty means "no identity configured", which the caller turns
-    into an unattributed commit that lint reports."""
-    name = getattr(args, "author_name", None) or os.environ.get("AOS_PRINCIPAL_NAME")
-    email = getattr(args, "author_email", None) or os.environ.get("AOS_PRINCIPAL_EMAIL")
-    if not name:
+# ---------------------------------------------------------------- principal
+#
+# A principal is a human, and git already models this: author = the person whose
+# knowledge it is, committer = the acting agent. Rebase preserves the author, forges
+# show it in blame, and no new identity system is invented.
+#
+# The file is a LIST because one person is not one identity — a work address should not
+# author a personal base. First match wins, so a bare "*" belongs last.
+WEAK_PRINCIPAL_MARKERS = ("agents@localhost", "noreply@", "@localhost")
+
+
+def principal_file() -> Path:
+    home = find_household()
+    return (home / ".aos" / "kb-principal.yml") if home else \
+        Path.home() / ".aos" / "kb-principal.yml"
+
+
+def load_principals() -> list:
+    p = principal_file()
+    if not p.exists():
+        return []
+    data = yaml.safe_load(p.read_text(encoding="utf-8")) or []
+    return data if isinstance(data, list) else []
+
+
+def save_principals(entries: list):
+    p = principal_file()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(
+        "# The humans this machine writes as. First match wins, so a bare `*` belongs\n"
+        "# last. Machine-local and gitignored: `kb` writes it on the first verb call\n"
+        "# and kb's ONBOARDING.md fixes what detection got wrong.\n"
+        + yaml.safe_dump(entries, sort_keys=False, allow_unicode=True),
+        encoding="utf-8")
+
+
+def synthesize_principal() -> str:
+    import getpass
+    import socket
+    user = re.sub(r"[^a-z0-9._-]+", "-", getpass.getuser().lower()) or "user"
+    host = re.sub(r"[^a-z0-9.-]+", "-", socket.gethostname().split(".")[0].lower()) \
+        or "localhost"
+    return f"{user}@{host}.local"
+
+
+def is_weak_principal(pid: str) -> bool:
+    pid = (pid or "").lower()
+    return (not pid) or pid.endswith(".local") \
+        or any(m in pid for m in WEAK_PRINCIPAL_MARKERS)
+
+
+def resolve_principal(args, base_name: str, root: Path = None,
+                      persist: bool = True) -> str:
+    """$AOS_PRINCIPAL_ID -> first matching file entry -> git config user.email ->
+    synthesized. Written once, reused. NEVER prompts and never blocks: this runs
+    under a 5-second capture budget and under a cron with no tty. A weak value is
+    lint's finding, not an error.
+
+    `persist=False` for the read-only verbs. A report is not a reason to establish an
+    identity: `kb lint` on someone else's base would otherwise create
+    <home>/.aos/kb-principal.yml as a side effect of reading, which is both a
+    surprise and a wrong answer to "whose base is this".
+    """
+    entries = load_principals()
+    env = getattr(args, "principal", None) or os.environ.get("AOS_PRINCIPAL_ID")
+    if env and env.strip():
+        env = env.strip()
+        # Seeded on the way past when there is no file yet: "established on first use"
+        # has to mean the first use, whatever supplied the identity. An existing file
+        # is left alone — env is an override, and an override that rewrote the file
+        # would make itself permanent.
+        if persist and not entries:
+            save_principals([{"id": env, "bases": ["*"]}])
+        return env
+    for e in entries:
+        if not isinstance(e, dict) or not e.get("id"):
+            continue
+        for pat in (e.get("bases") or ["*"]):
+            if fnmatch.fnmatch(base_name, str(pat)):
+                return str(e["id"]).strip()
+    pid = ""
+    if root is not None:
+        pid = git(root, "config", "user.email").stdout.strip()
+    if not pid:
+        pid = synthesize_principal()
+    if persist:
+        entries.append({"id": pid, "bases": ["*"]})
+        save_principals(entries)
+    return pid
+
+
+def principal_name(args, root: Path, pid: str) -> str:
+    """The git author *name* for that principal — cosmetic beside the id, which is the
+    thing grants and dedup key on."""
+    name = os.environ.get("AOS_PRINCIPAL_NAME", "").strip()
+    if not name and root is not None:
         name = git(root, "config", "user.name").stdout.strip()
-    if not email:
-        email = git(root, "config", "user.email").stdout.strip()
-    return name, email
+    return name or (pid or "user").split("@")[0]
 
 
 SEQUENCER_STATES = ("rebase-merge", "rebase-apply", "MERGE_HEAD", "CHERRY_PICK_HEAD",
@@ -281,18 +368,15 @@ class Base:
     def audience(self) -> str:
         return self.cfg.get("audience", "private")
 
-    def principals(self) -> dict:
-        """email -> grants subject. Base-side truth that travels with the repo, like
-        `audience` — so every member pulling the base sees the same roster. Absent is
-        the single-human case: everyone maps to the existing `user` subject, so a
-        private base needs no roster and nothing changes for it."""
-        p = self.cfg.get("principals")
-        if not isinstance(p, dict):
-            return {}
-        return {str(k).strip().lower(): str(v).strip() for k, v in p.items()}
-
-    def principal_subject(self, email: str) -> str:
-        return self.principals().get((email or "").strip().lower(), "user")
+    def grant_subject(self, pid: str) -> str:
+        """The grants table names principal ids directly, so it IS the roster. A base
+        with no row for this id falls back to `user` — the single-human case, which is
+        every private base and needs no configuration at all."""
+        pid = (pid or "").strip().lower()
+        for row in self.grants():
+            if row["subject"].strip().lower() == pid:
+                return row["subject"]
+        return "user"
 
     # -- commits -----------------------------------------------------------
     def commit(self, verb: str, paths, summary: str, agent: str,
@@ -456,14 +540,15 @@ def resolve_base(args) -> Base:
 
 
 def acting(args, base: Base) -> tuple[str, tuple[str, str], str]:
-    """(agent subject, git author identity, principal subject) for this invocation.
+    """(agent subject, git author identity, grants subject) for this invocation.
 
-    The agent is the committer, the author identity is the human's own, and the
-    principal subject is what the grants table names. On a base with no roster —
-    every private base — the principal is `user`, so nothing changes."""
+    The agent is the committer and the principal is the git author. The grants subject
+    is the principal id itself when the table names it, else `user` — the single-human
+    case, which is every private base."""
     agent = agent_subject(args)
-    author = author_identity(args, base.root)
-    return agent, author, base.principal_subject(author[1])
+    pid = resolve_principal(args, base.cfg.get("name", base.root.name), base.root)
+    author = (principal_name(args, base.root, pid), pid)
+    return agent, author, base.grant_subject(pid)
 
 
 # ---------------------------------------------------------------- verbs
@@ -521,11 +606,11 @@ def cmd_init(args):
     # NOT overwrite it with a per-base agent identity: that erased the one attribution
     # git gives for free, and on a base two people share it made both of them the same
     # author. The acting agent is recorded as the committer instead.
-    who = author_identity(args, root)
-    if not all(who):
-        print("note: no git identity configured — writes will be attributed to the "
-              "acting agent and reported as unattributed by `kb lint`. Set "
-              "`git config --global user.name` and `user.email`.")
+    pid = resolve_principal(args, args.name, root)
+    if is_weak_principal(pid):
+        print(f"note: writes will be authored by {pid!r}, a synthesized identity — "
+              f"`kb lint` reports it. Fix it in {principal_file()}, or let kb's "
+              f"onboarding interview ask.")
     if args.remote:
         subprocess.run(["git", "remote", "add", "origin", args.remote],
                        cwd=root, check=False)
@@ -555,7 +640,7 @@ def cmd_init(args):
     save_registry(args, reg)
 
     base.commit("bootstrap", ".", f"base {args.name} scaffolded (layout {LAYOUT})",
-                agent_subject(args), who)
+                agent_subject(args), (principal_name(args, root, pid), pid))
     print(f"base {args.name}: scaffolded at {root}, registered"
           f"{' as default' if reg.get('default') == args.name else ''}.")
 
@@ -648,9 +733,12 @@ def cmd_capture(args):
         title = args.title or (content.strip().splitlines() or ["capture"])[0][:60]
     if not content.strip():
         die("empty capture")
-    agent, author, principal = acting(args, base)
+    agent, author, _ = acting(args, base)
+    # Scoped by the principal ID, not their grants subject: dedup and the queue are
+    # per *person*, and two people can share one grant row (or hold none, falling
+    # back to `user`) without becoming one identity.
     dst = _do_capture(base, content, title, args.source or "manual",
-                      agent, author, principal)
+                      agent, author, author[1])
     if dst:
         print(f"captured: {base.rel(dst)} (triage: pending)")
 
@@ -664,7 +752,9 @@ def cmd_inbox(args):
     while that agent holds write access to shared knowledge. `--all` is the
     designated-curator (and CI) path."""
     base = resolve_base(args)
-    _, _, principal = acting(args, base)
+    # Read-only, so it resolves without establishing: see resolve_principal's `persist`.
+    principal = resolve_principal(args, base.cfg.get("name", base.root.name),
+                                 base.root, persist=False)
     want = "failed" if args.failed else "pending"
     found = others = 0
     for p in sorted((base.root / "raw").rglob("*.md")):
@@ -687,7 +777,8 @@ def cmd_inbox(args):
 
 def cmd_state(args):
     base = resolve_base(args)
-    agent, author, principal = acting(args, base)
+    agent, author, _ = acting(args, base)
+    principal = author[1]           # the shard is one person's, not one grant row's
     st = base.load_state(principal)
     items = st["items"]
     sp = base.state_path(principal)
@@ -994,7 +1085,6 @@ def cmd_lint(args):
             critical.append(f"{base.rel(p)}: backup file — git history is the archive")
         if p.suffix not in (".md", ".yaml", ".yml", ".txt", ".json", "") \
                 and p.stat().st_size > 1024 * 1024:
-            import fnmatch
             if not any(fnmatch.fnmatch(p.name, pat) for pat in lfs_patterns):
                 findings.append(f"{base.rel(p)}: large non-text file "
                                 f"({p.stat().st_size // 1024}KB) not matching any "
@@ -1066,7 +1156,27 @@ def cmd_lint(args):
     # (the subject a grant names) and the *author* is the principal whose knowledge it
     # is. A commit with neither is the finding.
     grants = base.grants()
-    roster = base.principals()
+    # The reporting half of "the principal never blocks": a synthesized or placeholder
+    # identity authors every write, and the write proceeds — this is where it surfaces.
+    pid = resolve_principal(args, base.cfg.get("name", base.root.name), base.root,
+                            persist=False)
+    if is_weak_principal(pid):
+        findings.append(f"weak principal {pid!r} — a synthesized or placeholder "
+                        f"identity authors every write. Fix it in "
+                        f"{principal_file()} or run kb's onboarding interview")
+
+    # Principal drift: a shard whose owner is neither the current principal nor named
+    # in any grant row is somebody who left, or a typo that silently made a new person.
+    # Only sharded state has an owner in its filename; the flat file belongs to
+    # whoever holds the base, so its name says nothing about drift.
+    known = {r["subject"].strip().lower() for r in grants} | {pid.lower(), "user"}
+    known_slugs = {slugify(k) for k in known}
+    for sp in (base.state_paths() if base.audience() == "shared" else []):
+        who = sp.stem
+        if who.lower() not in known_slugs:
+            findings.append(f"{base.rel(sp)}: orphaned state shard — {who!r} is "
+                            f"neither the current principal nor named in any grant row")
+
     if is_repo(base.root):
         try:
             out = git(base.root, "log", f"--since={args.audit_days} days ago",
@@ -1083,10 +1193,6 @@ def cmd_lint(args):
                             f"commit {sha[:8]}: {subject} — swept by sync rather than "
                             f"written through a verb, so no acting subject was "
                             f"recorded. Use `kb commit` after a hand-write")
-                    if not skip_commit and roster and ae.strip().lower() not in roster:
-                        findings.append(
-                            f"unattributed commit {sha[:8]}: author {ae!r} is not in "
-                            f"the BASE.yaml principals roster")
                     continue
                 if not line.strip() or skip_commit or not grants:
                     continue
@@ -1217,8 +1323,10 @@ def cmd_sync(args):
         if not is_repo(root):
             print(f"{kb.get('name')}: skipped (not a git repo)")
             continue
-        code = _sync_one(root, kb.get("name", root.name), agent,
-                         author_identity(args, root))
+        name = kb.get("name", root.name)
+        pid = resolve_principal(args, name, root)
+        code = _sync_one(root, name, agent,
+                         (principal_name(args, root, pid), pid))
         worst = max(worst, code)
     sys.exit(worst)
 
@@ -1347,7 +1455,6 @@ IMPORT_SKIP_DEFAULT = ["**/.git/**", "**/.obsidian/**", "**/node_modules/**",
 
 
 def _src_files(src: Path, skips):
-    import fnmatch
     for p in sorted(src.rglob("*")):
         if not p.is_file():
             continue
@@ -1470,12 +1577,11 @@ def main():
     ap.add_argument("--registry", help="kb-registry.yaml path (default: <home>/personal/kb-registry.yaml)")
     ap.add_argument("--agent", help="acting subject — the committer of every write "
                     "(default $AOS_AGENT or agent:main)")
-    ap.add_argument("--author-name", help="the human principal a write belongs to; "
-                    "becomes the git author (default $AOS_PRINCIPAL_NAME, else the "
-                    "repo's own git identity)")
-    ap.add_argument("--author-email", help="that principal's email — what the "
-                    "BASE.yaml principals roster keys on (default "
-                    "$AOS_PRINCIPAL_EMAIL, else the repo's git identity)")
+    ap.add_argument("--principal", help="the human a write belongs to; becomes the "
+                    "git author and the grants subject (default $AOS_PRINCIPAL_ID, "
+                    "else the first matching entry in <home>/.aos/kb-principal.yml, "
+                    "else the repo's git identity). The display name rides "
+                    "$AOS_PRINCIPAL_NAME")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     p = sub.add_parser("init", help="scaffold + register a new base")

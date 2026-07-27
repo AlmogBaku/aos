@@ -18,6 +18,8 @@ import time
 import unittest
 from pathlib import Path
 
+import yaml
+
 REPO = Path(__file__).resolve().parents[2]
 TOOL_DIR = REPO / "capabilities/kb/tool"
 TEMPLATES = REPO / "capabilities/kb/skills/init/templates"
@@ -56,7 +58,18 @@ class BaseToolTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.dir = Path(self.tmp.name)
         self.reg = self.dir / "kb-registry.yaml"
-        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main"}
+        # AOS_HOME is not optional in a test: the principal file is machine-local, and
+        # without it the tool would establish an identity in the developer's real
+        # ~/.aos/ on the first verb call.
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        # The principal is pinned for the same reason GIT_IDENTITY is: on a runner with
+        # no git identity the tool would synthesize <user>@<host>.local, which lint
+        # correctly reports as weak — so a fixture that must lint clean carries one.
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "dana@example.com",
+                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
         self.root = self.dir / "b"
         r = run(["init", "b", "--path", str(self.root), "--purpose", "test base",
                  "--templates", str(TEMPLATES), "--default"], self.env)
@@ -135,9 +148,11 @@ class BaseToolTest(unittest.TestCase):
         self.assertRegex(body, r"aos-path: raw/captures/")
 
     def test_capture_author_is_the_principal_committer_is_the_agent(self):
-        self.b("--author-name", "Dana Fixture", "--author-email", "dana@example.com",
-               "--agent", "agent:archiver",
-               "capture", "--text", "who wrote this")
+        # One flag where there were two: the id is the identity, and the display name
+        # rides the env — they were two ways to say one thing.
+        run(["--base", str(self.root), "--principal", "dana@example.com",
+             "--agent", "agent:archiver", "capture", "--text", "who wrote this"],
+            {**self.env, "AOS_PRINCIPAL_NAME": "Dana Fixture"})
         an, ae, cn = self.git("log", "-1", "--pretty=%an%n%ae%n%cn").splitlines()[:3]
         self.assertEqual(an, "Dana Fixture")     # the human whose knowledge it is
         self.assertEqual(ae, "dana@example.com")
@@ -642,26 +657,27 @@ class SharedBaseTest(unittest.TestCase):
     Every property here only appears once there is more than one principal — which is
     exactly the question the single-user design never had to answer."""
 
-    ALICE = {"AOS_PRINCIPAL_NAME": "Alice Example",
-             "AOS_PRINCIPAL_EMAIL": "alice@example.com"}
-    BOB = {"AOS_PRINCIPAL_NAME": "Bob Example",
-           "AOS_PRINCIPAL_EMAIL": "bob@example.com"}
+    # One env var per person now, and it is the git author address itself: the roster
+    # that used to translate an email into a grants subject is gone, because the email
+    # IS the subject.
+    ALICE = {"AOS_PRINCIPAL_ID": "alice@example.com",
+             "AOS_PRINCIPAL_NAME": "Alice Example"}
+    BOB = {"AOS_PRINCIPAL_ID": "bob@example.com",
+           "AOS_PRINCIPAL_NAME": "Bob Example"}
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
         self.reg = self.dir / "kb-registry.yaml"
-        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main"}
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home)}
         self.root = self.dir / "team"
         r = run(["init", "team", "--path", str(self.root), "--audience", "shared",
                  "--purpose", "team base", "--templates", str(TEMPLATES),
-                 "--default"], self.env)
+                 "--default"], {**self.env, **self.ALICE})
         self.assertEqual(r.returncode, 0, r.stderr)
-        cfg = self.root / "BASE.yaml"
-        cfg.write_text(cfg.read_text() +
-                       "\nprincipals:\n"
-                       "  alice@example.com: user:alice\n"
-                       "  bob@example.com: user:bob\n")
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -678,8 +694,10 @@ class SharedBaseTest(unittest.TestCase):
     def test_state_is_sharded_per_principal(self):
         self.b("state", "add", "--note", "alice's thread", who=self.ALICE)
         self.b("state", "add", "--note", "bob's thread", who=self.BOB)
-        alice = self.root / "state" / "user-alice.yaml"
-        bob = self.root / "state" / "user-bob.yaml"
+        # Named for the person, not their grants row: two people can share one row
+        # (or hold none, falling back to `user`) without collapsing into one shard.
+        alice = self.root / "state" / "alice-example-com.yaml"
+        bob = self.root / "state" / "bob-example-com.yaml"
         self.assertTrue(alice.exists() and bob.exists())
         # Each shard has exactly one writer, so neither rewrites the other's file —
         # which is what makes "single writer" literally true on a shared base.
@@ -721,12 +739,17 @@ class SharedBaseTest(unittest.TestCase):
         self.assertIn("no LLM-routed write may ever land here",
                       self.b("lint", who=self.ALICE).stdout)
 
-    def test_unrostered_author_is_reported_as_unattributed(self):
-        self.b("capture", "--text", "who are you",
-               who={"AOS_PRINCIPAL_NAME": "Stranger",
-                    "AOS_PRINCIPAL_EMAIL": "nobody@elsewhere.test"})
-        self.assertIn("is not in the BASE.yaml principals roster",
-                      self.b("lint", who=self.ALICE).stdout)
+    def test_a_departed_principals_state_shard_is_reported(self):
+        """The roster check this replaces asked "is this author registered?". With the
+        grants table as the only roster the answer is `user` for anyone unlisted, which
+        is legitimate — so the drift worth reporting is a shard nobody owns: someone who
+        left, or a typo that silently made a second person."""
+        self.b("state", "add", "--note", "a thread", who=self.ALICE)
+        stray = self.root / "state" / "someone-who-left.yaml"
+        stray.write_text("items: []\n")
+        out = self.b("lint", who=self.ALICE).stdout
+        self.assertIn("orphaned state shard", out)
+        self.assertIn("someone-who-left", out)
 
     def test_two_machines_capturing_concurrently_do_not_conflict(self):
         remote = self.dir / "team.git"
@@ -753,6 +776,147 @@ class SharedBaseTest(unittest.TestCase):
         self.assertEqual(len(caps), 2, [p.name for p in caps])
         self.assertFalse(list((clone / "_ops" / "needs-review").glob("*.md"))
                          if (clone / "_ops" / "needs-review").is_dir() else [])
+
+
+class PrincipalTest(unittest.TestCase):
+    """The principal resolves on the first verb call, with no init step, and never
+    prompts — a cron has no tty and capture latency is sacred."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home)}
+        self.pfile = self.home / ".aos" / "kb-principal.yml"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def base(self, name, **kw):
+        root = self.dir / name
+        argv = ["init", name, "--path", str(root), "--templates", str(TEMPLATES)]
+        for k, v in kw.items():
+            argv += [f"--{k.replace('_', '-')}", v]
+        r = run(argv, self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return root
+
+    def author_email(self, root):
+        """The principal is what git records as the author, so that is where an
+        assertion can see it — no verb needs to print it."""
+        return subprocess.run(["git", "log", "-1", "--pretty=%ae"], cwd=root,
+                              capture_output=True, text=True).stdout.strip()
+
+    def test_first_verb_call_writes_the_principal_file_with_no_init_step(self):
+        root = self.base("b")
+        self.pfile.unlink(missing_ok=True)
+        r = run(["--base", str(root), "capture", "--text", "a thought"],
+                {**self.env, "AOS_PRINCIPAL_ID": "alice@personal.dev"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue(self.pfile.exists(), "the first verb call establishes identity")
+        entries = yaml.safe_load(self.pfile.read_text())
+        self.assertIsInstance(entries, list)
+        self.assertEqual(entries[0]["id"], "alice@personal.dev")
+
+    def test_env_beats_the_file_and_the_file_is_first_match_wins(self):
+        root_work = self.base("acme_wiki")
+        root_home = self.base("home")
+        self.pfile.write_text(yaml.safe_dump([
+            {"id": "alice@acme.com", "bases": ["acme_*"]},
+            {"id": "alice@personal.dev", "bases": ["*"]},
+        ], sort_keys=False))
+        r = run(["--base", str(root_work), "capture", "--text", "at work"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.author_email(root_work), "alice@acme.com")
+        r = run(["--base", str(root_home), "capture", "--text", "at home"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.author_email(root_home), "alice@personal.dev")
+        run(["--base", str(root_work), "capture", "--text", "as someone else"],
+            {**self.env, "AOS_PRINCIPAL_ID": "override@example.com"})
+        self.assertEqual(self.author_email(root_work), "override@example.com")
+
+    def test_a_bare_star_last_is_the_catch_all(self):
+        self.pfile.write_text(yaml.safe_dump([{"id": "only@example.com",
+                                               "bases": ["*"]}], sort_keys=False))
+        root = self.base("anything")
+        r = run(["--base", str(root), "capture", "--text", "x"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.author_email(root), "only@example.com")
+
+    def test_no_git_identity_synthesizes_writes_anyway_and_lint_reports_it(self):
+        root = self.base("b")
+        self.pfile.unlink(missing_ok=True)
+        # The suite injects GIT_* so a CI runner can commit at all; clearing them here
+        # is what actually reproduces "no identity", since they beat `git config`.
+        # `git config --unset` only clears the repo level; the developer's --global
+        # identity (and the suite's own GIT_*) would still answer. Neutralising all
+        # three is what actually reproduces a machine with no identity.
+        bare = {k: "" for k in GIT_IDENTITY}
+        bare.update({"GIT_CONFIG_GLOBAL": os.devnull,
+                     "GIT_CONFIG_SYSTEM": os.devnull})
+        for k in ("user.email", "user.name"):
+            subprocess.run(["git", "config", "--unset", k], cwd=root,
+                           capture_output=True, check=False)
+        r = run(["--base", str(root), "capture", "--text", "still lands"],
+                {**self.env, **bare})
+        self.assertEqual(r.returncode, 0, r.stderr)      # never blocks
+        self.assertNotIn("?", r.stdout.replace("(", ""))  # never prompts
+        entries = yaml.safe_load(self.pfile.read_text())
+        self.assertTrue(entries[0]["id"].endswith(".local"),
+                        f"expected a synthesized id, got {entries[0]['id']!r}")
+        r = run(["--base", str(root), "lint"], {**self.env, **bare})
+        self.assertIn("weak principal", r.stdout)
+
+    def test_a_read_only_verb_never_establishes_an_identity(self):
+        """`kb lint` is report-only, so it must not have machine-state side effects.
+        Linting someone else's base would otherwise create the principal file as a
+        consequence of *reading* — a surprise, and the wrong answer to "whose base is
+        this"."""
+        root = self.base("b")
+        self.pfile.unlink(missing_ok=True)
+        for verb in (["lint"], ["inbox"]):
+            r = run(["--base", str(root), *verb], self.env)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertFalse(self.pfile.exists(),
+                             f"`kb {verb[0]}` wrote {self.pfile}")
+
+    def test_a_placeholder_identity_is_reported_not_accepted_silently(self):
+        root = self.base("b")
+        self.pfile.write_text(yaml.safe_dump([{"id": "agents@localhost",
+                                               "bases": ["*"]}], sort_keys=False))
+        r = run(["--base", str(root), "lint"], self.env)
+        self.assertIn("weak principal", r.stdout)
+
+    def test_no_principals_roster_is_read_from_the_config(self):
+        # The template's commented-out roster block is Plan 2's to remove; what matters
+        # here is that nothing READS it, so a base carrying one behaves identically.
+        root = self.base("b")
+        cfg = root / "BASE.yaml"
+        cfg.write_text(cfg.read_text() +
+                       "\nprincipals:\n  alice@example.com: user:alice\n")
+        r = run(["--base", str(root), "capture", "--text", "rostered or not"],
+                {**self.env, "AOS_PRINCIPAL_ID": "alice@example.com"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        # The roster would have mapped this to `user:alice`; with the grants table as
+        # the only roster, an id with no grant row falls back to `user`.
+        r = run(["--base", str(root), "lint"],
+                {**self.env, "AOS_PRINCIPAL_ID": "alice@example.com"})
+        self.assertNotIn("principals roster", r.stdout)
+
+    def test_the_grants_table_is_the_roster(self):
+        # The roster existed only to translate an email into a grants subject, so the
+        # email IS the subject: one source instead of two that can disagree.
+        root = self.base("b")
+        agents = root / "AGENTS.md"
+        agents.write_text(agents.read_text().replace(
+            "| user | `**` |", "| alice@example.com | `**` |", 1))
+        r = run(["--base", str(root), "grants", "check", "--subject",
+                 "alice@example.com", "--verb", "write", "--path", "profile/x.md"],
+                self.env)
+        self.assertIn("GRANTED", r.stdout)
 
 
 class PackagingTest(unittest.TestCase):
