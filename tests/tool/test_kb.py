@@ -1257,6 +1257,19 @@ class PendingTest(unittest.TestCase):
         self.assertNotIn("kind", self.fm(moved[0]))
         self.assertNotIn("waits_on", self.fm(moved[0]))
 
+    def test_ingest_leaves_no_uncommitted_deletion(self):
+        # `git mv` stages the deletion and the addition together, but a commit scoped
+        # to only the destination path leaves the source's staged deletion out of the
+        # commit itself — the working tree looks clean, but the pending file is still
+        # in HEAD's tree until something else commits it.
+        self.b("capture", "--text", "must not linger")
+        rel = self.pending_rels()[0]
+        r = self.b("ingest", rel)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.git("status", "--porcelain").strip(), "")
+        tracked = self.git("ls-tree", "-r", "HEAD", "--name-only")
+        self.assertNotIn(rel, tracked, f"{rel} is still in HEAD's tree after ingest")
+
     def test_raw_is_flat(self):
         self.b("capture", "--text", "x")
         self.b("ingest", *self.pending_rels())

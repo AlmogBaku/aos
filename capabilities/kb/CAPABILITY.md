@@ -1,6 +1,6 @@
 ---
 id: kb
-version: 0.6.1
+version: 0.7.0
 tags: [infra]
 summary: Multi-base knowledge infrastructure — registry, routing, the base engine (store · curation · state), the deterministic `base` tool, and one Archiver agent across all bases.
 depends:

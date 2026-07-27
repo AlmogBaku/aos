@@ -970,7 +970,13 @@ def cmd_ingest(args):
         fm = {k: v for k, v in (fm or {}).items()
               if k not in ("kind", "waits_on", "raised_by")}
         write_frontmatter(dst, fm, body)
-        base.commit("ingest", [base.rel(dst)], f"ingested {src.name}", agent, author)
+        # Both pathspecs: `git mv` stages the deletion and the addition together, but
+        # `commit()` scopes its `git add`/`git commit --` to the paths it's given — a
+        # dst-only commit leaves the pending file's deletion unstaged in the *commit*
+        # even though the index already has it, so the source never actually leaves
+        # the tree.
+        base.commit("ingest", [rel, base.rel(dst)], f"ingested {src.name}",
+                    agent, author)
         print(f"ingested: {base.rel(dst)}")
 
 

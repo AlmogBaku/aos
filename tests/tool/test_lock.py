@@ -501,7 +501,7 @@ class SkillNameTest(unittest.TestCase):
 
     def test_collision_inside_one_capability(self):
         """The entry skill's name, reached a second time through the prefix."""
-        cap = self.cap("gtd-capture", ["gtd-capture", "capture"], prefix="gtd-")
+        cap = self.cap("work-tracker", ["work-tracker", "tracker"], prefix="work-")
         r = self.skills(cap, "--check")
         self.assertEqual(r.returncode, 17)
         self.assertIn("itself", r.stderr)
