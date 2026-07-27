@@ -31,15 +31,12 @@ from .wiki import _link_graph
 app = typer.Typer()
 
 
-def _run_lint(base: Base, global_opts, *, write_report: bool = False,
-             audit_days: int = 8, stale_pending_days: int = 14,
-             ci: bool = False) -> None:
-    critical, findings, info = [], [], []
-    types = set(base.cfg.get("types") or [])
-    extensions = set((base.cfg.get("frontmatter") or {}).get("extensions") or [])
-
+def _lint_pages(base: Base, critical: list, findings: list, info: list,
+                types: set, extensions: set, graph: dict) -> list:
+    """Per-page frontmatter/body checks + alias collisions + timeline shape. Returns
+    the unverified-with-inbound-links list, reported later alongside `info` (its
+    wording groups every such page into one line rather than one per page)."""
     titles_seen, alias_owner = {}, {}
-    graph = _link_graph(base)
     unverified_with_inbound = []
     inbound_count = {}
     for rel, targets in graph.items():
@@ -99,8 +96,11 @@ def _run_lint(base: Base, global_opts, *, write_report: bool = False,
     for title, rels in titles_seen.items():
         if len(rels) > 1:
             critical.append(f"duplicate title {title!r}: {rels}")
+    return unverified_with_inbound
 
-    # broken links + missing-from-index
+
+def _lint_links_and_index(base: Base, findings: list, graph: dict) -> None:
+    """Broken wikilinks + index.md drift in both directions."""
     for rel, targets in graph.items():
         for t in targets:
             if t.startswith("!missing:"):
@@ -120,8 +120,10 @@ def _run_lint(base: Base, global_opts, *, write_report: bool = False,
         if not (base.root / f"{t}.md").exists() and not (base.root / t).exists():
             findings.append(f"index drift: dead index entry [[{t}]]")
 
-    # raw checks. _raw/ is flat and immutable; there is no triage: to validate, because
-    # being here IS "ingested".
+
+def _lint_raw(base: Base, findings: list) -> None:
+    """_raw/ is flat and immutable; there is no triage: to validate, because being
+    here IS "ingested"."""
     for p in base.raw_dir.rglob("*.md") if base.raw_dir.is_dir() else []:
         if "AGENTS" in p.name:
             continue
@@ -140,7 +142,9 @@ def _run_lint(base: Base, global_opts, *, write_report: bool = False,
                 findings.append(f"{rel}: ingested files carry no {gone}: — that field "
                                 f"belongs to the queue the item has left")
 
-    # pending queue checks
+
+def _lint_pending(base: Base, critical: list, findings: list,
+                  stale_pending_days: int) -> None:
     for p in sorted(base.pending_dir.glob("*.md")) if base.pending_dir.is_dir() else []:
         rel = base.rel(p)
         fm, _ = read_frontmatter(p)
@@ -166,7 +170,8 @@ def _run_lint(base: Base, global_opts, *, write_report: bool = False,
             except ValueError:
                 findings.append(f"{rel}: unparseable created {created!r}")
 
-    # backups + LFS dodgers
+
+def _lint_backups_and_lfs(base: Base, critical: list, findings: list) -> None:
     lfs_patterns = []
     ga = base.root / ".gitattributes"
     if ga.exists():
@@ -185,8 +190,10 @@ def _run_lint(base: Base, global_opts, *, write_report: bool = False,
                                 f"({p.stat().st_size // 1024}KB) not matching any "
                                 f"LFS pattern in .gitattributes")
 
-    # state checks — one file per principal on a shared base, so each is checked
-    # separately and each genuinely has one writer.
+
+def _lint_state(base: Base, critical: list, findings: list) -> None:
+    """One file per principal on a shared base, so each is checked separately and
+    each genuinely has one writer."""
     state_files = base.state_paths()
     if state_files:
         newest = max((p.stat().st_mtime for p in base.md_files(kinds=("wiki",))),
@@ -206,7 +213,9 @@ def _run_lint(base: Base, global_opts, *, write_report: bool = False,
     else:
         findings.append("no state file (.kb/state/<principal>.yml)")
 
-    # git health — git is the audit substrate, so its condition is a lint subject.
+
+def _lint_git_health(base: Base, critical: list, findings: list) -> None:
+    """git is the audit substrate, so its condition is a lint subject."""
     if is_repo(base.root):
         seq = sequencer_state(base.root)
         if seq:
@@ -219,7 +228,9 @@ def _run_lint(base: Base, global_opts, *, write_report: bool = False,
                             f"every write is meant to be its own attributed commit "
                             f"(`kb commit`)")
 
-    # grants hygiene: via grammar (revocation depends on it)
+
+def _lint_grants_via_grammar(base: Base, findings: list) -> None:
+    """Grants hygiene: `via` grammar, since revocation depends on it."""
     agents_md = base.root / "AGENTS.md"
     if agents_md.exists():
         in_grants = in_table = False
@@ -242,13 +253,17 @@ def _run_lint(base: Base, global_opts, *, write_report: bool = False,
                                     f"as <capability>@<x.y.z> or — (revocation "
                                     f"deletes rows by via match)")
 
-    # grants audit: authorship x grants over recent commits.
-    #
-    # This is a real check now rather than one deferred to a cross-check that was
-    # never built. Every write is its own commit, so nothing is batched under one
-    # identity and there is no exemption to make: the *committer* is the acting agent
-    # (the subject a grant names) and the *author* is the principal whose knowledge it
-    # is. A commit with neither is the finding.
+
+def _lint_grants_audit(base: Base, global_opts, critical: list, findings: list,
+                       info: list, audit_days: int) -> str:
+    """Authorship x grants over recent commits.
+
+    This is a real check now rather than one deferred to a cross-check that was
+    never built. Every write is its own commit, so nothing is batched under one
+    identity and there is no exemption to make: the *committer* is the acting agent
+    (the subject a grant names) and the *author* is the principal whose knowledge it
+    is. A commit with neither is the finding. Returns the resolved principal id, so
+    the caller's principal-drift check reuses it rather than resolving twice."""
     grants = base.grants()
     # The reporting half of "the principal never blocks": a synthesized or placeholder
     # identity authors every write, and the write proceeds — this is where it surfaces.
@@ -304,10 +319,13 @@ def _run_lint(base: Base, global_opts, *, write_report: bool = False,
                                 f"grant (commit {sha[:8]})")
         except Exception as e:  # noqa: BLE001 — audit must not crash the lint
             info.append(f"grants audit not checkable: {e}")
+    return pid
 
-    # §4.5 layer 2: no LLM-routed write may ever reach a shared base. The exclusion is
-    # a list filter, not a threshold, so the check is an existence test — and it is
-    # the falsifiable half of the rule the route skill states in prose.
+
+def _lint_routing(base: Base, global_opts, critical: list, findings: list) -> None:
+    """§4.5 layer 2: no LLM-routed write may ever reach a shared base. The exclusion
+    is a list filter, not a threshold, so the check is an existence test — and it is
+    the falsifiable half of the rule the route skill states in prose."""
     bar = float((load_registry(global_opts) or {}).get("confidence_bar", 0.7) or 0.7)
     # Both halves of the capture path: an LLM-routed capture is a violation the moment
     # it is written, not only once it is ingested — checking _raw/ alone would let one
@@ -336,6 +354,27 @@ def _run_lint(base: Base, global_opts, *, write_report: bool = False,
             elif conf < bar and kr.get("status") == "routed":
                 findings.append(f"{rel}: kb_routing confidence {conf} below the bar "
                                 f"({bar}) but status: routed")
+
+
+def _run_lint(base: Base, global_opts, *, write_report: bool = False,
+             audit_days: int = 8, stale_pending_days: int = 14,
+             ci: bool = False) -> None:
+    critical, findings, info = [], [], []
+    types = set(base.cfg.get("types") or [])
+    extensions = set((base.cfg.get("frontmatter") or {}).get("extensions") or [])
+    graph = _link_graph(base)
+
+    unverified_with_inbound = _lint_pages(base, critical, findings, info,
+                                          types, extensions, graph)
+    _lint_links_and_index(base, findings, graph)
+    _lint_raw(base, findings)
+    _lint_pending(base, critical, findings, stale_pending_days)
+    _lint_backups_and_lfs(base, critical, findings)
+    _lint_state(base, critical, findings)
+    _lint_git_health(base, critical, findings)
+    _lint_grants_via_grammar(base, findings)
+    _lint_grants_audit(base, global_opts, critical, findings, info, audit_days)
+    _lint_routing(base, global_opts, critical, findings)
 
     if unverified_with_inbound:
         info.append("unverified pages with inbound links (don't build on them alone): "
