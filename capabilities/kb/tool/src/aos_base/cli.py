@@ -509,19 +509,6 @@ def cmd_init(args):
     if (tpl / "gitattributes").exists():
         render(tpl / "gitattributes", root / ".gitattributes")
 
-    # A shared base gets the janitor. It is the only neutral actor a base several people
-    # write to can have — and on a private repo on the free plan it is the only
-    # enforcement available at all, since branch protection is not.
-    if args.audience == "shared" and not args.no_ci:
-        wf = tpl.parents[2] / "adapters" / "github" / "workflows" / "kb-janitor.yml"
-        if wf.exists():
-            dst = root / ".github" / "workflows" / "kb-janitor.yml"
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            dst.write_text(wf.read_text(encoding="utf-8"), encoding="utf-8")
-        else:
-            print(f"note: no janitor workflow at {wf} — skipping CI wiring "
-                  f"(the base is fine; add it by hand from the github adapter).")
-
     subprocess.run(["git", "init", "-q"], cwd=root, check=False)
     lfs = subprocess.run(["git", "lfs", "version"], capture_output=True, check=False)
     if lfs.returncode == 0:
@@ -1501,8 +1488,6 @@ def main():
     p.add_argument("--tag")
     p.add_argument("--default", action="store_true")
     p.add_argument("--templates")
-    p.add_argument("--no-ci", action="store_true",
-                   help="skip the janitor workflow on a shared base")
     p.add_argument("--kb-version", default=VERSION)
     p.set_defaults(func=cmd_init)
 

@@ -248,7 +248,10 @@ class BaseToolTest(unittest.TestCase):
         self.assertEqual(self.b("lint").returncode, 0)      # the report is the interface
         self.assertNotEqual(self.b("lint", "--ci").returncode, 0)  # a janitor needs one
 
-    def test_private_base_gets_no_ci_wiring(self):
+    def test_no_base_gets_ci_wiring(self):
+        """The shared-KB CI infrastructure is descoped. A base is a git repo and
+        nothing more; whether its forge runs anything is the owner's business, not
+        something `init` decides for them."""
         self.assertFalse((self.root / ".github").exists())
 
     def test_lint_failed_capture_critical(self):
@@ -635,13 +638,11 @@ class SharedBaseTest(unittest.TestCase):
     def b(self, *args, who=None):
         return run(["--base", str(self.root), *args], {**self.env, **(who or {})})
 
-    def test_shared_base_gets_the_janitor_workflow_verbatim(self):
-        wf = self.root / ".github" / "workflows" / "kb-janitor.yml"
-        self.assertTrue(wf.exists())
-        # Anti-drift by test rather than by discipline: the template repo's copy is
-        # not hand-maintained — it IS what `base init --audience shared` emits.
-        src = REPO / "capabilities/kb/adapters/github/workflows/kb-janitor.yml"
-        self.assertEqual(wf.read_text(), src.read_text())
+    def test_a_shared_base_gets_no_workflow_either(self):
+        """`--audience shared` used to emit a janitor workflow. It no longer does: a
+        shared base has no neutral actor today, and shipping a workflow that implies
+        otherwise is the claim being withdrawn."""
+        self.assertFalse((self.root / ".github").exists())
 
     def test_state_is_sharded_per_principal(self):
         self.b("state", "add", "--note", "alice's thread", who=self.ALICE)
