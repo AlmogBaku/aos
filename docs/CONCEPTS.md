@@ -148,10 +148,16 @@ person stop being free.
 - **Who promotes is a choice you make, not a setting.** Either everyone curates their
   own captures (the default), or one person holds the wiki write grants and the others
   capture and propose. The grants table already says which; no new configuration exists.
-- **A janitor runs in CI.** The deterministic checks — the grants audit, "no LLM-routed
-  write ever reached this base", index drift, unattributed commits — run on every push,
-  with no API key. On a private repo on a free plan that is the *only* enforcement
-  available, since branch protection is not.
+- **Nothing neutral watches a shared base yet.** The deterministic checks exist — the
+  grants audit, "no LLM-routed write ever reached this base", index drift, unattributed
+  commits — and any member can run them with `base lint`. What does not exist is a
+  neutral actor to run them on everyone's behalf: whichever household runs the checks is
+  also the one whose agent reads everybody else's raw material. CI was the obvious
+  candidate and is deliberately not shipped, because it answers the mechanical half while
+  the half that matters — who decides what gets promoted — is still open. Worth knowing
+  if you are relying on a forge to enforce anything: on a private repo, GitHub gates
+  rulesets, branch protection and CODEOWNERS to its paid plans, so a free-plan repo
+  cannot block a bad push at all.
 
 ## Install — the LLM is the installer
 
