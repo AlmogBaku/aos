@@ -24,6 +24,7 @@ from ..frontmatter import read_frontmatter, write_frontmatter
 from ..query import parse_where, match_query, WhereOpt, WithoutOpt
 from ..identity import die, today, git
 from ..base import Base, resolve_base, acting
+from ._shared import acting_in
 
 app = typer.Typer()
 
@@ -193,8 +194,7 @@ def cmd_set(ctx: typer.Context, path: str,
     """Generic frontmatter mutation, one attributed commit. Every key is validated
     against the base's schema, so `kb set` cannot quietly introduce a field lint will
     then flag as outside it."""
-    base = resolve_base(ctx.obj)
-    agent, author, _ = acting(ctx.obj, base)
+    base, agent, author, _ = acting_in(ctx.obj)
     p = _in_base(base, path)
     if not p.exists():
         die(f"no such page: {path}")
@@ -232,8 +232,7 @@ def cmd_prune(ctx: typer.Context, dry_run: bool = False):
     gone, and git is the undo. `due:` is a deadline (work-tracker's field, never
     interpreted here) and `review_by:` means "ask me again" — the opposite of expires.
     _raw/ never expires: source material is the trust chain."""
-    base = resolve_base(ctx.obj)
-    agent, author, _ = acting(ctx.obj, base)
+    base, agent, author, _ = acting_in(ctx.obj)
     gone = []
     for p in base.md_files(kinds=("wiki",)):     # NOT raw
         fm, _ = read_frontmatter(p)
@@ -270,8 +269,7 @@ def cmd_archive(ctx: typer.Context, path: Annotated[list[str], typer.Argument()]
 
     Note this is NOT `kb commit --verb archive` on a hand-move — that older form meant
     "I moved a file into _archive/", and the two mean opposite things now."""
-    base = resolve_base(ctx.obj)
-    agent, author, _ = acting(ctx.obj, base)
+    base, agent, author, _ = acting_in(ctx.obj)
     rels = []
     for rel in path:
         p = _in_base(base, rel)
@@ -315,8 +313,7 @@ def cmd_state(
     where: WhereOpt = [],
     without: WithoutOpt = [],
 ):
-    base = resolve_base(ctx.obj)
-    agent, author, _ = acting(ctx.obj, base)
+    base, agent, author, _ = acting_in(ctx.obj)
     principal = author[1]           # the shard is one person's, not one grant row's
     st = base.load_state(principal)
     items = st["items"]

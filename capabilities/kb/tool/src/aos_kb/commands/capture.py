@@ -16,6 +16,7 @@ from ..frontmatter import read_frontmatter, write_frontmatter
 from ..query import parse_where, match_query, fm_get, WhereOpt, WithoutOpt
 from ..identity import now_ts, today, die, git, resolve_principal
 from ..base import Base, resolve_base, acting
+from ._shared import acting_in
 
 app = typer.Typer()
 pending_app = typer.Typer(help="the one queue: add | list | resolve")
@@ -120,8 +121,7 @@ def cmd_ingest(ctx: typer.Context, path: Annotated[list[str], typer.Argument()])
     """.kb/pending/ -> _raw/. Location is the state, so this move IS the state change.
     `git mv` rather than write-then-delete: `git log --follow` has to keep tracing the
     capture across it."""
-    base = resolve_base(ctx.obj)
-    agent, author, _ = acting(ctx.obj, base)
+    base, agent, author, _ = acting_in(ctx.obj)
     for rel in path:
         src = (base.root / rel).resolve()
         if not src.exists():
@@ -209,8 +209,7 @@ def cmd_pending_list(ctx: typer.Context, where: WhereOpt = [], without: WithoutO
 @pending_app.command("resolve")
 def cmd_pending_resolve(ctx: typer.Context,
                         path: Annotated[list[str], typer.Argument()] = []):
-    base = resolve_base(ctx.obj)
-    agent, author, _ = acting(ctx.obj, base)
+    base, agent, author, _ = acting_in(ctx.obj)
     for rel in path:
         p = base.root / rel
         if not p.exists():

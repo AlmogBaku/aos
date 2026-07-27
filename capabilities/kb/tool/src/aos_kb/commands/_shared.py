@@ -20,6 +20,7 @@ from dataclasses import dataclass
 import typer
 
 from ..constants import VERSION, LAYOUT
+from ..base import resolve_base, acting
 
 
 @dataclass
@@ -37,3 +38,16 @@ def version_callback(value: bool):
         # eager option below fires before click even checks for a subcommand.
         typer.echo(f"kb {VERSION} (layout {LAYOUT})")
         raise typer.Exit()
+
+
+def acting_in(opts):
+    """`resolve_base(opts)` immediately followed by `acting(opts, base)` — the shape
+    every write verb with no validation of its own between the two collapses to.
+    A verb that must validate its arguments BEFORE establishing an identity (e.g.
+    `pending add` checking --kind/--waits-on, `commit` checking --verb) keeps the two
+    calls apart on purpose: `acting()` calls `resolve_principal()`, which persists the
+    principal file on first use, and a doomed call dying on bad input must not have
+    that side effect."""
+    base = resolve_base(opts)
+    agent, author, grants_subject = acting(opts, base)
+    return base, agent, author, grants_subject

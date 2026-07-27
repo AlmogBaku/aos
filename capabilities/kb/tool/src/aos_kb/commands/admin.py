@@ -14,6 +14,7 @@ from ..constants import AOS_VERBS
 from ..identity import die, is_repo, git, load_principals, save_principals, \
     principal_file
 from ..base import resolve_base, acting
+from ._shared import acting_in
 
 app = typer.Typer()
 
@@ -93,8 +94,7 @@ def cmd_refuse(ctx: typer.Context, path: Annotated[str, typer.Option()],
     kb-authorization §3.1). The payload stays with the caller — this only records.
     A refusal is one of the events git could not otherwise hold, since by definition
     nothing else changed; the queue entry is what gives it a file to commit."""
-    base = resolve_base(ctx.obj)
-    agent, author, _ = acting(ctx.obj, base)
+    base, agent, author, _ = acting_in(ctx.obj)
     entry = base.pending_add(
         "refusal", "human", f"refused write — {path}",
         f"Subject `{subject or agent}` was refused `{verb}` on "
