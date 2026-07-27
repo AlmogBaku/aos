@@ -701,6 +701,28 @@ class BaseToolTest(unittest.TestCase):
         self.assertIn("no .kb/base.yml", r.stdout)
         self.assertIn("convergence path", r.stdout)
 
+    def test_adopt_of_a_kit_native_base_with_a_stale_pending_item_does_not_crash(self):
+        # cmd_adopt (cli.py:852-855) mutates its own argparse Namespace and calls
+        # cmd_lint(args) directly. adopt's subparser never declares --stale-pending-days,
+        # and cmd_lint reads args.stale_pending_days with no getattr default (cli.py:1414)
+        # — so a base with an old waits_on: human pending item makes this crash with
+        # AttributeError today. Pinned here BEFORE the typer refactor touches this call
+        # path, so the fix (giving run_lint() real keyword defaults) is a stated decision
+        # in a later commit, not something that happens to work by accident of the port.
+        foreign = self.dir / "foreign"
+        foreign.mkdir()
+        (foreign / ".kb").mkdir()
+        (foreign / ".kb" / "base.yml").write_text(
+            "layout: 2\nname: f\naudience: private\nzones: {}\n")
+        (foreign / ".kb" / "pending").mkdir()
+        (foreign / ".kb" / "pending" / "old.md").write_text(
+            "---\ntitle: old\nkind: finding\nwaits_on: human\n"
+            "created: '2000-01-01'\n---\nstale on purpose\n")
+        r = run(["adopt", str(foreign), "--name", "f"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertNotIn("AttributeError", r.stderr)
+
 
 class SharedBaseTest(unittest.TestCase):
     """A base two people share.
