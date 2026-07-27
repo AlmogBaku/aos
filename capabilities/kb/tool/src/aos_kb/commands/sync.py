@@ -12,6 +12,9 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Annotated
+
+import typer
 
 from ..identity import (
     agent_subject, agent_email, is_repo, git, sequencer_state, resolve_principal,
@@ -19,6 +22,8 @@ from ..identity import (
 )
 from ..registry import load_registry
 from ..base import Base, resolve_base
+
+app = typer.Typer()
 
 
 def sync_jitter() -> float:
@@ -111,9 +116,19 @@ def _sync_one(root: Path, name: str, agent: str = "agent:main",
     return 4
 
 
-def cmd_sync(args):
-    reg = load_registry(args)
-    if args.all:
+@app.command("sync", help="ff-pull then merge on divergence, push with jittered "
+                         "retry; conflict -> safe abort + review entry + exit 3; "
+                         "never calls an LLM")
+def cmd_sync(
+    ctx: typer.Context,
+    all: Annotated[bool, typer.Option(
+        help="every registry base with sync: rebase-5min (the rest are reported "
+             "as skipped, never silently dropped)")] = False,
+    no_jitter: Annotated[bool, typer.Option(
+        help="skip the pre-fetch stagger (tests, and a one-off manual run)")] = False,
+):
+    reg = load_registry(ctx.obj)
+    if all:
         targets = [k for k in reg["kbs"] if k.get("sync") == "rebase-5min"]
         # Bases the scheduled sweep does not cover are reported, not dropped: an
         # adopted base is always `manual`, so silence here reads as "everything is
@@ -122,11 +137,11 @@ def cmd_sync(args):
             if k.get("sync") != "rebase-5min":
                 print(f"{k.get('name')}: skipped (sync: {k.get('sync')})")
     else:
-        base = resolve_base(args)
+        base = resolve_base(ctx.obj)
         targets = [{"name": base.cfg.get("name", base.root.name),
                     "path": str(base.root)}]
-    agent = agent_subject(args)
-    if args.all and not args.no_jitter and targets:
+    agent = agent_subject(ctx.obj)
+    if all and not no_jitter and targets:
         time.sleep(sync_jitter())
     worst = 0
     for kb in targets:
@@ -135,8 +150,8 @@ def cmd_sync(args):
             print(f"{kb.get('name')}: skipped (not a git repo)")
             continue
         name = kb.get("name", root.name)
-        pid = resolve_principal(args, name, root)
+        pid = resolve_principal(ctx.obj, name, root)
         code = _sync_one(root, name, agent,
-                         (principal_name(args, root, pid), pid))
+                         (principal_name(ctx.obj, root, pid), pid))
         worst = max(worst, code)
     sys.exit(worst)

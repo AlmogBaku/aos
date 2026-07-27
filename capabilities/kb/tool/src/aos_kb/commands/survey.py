@@ -9,12 +9,18 @@ non-kb tree (`args.src`, not `resolve_base()`) and needs its own nested
 subcommand (`kb import survey`, with room for a future `kb import <other>`)."""
 
 import fnmatch
-import json
+import json as _json
 from pathlib import Path
+from typing import Annotated
+
+import typer
 
 from ..constants import WIKILINK_RE
 from ..frontmatter import read_frontmatter
 from ..identity import die
+
+app = typer.Typer(help="bulk import of a foreign KB (source is READ-ONLY, always; "
+                       "design §6.7)")
 
 IMPORT_SKIP_DEFAULT = ["**/.git/**", "**/.obsidian/**", "**/node_modules/**",
                        "**/.kb/**", "**/*.backup.*", "**/*.bak"]
@@ -31,8 +37,9 @@ def _src_files(src: Path, skips):
         yield rel, p
 
 
-def cmd_import_survey(args):
-    src = Path(args.src).expanduser().resolve()
+@app.command("survey", help="inventory + shape detection of a source tree")
+def cmd_import_survey(src: str, as_json: Annotated[bool, typer.Option("--json")] = False):
+    src = Path(src).expanduser().resolve()
     if not src.is_dir():
         die(f"{src} is not a directory")
     # shape detection
@@ -64,8 +71,8 @@ def cmd_import_survey(args):
             big += 1
             big_files.append(rel)
 
-    if args.json:
-        print(json.dumps({"shape": shape, "by_dir": by_dir, "by_ext": by_ext,
+    if as_json:
+        print(_json.dumps({"shape": shape, "by_dir": by_dir, "by_ext": by_ext,
                           "md_files": md, "wikilinks": links,
                           "frontmatter_fields": fm_fields,
                           "large_binaries": big_files}, indent=2))

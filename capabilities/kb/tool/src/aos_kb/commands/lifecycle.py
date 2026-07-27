@@ -8,10 +8,12 @@ design — migrate is the one verb that must accept one)."""
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Annotated, Literal, Optional
 
+import typer
 import yaml
 
-from ..constants import LAYOUT
+from ..constants import VERSION, LAYOUT
 from ..frontmatter import slugify, read_frontmatter, write_frontmatter
 from ..identity import (
     today, die, agent_subject, is_repo, git, is_weak_principal, principal_file,
@@ -19,28 +21,50 @@ from ..identity import (
 )
 from ..registry import load_registry, save_registry, find_upstream_root
 from ..base import Base, acting
-# cmd_adopt calls into lint's report-generation logic directly (a mutated Namespace
-# today; an explicit-defaults function call once the typer port lands). No cycle:
-# lint.py imports from wiki.py, never from lifecycle.py.
-from .lint import cmd_lint
+# cmd_adopt calls into lint's report-generation logic directly, as a plain function
+# with explicit keyword defaults for the flags adopt's own subparser never declared
+# (stale_pending_days, ci) — not an attempt to invoke a wrapped typer Command object
+# programmatically. No import cycle: lint.py imports from wiki.py, never lifecycle.py.
+from .lint import _run_lint
+
+app = typer.Typer()
 
 
-def cmd_init(args):
-    root = Path(args.path).expanduser().resolve()
+@app.command("init", help="scaffold + register a new base")
+def cmd_init(
+    ctx: typer.Context,
+    name: str,
+    path: Annotated[str, typer.Option()],
+    audience: Literal["private", "shared"] = "private",
+    purpose: str = "",
+    sync: Literal["rebase-5min", "manual", "none"] = "manual",
+    remote: Optional[str] = None,
+    tag: Optional[str] = None,
+    default: bool = False,
+    templates: Optional[str] = None,
+    kb_version: str = VERSION,
+    curation: Annotated[Literal["self", "designated"], typer.Option(
+        help="self: everyone drains their own queue (default). designated: one "
+             "principal holds the wiki write grants and reads everyone's raw "
+             "material — name them with --curator")] = "self",
+    curator: Annotated[Optional[str], typer.Option(
+        help="principal id, iff --curation designated")] = None,
+):
+    root = Path(path).expanduser().resolve()
     if (root / ".kb" / "base.yml").exists():
         die(f"{root} already has a .kb/base.yml")
-    tpl = Path(args.templates).expanduser() if args.templates else \
+    tpl = Path(templates).expanduser() if templates else \
         find_upstream_root() / "capabilities" / "kb" / "skills" / "init" / "templates"
     if not (tpl / "base.yml").exists():
         die(f"templates not found at {tpl} (pass --templates)")
     root.mkdir(parents=True, exist_ok=True)
 
-    subs = {"{{name}}": args.name, "{{today}}": today(),
-            "{{version}}": args.kb_version, "{{audience}}": args.audience,
-            "{{purpose}}": (args.purpose or "").strip(),
-            "{{sync_mode}}": args.sync,
-            "{{curation}}": args.curation,          # self | designated
-            "{{curator}}": args.curator or ""}      # principal id, iff designated
+    subs = {"{{name}}": name, "{{today}}": today(),
+            "{{version}}": kb_version, "{{audience}}": audience,
+            "{{purpose}}": (purpose or "").strip(),
+            "{{sync_mode}}": sync,
+            "{{curation}}": curation,          # self | designated
+            "{{curator}}": curator or ""}      # principal id, iff designated
 
     rendered = []
 
@@ -53,11 +77,11 @@ def cmd_init(args):
         rendered.append(dst)
 
     render(tpl / "base.yml", root / ".kb" / "base.yml")
-    for name in ["AGENTS.md", "index.md"]:
-        render(tpl / name, root / name)
+    for tname in ["AGENTS.md", "index.md"]:
+        render(tpl / tname, root / tname)
 
     base = Base(root)
-    pid = resolve_principal(args, args.name, root)
+    pid = resolve_principal(ctx.obj, name, root)
     render(tpl / "state.yml", base.state_path(pid))
 
     for zone, d in base.zones().items():
@@ -96,51 +120,59 @@ def cmd_init(args):
         print(f"note: writes will be authored by {pid!r}, a synthesized identity — "
               f"`kb lint` reports it. Fix it in {principal_file()}, or let kb's "
               f"onboarding interview ask.")
-    if args.remote:
-        subprocess.run(["git", "remote", "add", "origin", args.remote],
+    if remote:
+        subprocess.run(["git", "remote", "add", "origin", remote],
                        cwd=root, check=False)
 
-    reg = load_registry(args)
-    existing = next((k for k in reg["kbs"] if k.get("name") == args.name), None)
+    reg = load_registry(ctx.obj)
+    existing = next((k for k in reg["kbs"] if k.get("name") == name), None)
     if existing:
         # A pre-seeded registry entry (interview ran first) is fine iff it points at
         # this path and the tree doesn't exist yet — init fills it in. Anything else
         # is a genuine duplicate.
         if Path(existing.get("path", "")).expanduser().resolve() != root:
-            die(f"base {args.name!r} already registered at a different path")
-        existing.setdefault("tag", args.tag or args.name)
-        if (args.purpose or "").strip():
-            existing["purpose"] = args.purpose.strip()
+            die(f"base {name!r} already registered at a different path")
+        existing.setdefault("tag", tag or name)
+        if (purpose or "").strip():
+            existing["purpose"] = purpose.strip()
     else:
-        entry = {"name": args.name, "tag": args.tag or args.name,
-                 "path": str(root), "remote": args.remote,
-                 "sync": args.sync, "audience": args.audience,
+        entry = {"name": name, "tag": tag or name,
+                 "path": str(root), "remote": remote,
+                 "sync": sync, "audience": audience,
                  # No methodology: field — the seam dissolved (kb IS the methodology),
                  # so the line wrote a value with no reader.
-                 "purpose": (args.purpose or "").strip(),
+                 "purpose": (purpose or "").strip(),
                  "routing": {"channels": [], "keywords": []}}
         reg["kbs"].append(entry)
-    if args.default or not reg.get("default"):
-        reg["default"] = args.name
+    if default or not reg.get("default"):
+        reg["default"] = name
     reg.setdefault("confidence_bar", 0.7)
-    save_registry(args, reg)
+    save_registry(ctx.obj, reg)
 
-    base.commit("bootstrap", ".", f"base {args.name} scaffolded (layout {LAYOUT})",
-                agent_subject(args), (principal_name(args, root, pid), pid))
-    print(f"base {args.name}: scaffolded at {root}, registered"
-          f"{' as default' if reg.get('default') == args.name else ''}.")
+    base.commit("bootstrap", ".", f"base {name} scaffolded (layout {LAYOUT})",
+                agent_subject(ctx.obj), (principal_name(ctx.obj, root, pid), pid))
+    print(f"base {name}: scaffolded at {root}, registered"
+          f"{' as default' if reg.get('default') == name else ''}.")
 
 
-def cmd_adopt(args):
-    root = Path(args.path).expanduser().resolve()
+@app.command("adopt", help="register an existing tree; report divergence; zero "
+                          "writes into it")
+def cmd_adopt(
+    ctx: typer.Context,
+    path: str,
+    name: Optional[str] = None,
+    audience: Literal["private", "shared"] = "private",
+    purpose: str = "",
+    audit_days: int = 8,
+):
+    root = Path(path).expanduser().resolve()
     if not root.is_dir():
         die(f"{root} is not a directory")
-    reg = load_registry(args)
+    reg = load_registry(ctx.obj)
     if any(Path(k.get("path", "")).expanduser() == root for k in reg["kbs"]):
         die(f"{root} already registered")
-    name = args.name or root.name
+    name = name or root.name
     has_cfg = (root / ".kb" / "base.yml").exists()
-    audience = args.audience
     if has_cfg:
         Base(root)  # layout guard first: a mismatched tree must fail BEFORE registering
         cfg = yaml.safe_load(
@@ -150,17 +182,21 @@ def cmd_adopt(args):
             audience = "shared"
     entry = {"name": name, "tag": name, "path": str(root), "remote": None,
              "sync": "manual", "audience": audience,
-             "purpose": (args.purpose or "").strip(),
+             "purpose": (purpose or "").strip(),
              "routing": {"channels": [], "keywords": []}}
     reg["kbs"].append(entry)
     reg.setdefault("confidence_bar", 0.7)
-    save_registry(args, reg)
+    save_registry(ctx.obj, reg)
     print(f"adopted {name} at {root} (audience: {audience}, sync: manual).")
     print()
     if has_cfg:
-        args.base = str(root)
-        args.write_report = False
-        cmd_lint(args)
+        # `_run_lint` supplies real defaults for stale_pending_days/ci here —
+        # neither was ever a flag on this subparser under argparse, and reading
+        # them unconditionally (cli.py:1414's old bare `args.stale_pending_days`)
+        # crashed with AttributeError on a base carrying an aged human-waits
+        # pending item. Explicit keyword defaults close that gap deliberately.
+        adopted_base = Base(root)
+        _run_lint(adopted_base, ctx.obj, write_report=False, audit_days=audit_days)
     else:
         print("divergence: no .kb/base.yml — not a kit-native base. Report:")
         for probe, label in [("AGENTS.md", "root contract"), ("index.md", "index"),
@@ -171,11 +207,19 @@ def cmd_adopt(args):
               "then re-run `kb lint`. Nothing was written into the tree.")
 
 
-def cmd_migrate(args):
+@app.command("migrate", help="carry a layout 1 base to layout 2 (git mv throughout, "
+                            "so history follows)")
+def cmd_migrate(
+    ctx: typer.Context,
+    # Its own --base, deliberately: the global one resolves through Base(), which
+    # refuses a layout 1 tree by design. Migrate is the one verb that must accept one.
+    base: Annotated[Optional[str], typer.Option(
+        help="the layout 1 base to carry across (default: cwd)")] = None,
+):
     """LAYOUT 1 -> 2, with `git mv` for every move so history follows. Refuses a dirty
     worktree: a migration that mixes with uncommitted work cannot be reverted cleanly,
     and revert is the only undo this has."""
-    root = Path(getattr(args, "migrate_base", None) or args.base
+    root = Path(base or getattr(ctx.obj, "base", None)
                 or ".").expanduser().resolve()
     if (root / ".kb" / "base.yml").exists():
         print(f"{root}: already layout 2 — nothing to do.")
@@ -214,7 +258,7 @@ def cmd_migrate(args):
 
     # 2. state -> one shard per principal. The old flat file is this principal's by
     #    definition: a layout 1 private base had exactly one writer.
-    pid = resolve_principal(args, cfg.get("name", root.name), root)
+    pid = resolve_principal(ctx.obj, cfg.get("name", root.name), root)
     if (root / "state.yaml").exists():
         mv("state.yaml", f".kb/state/{slugify(pid)}.yml")
     old_shards = root / "state"
@@ -275,8 +319,8 @@ def cmd_migrate(args):
             write_frontmatter(root / dst, fm, body)
 
     # 5. import working files -> .kb/work/
-    for name in ("import-agreement.md", "import-progress.md"):
-        mv(f"_ops/{name}", f".kb/work/{name}")
+    for iname in ("import-agreement.md", "import-progress.md"):
+        mv(f"_ops/{iname}", f".kb/work/{iname}")
 
     # 6. what does not come forward. _archive/ is git rm'd rather than copied: the
     #    history IS the archive, which is the whole argument for the directory going.
@@ -304,11 +348,12 @@ def cmd_migrate(args):
               root / ".kb" / "cache", root / "_raw"):
         d.mkdir(parents=True, exist_ok=True)
 
-    base = Base(root)
-    agent, author, _ = acting(args, base)
+    base_obj = Base(root)
+    agent, author, _ = acting(ctx.obj, base_obj)
     git(root, "add", "-A")
-    base.commit("migrate", ["."], f"{base.cfg.get('name', root.name)}: layout 1 -> "
-                f"{LAYOUT}", agent, author)
+    base_obj.commit("migrate", ["."],
+                    f"{base_obj.cfg.get('name', root.name)}: layout 1 -> {LAYOUT}",
+                    agent, author)
 
     print(f"migrated {root} to layout {LAYOUT}.")
     for m in moved:

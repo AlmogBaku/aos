@@ -2,13 +2,21 @@
 interface, and the exit code carries no verdict; `--ci` is the one exception.
 
 Kept as its own module, ~340 lines, because it is the single largest verb in the
-tool — importing `_link_graph` from `wiki.py` rather than duplicating it."""
+tool — importing `_link_graph` from `wiki.py` rather than duplicating it.
+
+`_run_lint()` is a plain function taking explicit keyword arguments — not the typer
+command itself — so `cmd_adopt` (in `lifecycle.py`) can call it directly with its own
+defaults, rather than trying to invoke a wrapped typer `Command` object
+programmatically. `cmd_lint` (the typer command) is a thin wrapper: resolve the base,
+call `_run_lint`."""
 
 import fnmatch
 import re
 import sys
 import datetime as _dt
+from typing import Annotated
 
+import typer
 import yaml
 
 from ..constants import UNIVERSAL_FIELDS, RAW_FIELDS, PENDING_FIELDS, PENDING_KINDS, \
@@ -17,12 +25,15 @@ from ..frontmatter import slugify, read_frontmatter
 from ..identity import today, is_repo, git, sequencer_state, is_weak_principal, \
     principal_file, resolve_principal
 from ..registry import load_registry
-from ..base import resolve_base, acting
+from ..base import Base, resolve_base, acting
 from .wiki import _link_graph
 
+app = typer.Typer()
 
-def cmd_lint(args):
-    base = resolve_base(args)
+
+def _run_lint(base: Base, global_opts, *, write_report: bool = False,
+             audit_days: int = 8, stale_pending_days: int = 14,
+             ci: bool = False) -> None:
     critical, findings, info = [], [], []
     types = set(base.cfg.get("types") or [])
     extensions = set((base.cfg.get("frontmatter") or {}).get("extensions") or [])
@@ -149,7 +160,7 @@ def cmd_lint(args):
         if fm.get("waits_on") == "human" and created:
             try:
                 age = (_dt.date.today() - _dt.date.fromisoformat(created[:10])).days
-                if age > args.stale_pending_days:
+                if age > stale_pending_days:
                     findings.append(f"{rel}: waiting on a human for {age}d — nothing "
                                     f"will move it but a person")
             except ValueError:
@@ -241,8 +252,8 @@ def cmd_lint(args):
     grants = base.grants()
     # The reporting half of "the principal never blocks": a synthesized or placeholder
     # identity authors every write, and the write proceeds — this is where it surfaces.
-    pid = resolve_principal(args, base.cfg.get("name", base.root.name), base.root,
-                            persist=False)
+    pid = resolve_principal(global_opts, base.cfg.get("name", base.root.name),
+                            base.root, persist=False)
     if is_weak_principal(pid):
         findings.append(f"weak principal {pid!r} — a synthesized or placeholder "
                         f"identity authors every write. Fix it in "
@@ -262,7 +273,7 @@ def cmd_lint(args):
 
     if is_repo(base.root):
         try:
-            out = git(base.root, "log", f"--since={args.audit_days} days ago",
+            out = git(base.root, "log", f"--since={audit_days} days ago",
                       "--pretty=%H%x1f%an%x1f%ae%x1f%cn%x1f%s", "--name-only").stdout
             sha = committer = None
             skip_commit = False
@@ -297,7 +308,7 @@ def cmd_lint(args):
     # §4.5 layer 2: no LLM-routed write may ever reach a shared base. The exclusion is
     # a list filter, not a threshold, so the check is an existence test — and it is
     # the falsifiable half of the rule the route skill states in prose.
-    bar = float((load_registry(args) or {}).get("confidence_bar", 0.7) or 0.7)
+    bar = float((load_registry(global_opts) or {}).get("confidence_bar", 0.7) or 0.7)
     # Both halves of the capture path: an LLM-routed capture is a violation the moment
     # it is written, not only once it is ingested — checking _raw/ alone would let one
     # sit in the queue unreported.
@@ -341,12 +352,12 @@ def cmd_lint(args):
     report = "\n".join(lines) + "\n"
     print(report, end="")
 
-    if getattr(args, "write_report", False):
+    if write_report:
         week = _dt.date.today().isocalendar()
         dst = base.work_dir / f"lint-report-{week[0]}-{week[1]:02d}.md"
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_text(report, encoding="utf-8")
-        agent, author, _ = acting(args, base)
+        agent, author, _ = acting(global_opts, base)
         base.commit("lint", dst, f"{len(critical)} critical, {len(findings)} findings",
                     agent, author)
     # Report-only by default: the report is the interface, and the exit code carries no
@@ -354,5 +365,22 @@ def cmd_lint(args):
     # for: a user wiring lint into their own hook or Action needs an exit code, and the
     # alternative is parsing the report text. The default staying report-only is the
     # contract; --ci is what makes that contract falsifiable rather than a preference.
-    if getattr(args, "ci", False) and critical:
+    if ci and critical:
         sys.exit(1)
+
+
+@app.command("lint", help="the deterministic check catalog (report-only; the "
+                         "report is the interface)")
+def cmd_lint(
+    ctx: typer.Context,
+    write_report: bool = False,
+    audit_days: int = 8,
+    stale_pending_days: Annotated[int, typer.Option(
+        help="an entry waiting on a human longer than this is a finding")] = 14,
+    ci: Annotated[bool, typer.Option(
+        help="exit 1 on any critical — for a hook or an unattended runner that "
+             "needs a verdict rather than a report")] = False,
+):
+    base = resolve_base(ctx.obj)
+    _run_lint(base, ctx.obj, write_report=write_report, audit_days=audit_days,
+             stale_pending_days=stale_pending_days, ci=ci)

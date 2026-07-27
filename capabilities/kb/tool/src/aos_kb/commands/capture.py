@@ -7,11 +7,19 @@ model."""
 import hashlib
 import sys
 from pathlib import Path
+from typing import Annotated, Optional
 
+import typer
+
+from ..constants import PENDING_KINDS, WAITS_ON
 from ..frontmatter import read_frontmatter, write_frontmatter
-from ..query import query_of, match_query, fm_get
+from ..query import parse_where, match_query, fm_get, WhereOpt, WithoutOpt
 from ..identity import now_ts, today, die, git, resolve_principal
 from ..base import Base, resolve_base, acting
+
+app = typer.Typer()
+pending_app = typer.Typer(help="the one queue: add | list | resolve")
+app.add_typer(pending_app, name="pending")
 
 
 def _do_capture(base: Base, content: str, title: str, source: str, agent: str,
@@ -47,39 +55,52 @@ def _do_capture(base: Base, content: str, title: str, source: str, agent: str,
     return dst
 
 
-def cmd_capture(args):
-    base = resolve_base(args)
-    if args.file:
-        content = Path(args.file).expanduser().read_text(encoding="utf-8")
-        title = args.title or Path(args.file).stem
-    elif args.text:
-        content = args.text
-        title = args.title or content.strip().splitlines()[0][:60]
+@app.command("capture", help="instant mechanical capture into .kb/pending/")
+def cmd_capture(
+    ctx: typer.Context,
+    text: Optional[str] = None,
+    file: Optional[str] = None,
+    title: Optional[str] = None,
+    source: Annotated[Optional[str], typer.Option(
+        help="channel provenance, e.g. whatsapp:voice")] = None,
+    corrects: Annotated[Optional[str], typer.Option(
+        help="path of the item this supersedes — a link, so the drain never has "
+             "to LLM-match free text")] = None,
+):
+    base = resolve_base(ctx.obj)
+    if file:
+        content = Path(file).expanduser().read_text(encoding="utf-8")
+        title = title or Path(file).stem
+    elif text:
+        content = text
+        title = title or content.strip().splitlines()[0][:60]
     else:
         content = sys.stdin.read()
-        title = args.title or (content.strip().splitlines() or ["capture"])[0][:60]
+        title = title or (content.strip().splitlines() or ["capture"])[0][:60]
     if not content.strip():
         die("empty capture")
-    corrects = (args.corrects or "").strip()
+    corrects = (corrects or "").strip()
     if corrects and not (base.root / corrects).exists():
         # A path, not an id: lifecycle.md states "Identity is the file path (no slug
         # field)", so inventing an id here would contradict a standing doctrine.
         die(f"no such path to correct: {corrects}")
-    agent, author, _ = acting(args, base)
+    agent, author, _ = acting(ctx.obj, base)
     # Scoped by the principal ID, not their grants subject: dedup and the queue are
     # per *person*, and two people can share one grant row (or hold none, falling
     # back to `user`) without becoming one identity.
-    dst = _do_capture(base, content, title, args.source or "manual",
+    dst = _do_capture(base, content, title, source or "manual",
                       agent, author, author[1], corrects=corrects)
     if dst:
         print(f"captured: {base.rel(dst)} (pending, waits_on: agent)")
 
 
-def cmd_find(args):
+@app.command("find", help="metadata query over every page (`search` is the "
+                          "full-text one — different question, both stay)")
+def cmd_find(ctx: typer.Context, where: WhereOpt = [], without: WithoutOpt = []):
     """`kb find` answers a metadata question; `kb search` answers a full-text one.
     Both stay: they are different questions."""
-    base = resolve_base(args)
-    where, without = query_of(args)
+    base = resolve_base(ctx.obj)
+    where = parse_where(where)
     hits = 0
     for p in list(base.md_files(kinds=("wiki", "raw"))) + \
             sorted(base.pending_dir.glob("*.md")):
@@ -93,13 +114,15 @@ def cmd_find(args):
     print(f"({hits} match{'es' if hits != 1 else ''})")
 
 
-def cmd_ingest(args):
+@app.command("ingest", help="pending capture -> _raw/ (a git mv: location is the "
+                            "state, and history has to follow)")
+def cmd_ingest(ctx: typer.Context, path: Annotated[list[str], typer.Argument()]):
     """.kb/pending/ -> _raw/. Location is the state, so this move IS the state change.
     `git mv` rather than write-then-delete: `git log --follow` has to keep tracing the
     capture across it."""
-    base = resolve_base(args)
-    agent, author, _ = acting(args, base)
-    for rel in args.path:
+    base = resolve_base(ctx.obj)
+    agent, author, _ = acting(ctx.obj, base)
+    for rel in path:
         src = (base.root / rel).resolve()
         if not src.exists():
             die(f"no such pending item: {rel}")
@@ -131,44 +154,64 @@ def cmd_ingest(args):
         print(f"ingested: {base.rel(dst)}")
 
 
-def cmd_pending(args):
-    """The queue is a view over a directory. `add` needs --body, --file or - (stdin):
-    agents were hand-writing markdown into queue files, and --file is what makes a
+@pending_app.command("add")
+def cmd_pending_add(
+    ctx: typer.Context,
+    kind: Annotated[str, typer.Option(help=str(sorted(PENDING_KINDS)))] = "finding",
+    waits_on: Annotated[str, typer.Option(
+        "--waits-on", help=str(sorted(WAITS_ON)))] = "human",
+    title: str = "pending item",
+    body: Annotated[Optional[str], typer.Option(help="short body inline")] = None,
+    file: Annotated[Optional[str], typer.Option(
+        help="body from a file, or - for stdin")] = None,
+):
+    """agents were hand-writing markdown into queue files, and --file is what makes a
     long body practical."""
-    base = resolve_base(args)
-    if args.op == "list":
-        where, without = query_of(args)
-        hits = 0
-        for p in sorted(base.pending_dir.glob("*.md")):
-            fm, _ = read_frontmatter(p)
-            if not fm or not match_query(fm, where, without):
-                continue
-            hits += 1
-            flag = f"  FAILED: {fm['failed']}" if fm.get("failed") else ""
-            print(f"{base.rel(p)}  {fm.get('kind', '?')}/"
-                  f"{fm.get('waits_on', '?')}  {fm.get('title', '')}{flag}")
-        print(f"({hits} pending item{'s' if hits != 1 else ''})")
-        return
+    base = resolve_base(ctx.obj)
+    if kind not in PENDING_KINDS:
+        die(f"unknown --kind {kind!r} — the closed set is "
+            f"{' '.join(sorted(PENDING_KINDS))}")
+    if waits_on not in WAITS_ON:
+        die(f"unknown --waits-on {waits_on!r} — the closed set is "
+            f"{' '.join(sorted(WAITS_ON))}")
+    agent, author, _ = acting(ctx.obj, base)
+    if file == "-":
+        body = sys.stdin.read()
+    elif file:
+        body = Path(file).expanduser().read_text(encoding="utf-8")
+    else:
+        body = body or ""
+    if not body.strip():
+        die("empty pending entry — pass --body, --file <path>, or --file - "
+            "for stdin")
+    entry = base.pending_add(kind, waits_on, title, body, agent)
+    base.commit("pending", entry, f"{kind} pending: {title[:50]}", agent, author)
+    print(f"pending: {base.rel(entry)}")
 
-    agent, author, _ = acting(args, base)
-    if args.op == "add":
-        if args.file == "-":
-            body = sys.stdin.read()
-        elif args.file:
-            body = Path(args.file).expanduser().read_text(encoding="utf-8")
-        else:
-            body = args.body or ""
-        if not body.strip():
-            die("empty pending entry — pass --body, --file <path>, or --file - "
-                "for stdin")
-        entry = base.pending_add(args.kind, args.waits_on, args.title, body, agent)
-        base.commit("pending", entry, f"{args.kind} pending: {args.title[:50]}",
-                    agent, author)
-        print(f"pending: {base.rel(entry)}")
-        return
 
-    # resolve
-    for rel in args.path:
+@pending_app.command("list")
+def cmd_pending_list(ctx: typer.Context, where: WhereOpt = [], without: WithoutOpt = []):
+    """The queue is a view over a directory."""
+    base = resolve_base(ctx.obj)
+    where = parse_where(where)
+    hits = 0
+    for p in sorted(base.pending_dir.glob("*.md")):
+        fm, _ = read_frontmatter(p)
+        if not fm or not match_query(fm, where, without):
+            continue
+        hits += 1
+        flag = f"  FAILED: {fm['failed']}" if fm.get("failed") else ""
+        print(f"{base.rel(p)}  {fm.get('kind', '?')}/"
+              f"{fm.get('waits_on', '?')}  {fm.get('title', '')}{flag}")
+    print(f"({hits} pending item{'s' if hits != 1 else ''})")
+
+
+@pending_app.command("resolve")
+def cmd_pending_resolve(ctx: typer.Context,
+                        path: Annotated[list[str], typer.Argument()] = []):
+    base = resolve_base(ctx.obj)
+    agent, author, _ = acting(ctx.obj, base)
+    for rel in path:
         p = base.root / rel
         if not p.exists():
             die(f"no such pending item: {rel}")
@@ -178,7 +221,17 @@ def cmd_pending(args):
         print(f"resolved: {rel}")
 
 
-def cmd_inbox(args):
+@app.command("inbox", help="the inbox is a view: this principal's pending items "
+                          "(--all for everyone's)")
+def cmd_inbox(
+    ctx: typer.Context,
+    failed: bool = False,
+    all: Annotated[bool, typer.Option(
+        help="include other principals' items (designated-curator and CI path); "
+             "default is yours alone")] = False,
+    where: WhereOpt = [],
+    without: WithoutOpt = [],
+):
     """The inbox is a view, and by default it is *this principal's* view.
 
     A base several people share otherwise hands every household's archiver every
@@ -186,16 +239,16 @@ def cmd_inbox(args):
     household, and one person's raw material lands in another person's agent context
     while that agent holds write access to shared knowledge. `--all` is the
     designated-curator (and CI) path."""
-    base = resolve_base(args)
+    base = resolve_base(ctx.obj)
     # Read-only, so it resolves without establishing: see resolve_principal's `persist`.
-    principal = resolve_principal(args, base.cfg.get("name", base.root.name),
+    principal = resolve_principal(ctx.obj, base.cfg.get("name", base.root.name),
                                  base.root, persist=False)
-    where, without = query_of(args)
+    where = parse_where(where)
     # The designated curator's whole job is reading everyone's raw material, so it needs
     # no flag. `--all` survives for the CI path, but it stops being silent about it.
     curating = base.is_curator(principal)
-    show_all = curating or args.all
-    if args.all and not curating:
+    show_all = curating or all
+    if all and not curating:
         print("note: `--all` — showing other principals' pending items on an "
               f"audience: {base.audience()} base under curation: {base.curation()}. "
               "That is somebody else's raw material.", file=sys.stderr)
@@ -206,7 +259,7 @@ def cmd_inbox(args):
             continue
         # --failed narrows to items that errored; they stay in the queue, because an
         # error is not a change of location.
-        if bool(fm.get("failed")) != bool(args.failed):
+        if bool(fm.get("failed")) != bool(failed):
             continue
         if not match_query(fm, where, without):
             continue
@@ -216,7 +269,7 @@ def cmd_inbox(args):
         found += 1
         extra = f"  error: {fm['failed']}" if fm.get("failed") else ""
         print(f"{base.rel(p)}  [{fm.get('captured_at', '?')}]{extra}")
-    want = "failed" if args.failed else "pending"
+    want = "failed" if failed else "pending"
     print(f"({found} {want} item{'s' if found != 1 else ''})")
     if others:
         # A count, never a path: the point is to say the queue is not empty for

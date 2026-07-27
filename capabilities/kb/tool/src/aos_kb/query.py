@@ -8,8 +8,21 @@ works. Date arithmetic lives HERE rather than in a prompt — an LLM computing
 
 import re
 import datetime as _dt
+from typing import Annotated
+
+import typer
 
 from .identity import die
+
+# Every fetch verb takes the same two flags — deterministic filtering by metadata on
+# ALL fetch methods, not just inbox. One shared Annotated alias, not one definition
+# per verb: `find`, `inbox`, `pending list`, `search`, `links`, `state show` all
+# declare `where: WhereOpt = []` and call `parse_where(where)` themselves.
+WhereOpt = Annotated[list[str], typer.Option(
+    "--where", metavar="key<op>value",
+    help="repeatable; dotted paths; ops < <= > >= = ; relative dates today[+-]N[d|w]")]
+WithoutOpt = Annotated[list[str], typer.Option(
+    "--without", metavar="key", help="the field is absent")]
 
 OPS = ("<=", ">=", "<", ">", "=")
 REL_RE = re.compile(r"^today(?:([+-])(\d+)([dw]))?$")
@@ -98,16 +111,3 @@ def match_query(fm: dict, where: list, without=None) -> bool:
     return True
 
 
-def add_query_args(p):
-    """Every fetch verb takes the same two flags — deterministic filtering by metadata
-    on ALL fetch methods, not just inbox."""
-    p.add_argument("--where", action="append", default=[], metavar="key<op>value",
-                   help="repeatable; dotted paths; ops < <= > >= = ; relative dates "
-                        "today[+-]N[d|w]")
-    p.add_argument("--without", action="append", default=[], metavar="key",
-                   help="the field is absent")
-
-
-def query_of(args):
-    """(where, without) for a verb that called add_query_args."""
-    return parse_where(getattr(args, "where", None)), getattr(args, "without", None)
