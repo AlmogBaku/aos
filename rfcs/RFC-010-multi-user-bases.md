@@ -68,21 +68,30 @@ base. Refusing `base capture` would have contradicted four normative statements.
 missing was §4.5's layer-2 check, which had never been built: **zero `method: llm` records
 in a shared base, ever**. It exists now.
 
-**5. A janitor runs in CI.** The deterministic half of curation — the grants audit, the
-zero-LLM check, index drift, unattributed commits, left-behind git state — runs on every
-push with no API key. Two reasons: a shared base otherwise has no neutral actor, and on
-the plan a small team actually has, **it is the only enforcement that exists**. GitHub
-gates rulesets, branch protection and CODEOWNERS to Pro/Team/Enterprise for private
-repositories; the free plan gets none of them and 2,000 Actions minutes. You cannot block
-a bad push there. You can fail it, loudly, every time.
-
 ## What is open
 
 ### Q1 — Does CI ever curate, and whose key pays?
 
-The janitor is deterministic and free. **Promotion is judgment**, and moving it into CI
-would need an API key in repository secrets and an answer to "whose, and who pays". It
-would also be the neutral curator a shared base otherwise lacks.
+The deterministic half of curation is free — the grants audit, the zero-LLM check, index
+drift, unattributed commits, left-behind git state, all with no API key. **Promotion is
+judgment**, and moving it into CI would need an API key in repository secrets and an answer
+to "whose, and who pays". It would also be the neutral curator a shared base otherwise
+lacks.
+
+**The deterministic half was built, then descoped.** A CI janitor shipped on `main` — and
+`base init --audience shared` emitted it — under the reasoning that a shared base otherwise
+has no neutral actor, and that on the plan a small team actually has, a failing check is the
+only enforcement that exists: GitHub gates rulesets, branch protection and CODEOWNERS to
+Pro/Team/Enterprise for private repositories, so on the free plan you cannot block a bad
+push, only fail it, loudly, every time. **That finding stands.** What did not stand was
+shipping it as a decision: it answers the mechanical half while this question — who decides
+what gets promoted — is still open, and emitting a workflow implied a shared base has a
+neutral actor today, which it does not.
+
+**Descoping the runner is not descoping the checks.** Every check the janitor ran is a
+`kb lint` check and runs anywhere — by hand, in a member's own hook, or in an Action they
+wire themselves. `lint --ci` survives for exactly that: report-only stays the default, and
+the flag is what makes that contract falsifiable.
 
 Against doing it: the external evidence on automatic promotion is bad. GovMem's
 verification gate, run over 133 external candidates, concluded *"zero candidates are safe
@@ -139,12 +148,14 @@ The shared base is for what you meant to share.
 ## Decision method
 
 Evidence, in the same spirit RFC-006 asks for. Q1 should not be settled by argument: run a
-month of a real two-person base with the janitor and per-principal curation, and count what
-the review queue actually accumulates and what a human had to fix. If per-principal
-curation keeps the queue drainable, CI curation is machinery nobody needed.
+month of a real two-person base with per-principal curation and `lint` run by hand or by
+each member's own automation, and count what the review queue actually accumulates and what
+a human had to fix. If per-principal curation keeps the queue drainable, CI curation is
+machinery nobody needed.
 
 ## Process
 
-Q1 blocks nothing — the janitor ships without it. Q2 and Q4 are documentation-shaped until
+Q1 blocks nothing — a shared base works today with per-principal curation, and the missing
+neutral actor is a known limitation rather than a blocker. Q2 and Q4 are documentation-shaped until
 somebody runs a base on a forge that can enforce them. Q3 should be decided before any
 capability promotes across bases in anger.

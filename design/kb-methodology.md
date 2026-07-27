@@ -540,7 +540,7 @@ choices, not spec — the contract is the verb set and boundary.
 | `state add\|bump\|drop\|check` | attention-window ops, cap-enforced | grammar guarded by the tool (§7) |
 | `search` | BM25 over the base (scopeable), exact/alias hits first | rebuilt per query today; `.base/` is the sanctioned cache location |
 | `links <page>` | backlinks / neighbors / orphans | link graph maintained at catalog time |
-| `lint` | the §6.4 catalog, BASE.yaml-driven | report-only; the report is the interface. `--ci` returns a verdict instead, for an unattended janitor |
+| `lint` | the §6.4 catalog, BASE.yaml-driven | report-only; the report is the interface. `--ci` returns a verdict instead, for a hook or an unattended runner that needs one |
 | `grants check` | subject × object × verb lookup | kb-authorization.md |
 | `index rebuild` | regenerate index.md from tree + descriptions | |
 | `sync` | ff-pull, merge only on divergence, push with jittered retry | refuses while a git operation is mid-flight; conflict → safe state + review entry + exit≠0 |
