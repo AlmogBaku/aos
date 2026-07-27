@@ -646,6 +646,38 @@ class BaseToolTest(unittest.TestCase):
         # and it did NOT commit the conflicted worktree
         self.assertNotIn("UNMERGED-SENTINEL", self.git("show", "HEAD:AGENTS.md"))
 
+    def test_sync_recovers_after_the_abort(self):
+        # The other half of refusing: the stall has to be RECOVERABLE, or a loud
+        # message is just a permanent one.
+        (self.root / ".git" / "MERGE_HEAD").write_text("0" * 40 + "\n")
+        self.assertEqual(self.b("sync").returncode, 5)
+        (self.root / ".git" / "MERGE_HEAD").unlink()
+        self.assertEqual(self.b("sync").returncode, 0)
+
+    def test_sync_all_reports_skipped_bases_rather_than_dropping_them(self):
+        # An adopted base is always `manual`, so silence here reads as "everything is
+        # synced" when nothing was even looked at.
+        r = run(["sync", "--all", "--no-jitter"], self.env)
+        self.assertIn("skipped", r.stdout)
+
+    def test_only_the_unattended_path_staggers(self):
+        """Five-minute crons fire on wall-clock boundaries, so N machines collide
+        systematically rather than rarely — the --all path staggers before its first
+        fetch. An interactive sync must not sit there for no reason, and neither must a
+        --all run with nothing scheduled to do.
+
+        The stagger is up to 20s, so this asserts the two paths that must NOT wait; the
+        waiting one is verified by --no-jitter existing at all (a test that slept 20s to
+        prove a sleep would be the slowest test in the suite by an order of magnitude).
+        """
+        start = time.perf_counter()
+        self.b("sync")                                   # single base, interactive
+        self.assertLess(time.perf_counter() - start, 2.0, "an interactive sync waited")
+        start = time.perf_counter()
+        run(["sync", "--all"], self.env)                 # fixture is sync: manual
+        self.assertLess(time.perf_counter() - start, 2.0,
+                        "--all waited with no scheduled base to sync")
+
     # -- adopt -------------------------------------------------------------
     def test_adopt_zero_writes_and_most_restrictive_audience(self):
         foreign = self.dir / "foreign"
@@ -1524,6 +1556,88 @@ class ExpiryTest(WriteVerbTest):
         out = self.b("lint").stdout
         self.assertNotIn("stale seedling", out)
         self.assertIn("outside schema", out)   # it is now an unknown field
+
+
+class CurationTest(unittest.TestCase):
+    """Curation is a mode the grants table already expressed.
+
+    `self` (default): everyone drains only their own, which costs nothing.
+    `designated`: one principal holds the wiki write grants and reads everyone's raw
+    material. Rule of two — a third mode earns a richer field, not before."""
+
+    ALICE = {"AOS_PRINCIPAL_ID": "alice@example.com",
+             "AOS_PRINCIPAL_NAME": "Alice Example"}
+    BOB = {"AOS_PRINCIPAL_ID": "bob@example.com",
+           "AOS_PRINCIPAL_NAME": "Bob Example"}
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home)}
+        self.root = self.dir / "team"
+        r = run(["init", "team", "--path", str(self.root), "--audience", "shared",
+                 "--purpose", "curation", "--templates", str(TEMPLATES), "--default"],
+                {**self.env, **self.ALICE})
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args, who=None):
+        return run(["--base", str(self.root), *args], {**self.env, **(who or {})})
+
+    def cfg(self):
+        return yaml.safe_load((self.root / ".kb" / "base.yml").read_text())
+
+    def test_curation_defaults_to_self_and_scopes_the_queue(self):
+        self.assertEqual(self.cfg()["curation"], "self")
+        self.b("capture", "--text", "mine", who=self.ALICE)
+        self.assertIn("mine", self.b("inbox", who=self.ALICE).stdout)
+        self.assertNotIn("mine", self.b("inbox", who=self.BOB).stdout)
+
+    def test_designated_curation_lets_the_curator_see_everything(self):
+        self.b("config", "set", "curation=designated", who=self.ALICE)
+        self.b("config", "set", "curator=alice@example.com", who=self.ALICE)
+        self.b("capture", "--text", "alice thing", who=self.ALICE)
+        self.b("capture", "--text", "bob thing", who=self.BOB)
+        out = self.b("inbox", who=self.ALICE).stdout
+        self.assertIn("(2 pending items)", out)
+
+    def test_a_non_curator_never_sees_paths_under_designated_curation(self):
+        self.b("config", "set", "curation=designated", who=self.ALICE)
+        self.b("config", "set", "curator=alice@example.com", who=self.ALICE)
+        self.b("capture", "--text", "alice thing", who=self.ALICE)
+        out = self.b("inbox", who=self.BOB).stdout
+        self.assertNotIn(".kb/pending/", out)
+        self.assertIn("belong to other principals", out)
+
+    def test_an_explicit_all_still_works_but_says_so(self):
+        # `--all` stays available for the CI path; it just stops being silent about
+        # reading somebody else's raw material.
+        self.b("capture", "--text", "alice thing", who=self.ALICE)
+        r = self.b("inbox", "--all", who=self.BOB)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("alice-thing", r.stdout)     # the path, which is what inbox lists
+        self.assertIn("(1 pending item)", r.stdout)
+        self.assertIn("--all", r.stderr)           # and it announced the disclosure
+
+    def test_an_llm_routed_write_into_a_shared_base_is_critical(self):
+        # §4.5 layer 2 — the exclusion is a list filter, not a threshold, so the check
+        # is an existence test. Enforcement is by routing METHOD, never by refusing the
+        # verb: a shared base does accept explicit and rule-matched captures.
+        self.b("capture", "--text", "rule matched", who=self.ALICE)
+        cap = next((self.root / ".kb" / "pending").glob("*.md"))
+        cap.write_text(cap.read_text().replace(
+            "kind: capture",
+            "kind: capture\nkb_routing:\n  method: rule\n  status: routed"))
+        self.assertIn("Critical (0)", self.b("lint", who=self.ALICE).stdout)
+        cap.write_text(cap.read_text().replace("method: rule", "method: llm"))
+        self.assertIn("no LLM-routed write may ever land here",
+                      self.b("lint", who=self.ALICE).stdout)
 
 
 class PackagingTest(unittest.TestCase):

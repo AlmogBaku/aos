@@ -510,6 +510,21 @@ class Base:
     def audience(self) -> str:
         return self.cfg.get("audience", "private")
 
+    def curation(self) -> str:
+        """`self` (default) or `designated`. A mode the grants table already expressed:
+        under `self` everyone holds capture + propose grants and drains only their own;
+        under `designated` one principal holds the wiki write grants and reads
+        everyone's raw material. Rule of two — a third mode earns a richer field."""
+        return str(self.cfg.get("curation") or "self").strip()
+
+    def curator(self) -> str:
+        return str(self.cfg.get("curator") or "").strip().lower()
+
+    def is_curator(self, pid: str) -> bool:
+        return (self.curation() == "designated"
+                and bool(self.curator())
+                and (pid or "").strip().lower() == self.curator())
+
     def grant_subject(self, pid: str) -> str:
         """The grants table names principal ids directly, so it IS the roster. A base
         with no row for this id falls back to `user` — the single-human case, which is
@@ -1018,6 +1033,14 @@ def cmd_inbox(args):
     principal = resolve_principal(args, base.cfg.get("name", base.root.name),
                                  base.root, persist=False)
     where, without = query_of(args)
+    # The designated curator's whole job is reading everyone's raw material, so it needs
+    # no flag. `--all` survives for the CI path, but it stops being silent about it.
+    curating = base.is_curator(principal)
+    show_all = curating or args.all
+    if args.all and not curating:
+        print("note: `--all` — showing other principals' pending items on an "
+              f"audience: {base.audience()} base under curation: {base.curation()}. "
+              "That is somebody else's raw material.", file=sys.stderr)
     found = others = 0
     for p in sorted(base.pending_dir.glob("*.md")):
         fm, _ = read_frontmatter(p)
@@ -1029,7 +1052,7 @@ def cmd_inbox(args):
             continue
         if not match_query(fm, where, without):
             continue
-        if not args.all and fm.get("captured_by", "user") != principal:
+        if not show_all and fm.get("captured_by", "user") != principal:
             others += 1
             continue
         found += 1
@@ -1622,6 +1645,13 @@ def cmd_index(args):
     print(f"index.md rebuilt ({sum(1 for _ in base.md_files())} pages)")
 
 
+def sync_jitter() -> float:
+    """Five-minute crons fire on wall-clock boundaries, so N machines collide
+    systematically rather than rarely. Only the unattended path waits — an interactive
+    `kb sync` should not sit there for no reason."""
+    return random.random() * 20
+
+
 def cmd_sync(args):
     reg = load_registry(args)
     if args.all:
@@ -1637,6 +1667,8 @@ def cmd_sync(args):
         targets = [{"name": base.cfg.get("name", base.root.name),
                     "path": str(base.root)}]
     agent = agent_subject(args)
+    if args.all and not args.no_jitter and targets:
+        time.sleep(sync_jitter())
     worst = 0
     for kb in targets:
         root = Path(kb["path"]).expanduser()
@@ -2204,6 +2236,8 @@ def main():
     p.add_argument("--all", action="store_true",
                    help="every registry base with sync: rebase-5min (the rest are "
                         "reported as skipped, never silently dropped)")
+    p.add_argument("--no-jitter", action="store_true",
+                   help="skip the pre-fetch stagger (tests, and a one-off manual run)")
     p.set_defaults(func=cmd_sync)
 
     p = sub.add_parser("commit", help="attribute a hand-written change (author = "
