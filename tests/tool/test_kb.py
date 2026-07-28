@@ -1309,6 +1309,27 @@ class QueryTest(unittest.TestCase):
         self.assertIn("now.md", self.b("find", "--where", "due>=today").stdout)
         self.assertNotIn("now.md", self.b("find", "--where", "due<today").stdout)
 
+    def test_numbers_compare_as_numbers_not_as_strings(self):
+        # String ordering puts "10" below "3", so a threshold query silently misses the
+        # worst cases — exactly the ones it exists to catch. work-tracker's steward
+        # escalates on `slipped>=3`, and a commitment rescheduled ten times is the one
+        # that most needs raising, so this is a wrong answer with exit 0 rather than an
+        # error. Dates already had their own coercion; plain numbers did not.
+        self.page("projects/ten.md", type="project", slipped=10)
+        self.page("projects/two.md", type="project", slipped=2)
+        out = self.b("find", "--where", "slipped>=3").stdout
+        self.assertIn("ten", out)
+        self.assertNotIn("two", out)
+        # Floats, and the other three operators.
+        self.page("projects/half.md", type="project", weight=0.5)
+        self.assertIn("half", self.b("find", "--where", "weight<1").stdout)
+        self.assertIn("ten", self.b("find", "--where", "slipped>9").stdout)
+        self.assertIn("two", self.b("find", "--where", "slipped<=2").stdout)
+        # A number against a non-numeric value must not crash — it falls back to
+        # string comparison rather than raising.
+        r = self.b("find", "--where", "type>1")
+        self.assertEqual(r.returncode, 0, r.stderr)
+
     def test_dotted_paths_reach_into_nested_frontmatter(self):
         self.page("concepts/routed.md", type="concept",
                   meta="{status: uncertain, method: rule}")

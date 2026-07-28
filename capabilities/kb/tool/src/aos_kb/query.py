@@ -71,7 +71,14 @@ def fm_get(fm: dict, dotted: str):
 
 
 def _coerce(a, b):
-    """Compare as dates when both sides look like dates, else as strings."""
+    """Compare as dates when both sides look like dates, as numbers when both look
+    like numbers, else as strings.
+
+    The number case is not a nicety: string ordering puts "10" below "3", so a
+    threshold query silently misses the largest values — the ones it exists to find.
+    `--where slipped>=3` returning nothing for a commitment rescheduled ten times is a
+    wrong answer with exit 0, which is worse than an error because nobody investigates
+    it. Dates get the same treatment for the same reason, one line down."""
     def as_date(raw):
         s = str(raw)
         d = resolve_date(s)
@@ -81,6 +88,20 @@ def _coerce(a, b):
             return _dt.date.fromisoformat(s[:10])
         except ValueError:
             return None
+
+    def as_number(raw):
+        # bool is an int subclass, and `True < 2` comparing as a number would be a
+        # surprising reading of `verified: true` — leave booleans to the string path.
+        if isinstance(raw, bool):
+            return None
+        try:
+            return float(str(raw).strip())
+        except (TypeError, ValueError):
+            return None
+
+    na, nb = as_number(a), as_number(b)
+    if na is not None and nb is not None:
+        return na, nb
     da, db = as_date(a), as_date(b)
     if da and db:
         return da, db
