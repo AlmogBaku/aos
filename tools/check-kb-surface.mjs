@@ -7,17 +7,27 @@
 //
 // Deliberately NOT here: SKILL.md body length, reference-file Contents blocks, and the
 // description character limit. Those are the published Agent Skills limits (500 lines /
-// 100 lines / 1024 chars) and `tools/lint/aos-lint.mjs` already enforces all three
-// (skill/body-length, skill/reference-toc, skill/description). A second implementation
-// would be a second thing to keep in sync. There are no per-file line budgets: the
-// authoring guide sets one body limit and nothing in this capability is near it.
+// 100 lines / 1024 chars) and `tools/lint/aos-lint.mjs` already covers all three — as an
+// error for the description (skill/description) and as warnings for the other two
+// (skill/body-length, skill/reference-toc), so a 600-line SKILL.md is reported but does not
+// fail CI. A second implementation here would be a second thing to keep in sync.
+// There are no per-file line budgets: the authoring guide sets one body limit and nothing in
+// this capability is within 350 lines of it.
 //
 // Scoped to capabilities/kb/ on purpose. Plan 4 generalises it repo-wide (design §3.1)
-// with the transcripts / BUILD-GAPS / marked-old-pattern allowlist. Two tokens need care
-// at that point: `gtd` is legitimate outside this capability (capabilities/gtd-capture/
-// is a real directory, and tests/golden/** carries aos:gtd-capture:nightly-drain), and
-// `state/` was retired as a ROOT directory but reintroduced at .kb/state/ meaning
-// something else.
+// with the transcripts / BUILD-GAPS / marked-old-pattern allowlist. What needs care then:
+//
+//   - `gtd` is legitimate outside this capability (capabilities/gtd-capture/ is a real
+//     directory, and tests/golden/** carries aos:gtd-capture:nightly-drain).
+//   - `state/` was retired as a ROOT directory but reintroduced at .kb/state/ meaning
+//     something else, and `lint --ci` outlived the janitor it was built for.
+//   - EIGHT of these tokens live legitimately inside tool/, which is excluded here but
+//     would not be under a repo-wide sweep: `BASE.yaml`, `state.yaml`, `_ops/`, `_archive/`
+//     and `triage:` because kb migrate has to NAME the old layout to move it; `growth_stage`
+//     and `--write-report` in comments explaining what was removed and why; and `aos-base`
+//     in a load-bearing `uv tool uninstall aos-base` instruction for anyone still on the old
+//     package name. None of these is a leftover — a repo-wide gate must exempt tool/ or
+//     allowlist each one deliberately.
 //
 // Usage: node tools/check-kb-surface.mjs [relPathPrefix ...]
 //   With prefixes, only matching files are checked — that is how a single task in the
@@ -88,12 +98,28 @@ const SKILLS = {
 
 // The authoring guide is explicit: descriptions are injected into the system prompt, so a
 // first/second-person voice causes discovery problems. Third person only.
-const FIRST_OR_SECOND_PERSON = /\b(?:I can|I will|I help|you can use|You can use|use this to)\b/;
+// Matches the imperative "Use this…" opener and any second-person address, not just a
+// hand-listed set of phrasings — an earlier version listed exact strings and let both
+// "Use this to file a thought" and "This skill helps you file X" through.
+// Note "the user's …" and "the user wants …" are third person and must keep passing; what is
+// banned is addressing the reader ("helps you", "you can") or speaking as the skill ("I can").
+const FIRST_OR_SECOND_PERSON =
+  /\b(?:I can|I will|I help|I'll|helps? you|lets you|allows you|enables you|you can|you should|use this (?:to|when|for))\b|^\s*"?Use this\b/i;
 
 const failures = [];
 const fail = (file, msg) => failures.push(`${file}: ${msg}`);
 const prefixes = process.argv.slice(2);
-const wanted = (rel) => !prefixes.length || prefixes.some((p) => rel.startsWith(p));
+// A prefix that matches nothing must be an error, not a pass. Every per-task verification
+// during the rewrite ran with a prefix, so a typo'd path would otherwise report `clean` and
+// exit 0 — the loudest possible way to check nothing at all.
+const matched = new Set();
+const wanted = (rel) => {
+  if (!prefixes.length) return true;
+  const hit = prefixes.find((p) => rel.startsWith(p));
+  if (hit === undefined) return false;
+  matched.add(hit);
+  return true;
+};
 const lineCount = (text) => text.trimEnd().split('\n').length; // reads as `wc -l`
 
 // 1. Retired vocabulary, the old command name, and the dropped [D]/[A] notation
@@ -130,6 +156,10 @@ for (const [id, needsNegative] of Object.entries(SKILLS)) {
   if (FIRST_OR_SECOND_PERSON.test(desc)) {
     fail(rel, `description is not third person ("${desc.match(FIRST_OR_SECOND_PERSON)[0]}") — it is injected into the system prompt`);
   }
+}
+
+for (const p of prefixes) {
+  if (!matched.has(p)) fail(p, 'prefix matched no file under capabilities/kb/ — check the path');
 }
 
 if (failures.length) {

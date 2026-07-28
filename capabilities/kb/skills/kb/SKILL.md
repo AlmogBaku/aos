@@ -28,11 +28,16 @@ derivative; the `kb` tool never calls a model — mechanics are its, judgment is
 `finding`). A queue *file* is only justified when the work has no artifact of its own;
 everything else is a query.
 
-**Read it with `kb inbox`, not `kb pending list`.** Only `inbox` scopes to the acting
-principal; `pending list` is the unfiltered directory. On a base several people write to, the
-unfiltered view hands you everyone's captures — so the same item gets processed once per
-person, and somebody else's raw material enters your context. `--all` is the designated
-curator's path, not the default.
+Two reads, and picking the wrong one returns an empty list with exit 0 rather than an error:
+
+- **`kb inbox`** — *your* ingest work: `waits_on: agent` only, scoped to the acting principal.
+  This is the nightly promote pass's read. On a base several people write to, that scoping is
+  the point: the unfiltered view would hand you everyone's captures, so the same item gets
+  processed once per person and somebody else's raw material enters your context. `--all` is
+  the designated curator's path, not the default.
+- **`kb pending list --where waits_on=human`** — the *human's* drain queue. `inbox` cannot show
+  these at all (it filters to `agent`), so an agent looking for findings to surface, or a
+  person asking what is waiting on them, needs this form.
 
 For everything else, query rather than queue: `kb find --where type=company --where
 tags=active` over frontmatter (list fields match by membership), `kb search` for full text.

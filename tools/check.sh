@@ -24,4 +24,5 @@ fi
 node tools/lint/aos-lint.mjs "$@"
 node tools/lint/selftest/run.mjs
 node tools/check-kb-surface.mjs
+node tools/check-kb-commands.mjs
 node tests/golden/check.mjs

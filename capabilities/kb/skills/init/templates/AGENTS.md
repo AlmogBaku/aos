@@ -51,10 +51,11 @@ nothing, not even `*`. A cross-zone write needs a row here first.
 ## Reading order
 
 1. This file · 2. `index.md` · 3. `kb history` (recent activity, from git) · 4. `kb state
-show` (where things stand). Add `kb inbox` if you process work — on a base several people
-write to, `inbox` shows **yours** and `--all` (the designated curator's path) shows
-everyone's. `kb pending list` is the unfiltered view of the same directory, so prefer
-`inbox`: somebody else's raw material is not yours to read.
+show` (where things stand). If you process work, the queue has two reads and each returns an
+empty list rather than an error when you pick the wrong one: **`kb inbox`** is your ingest work
+(`waits_on: agent`, and only yours — `--all` is the designated curator's path, because somebody
+else's raw material is not yours to read), while **`kb pending list --where waits_on=human`** is
+what is waiting on a person. `inbox` cannot show human items at all.
 
 ## Write rules
 

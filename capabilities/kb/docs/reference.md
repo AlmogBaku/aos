@@ -139,13 +139,14 @@ is not one I can speak to".
 | 5 | `sync` only | a git operation was left mid-flight (rebase, merge, cherry-pick, revert). Nothing was staged — sync refuses rather than committing conflict markers |
 | 10 | any verb · `migrate` | not a base: no `.kb/base.yml`. Adopt it, or check `--base` |
 | 11 | any verb | layout mismatch — a tree on the previous layout, or a `layout:` this tool does not speak. Never path-guessed; run `kb migrate` |
+| 12 | `state add` only | the attention window is at `state.max_items` — adding when full is an eviction decision, so `kb state drop` something first |
 | 13 | `migrate` · write verbs | refused on an unsafe state: an uncommitted worktree, or a path outside the base |
 | 14 | `init` only | a template left an unrendered `{{placeholder}}` — the template declares a variable this tool does not substitute |
 
 **`kb sync` is the only source of 2–5**, and with `--all` it visits several bases and exits
 with the **worst** code any one of them produced, so a 3 means *at least one* base
-conflicted, not that all did. Every other verb answers in {0, 1, 2, 10, 11, 13, 14}. Codes
-6–9 and 12 are unused.
+conflicted, not that all did. Every other verb answers in {0, 1, 2, 10, 11, 12, 13, 14}. Codes
+6–9 are unused.
 
 The double meaning of 2 is worth knowing before scripting against it: a wrapper treating 2 as
 "bad arguments" will misread a sync whose local commit failed.

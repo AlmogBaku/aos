@@ -38,9 +38,11 @@ Resolution order — stop at the first match:
    call, each candidate's `purpose` as the rubric, returning `{base, confidence}`. Accept
    only if `confidence >= confidence_bar` — a **registry root key**, default **0.7** (not a
    per-base setting; don't look for it in `.kb/base.yml`). Record `method: llm`.
-4. **Fallback.** The default base, `method: default` and `status: uncertain`. The nightly
-   pass re-routes: into a private base it may move directly (logged, reversible); into a
-   shared base it files a proposal in `.kb/pending/` and never auto-applies.
+4. **Fallback.** The default base, `method: default` and `status: uncertain`. The nightly pass
+   re-classifies these, but it does **not** move them: `kb ingest` works within one base and
+   there is no cross-base form, so a better destination is filed as a `kind: finding` proposal
+   for a human, whatever the target's audience. Landing in the default base is therefore cheap
+   but not self-correcting — which is the price of never asking the user mid-capture.
 
 `method` is a closed set — `explicit` `rule` `llm` `default` — and lint flags anything else,
 so do not invent a fifth.
