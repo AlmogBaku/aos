@@ -1,60 +1,63 @@
 ---
 name: init
-description: "Creates a new base (knowledge base) — interview, scaffold, register, schedule. Use when the user wants a fresh base ('create a work base', 'kb init personal'), including during bootstrap when no base exists yet."
+description: "Creates a new knowledge base: interviews the user for purpose, zones, types and curation, scaffolds the tree, registers it, and wires the maintenance schedules. Use when the user wants a fresh base ('create a work base', 'set me up a knowledge base', 'kb init personal'), including during bootstrap when none exists yet. Do NOT use when a knowledge tree already exists on disk — registering that in place is kb-adopt, and transforming another KB's content into a base is kb-import."
 ---
 
 # init
 
-**Invariant: init is not done until the schedules exist** (or their degraded mode is
-materialized) — an unscheduled maintainer means an undrained inbox and an unenforced
-contract.
+**Init is not done until the schedules exist** (or their degraded run-cards do). An
+unscheduled base means an undrained queue and an unenforced contract, which is worse than
+no base at all.
 
-## 1. The structure interview [A→H]
+## 1. The structure interview
 
-Ask once, design once — the user is never bothered about structure again (afterwards
-the agent operates autonomously inside the frozen zone set; zone changes are
-owner-approved `.kb/base.yml` edits):
+Ask once, design once — the user is never bothered about structure again. Afterwards the
+agent operates autonomously inside the frozen zone set, and a zone change is an
+owner-approved `.kb/base.yml` edit.
 
 - **Name, path** (default `~/<name>-base`), **remote** (optional), **audience**
-  (`private` default | `shared`), **sync** (`rebase-5min` needs a remote; adopted
-  defaults stay manual).
-- **Purpose** — one paragraph; it is the router's AND recall's rubric. Write it well.
-- **Theme → zones and types.** An engineering base wants different zones/types than a
-  family or self base. Start from the template defaults (entities/concepts/projects/
-  profile) and adjust WITH the user; put the result in `.kb/base.yml` (`zones:`,
-  `types:`). Anything they say about *what belongs where* is routing gold — it becomes
-  `purpose` text and `routing.keywords`.
+  (`private` default, or `shared`), **sync** (`rebase-5min` needs a remote).
+- **Purpose** — one paragraph. It is the rubric for both routing and recall. Write it well.
+- **Theme → zones and types.** An engineering base wants different zones and types than a
+  family or self base. Start from the template defaults and adjust *with* the user.
+  Anything they say about what belongs where is routing gold: it becomes `purpose` prose
+  and `routing.keywords`.
+- **Curation** — on a shared base, who reviews what agents propose? `self` means each
+  person curates their own captures (the default, and right for most teams); `designated`
+  names one curator who drains everyone's. Private bases are always `self`.
 
-## 2. Scaffold [D]
+## 2. Scaffold
 
 ```
 kb init <name> --path <path> --audience <a> --sync <s> --purpose "<p>" \
-  [--remote <url>] [--default]
+  [--remote <url>] [--curation designated --curator <principal-id>] [--default]
 ```
 
-By default the tool `git clone`s a template repo (read-only, unauthenticated, no
-fork — just the templates, hosted for discoverability) and drops the clone's own
-`.git` history before rendering; `--template <url>` points at a different one. Pass
-`--templates <local-dir>` to skip the network step entirely and render straight from a
-local directory instead (defaults to
-`<home>/upstream/capabilities/kb/skills/init/templates` when the clone fails for any
-reason — no network, bad URL, git not configured for the host — and this is announced,
-never silent, never blocking).
+The tool clones a template repo by default (read-only, unauthenticated, no fork) and drops
+the clone's own history before rendering; `--template <url>` points at a different one, and
+`--templates <local-dir>` skips the network entirely, which is also the automatic fallback
+when a clone fails for any reason — announced, never silent, never blocking.
 
-The tool renders templates (`.kb/base.yml`, `AGENTS.md` + Grants seed, `index.md`,
-per-principal state shard, zone `AGENTS.md` files), git-inits with the user's own git
-identity, registers in `kb-registry.yaml`, commits `bootstrap`. Then apply the
-interview's zone/type adjustments to `.kb/base.yml` + matching directories, and show
-the user the diff.
+It renders the templates, git-inits, registers the base in `kb-registry.yaml`, writes
+`<home>/.aos/kb-principal.yml` if it does not exist yet, and commits. It **does not** touch
+the repo's git identity: the user's own identity authors every write and the acting agent is
+recorded as committer, which is the attribution the weekly audit reads. Overwriting it with
+a per-base agent identity would erase the one attribution git gives for free, and on a base
+two people share it would make both of them the same author. If no git identity is
+configured the tool says so and proceeds anyway — capture never blocks — and lint reports
+the weak principal until onboarding fixes it.
 
-## 3. Schedules [D]
+Then apply the interview's zone and type adjustments to `.kb/base.yml` plus the matching
+directories, and show the user the diff.
 
-Create per the cheat-sheet (see the kb skill's `reference/wiring.md`): nightly-promote
-+ weekly-lint as archiver agent jobs, sync as a **script-only exec job** — no LLM in
-the loop. Single-owner rule applies. No cron host feature → materialize run-cards and
-tell the user what to run when.
+## 3. Schedules
 
-## 4. Verify [D]
+Create them per the cheat-sheet (the `kb` skill's `reference/wiring.md` has the table):
+`nightly-promote` and `weekly-maintain` as archiver agent jobs, `sync` as a script-only
+exec job with no model in the loop. The single-owner rule applies. No cron on the harness →
+materialize run-cards and tell the user what to run and when.
 
-`kb lint` must run clean on the fresh tree. Report: tree, grants, registry entry,
-schedules (or degraded modes).
+## 4. Verify
+
+`kb lint` must run clean on the fresh tree. Report back: the tree, the grants, the registry
+entry, and the schedules or their degraded modes.
