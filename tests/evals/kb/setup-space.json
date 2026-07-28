@@ -3,6 +3,10 @@
   {"query": "i want a fresh kb for the consulting side, private, syncs to a github remote", "should_trigger": true},
   {"query": "create a personal base at ~/brain and make it the default", "should_trigger": true},
   {"query": "no knowledge base yet — can you get one going? mostly for client notes and meeting stuff", "should_trigger": true},
+  {"query": "kb init research — shared with the team, and i want the archiver running nightly", "should_trigger": true},
+  {"query": "spin up a second base just for the board stuff, nobody else should be able to read it", "should_trigger": true},
+  {"query": "i'm starting from scratch on a new laptop, need somewhere for my notes to live", "should_trigger": true},
+  {"query": "can you make me a kb? not sure what zones i need yet, walk me through it", "should_trigger": true},
 
   {"query": "i already have a notes repo at ~/kb, can you start using it instead of making a new one", "should_trigger": false},
   {"query": "adopt ~/my-kb — dont rewrite anything in it, i just want the agents aware of it", "should_trigger": false},
