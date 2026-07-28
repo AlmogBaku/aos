@@ -42,10 +42,25 @@ kb --base commitments commit --verb create --path actions/write-the-cfp.md \
 All three flags are required. Skip this and the page reaches git only through the sync
 sweep, with no acting subject, and `kb lint` reports it.
 
-Frontmatter: `type: action`, `status:`, `since: <today>`, `slipped: 0`, plus `due`/`estimate`/
-`waiting_on` as the table above dictates. **The user's own words go in the body, verbatim** —
-that sentence is the only record of what they actually committed to, and a tidier paraphrase
-is usually a paraphrase of what you assumed they meant.
+Frontmatter, and **all of the first line is required** — `kb lint` reports a page missing any
+of it:
+
+```yaml
+title: call the dentist        # required
+created: 2026-07-29            # required
+timestamp: 2026-07-29T14:32    # required
+type: action
+status: next                   # plus due / estimate / waiting_on per the table above
+since: 2026-07-29
+slipped: 0
+```
+
+**The user's own words go in the body, verbatim** — that sentence is the only record of what
+they actually committed to, and a tidier paraphrase is usually a paraphrase of what you
+assumed they meant.
+
+Then add the page to `index.md`, or it is invisible to the map even though every query still
+finds it: `kb --base commitments index rebuild` does it mechanically.
 
 Shape and the full field list: the `work-tracker` skill's `reference/action-page.md`.
 
