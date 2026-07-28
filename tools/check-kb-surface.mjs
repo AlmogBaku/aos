@@ -41,6 +41,12 @@ import { join } from 'node:path';
 import { REPO_ROOT, walkRepo } from './lib/repo.mjs';
 
 const CAP = 'capabilities/kb';
+// work-tracker is the second capability in this trigger space and shares the vocabulary,
+// so it is scanned by the same gate rather than by a near-copy of it: eleven descriptions
+// now compete, and the retired tokens it must avoid (`gtd`, `drainer`, `next-actions.md`,
+// `triage:`) are the ones this list already names. Plan 4 generalises the whole thing
+// repo-wide; until then these are the two capabilities the LAYOUT 2 design rewrote.
+const CAPS = [CAP, 'capabilities/work-tracker'];
 // tool/ is the tool's own territory; it is checked by the Python suite, not by this gate.
 const EXCLUDE = [`${CAP}/tool/`];
 
@@ -96,6 +102,20 @@ const SKILLS = {
   kb: true, capture: true, route: true, recall: true, init: true, adopt: true, import: true,
 };
 
+// work-tracker's five. Every one competes: its `capture` and kb's are the same word for
+// two different speech acts, and the other four each sound like at least one sibling.
+// `steward` carries its negative as "Does not capture or schedule new work", which is the
+// same clause in the voice the sentence wanted — hence the per-skill pattern below.
+const WT_CAP = 'capabilities/work-tracker';
+const WT_SKILLS = {
+  'work-tracker': true, capture: true, schedule: true, update: true, steward: true,
+};
+// The negative clause, in either of the two forms these descriptions use. "Do NOT use" is
+// the guide's phrasing and the one to reach for; "Does not <verb>" is accepted because
+// forcing the imperative into steward's sentence produced worse English, not a better
+// trigger, and the discriminating content is identical.
+const NEGATIVE_CLAUSE = /\bDo NOT use\b|\bDoes not\b/;
+
 // The authoring guide is explicit: descriptions are injected into the system prompt, so a
 // first/second-person voice causes discovery problems. Third person only.
 // Matches the imperative "Use this…" opener and any second-person address, not just a
@@ -124,7 +144,7 @@ const lineCount = (text) => text.trimEnd().split('\n').length; // reads as `wc -
 
 // 1. Retired vocabulary, the old command name, and the dropped [D]/[A] notation
 for (const rel of walkRepo(REPO_ROOT)) {
-  if (!rel.startsWith(`${CAP}/`)) continue;
+  if (!CAPS.some((c) => rel.startsWith(`${c}/`))) continue;
   if (EXCLUDE.some((e) => rel.startsWith(e))) continue;
   if (!wanted(rel)) continue;
   let text;
@@ -140,26 +160,30 @@ for (const rel of walkRepo(REPO_ROOT)) {
 
 // 2. Description shape. Length and the 1024 cap are aos-lint's (skill/description); what
 // it cannot know is which skills compete with each other for a trigger.
-for (const [id, needsNegative] of Object.entries(SKILLS)) {
-  const rel = `${CAP}/skills/${id}/SKILL.md`;
-  if (!wanted(rel)) continue;
-  const abs = join(REPO_ROOT, rel);
-  if (!existsSync(abs)) { fail(rel, 'missing'); continue; }
-  const text = readFileSync(abs, 'utf8');
-  const m = text.match(/^description:\s*(.*)$/m);
-  if (!m) { fail(rel, 'no description in frontmatter'); continue; }
-  const desc = m[1];
-  if (!/\bUse when\b/.test(desc)) fail(rel, 'description has no "Use when" trigger clause');
-  if (needsNegative && !/\bDo NOT use\b/.test(desc)) {
-    fail(rel, 'description has no "Do NOT use" clause — this skill competes for a trigger space');
+const descriptionShape = (capRel, skills) => {
+  for (const [id, needsNegative] of Object.entries(skills)) {
+    const rel = `${capRel}/skills/${id}/SKILL.md`;
+    if (!wanted(rel)) continue;
+    const abs = join(REPO_ROOT, rel);
+    if (!existsSync(abs)) { fail(rel, 'missing'); continue; }
+    const text = readFileSync(abs, 'utf8');
+    const m = text.match(/^description:\s*(.*)$/m);
+    if (!m) { fail(rel, 'no description in frontmatter'); continue; }
+    const desc = m[1];
+    if (!/\bUse when\b/.test(desc)) fail(rel, 'description has no "Use when" trigger clause');
+    if (needsNegative && !NEGATIVE_CLAUSE.test(desc)) {
+      fail(rel, 'description has no negative clause ("Do NOT use" / "Does not …") — this skill competes for a trigger space');
+    }
+    if (FIRST_OR_SECOND_PERSON.test(desc)) {
+      fail(rel, `description is not third person ("${desc.match(FIRST_OR_SECOND_PERSON)[0]}") — it is injected into the system prompt`);
+    }
   }
-  if (FIRST_OR_SECOND_PERSON.test(desc)) {
-    fail(rel, `description is not third person ("${desc.match(FIRST_OR_SECOND_PERSON)[0]}") — it is injected into the system prompt`);
-  }
-}
+};
+descriptionShape(CAP, SKILLS);
+descriptionShape(WT_CAP, WT_SKILLS);
 
 for (const p of prefixes) {
-  if (!matched.has(p)) fail(p, 'prefix matched no file under capabilities/kb/ — check the path');
+  if (!matched.has(p)) fail(p, `prefix matched no file under ${CAPS.join(' or ')} — check the path`);
 }
 
 if (failures.length) {
