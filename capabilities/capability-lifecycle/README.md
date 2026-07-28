@@ -1,7 +1,7 @@
 # capability-lifecycle
 
 The whole life of a capability, shipped as one capability: install, upgrade, remove,
-onboard, import, build, contribute, evolve. After bootstrap, "install gtd-capture" triggers
+onboard, import, build, contribute, evolve, review. After bootstrap, "install gtd-capture" triggers
 a real skill in your harness; nothing depends on re-reading repo files.
 
 Everything lives in the household (`~/aos`): `upstream/` the pristine kit clone,
@@ -24,7 +24,8 @@ agent, names and hashes never do.
 | `skills/build/` | the MARS building-mode detector (§9) plus intake → research → design → approval → build. Nothing durable gets written without an approved design |
 | `skills/contribute/` | change a capability's shipped source, for everyone — and draft the upstream contribution when the user confirms |
 | `skills/evolve/` | change how an installed capability behaves *for you*, recorded so it survives upgrades; promotes upstream when generally useful (signal-gated, offer-only) |
-| `skills/capability-lifecycle/reference/harness-<runtime>.md` | the per-harness cheat-sheets (hermes · nanoclaw v1+v2 · openclaw · nanobot) — reference files of the skill that reads them, so they travel with the render |
+| `skills/review/` | review a capability as architecture then as prose: trace the flows and decision points, map units against the resources powering them, diagram it, stress the tree, then check that every documented command exists and every artifact has a reader. Read-only |
+| `skills/capability-lifecycle/reference/harness-<runtime>.md` | the per-harness cheat-sheets (hermes · nanoclaw v1+v2 · openclaw · nanobot · claude-code) — reference files of the skill that reads them, so they travel with the render |
 | `tool/` | `aos-lock` — deterministic manifest, installed-name, and lockfile verbs |
 
 Installed skill names are computed, not authored: the ids above are capability-local, and

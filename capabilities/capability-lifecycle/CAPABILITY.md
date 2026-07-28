@@ -154,7 +154,7 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
 
 ## Contracts to preserve
 
-- **Nine skills scoped to `main`** trips the linter's `skill/all-main` warning. That is
+- **Ten skills scoped to `main`** trips the linter's `skill/all-main` warning. That is
   deliberate: every one of them is a front-agent skill, and §2.2's anti-pollution rule is
   about bodies an agent never uses. The cost is ten descriptions in the front agent's
   context, which is what the entry skill's map is for.
