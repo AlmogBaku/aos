@@ -44,4 +44,5 @@ Deep dives: [the base engine](https://github.com/AlmogBaku/aos/blob/spec/design/
 |---|---|---|
 | Hermes | ✅ e2e-tested for real (install · promote · recall · removal) — **re-run owed at the current layout** | @AlmogBaku |
 | NanoClaw (v1+v2), OpenClaw, Nanobot | 🧪 cheat-sheet shipped, research-drafted — no runner yet | — |
-| Claude Code, OpenCode | 📋 no sheet yet — the no-cheat-sheet path applies | — |
+| Claude Code | 🧪 cheat-sheet shipped, research-drafted — no runner yet | — |
+| OpenCode | 📋 no sheet yet — the no-cheat-sheet path applies | — |

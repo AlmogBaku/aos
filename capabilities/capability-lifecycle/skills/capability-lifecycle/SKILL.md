@@ -31,6 +31,7 @@ that ships a skill.
 | "fix/change <capability> for everyone" · contribute upstream | `capability-contribute` |
 | "change how <capability> behaves for me" | `capability-evolve` |
 | "promote my tweak" / "this should be for everyone" | `capability-evolve` classifies, then hands to `capability-contribute` |
+| "review/audit <capability>" · before contributing · "something looks wrong here" | `capability-review` — read-only, architecture first |
 | "what's installed?" | `aos-lock list` |
 | your harness's mapping | `reference/harness-<harness-runtime>.md` — an aid, not a gate: loaded per operation, never standing context; none → `reference/no-cheatsheet.md` |
 

@@ -80,7 +80,8 @@ The fork is the default because every user is one branch away from being a contr
 | [Hermes](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md) | ✅ supported — e2e-tested for real |
 | [NanoClaw](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanoclaw.md) (v1 + v2) | 🧪 cheat-sheet shipped, research-drafted — not yet e2e-verified |
 | [Nanobot](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanobot.md) | 🧪 cheat-sheet shipped, research-drafted — not yet e2e-verified |
-| Claude Code, OpenCode | 📋 planned — BOOTSTRAP's no-cheat-sheet path works today; [contribute a sheet](CONTRIBUTING.md) |
+| Claude Code | 🧪 cheat-sheet shipped, research-drafted — no runner yet |
+| OpenCode | 📋 planned — BOOTSTRAP's no-cheat-sheet path works today; [contribute a sheet](CONTRIBUTING.md) |
 
 New here? The human-facing walkthrough is [docs/INSTALL.md](docs/INSTALL.md).
 

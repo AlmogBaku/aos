@@ -46,4 +46,5 @@ Spec one-pager: [capability-lifecycle.md](https://github.com/AlmogBaku/aos/blob/
 |---|---|
 | Hermes | ✅ e2e-tested for real |
 | NanoClaw (v1+v2), OpenClaw, Nanobot | 🧪 cheat-sheet shipped, research-drafted |
-| Claude Code, OpenCode | 📋 no sheet yet — the no-cheat-sheet path applies |
+| Claude Code | 🧪 cheat-sheet shipped, research-drafted — no runner yet |
+| OpenCode | 📋 no sheet yet — the no-cheat-sheet path applies |
