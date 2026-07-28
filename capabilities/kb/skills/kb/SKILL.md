@@ -6,7 +6,7 @@ description: "Explains how the user's knowledge bases are laid out and which kb 
 # kb — the base system in one page
 
 **Files are the database.** A base is a git repo of markdown; every index is a rebuildable
-derivative; the `kb` tool never calls an LLM — mechanics are its, judgment is yours.
+derivative; the `kb` tool never calls a model — mechanics are its, judgment is yours.
 
 ```
 <base>/

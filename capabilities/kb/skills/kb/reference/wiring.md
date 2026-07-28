@@ -6,7 +6,7 @@
 |---|---|---|---|
 | `nightly-promote` | agent (archiver) | 23:30 | ingest `.kb/pending/` captures → skeptical promotion |
 | `weekly-maintain` | agent (archiver) | Sat 07:00 | `kb prune`, then `kb lint` per base + judgment surfacing |
-| `sync` | **exec** | every 5 min | `kb sync --all` — script-direct, **no LLM wakes up** |
+| `sync` | **exec** | every 5 min | `kb sync --all` — script-direct, **no model wakes up** |
 
 Single-owner rule: each schedule runs in exactly one harness at a time. `kb prune` running
 weekly is a contract other capabilities depend on — a warning window shorter than the prune

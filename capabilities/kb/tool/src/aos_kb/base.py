@@ -257,9 +257,17 @@ class Base:
         return rows
 
     def grant_check(self, subject: str, verb: str, path: str) -> bool:
-        for row in self.grants():
-            subj_ok = row.subject == subject or (
-                row.subject == "*" and subject != "(unregistered)")
+        rows = self.grants()
+        # `*` means "any REGISTERED subject", and registration is having a row of your
+        # own — that is the only definition the table can support, since the table IS
+        # the roster. The previous test was `subject != "(unregistered)"`, a magic
+        # string nothing ever produces, so every unknown subject matched `*` and the
+        # documented "an unregistered subject matches nothing, not even `*`" was
+        # unimplemented: `grants check --subject eve@evil.example --verb read` returned
+        # GRANTED on any base carrying the default `* ** read` row.
+        registered = any(r.subject == subject for r in rows)
+        for row in rows:
+            subj_ok = row.subject == subject or (row.subject == "*" and registered)
             if not subj_ok or verb not in row.verbs:
                 continue
             for pat in row.object.split():
