@@ -64,7 +64,7 @@ unless you are the designated curator (`--all`).
   Page-or-inline: a new page only if referenced from ≥2 places or the user asked for one.
 - **Agent-written pages start `verified: false`**, and the user's confirmation flips it.
   Never build a conclusion solely on unverified pages.
-- **`[[wikilinks]]` inside this base, ordinary `[text](url)` outside it.** An unresolved
+- **`[[wikilinks]]` inside this base, ordinary markdown links outside it.** An unresolved
   mention goes to `.kb/pending/` with `kind: entity` — never auto-stub a page.
 - **`expires:` is the only lifetime rule.** Past it, `kb prune` deletes the page and
   reports what went; git is the undo. Set it only when you know the item is time-bound. A

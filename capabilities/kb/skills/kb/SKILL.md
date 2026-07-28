@@ -1,69 +1,71 @@
 ---
 name: kb
-description: "The knowledge-base system's front door — bases, capture, state, recall. Use when working with the user's knowledge bases and no narrower kb skill applies: understanding how bases work, orienting into 'where things stand', filing or finding knowledge, checking base health, running maintenance, or any mention of 'base', 'KB', 'knowledge base', 'my notes', or 'state of mind'."
+description: "Explains how the user's knowledge bases are laid out and which kb skill handles a given job — the tree, the pending queue, expiry, links, base health, maintenance. Use when the user asks how their knowledge base works, what state a base is in, why something was or was not kept, or wants base maintenance run, and no narrower kb skill matches. Do NOT use to file something the user just said (that is kb-capture), to answer a question from stored knowledge (that is kb-recall), or to pick a destination base for a write already in hand (that is kb-route)."
 ---
 
-# kb — the base system, in one page
+# kb — the base system in one page
 
-**Invariant: files are the database.** Every base is a git repo of markdown + two YAML
-files; every index is a rebuildable derivative; the `base` tool never calls an LLM —
-judgment is yours, mechanics are its.
+**Files are the database.** A base is a git repo of markdown; every index is a rebuildable
+derivative; the `kb` tool never calls an LLM — mechanics are its, judgment is yours.
 
-## The mental model (three pillars)
+```
+<base>/
+├── .kb/          tool-managed: base.yml · state/<principal>.yml · pending/ · work/ · cache/
+├── AGENTS.md     the contract — read before any non-trivial write
+├── README.md     the base explained to a human
+├── index.md      the map, one line per page
+├── _raw/         source material, flat and immutable once ingested
+└── entities/ concepts/ projects/ profile/    wiki pages — current truth only
+```
 
-- **Store** — `raw/` (sources, immutable after triage) + **wiki pages** (entities,
-  concepts, projects — **current truth only**: facts replaced in place, history is git,
-  `## Timeline` sections are event ledgers).
-- **Curation** — `base capture` (instant, deduped) → nightly Archiver promotion
-  (skeptical: most captures never become pages) → weekly lint → your review queue.
-- **State** — `state.yaml` per base: the capped attention window ("where is my head"),
-  one-liners pointing into pages. Read it to orient; never treat it as knowledge.
+`.kb/`'s three subdirectories have three tests: **pending/** waiting on someone ·
+**work/** a procedure in progress · **cache/** rebuildable, gitignored.
 
-## Where things live
+## The queue
 
-- `kb-registry.yaml` (personal root, user-owned) — every base: path, audience, purpose,
-  routing hints, which is default.
-- Each base: `BASE.yaml` (machine config — the tool enforces it), `AGENTS.md`
-  (contract + Grants table — read before writing), `index.md` (the map; descriptions
-  are the ToC), state (`state.yaml`, or `state/<principal>.yaml` when shared), zones
-  per BASE.yaml. The audit trail is git — `base history` reads it.
+`.kb/pending/` is the only queue — one file per item, `waits_on:` naming who is blocked
+(`agent` or `human`) and `kind:` naming what it is (`capture` `refusal` `conflict` `entity`
+`finding`). A queue *file* is only justified when the work has no artifact of its own;
+everything else is a query. `kb find --where status=next --without block` over frontmatter,
+`kb search` for full text, and the tool does the date arithmetic (`--where expires<today+7d`)
+so nobody computes "seven days before Tuesday" by hand and gets it silently wrong.
 
-## Cold start ("where do things stand?")
+## Lifetime
 
-Read `state.yaml` of every base you're registered in, **private bases first**. That
-composition is the user's head. Bump items you materially use (only if you are the
-base's state writer): `base state bump --note <substring>`.
+kb knows exactly one thing about how long a page lives: **`expires:`**. Past it, `kb prune`
+deletes and reports what went, and git is the undo. Without it the page lives forever, and
+most pages never carry one. `_raw/` never expires — answers cite pages, pages cite raw.
+A page that merely stopped mattering is a judgment call, not a date, so it leaves through
+`kb archive <page> --reason …` (a `git rm` plus an attributed commit).
 
-## The tool
+## Links
 
-`base --help` (installed at capability install: `uv tool install --from <home>/upstream/capabilities/kb/tool aos-base`; one-off: `uvx --from <home>/upstream/capabilities/kb/tool base`) — deterministic
-verbs; every write logs itself. Key ones: `capture` (never hand-write into raw/),
-`inbox` (pending view), `state add|bump|drop|check`, `search` (check before creating
-ANY page — `EXISTS` means stop), `links`, `lint`, `grants check`, `index rebuild`,
-`sync`, `verify` (user confirmed a page → flips `verified: true`), `import survey` (inventory + shape detection of a foreign tree — the import skill's mechanical first step). Degraded mode (no
-uv/python): perform the same contracts by hand per each base's AGENTS.md — slower,
-same rules.
+`[[wikilink]]` inside a base. Pages move constantly — promotion files them into zones,
+agents create deeper subdirectories — and a wikilink survives that where a path-bearing
+link breaks in every page that wrote it. The link graph is one regex because of it, and an
+unresolved `[[Acme Corp]]` is a designed signal meaning "mentioned, not yet a page".
+Anything outside the base is an ordinary markdown link, which the graph ignores by
+construction.
 
-## Which skill for which job
+## Which skill
 
 | Job | Skill |
 |---|---|
-| File/capture something, destination unclear | `kb-route` |
+| The user just said something worth keeping | `kb-capture` |
+| Pick the destination base for a write in hand | `kb-route` |
 | Answer "what do I know about X?" | `kb-recall` |
 | Create a new base | `kb-init` |
-| Register an existing tree | `kb-adopt` |
-| Migrate/import an existing KB's content | `kb-import` (interactive — never autonomous) |
-| Contract details (grants, page schema, lifecycle) | `reference/` here |
+| Register a tree that already exists | `kb-adopt` |
+| Bulk-migrate another KB's content | `kb-import` |
 
 ## Authority
 
-- May freely: read anything granted; capture; bump state; run `search`/`links`/`lint`.
-- Report-only: lint findings, sync conflicts (they land in `_ops/needs-review/` —
-  the user drains that queue, never you).
-- Ask first: creating pages in a **shared** base (review queue always), zone/type
-  changes (BASE.yaml is owner-approved), anything `profile/`, flipping `verified`.
+- Freely: read what you are granted; capture; `search` / `find` / `links` / `lint`.
+- Report-only: lint findings and sync conflicts land in `.kb/pending/` as
+  `waits_on: human`. The human drains that, never you.
+- Ask first: any page in a **shared** base, zone or type changes (`.kb/base.yml` is
+  owner-approved), anything under `profile/`, and flipping `verified`.
 
-Deep dives, one level down: [reference/lifecycle.md](reference/lifecycle.md) (page
-schema, current-truth doctrine, triage, verified/origin) ·
-[reference/grants.md](reference/grants.md) (the Grants table: check, register, revoke)
-· [reference/wiring.md](reference/wiring.md) (schedules, cron wiring, degraded modes).
+Deeper: [reference/lifecycle.md](reference/lifecycle.md) (page schema, current truth,
+trust) · [reference/grants.md](reference/grants.md) (the one ACL) ·
+[reference/wiring.md](reference/wiring.md) (schedules and degraded modes).

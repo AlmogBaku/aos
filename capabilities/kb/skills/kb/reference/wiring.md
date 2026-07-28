@@ -1,46 +1,38 @@
 # Wiring reference — schedules, cron, degraded modes
 
-## Contents
-- The three schedules
-- Wiring the tool per harness
-- Degraded modes
-
 ## The three schedules
 
 | id | kind | when | what |
 |---|---|---|---|
-| `nightly-promote` | agent (archiver) | 23:30 | drain pending captures → skeptical promotion (after gtd-capture's 23:00 drain) |
-| `weekly-lint` | agent (archiver) | Sat 07:00 | `base lint --write-report` per base + judgment surfacing |
-| `sync` | **exec** | */5 min | `base sync --all` — script-direct, **no LLM wakes up** |
+| `nightly-promote` | agent (archiver) | 23:30 | ingest `.kb/pending/` captures → skeptical promotion |
+| `weekly-maintain` | agent (archiver) | Sat 07:00 | `kb prune`, then `kb lint` per base + judgment surfacing |
+| `sync` | **exec** | every 5 min | `kb sync --all` — script-direct, **no LLM wakes up** |
 
-Single-owner rule: each schedule runs in exactly one harness at a time.
+Single-owner rule: each schedule runs in exactly one harness at a time. `kb prune` running
+weekly is a contract other capabilities depend on — a warning window shorter than the prune
+interval means items vanish before anyone can react.
 
 ## Wiring the tool per harness
 
-The tool is harness-blind (registry/BASE.yaml in; files + exit codes out). Per-harness
-variance is **composition in the wrapper the installing LLM writes**, per the
-cheat-sheet:
+The tool is harness-blind: registry and `.kb/base.yml` in, files and exit codes out. All
+per-harness variance is composition in the wrapper the installing agent writes, per the
+cheat-sheet.
 
-- The tool: installed once at capability install — `uv tool install --from
-  <home>/upstream/capabilities/kb/tool aos-base` → the `base` command on PATH (lockfile
-  records it; removal uninstalls). One-off/degraded: `uvx --from
-  <home>/upstream/capabilities/kb/tool base …`; `uv` itself is a one-line install.
-- Cron: e.g. Hermes `hermes cron create … -- base sync --all` as a script-only
-  job — **the wrapper must anchor the registry** (`AOS_REGISTRY=<home>/personal/kb-registry.yaml`
-  exported in the wrapper, or `base --registry <home>/personal/kb-registry.yaml sync --all`):
-  a bare `base sync` with no resolvable registry exits 0 having synced nothing.
-- Surfacing: optionally compose a notifier around the exec call:
-  `… sync --all || <harness-notify "base sync needs attention">`. The file bus
-  (`_ops/needs-review/`, git history, exit codes) is the portable interface either way.
-- Env: `AOS_REGISTRY` (registry path), `AOS_AGENT` (acting subject — the committer of
-  every write), `AOS_PRINCIPAL_NAME`/`AOS_PRINCIPAL_EMAIL` (the human a write belongs
-  to — the git author; defaults to the repo's own git identity).
+- Installed once at capability install → the `kb` command on PATH; the lockfile records it
+  and removal uninstalls it. `uv` itself is a one-line install.
+- Cron: the wrapper **must anchor the registry** — export
+  `AOS_REGISTRY=<home>/personal/kb-registry.yaml`, or pass `--registry`. A bare `kb sync`
+  with no resolvable registry exits 0 having synced nothing, which is the silent failure.
+- Surfacing: optionally compose a notifier around the exec call
+  (`… || <harness-notify "kb sync needs attention">`). The file bus — `.kb/pending/`, git
+  history, exit codes — is the portable interface either way.
+- Env: `AOS_REGISTRY` · `AOS_AGENT` (the acting subject, committer of every write) ·
+  `AOS_PRINCIPAL_ID` (overrides `<home>/.aos/kb-principal.yml` for one call).
 
 ## Degraded modes
 
-- No cron on the harness: all three schedules become `manual` — invocable run-cards;
-  tell the user what to run and when ("run `base sync --all` when you finish a
-  session"; "ask the archiver to promote nightly").
-- No uv/python: the tool's contracts are performed by hand per each base's AGENTS.md
-  (capture frontmatter + sha256 + commit; grants lookup by reading the table; lint
-  by checklist). Slower, same rules — the files remain the contract.
+- **No cron**: all three become `manual` run-cards — tell the user what to run and when
+  ("run `kb sync --all` when you finish a session").
+- **No uv or python**: perform the same contracts by hand per each base's `AGENTS.md` —
+  capture frontmatter plus sha256 plus a commit, grants by reading the table, lint by
+  checklist. Slower, same rules; the files remain the contract.
