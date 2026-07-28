@@ -2394,5 +2394,130 @@ class WorkTrackerZoneTest(unittest.TestCase):
         self.assertIn("actions/ungranted.md", out)
 
 
+class StewardQueryTest(unittest.TestCase):
+    """The five maintenance signals, as the queries the steward actually runs.
+
+    If a query is wrong the steward is wrong, and that is far cheaper to catch here than
+    in a nightly job whose failure mode is an empty report. Every one of these returns
+    exit 0 with no rows when it is subtly wrong, so "it ran fine" proves nothing.
+
+    Its own setUp rather than a WorkTrackerZoneTest subclass. Inheritance was tried and
+    was actively wrong, not merely wasteful: that class owns
+    `test_an_undeclared_zone_is_invisible_rather_than_a_finding`, whose whole premise is a
+    base where the zone was NEVER declared, and this class's setUp declares it. The
+    inherited test failed on the subclass's own fixture. Sharing the twelve lines is the
+    cheaper mistake — the same reason LayoutTest and QueryTest each carry their own.
+    """
+
+    EXTENSIONS = WorkTrackerZoneTest.EXTENSIONS
+    TYPES = WorkTrackerZoneTest.TYPES
+    GRANT_ROWS = WorkTrackerZoneTest.GRANT_ROWS
+
+    # The fixture helpers are the same shape; borrowing the functions without inheriting
+    # the test methods is exactly what is wanted here.
+    tearDown = WorkTrackerZoneTest.tearDown
+    b = WorkTrackerZoneTest.b
+    grant = WorkTrackerZoneTest.grant
+    install = WorkTrackerZoneTest.install
+    days = WorkTrackerZoneTest.days
+    action = WorkTrackerZoneTest.action
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:steward",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "dana@example.com",
+                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "commitments",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.install()
+
+    def test_overdue(self):
+        self.action("late", status="next", due=self.days(-1))
+        self.action("fine", status="next", due=self.days(5))
+        out = self.b("find", "--where", "status=next", "--where", "due<today").stdout
+        self.assertIn("late", out)
+        self.assertNotIn("fine", out)
+
+    def test_about_to_expire(self):
+        self.action("going", status="done", expires=self.days(3))
+        self.action("staying", status="done", expires=self.days(30))
+        out = self.b("find", "--where", "expires<today+7d").stdout
+        self.assertIn("going", out)
+        self.assertNotIn("staying", out)
+
+    def test_stalled_waiting(self):
+        self.action("waited", status="waiting", waiting_on="Robin",
+                    since=self.days(-20))
+        self.action("recent", status="waiting", waiting_on="Sam", since=self.days(-2))
+        out = self.b("find", "--where", "status=waiting",
+                     "--where", "since<today-14d").stdout
+        self.assertIn("waited", out)
+        self.assertNotIn("recent", out)
+
+    def test_block_passed_and_nothing_moved(self):
+        self.action("missed", status="next", block=self.days(-2))
+        self.action("upcoming", status="next", block=self.days(2))
+        out = self.b("find", "--where", "status=next",
+                     "--where", "block<today").stdout
+        self.assertIn("missed", out)
+        self.assertNotIn("upcoming", out)
+
+    def test_someday_gone_cold(self):
+        self.action("cold", status="someday", since=self.days(-100))
+        self.action("warm", status="someday", since=self.days(-10))
+        out = self.b("find", "--where", "status=someday",
+                     "--where", "since<today-90d").stdout
+        self.assertIn("cold", out)
+        self.assertNotIn("warm", out)
+
+    def test_the_backstop_is_empty_on_a_healthy_base(self):
+        # It should normally return nothing. A base where it consistently doesn't has a
+        # broken schedule path, which is worth REPORTING rather than quietly
+        # compensating for — so an empty result here is the assertion, not a weak check.
+        self.action("scheduled", status="next", block=self.days(1))
+        out = self.b("find", "--where", "status=next", "--without", "block").stdout
+        self.assertIn("(0 ", out)
+
+    def test_slipped_escalates_at_the_threshold_including_double_digits(self):
+        # The threshold query, and the reason the tool's numeric comparison had to be
+        # fixed first: under string ordering "10" sorts below "3", so the commitment
+        # rescheduled ten times — the one most worth raising — was the one this query
+        # missed, silently and with exit 0.
+        self.action("slippy", status="next", block=self.days(-1), slipped=2)
+        self.b("set", "actions/slippy.md", "slipped=3")
+        self.action("chronic", status="next", slipped=10)
+        self.action("ok", status="next", slipped=1)
+        out = self.b("find", "--where", "slipped>=3").stdout
+        self.assertIn("slippy", out)
+        self.assertIn("chronic", out)
+        self.assertNotIn("actions/ok.md", out)
+
+    def test_every_steward_query_survives_an_empty_base(self):
+        # The clean-night path. Each query must return "no rows" rather than an error,
+        # because the steward's silence protocol depends on telling those two apart:
+        # silent on a clean night, never silent while something is stuck.
+        queries = [
+            ["--where", "status=next", "--where", "due<today"],
+            ["--where", "expires<today+7d"],
+            ["--where", "status=waiting", "--where", "since<today-14d"],
+            ["--where", "status=next", "--where", "block<today"],
+            ["--where", "status=someday", "--where", "since<today-90d"],
+            ["--where", "status=next", "--without", "block"],
+            ["--where", "slipped>=3"],
+        ]
+        for q in queries:
+            with self.subTest(query=" ".join(q)):
+                r = self.b("find", *q)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertIn("(0 ", r.stdout)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)
