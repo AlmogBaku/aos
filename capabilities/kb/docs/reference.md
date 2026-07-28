@@ -12,7 +12,7 @@ Lookup, not narrative. The reasoning is in [design.md](design.md).
 | `.kb/work/<src>/` | the running procedure | long-lived coordination files (import agreement, progress checklist) |
 | `.kb/cache/` | tool | gitignored, rebuildable — search index, link graph |
 | `AGENTS.md` | user | the contract, and the Grants table. **Must stay at root**: it is the filename harnesses auto-load for a working directory |
-| `README.md` | user | the base explained to a human |
+| `README.md` | user (seeded by `kb init` from the template's `base.README.md`) | the base explained to a human — the front door, since `AGENTS.md` addresses agents and `index.md` maps content |
 | `index.md` | `agent:archiver` | the map — one line per page, from each page's `description:` |
 | `_raw/` | `agent:archiver` | source material, flat, immutable once ingested, never expires |
 | `entities/ concepts/ projects/ profile/` | `agent:archiver` (`profile/` is `agent:main`) | wiki pages, current truth only |
