@@ -6,14 +6,13 @@ description: Reviews a capability as architecture and then as prose — traces i
 # capability-review
 
 Not in context yet? Load the `capability-lifecycle` skill first — the map, the contract, and
-the naming rules. This is the **read-only** counterpart to `capability-build`: it writes
-nothing into any capability, and every finding is reported for a human to act on.
+the naming rules. **Read-only** counterpart to `capability-build`: writes nothing, reports
+everything for a human to act on.
 
-**A capability is software.** Its components are skills, agents, tools, crons and overlays;
-its interfaces are prose an LLM follows; its bugs are unreachable branches, dangling edges
-and unstated preconditions. Reviewing it sentence-by-sentence finds typos. Reviewing it as a
-system finds the defects that matter — which is why Part 1 comes first and Part 2 is the
-cheap sweep afterward, not the other way round.
+**A capability is software** — components are skills, agents, tools, crons and overlays;
+interfaces are prose an LLM follows; bugs are unreachable branches, dangling edges and
+unstated preconditions. Hence the order: steps 1–5 read it as a system, and the cheap textual
+sweep comes last rather than first.
 
 Copy this checklist and work it in order:
 
@@ -39,7 +38,7 @@ they disagree, the skill wins at runtime and the manifest is the defect.
 
 ## 2. Components: units vs resources **[A]**
 
-Two layers, kept separate, because conflating them hides both kinds of gap:
+Two layers, kept separate — conflating them hides both kinds of gap:
 
 - **Business-logic units** — the jobs this capability does.
 - **Resources** — what powers each job: a skill, an agent, a tool, a cron, a template, an
@@ -65,10 +64,8 @@ where hand-aligned ASCII rots on the first change. Two shapes carry most capabil
 component graph, resources in subgraphs. The kb capability's `docs/design.md` is the worked
 example — `<home>/upstream/capabilities/kb/docs/design.md` in a household.
 
-Drawing is the point, not decoration. A flow you cannot draw is a flow you do not understand
-yet, and ambiguity that survives prose rarely survives a diagram.
-
-Two rules, both learned the expensive way:
+A flow you cannot draw is a flow you do not understand yet, and ambiguity that survives prose
+rarely survives a diagram. Two rules:
 
 - A `;` inside a **sequence-diagram** message is a statement separator and breaks rendering —
   use an em dash. It is harmless inside a quoted flowchart label.
@@ -106,7 +103,7 @@ trusting any number it produces.
 
 ## 6. The sweep **[D]** where a command can answer, **[A]** where judgment is needed
 
-Cheap, mechanical, and it catches what every careful reading misses:
+Mechanical, and it catches what careful reading misses:
 
 **a. Every command the prose names must exist, with those flags.** Run it, or read its
 `--help`. The kit's linter validates schema — frontmatter, `used_by`, reference depth — and
