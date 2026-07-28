@@ -2519,5 +2519,109 @@ class StewardQueryTest(unittest.TestCase):
                 self.assertIn("(0 ", r.stdout)
 
 
+class UpdateFlowTest(unittest.TestCase):
+    """The state-change path: find the action, apply the change, hand the outcome to kb.
+
+    Own fixture for the same reason StewardQueryTest has one — see that class's docstring.
+    """
+
+    EXTENSIONS = WorkTrackerZoneTest.EXTENSIONS
+    TYPES = WorkTrackerZoneTest.TYPES
+    GRANT_ROWS = WorkTrackerZoneTest.GRANT_ROWS
+
+    tearDown = WorkTrackerZoneTest.tearDown
+    b = WorkTrackerZoneTest.b
+    grant = WorkTrackerZoneTest.grant
+    install = WorkTrackerZoneTest.install
+    days = WorkTrackerZoneTest.days
+    action = WorkTrackerZoneTest.action
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "dana@example.com",
+                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "commitments",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.install()
+
+    def fm(self, p):
+        return yaml.safe_load(p.read_text().split("---")[1])
+
+    def test_completion_sets_done_and_an_expiry(self):
+        # The exit the old list never had: without expires, a completed action lives
+        # forever and the list becomes a graveyard you stop reading.
+        self.action("cfp", status="next", since=self.days(-3))
+        r = self.b("set", "actions/cfp.md", "status=done", f"expires={self.days(90)}",
+                   f"since={_dt.date.today().isoformat()}")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        got = self.fm(self.root / "actions/cfp.md")
+        self.assertEqual(got["status"], "done")
+        self.assertIn("expires", got)
+
+    def test_since_moves_on_any_progress_report(self):
+        # "I started it" is progress with no status change, and it must still reset the
+        # stall clock — otherwise the steward nags about a commitment actively being
+        # worked on, which is exactly how a user learns to ignore it.
+        self.action("contract", status="next", since=self.days(-10))
+        stale = self.b("find", "--where", "status=next",
+                       "--where", "since<today-7d").stdout
+        self.assertIn("contract", stale)
+        self.b("set", "actions/contract.md", f"since={_dt.date.today().isoformat()}")
+        fresh = self.b("find", "--where", "status=next",
+                       "--where", "since<today-7d").stdout
+        self.assertIn("(0 ", fresh)
+
+    def test_the_outcome_lands_as_knowledge_that_outlives_the_action(self):
+        """The step an implementation forgets, and the one that makes pruning safe.
+
+        Note the `kb ingest` in the middle: `kb capture` lands in `.kb/pending/`, and
+        `kb search` only indexes the wiki and raw zones — so without ingest the knowledge
+        is invisible to the very query that is supposed to prove it survived. The plan's
+        version of this test omitted that step and would have asserted the opposite of
+        what it intended.
+        """
+        self.action("acme-call", status="next")
+        r = self.b("capture", "--text", "Acme wants a pilot in Q4")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        pending = sorted((self.root / ".kb" / "pending").glob("*.md"))
+        self.assertEqual(len(pending), 1, "the capture should be queued")
+        r = self.b("ingest", f".kb/pending/{pending[0].name}")
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+        self.b("set", "actions/acme-call.md", "status=done",
+               f"expires={self.days(-1)}")
+        self.b("prune")
+        self.assertFalse((self.root / "actions/acme-call.md").exists(),
+                         "the expired action should be gone")
+        # The knowledge survives the action's deletion — the whole point.
+        self.assertIn("pilot", self.b("search", "pilot").stdout)
+
+    def test_finding_the_open_set_is_a_small_query(self):
+        # Step 1 of the skill: the open set is small enough to match by title, which is
+        # what makes "I did that" resolvable without asking.
+        self.action("cfp", status="next")
+        self.action("contract", status="waiting", waiting_on="Robin")
+        self.action("old", status="done", expires=self.days(30))
+        out = self.b("find", "--where", "type=action", "--where", "status=next").stdout
+        self.assertIn("cfp", out)
+        self.assertNotIn("actions/old.md", out)
+
+    def test_abandonment_is_a_status_not_a_deletion(self):
+        # "forget it, I'm not doing the CFP" — the record of having decided that is worth
+        # keeping, so it expires like anything else rather than vanishing on the spot.
+        self.action("cfp", status="next")
+        self.b("set", "actions/cfp.md", "status=done", f"expires={self.days(30)}")
+        self.b("prune")
+        self.assertTrue((self.root / "actions/cfp.md").exists())
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)
