@@ -113,6 +113,16 @@ def cmd_init(
     render(tpl / "base.yml", root / ".kb" / "base.yml")
     for tname in ["AGENTS.md", "index.md"]:
         render(tpl / tname, root / tname)
+    # The base's front door, for the human who opens the directory: AGENTS.md addresses
+    # agents and index.md maps content, so nothing explained the tree itself.
+    #
+    # Source name is `base.README.md`, not `README.md`, for the same reason
+    # `gitattributes` is not `.gitattributes` below: a template SOURCE may legitimately
+    # carry its own README describing the template repo, and rendering *that* into every
+    # user's base would be worse than shipping no README at all. Guarded because a
+    # template tree predating this file must degrade, not raise.
+    if (tpl / "base.README.md").exists():
+        render(tpl / "base.README.md", root / "README.md")
 
     base = Base(root)
     pid = resolve_principal(ctx.obj, name, root)

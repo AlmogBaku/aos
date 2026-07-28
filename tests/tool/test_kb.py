@@ -2049,5 +2049,90 @@ class InstalledScriptSmokeTest(unittest.TestCase):
             self.assertIn("Critical (0)", r.stdout)
 
 
+class TemplateSurfaceTest(unittest.TestCase):
+    """The scaffolded tree is the capability's most-read artifact, so its shape is
+    asserted black-box: a real `kb init`, then the files it produced.
+
+    Its own setUp rather than a BaseToolTest subclass — that class is a concrete leaf
+    with ~65 tests of its own, so inheriting it would re-run every one of them under a
+    second name. LayoutTest and QueryTest copy the same twelve lines for the same reason.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "alice@example.com",
+                    "AOS_PRINCIPAL_NAME": "Alice Example"}
+        self.root = self.dir / "b"
+        # --templates is mandatory here: without it `kb init` clones the template repo
+        # and this class would assert against the remote rather than the files in this
+        # checkout — which is exactly the drift it exists to catch.
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "test base",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args):
+        return run(["--base", str(self.root), *args], self.env)
+
+    def test_scaffold_is_layout_2(self):
+        cfg = (self.root / ".kb" / "base.yml").read_text()
+        self.assertIn("layout: 2", cfg)
+        self.assertNotIn("methodology:", cfg)
+        self.assertNotIn("principals:", cfg)
+        self.assertIn("curation: self", cfg)
+        shards = sorted((self.root / ".kb" / "state").glob("*.yml"))
+        self.assertEqual(len(shards), 1, "a solo base has exactly one shard")
+        self.assertTrue((self.root / "_raw").is_dir())
+        self.assertFalse((self.root / "_ops").exists())
+        self.assertFalse((self.root / "_archive").exists())
+        self.assertFalse((self.root / "BASE.yaml").exists())
+        self.assertFalse((self.root / "state.yaml").exists())
+
+    def test_scaffold_has_a_readme_for_the_human(self):
+        readme = self.root / "README.md"
+        self.assertTrue(readme.exists(), "a human opening the base needs a front door")
+        text = readme.read_text()
+        # AGENTS.md is addressed to agents and index.md maps content; this explains the
+        # tree itself, so it must name every top-level thing the human will see.
+        for token in ["_raw/", ".kb/", "AGENTS.md", "index.md", "kb capture"]:
+            self.assertIn(token, text)
+        # It is the base's README, not the template repo's own. A clone source that ships
+        # a README describing ITSELF must never be rendered into a user's base.
+        self.assertNotIn("aos-kb-template", text)
+        self.assertNotIn("{{", text, "placeholders must be substituted")
+
+    def test_every_seeded_grant_matches_a_real_zone(self):
+        # Default posture is deny, so a mis-ported glob produces SILENT REFUSALS rather
+        # than errors — the worst failure mode there is. Pin each row to its zone.
+        # These pass today; they exist so that trimming the grants table (the one ACL)
+        # cannot quietly break it.
+        cases = [
+            ("agent:archiver", "write", "_raw/2026-01-01-note.md", "GRANTED"),
+            ("agent:archiver", "write", "entities/acme.md", "GRANTED"),
+            ("agent:archiver", "write", "concepts/pricing.md", "GRANTED"),
+            ("agent:archiver", "write", "projects/kubecon.md", "GRANTED"),
+            ("agent:archiver", "write", "index.md", "GRANTED"),
+            ("agent:archiver", "write", "profile/north-star.md", "DENIED"),
+            ("agent:main", "route-into", "_raw/2026-01-01-note.md", "GRANTED"),
+            ("agent:main", "write", ".kb/pending/2026-01-01-note.md", "GRANTED"),
+            ("agent:main", "write", ".kb/state/alice-example-com.yml", "GRANTED"),
+            ("agent:main", "write", "profile/north-star.md", "GRANTED"),
+            ("agent:main", "write", "entities/acme.md", "DENIED"),
+        ]
+        for subject, verb, path, expect in cases:
+            with self.subTest(subject=subject, path=path):
+                r = self.b("grants", "check", "--subject", subject,
+                           "--verb", verb, "--path", path)
+                self.assertIn(expect, r.stdout)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)
