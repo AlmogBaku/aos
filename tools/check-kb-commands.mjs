@@ -21,6 +21,12 @@ import { execFileSync } from 'node:child_process';
 import { REPO_ROOT, walkRepo } from './lib/repo.mjs';
 
 const CAP = 'capabilities/kb';
+// Any capability whose prose invokes `kb` is in scope, not just the one that ships the
+// tool: work-tracker composes with kb ONLY through this command on PATH (RFC-009 keeps
+// cross-capability skill references out), so its skills carry real invocations with no
+// other check on them. A documented command that fails on invocation is the same defect
+// wherever it is written.
+const CAPS = [CAP, 'capabilities/work-tracker'];
 const TOOL = join(REPO_ROOT, 'capabilities/kb/tool');
 
 function uvAvailable() {
@@ -100,7 +106,7 @@ const failures = [];
 const CMD_RE = /`kb\s+([^`]+)`/g;
 
 for (const rel of walkRepo(REPO_ROOT)) {
-  if (!rel.startsWith(`${CAP}/`)) continue;
+  if (!CAPS.some((c) => rel.startsWith(`${c}/`))) continue;
   if (rel.startsWith(`${CAP}/tool/`)) continue;      // the tool documents itself
   if (!rel.endsWith('.md') && !rel.endsWith('.yaml')) continue;
   const abs = join(REPO_ROOT, rel);
