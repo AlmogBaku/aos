@@ -34,10 +34,18 @@ unfiltered view hands you everyone's captures — so the same item gets processe
 person, and somebody else's raw material enters your context. `--all` is the designated
 curator's path, not the default.
 
-For everything else, query rather than queue: `kb find --where status=next --without block`
-over frontmatter, `kb search` for full text. The tool does the date arithmetic
-(`--where expires<today+7d`), so nobody computes "seven days before Tuesday" by hand and gets
-it silently wrong.
+For everything else, query rather than queue: `kb find --where type=company --where
+tags=active` over frontmatter (list fields match by membership), `kb search` for full text.
+The tool does the date arithmetic, so nobody computes "seven days before Tuesday" by hand and
+gets it silently wrong — but **quote any comparison**, because a bare `<` is shell
+redirection:
+
+```
+kb find --where 'expires<today+7d'
+```
+
+A field a base does not use returns zero matches with exit 0, so check the base's own
+`frontmatter.extensions` before filtering on something like `due` or `status`.
 
 ## Lifetime
 
@@ -81,6 +89,11 @@ construction.
   `waits_on: human`. The human drains that, never you.
 - Ask first: any page in a **shared** base, zone or type changes (`.kb/base.yml` is
   owner-approved), anything under `profile/`, and flipping `verified`.
+- **Destroys things — never on your own initiative:** `kb prune` runs from the weekly
+  schedule, which dry-runs it first; if you are running it because a user asked, dry-run it
+  and show them the list. `kb archive` has no scheduled owner at all — it is a judgment that
+  a page stopped mattering, so it is the user's call and you propose it, with the reason you
+  would put in `--reason`.
 
 Deeper: [reference/lifecycle.md](reference/lifecycle.md) (page schema, current truth,
 trust) · [reference/grants.md](reference/grants.md) (the one ACL) ·

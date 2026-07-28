@@ -83,5 +83,6 @@ rather than committing conflict markers and stalling every later run.
 
 ## When in doubt
 
-Don't write. Read, then `kb pending add --kind finding --waits-on human` with the evidence
-and your stated default.
+Don't write. Read, then `kb pending add --kind finding --waits-on human --title "<what>"
+--body "<the evidence, and the default you would have picked>"`. The body is a required
+flag, not a suggestion — an entry without one is rejected.

@@ -28,7 +28,8 @@ At capability install, draft one row per `kb.zones` manifest entry — subject
 `agent:<owner_agent>` or `capability:<id>`, object the zone glob, verbs as declared,
 `grantor: user`, `granted: <today>`, `via: <capability>@<version>`. Rows land **only after
 the user approves the install diff**. At removal, delete the rows whose `via` matches,
-record it with `kb commit --verb resolve`, and re-run `kb lint`. Expect the audit to keep
+record it with `kb commit --verb resolve --path AGENTS.md --summary "revoke <capability> rows"`
+(`--path` and `--summary` are both required), and re-run `kb lint`. Expect the audit to keep
 flagging the removed capability's *historical* writes for the rest of the window —
 revocation is not retroactive amnesty; the `resolve` commit is the answer, and the findings
 age out.
@@ -43,5 +44,10 @@ under one identity to hide behind. Only `bootstrap` is exempt, because it scaffo
 before any row exists. **(3)** The future permission gate at the harness layer, sharing this
 vocabulary. Inside one user's harness, agents are cooperating processes; across a trust
 boundary, enforcement is the gate's job. On a **shared** base, agent writes land as
-proposals in the queue and never directly — and every read surface (search, find, links,
-recall) honours this table too.
+proposals in the queue and never directly.
+
+**Reads are not yet enforced by the tool.** `grant_check` is consulted by `kb grants check`
+and by the weekly audit — no read verb calls it, so `kb search` and `kb find` will return
+what is on disk regardless of this table. Honouring read scope is currently the agent's own
+discipline (and, across a trust boundary, the future gate's job). Treat a `read` row as a
+statement of what you are *permitted* to look at, not as a wall that will stop you.

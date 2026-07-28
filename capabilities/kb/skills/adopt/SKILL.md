@@ -16,10 +16,20 @@ out loud — it is the thing users actually fear.
    itself `shared` cannot be registered as private. With a config it runs the full lint as
    the divergence report; without one it reports which contract files exist and what the
    convergence path is.
-3. **Old layout?** A root `BASE.yaml` with no `.kb/` means the previous layout. The tool
-   refuses to operate on it rather than guessing paths, and points here. `kb migrate <path>`
-   does the moves with `git mv` so history follows a file, and commits them — run it only
-   with the user's agreement, and show them the diff.
+3. **Old layout?** A root `BASE.yaml` with no `.kb/` means the previous layout. `kb adopt`
+   still registers such a tree and reports it as "no `.kb/base.yml` — not a kit-native
+   base"; it does **not** name the old layout for you, so check for that file yourself
+   before reading the report to the user. Then, with their agreement and after showing them
+   what will move: `kb migrate --base <path>` (the path is a **`--base` option, not a
+   positional** — a bare `kb migrate <path>` is a usage error). It does the moves with
+   `git mv` so history follows each file, and commits them.
+
+   Two traps here. `kb migrate` refuses on an uncommitted worktree, which is the right
+   answer — commit or stash first. And any *other* verb run from inside an unmigrated tree
+   silently resolves to the **registry's default base** instead, because path resolution
+   walks parents looking for `.kb/base.yml` and falls back when it finds none. So a `kb lint`
+   that looks clean may be describing a different base entirely; always pass `--base <path>`
+   explicitly until the migration is done.
 4. **Read the report with the user.** The divergences worth explaining: no config at all
    (the tree predates the format — creating one is the first convergence step, and it is
    owner-approved), pages with no frontmatter, raw items with no provenance. The shortest

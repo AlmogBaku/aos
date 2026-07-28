@@ -15,9 +15,10 @@ corrected by the archiver's nightly pass, and a synchronous question is not.
 
 **Candidate set**: only bases where the writing subject holds a `route-into` grant
 (`kb grants check --subject <s> --verb route-into --path _raw/x` per base). Zero candidates
-does not mean drop the payload: hand it back to the caller tagged `kb_routing: refused` and
-record it with `kb refuse --path <target> --subject <s> --reason "no route-into grant"`,
-which files a `kind: refusal` entry in `.kb/pending/`.
+does not mean drop the payload: hand it back to the caller tagged
+`kb_routing.status: refused` (a field on the map, not a bare scalar — see below) and record
+it with `kb refuse --path <target> --subject <s> --reason "no route-into grant"`, which files
+a `kind: refusal` entry in `.kb/pending/`.
 
 Resolution order — stop at the first match:
 
@@ -29,14 +30,27 @@ Resolution order — stop at the first match:
 3. **Model classification** — only if **every remaining candidate is `audience: private`**
    (effective audience is the more restrictive of `.kb/base.yml` and the registry). One
    call, each candidate's `purpose` as the rubric, returning `{base, confidence}`. Accept
-   only if `confidence >= confidence_bar`. Record `method: llm`.
-4. **Fallback.** The default base, `status: uncertain`. The nightly pass re-routes: into a
-   private base it may move directly (logged, reversible); into a shared base it files a
-   proposal in `.kb/pending/` and never auto-applies.
+   only if `confidence >= confidence_bar` — a **registry root key**, default **0.7** (not a
+   per-base setting; don't look for it in `.kb/base.yml`). Record `method: llm`.
+4. **Fallback.** The default base, `method: default` and `status: uncertain`. The nightly
+   pass re-routes: into a private base it may move directly (logged, reversible); into a
+   shared base it files a proposal in `.kb/pending/` and never auto-applies.
 
-**The write itself**: `kb --base <name> capture --text … --source <channel>`. Stamp the
-`kb_routing` record — method, rule id or confidence, status, router, via — into the
-capture's frontmatter.
+`method` is a closed set — `explicit` `rule` `llm` `default` — and lint flags anything else,
+so do not invent a fifth.
+
+**The write itself** is two commands, because `kb capture` has no routing flags:
+
+```
+kb --base <name> capture --text … --source <channel>      # prints the pending path
+kb --base <name> set <that-path> kb_routing.method=<m> kb_routing.status=<s> \
+    [kb_routing.rule=<id>] [kb_routing.confidence=<n>]
+```
+
+Stamp it with `kb set`, never by hand-editing the pending file — `.kb/` is tool-managed, and
+a hand edit reaches git with no acting subject. `kb_routing` must stay a **map**: a bare
+`kb_routing: refused` scalar is invisible to the lint check below, so a refusal records
+`kb_routing.status=refused` as a field.
 
 The invariant is not prose alone: `kb lint` fails a shared base carrying any
 `kb_routing.method: llm` record, so a breach is a critical finding rather than a convention

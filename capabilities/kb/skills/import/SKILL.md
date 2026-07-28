@@ -37,6 +37,29 @@ frontmatter fields in use, wikilink density, large binaries, and the **shape** �
 `plain`, or `base-native` (stop: that is `kb-adopt`, not import). Present a short digest and
 a first-cut mapping proposal.
 
+## 1b. Grants — do this before you write anything
+
+You run as `agent:main`, and the seeded table grants `agent:main` write on `_raw/**`,
+`.kb/pending/**`, `.kb/state/**` and `profile/**` — **not** on `.kb/work/**`, the wiki zones,
+or `index.md`, which is most of what an import writes. Check, don't assume:
+
+```
+kb --base <target> grants check --subject agent:main --verb write --path entities/x.md
+```
+
+If it says DENIED, the import cannot proceed honestly: every write becomes a grants-audit
+critical, so stage 5's "lint clean" could never pass. Two legitimate ways forward, both
+requiring the user:
+
+- **Add rows for the duration** — `agent:main` write on `.kb/work/** index.md` plus the
+  wiki zones the agreement names, `via: kb-import@<version>` so removal is mechanical. Show
+  the diff, get approval, and offer to revoke them at the end.
+- **Or hand the wiki writes to `agent:archiver`**, which already holds them, and keep
+  yourself to survey, agreement and reporting.
+
+Row changes are `user`-only. Never write past a DENIED check and never edit the table
+yourself.
+
 ## 2. Mapping — the agreement
 
 Talk it through: the target base (existing, or run the `kb-init` skill first) · their folders
@@ -71,11 +94,16 @@ about twenty:
   `verified` per vouch, `origin:` + `source_sha256`, `timestamp` from the source), rewrites
   `[[links]]` to target paths, and ticks the line.
 - **After every batch**: `kb lint` on the target, `kb index rebuild`, and one checkpoint
-  report to the user. **Never run more than a few batches unattended** — this is long and
-  costly by design, the user sets the pace and can stop anytime.
+  report to the user — then **stop and wait for them** rather than rolling into the next
+  batch. Five consecutive batches without a reply is the bound: park the run, say how many
+  items remain, and let them restart it. This is long and costly by design; the user sets the
+  pace and can stop anytime, and the checklist makes re-entry free.
+- If the survey counted more items than a session can plausibly finish (thousands), say the
+  number up front and agree a stopping point with the user before stage 4 starts.
 - Judgment you cannot settle from the agreement (an ambiguous type, two source pages
   describing one entity, content contradicting an existing page) → `kb pending add --kind
-  finding --waits-on human` with evidence and a stated default. Never guess silently.
+  finding --waits-on human --title "<what>" --body "<evidence + your default>"` (`--body` is
+  required). Never guess silently.
 
 ## 5. Report
 
@@ -85,9 +113,10 @@ so explicitly, it is the promise that mattered.
 
 ## Authority
 
-- Freely: survey, read the source, write into the target per the agreement, tick progress,
-  lint and index.
+- Freely: survey, read the source, tick progress, lint and index — plus writes into the
+  target **on paths a `kb grants check` says you hold** (stage 1b).
 - Report-only: gaps, contradictions, queue items.
-- Ask first: the agreement itself, each vouch, starting stage 4, the pace of batches,
+- Ask first: any grant row you need (stage 1b), the agreement itself, each vouch, starting
+  stage 4, the pace of batches,
   anything touching a **shared** target (every imported page there goes through the queue,
   no exceptions), and flipping the registry at the end.

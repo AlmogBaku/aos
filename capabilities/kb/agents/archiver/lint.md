@@ -13,6 +13,8 @@ For each registered base:
    there is no report file, because nothing ever read one. Mechanical fixes you may apply
    directly: `kb index rebuild`. Judgment findings (Contested inventory, duplicate
    suspicions, unverified-with-inbound, grants-audit hits) → `kb pending add --kind finding
-   --waits-on human` with evidence and a stated default. Never resolve them yourself.
+   --waits-on human --title "<what>" --body "<evidence, and the default you would pick>"`.
+   **`--body` (or `--file -` for stdin) is required** — an entry with no body is rejected, so
+   the evidence is not optional prose, it is the argument. Never resolve them yourself.
 3. Raise **Critical** findings for the user's next brief — only Critical.
 4. Nothing to report → output exactly `ARCHIVER: maintenance clean.` and deliver nothing.

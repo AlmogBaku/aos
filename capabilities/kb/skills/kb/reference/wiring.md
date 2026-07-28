@@ -4,7 +4,7 @@
 
 | id | kind | when | what |
 |---|---|---|---|
-| `nightly-promote` | agent (archiver) | 23:30 | ingest `.kb/pending/` captures → skeptical promotion |
+| `nightly-promote` | agent (archiver) | 23:30 | `kb inbox` → skeptical promotion → `kb ingest` |
 | `weekly-maintain` | agent (archiver) | Sat 07:00 | `kb prune`, then `kb lint` per base + judgment surfacing |
 | `sync` | **exec** | every 5 min | `kb sync --all` — script-direct, **no model wakes up** |
 
@@ -28,6 +28,9 @@ cheat-sheet.
   history, exit codes — is the portable interface either way.
 - Env: `AOS_REGISTRY` · `AOS_AGENT` (the acting subject, committer of every write) ·
   `AOS_PRINCIPAL_ID` (overrides `<home>/.aos/kb-principal.yml` for one call).
+- **Both archiver jobs must export `AOS_AGENT=agent:archiver`.** It defaults to
+  `agent:main`, which is *denied* write on the wiki zones, so the job appears to succeed
+  while every page it commits becomes a grants-audit critical in the next weekly lint.
 
 ## Degraded modes
 

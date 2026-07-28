@@ -16,7 +16,8 @@ person's raw material lands in your context while you hold write access to share
 `--all` is the designated curator's path, not yours by default. For each item:
 
 1. `kb_routing.status: uncertain` → re-classify with full context. Record the correct
-   destination in a `kind: finding` entry (`kb pending add --kind finding --waits-on human`)
+   destination in a `kind: finding` entry (`kb pending add --kind finding --waits-on human
+   --title "<capture> → <base>?" --body "<why>"` — `--body` is required)
    and leave the capture where it is. There is no cross-base ingest verb: `kb ingest` moves
    within one base, so "re-route it" is a proposal for a human, whether the target is
    private or shared. Never hand-move a capture between bases to work around this.
@@ -24,21 +25,25 @@ person's raw material lands in your context while you hold write access to share
    *would the user plausibly look this up again?* When in doubt, DON'T: a junk page degrades
    every future search, and what earns no page stays reachable in `_raw/` via `kb search`.
 3. What does earn promotion: run `kb search "<entity>"` FIRST — `EXISTS` means grow that
-   page, never create a twin. A new page carries full frontmatter, `verified: false`,
-   `origin:` pointing at the capture, and a commit summary that *is* the justification.
-   Update current truth in place; dated events go to a `## Timeline` where one exists or is
-   warranted.
+   page, never create a twin. A new page carries full frontmatter, `verified: false` and
+   `origin:` pointing at the capture. Update current truth in place; dated events go to a
+   `## Timeline` where one exists or is warranted.
+
+   There is no `kb promote` verb: you write the page with ordinary file tools, so **attribute
+   it yourself** — `kb commit --verb promote --path <page> --summary "<the justification>"`.
+   All three flags are required. Skip this and the page reaches git only through the sync
+   sweep, with no acting subject, and lint reports it.
 4. `kb ingest .kb/pending/<file>.md` to move the capture into `_raw/` — a **base-relative
    path**, exactly as `kb inbox` printed it, not a bare id or slug. A capture that errors
    keeps `failed: <error>` and stays in the queue, never silently retried forever.
-5. Unresolved `@mentions` → `kb pending add --kind entity --waits-on human`. **Never
-   auto-stub an entity page.**
+5. Unresolved `@mentions` → `kb pending add --kind entity --waits-on human --title
+   "<name>" --body "<where it was mentioned>"`. **Never auto-stub an entity page.**
 
 ## 2. State evictions (propose, never apply)
 
 `kb state check` per base. For each stale item: `kb pending add --kind finding --waits-on
-human --title "«item» — in state since <date>, untouched"` with the body "drop from state?
-(the knowledge stays in the base)".
+human --title "«item» — in state since <date>, untouched" --body "drop from state? (the
+knowledge stays in the base)"`. Both flags are required; the tool rejects a bodyless entry.
 
 ## 3. Close
 

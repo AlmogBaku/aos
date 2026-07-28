@@ -47,8 +47,11 @@ two people share it would make both of them the same author. If no git identity 
 configured the tool says so and proceeds anyway — capture never blocks — and lint reports
 the weak principal until onboarding fixes it.
 
-Then apply the interview's zone and type adjustments to `.kb/base.yml` plus the matching
-directories, and show the user the diff.
+Then apply the interview's zone and type adjustments with `kb config set` (for example
+`kb config set 'zones.decisions={kind: wiki}'`), which commits each change itself, and create
+the matching directories. Show the user the diff. A hand-edit of `.kb/base.yml` also works
+but leaves the tree uncommitted, which lint reports as a finding — so follow one with
+`kb commit --verb config --path .kb/base.yml --summary "<what changed>"`.
 
 ## 3. Schedules
 
@@ -61,11 +64,17 @@ exact cron syntax for this harness; what does not vary is *what* to schedule:
 | `weekly-maintain` | `0 7 * * 6` | the archiver agent, prompt `agents/archiver/lint.md` | agent job |
 | `sync` | `*/5 * * * *` | `kb sync --all` | **exec job — no model wakes up** |
 
-Two things that silently break if you skip them: the sync wrapper **must** anchor the
-registry (export `AOS_REGISTRY=<home>/personal/kb-registry.yaml`, or pass `--registry`),
-because a bare `kb sync` with no resolvable registry exits 0 having synced nothing; and the
-single-owner rule means each of these runs in exactly one harness, so check none of them
-already exists before creating it.
+Three things silently break if you skip them, and each fails quietly rather than loudly:
+
+- **`AOS_AGENT=agent:archiver` in both archiver jobs.** It defaults to `agent:main`, which
+  holds no write grant on `entities/** concepts/** projects/** index.md` — so a job that
+  looks like it worked commits every promotion as the wrong subject, and the next weekly
+  lint reports each one as a grants-audit **critical**.
+- **`AOS_REGISTRY=<home>/personal/kb-registry.yaml` in the sync wrapper** (or pass
+  `--registry`), because a bare `kb sync` with no resolvable registry exits **0** having
+  synced nothing.
+- **The single-owner rule**: each of these runs in exactly one harness, so check none of
+  them already exists before creating it.
 
 **No cron on this harness?** Then all three degrade to `manual` run-cards: write down the
 command and the trigger for each ("run `kb sync --all` when you finish a session"; "ask the
@@ -73,5 +82,6 @@ archiver to promote overnight"), and tell the user, because nothing will run the
 
 ## 4. Verify
 
-`kb lint` must run clean on the fresh tree. Report back: the tree, the grants, the registry
+`kb lint` must report **zero Critical and zero Findings** on the fresh tree (Info lines are
+fine — they are observations, not defects). Report back: the tree, the grants, the registry
 entry, and the schedules or their degraded modes.

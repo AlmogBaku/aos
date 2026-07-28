@@ -21,7 +21,8 @@ asking agent.
      unpromoted tail — which skeptical promotion guarantees exists and navigation cannot
      reach.
 3. **Select and read.** Around five pages before going deeper; prefer wiki pages over raw
-   fragments; bound your link hops; drop into `_raw/` only to verify a source or where the
+   fragments; follow at most two link hops from a starting page; drop into `_raw/` only to
+   verify a source or where the
    wiki is silent. Honour **Contested** (present both sides) and `verified: false` (never
    the sole support of a conclusion).
 4. **Synthesize with citations.** State the known gaps explicitly ("nothing on Acme's
@@ -31,8 +32,11 @@ asking agent.
    never file it silently. If accepted it goes through the `kb-route` skill, `verified: false`,
    `origin:` pointing at this session. On a shared base the offer lands in the queue like
    every other agent write.
-6. **Bump state** — only if you are this base's state writer and an attention item was
-   materially used: `kb state bump --note <substring>`.
+6. **Bump state** — only if you are this base's state writer (`agent:main` by default;
+   confirm with `kb grants check --subject <you> --verb write --path .kb/state/x.yml`) and an
+   attention item was materially used: `kb state bump --note <substring>`. The substring must
+   match exactly one item, and the command errors if it matches none or several — read the
+   error and pick a longer substring rather than retrying blindly.
 
 Where the harness supports sub-contexts, delegate the read-heavy traversal in step 3 to one
 and return only the answer plus citations — it keeps the caller's context clean. Degraded
