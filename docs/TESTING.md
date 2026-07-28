@@ -4,12 +4,19 @@ How a capability proves it works (implements RFC-002).
 
 ## Tier 0 — capability tool tests (blocking)
 
-`bash tools/check.sh` first runs the capability tool suites — kb's `base`
-(`uv run tests/tool/test_base.py`) and capability-lifecycle's `aos-lock`
-(`uv run tests/tool/test_lock.py`) — black-box subprocess tests; the report text is the
-contract. It then lints the shipped example base (`tests/fixtures/example-base/` must pass
-`base lint` with zero criticals/findings — template/example/tool drift breaks the build
-here). Requires `uv`; skipped locally with a warning if absent, always on in CI.
+`bash tools/check.sh` first runs the capability tool suites — kb's `kb`
+(`uv run tests/tool/test_kb.py`) and capability-lifecycle's `aos-lock`
+(`uv run tests/tool/test_lock.py`). `test_kb.py` invokes `aos_kb.cli:app` in-process via
+typer's `CliRunner` (fast: the whole suite runs in ~20s), asserting on the same
+stdout/stderr/exit-code surface a real invocation produces — the report text is still the
+contract, not tool internals. A `Result` adapter gives every assertion the
+`.returncode`/`.stdout`/`.stderr` shape a subprocess result has, so the invocation layer
+can change without touching test bodies. One class, `InstalledScriptSmokeTest`, stays a
+real subprocess: CliRunner never leaves the process, so it can't prove `[project.scripts]
+kb = ...` actually resolves as an installed console script — that's the one thing this
+class exists to check. It then lints the shipped example base (`tests/fixtures/example-base/`
+must pass `kb lint` with zero criticals/findings — template/example/tool drift breaks the
+build here). Requires `uv`; skipped locally with a warning if absent, always on in CI.
 
 ## Tier 1 — deterministic lint (blocking)
 

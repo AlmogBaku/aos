@@ -1,29 +1,40 @@
 #!/usr/bin/env python3
 # /// script
-# requires-python = ">=3.9"
-# dependencies = ["pyyaml>=6.0"]
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml>=6.0", "aos-kb"]
+#
+# [tool.uv.sources]
+# aos-kb = { path = "../../capabilities/kb/tool", editable = true }
 # ///
 """Tier-0 tests for the kb capability's `kb` tool (capabilities/kb/tool).
 
-Pattern (per the spec's testing doctrine): black-box subprocess invocation against
-throwaway bases — the report/stdout text is the contract; no imports of tool
-internals. Run: uv run tests/tool/test_kb.py
+In-process via typer's CliRunner, invoking the same `aos_kb.cli:app` the installed
+script wires to `main()` — the report/stdout/stderr/exit-code text is the contract;
+still no imports of anything below `cli.py`'s own `app` object. `InstalledScriptTest`
+at the bottom is the one subprocess-based class left: it is the only thing that can
+prove the actual `kb` console-script entry point resolves and runs for real, which an
+in-process CliRunner call structurally cannot exercise (it never leaves this process,
+so it never resolves `[project.scripts] kb = ...` or crosses a real process boundary).
+Run: uv run tests/tool/test_kb.py
 """
 import datetime as _dt
 import os
-import re
 import subprocess
-import sys
 import tempfile
 import time
 import unittest
 from pathlib import Path
 
 import yaml
+from typer.testing import CliRunner
+
+from aos_kb.cli import app
 
 REPO = Path(__file__).resolve().parents[2]
 TOOL_DIR = REPO / "capabilities/kb/tool"
 TEMPLATES = REPO / "capabilities/kb/skills/init/templates"
+
+_runner = CliRunner()
 
 
 # A CI runner has no git identity, and `git commit` exits 128 without one. Several tests
@@ -47,11 +58,35 @@ def git_env(extra=None):
     return env
 
 
+class Result:
+    """Adapts typer's CliRunner Result to the subprocess.CompletedProcess-shaped
+    surface (.returncode/.stdout/.stderr) every existing assertion in this file already
+    expects — the invocation layer changed, the assertions did not."""
+
+    def __init__(self, cli_result):
+        self._r = cli_result
+
+    @property
+    def returncode(self):
+        return self._r.exit_code
+
+    @property
+    def stdout(self):
+        return self._r.stdout
+
+    @property
+    def stderr(self):
+        return self._r.stderr
+
+
 def run(args, env_extra=None, cwd=None):
-    return subprocess.run(["uv", "run", "--quiet", "--project", str(TOOL_DIR),
-                           "kb", *args],
-                          capture_output=True, text=True,
-                          env=git_env(env_extra), cwd=cwd)
+    """In-process invocation of the same `app` the installed `kb` script wires to.
+    `cwd` is accepted (never used by any real test — no kb invocation here relies on
+    process cwd; every base is reached via `--base <path>`) only so call sites that
+    still pass it keep working unchanged."""
+    cli_result = _runner.invoke(app, args, env=git_env(env_extra),
+                                catch_exceptions=False)
+    return Result(cli_result)
 
 
 class BaseToolTest(unittest.TestCase):
@@ -178,12 +213,12 @@ class BaseToolTest(unittest.TestCase):
 
     def test_capture_stays_well_inside_the_quick_capture_budget(self):
         # Capture now writes a file *and* commits, so the budget is worth pinning:
-        # gtd-capture promises under 5s end to end. Measured here at ~0.12s including
-        # process launch (the commit itself is ~30ms); the bound is deliberately loose
-        # so this catches a regression, not a slow machine.
+        # gtd-capture promises under 5s end to end. In-process (CliRunner) rather than
+        # a subprocess, so this bound is about the tool's own work, not process launch
+        # + interpreter start — tightened accordingly from the subprocess-era 2.0s.
         start = time.perf_counter()
         self.b("capture", "--text", "how long does this take")
-        self.assertLess(time.perf_counter() - start, 2.0)
+        self.assertLess(time.perf_counter() - start, 1.0)
 
     def test_duplicate_capture_dropped(self):
         self.b("capture", "--text", "same content")
@@ -702,13 +737,12 @@ class BaseToolTest(unittest.TestCase):
         self.assertIn("convergence path", r.stdout)
 
     def test_adopt_of_a_kit_native_base_with_a_stale_pending_item_does_not_crash(self):
-        # cmd_adopt (cli.py:852-855) mutates its own argparse Namespace and calls
-        # cmd_lint(args) directly. adopt's subparser never declares --stale-pending-days,
-        # and cmd_lint reads args.stale_pending_days with no getattr default (cli.py:1414)
-        # — so a base with an old waits_on: human pending item makes this crash with
-        # AttributeError today. Pinned here BEFORE the typer refactor touches this call
-        # path, so the fix (giving run_lint() real keyword defaults) is a stated decision
-        # in a later commit, not something that happens to work by accident of the port.
+        # cmd_adopt calls into lint's report logic directly (commands/lifecycle.py, via
+        # commands/lint.py's _run_lint), and previously (pre-typer, cli.py's
+        # cmd_adopt/cmd_lint) crashed with AttributeError against a base carrying an old
+        # waits_on: human pending item, because adopt's own subparser never declared
+        # --stale-pending-days and cmd_lint read args.stale_pending_days with no
+        # getattr default. Pinned here as a regression test for that fixed bug.
         foreign = self.dir / "foreign"
         foreign.mkdir()
         (foreign / ".kb").mkdir()
@@ -1897,6 +1931,42 @@ class PackagingTest(unittest.TestCase):
         self.assertNotIn(old_pkg, pyproject)
         self.assertNotIn(old_mod, pyproject)
         self.assertFalse((TOOL_DIR / "src" / old_mod).exists())
+
+
+class InstalledScriptSmokeTest(unittest.TestCase):
+    """The one thing CliRunner structurally cannot prove: that `[project.scripts]
+    kb = "aos_kb.cli:main"` actually resolves and runs as an installed console script,
+    crossing a real process boundary. Every other class in this file runs in-process —
+    this is deliberately the sole survivor of the old fully-subprocess suite."""
+
+    def run_installed(self, args, env_extra=None):
+        return subprocess.run(["uv", "run", "--quiet", "--project", str(TOOL_DIR),
+                               "kb", *args],
+                              capture_output=True, text=True,
+                              env=git_env(env_extra))
+
+    def test_the_installed_script_runs_and_reports_its_version(self):
+        r = self.run_installed(["--version"])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("kb 0.7.0 (layout 2)", r.stdout)
+
+    def test_the_installed_script_completes_a_real_verb_end_to_end(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            home = d / "household"
+            (home / ".aos").mkdir(parents=True)
+            root = d / "b"
+            env = {"AOS_REGISTRY": str(d / "kb-registry.yaml"),
+                   "AOS_AGENT": "agent:main", "AOS_HOME": str(home),
+                   "AOS_PRINCIPAL_ID": "dana@example.com",
+                   "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+            r = self.run_installed(
+                ["init", "b", "--path", str(root), "--purpose", "smoke",
+                 "--templates", str(TEMPLATES), "--default"], env)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            r = self.run_installed(["--base", str(root), "lint"], env)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn("Critical (0)", r.stdout)
 
 
 if __name__ == "__main__":
