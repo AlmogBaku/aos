@@ -1,0 +1,18 @@
+[
+  {"query": "set me up a knowledge base for work stuff, keep it separate from my personal one", "should_trigger": true},
+  {"query": "i want a fresh kb for the consulting side, private, syncs to a github remote", "should_trigger": true},
+  {"query": "create a personal base at ~/brain and make it the default", "should_trigger": true},
+  {"query": "no knowledge base yet — can you get one going? mostly for client notes and meeting stuff", "should_trigger": true},
+
+  {"query": "i already have a notes repo at ~/kb, can you start using it instead of making a new one", "should_trigger": false},
+  {"query": "adopt ~/my-kb — dont rewrite anything in it, i just want the agents aware of it", "should_trigger": false},
+  {"query": "my base is still on the old layout, theres a BASE.yaml at the root", "should_trigger": false},
+  {"query": "use my obsidian vault as-is, i dont want files moved around", "should_trigger": false},
+  {"query": "import my old obsidian vault into the new base — theres about 400 notes in there", "should_trigger": false},
+  {"query": "migrate the content out of ~/ai-kb into the personal base, i'll review the mapping with you", "should_trigger": false},
+  {"query": "bring in my old zettelkasten, keep the originals untouched", "should_trigger": false},
+  {"query": "robin says the venue is booked for the 14th", "should_trigger": false},
+  {"query": "what do i know about acme", "should_trigger": false},
+  {"query": "how does routing between my bases actually work?", "should_trigger": false},
+  {"query": "run maintenance on my bases, i think the index is stale", "should_trigger": false}
+]
