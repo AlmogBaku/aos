@@ -213,8 +213,8 @@ class BaseToolTest(unittest.TestCase):
         self.assertEqual(cn, "agent:archiver")   # the agent that applied it
 
     def test_capture_stays_well_inside_the_quick_capture_budget(self):
-        # Capture now writes a file *and* commits, so the budget is worth pinning:
-        # gtd-capture promises under 5s end to end. In-process (CliRunner) rather than
+        # Capture now writes a file *and* commits, so the budget is worth pinning: both
+        # kb-capture and wt-capture promise under 5s end to end. In-process (CliRunner) rather than
         # a subprocess, so this bound is about the tool's own work, not process launch
         # + interpreter start — tightened accordingly from the subprocess-era 2.0s.
         start = time.perf_counter()

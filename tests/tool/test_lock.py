@@ -72,7 +72,7 @@ class LockToolTest(unittest.TestCase):
     def record(self):
         return self.lock("record", "democap", "--version", "1.2.3",
                          "--artifact", str(self.a1), "--artifact", str(self.a2),
-                         "--job", "job-abc123", "--config-key", "gtd.drain_hour")
+                         "--job", "job-abc123", "--config-key", "democap.run_hour")
 
     # -- manifest ----------------------------------------------------------
     def test_manifest_valid_prints_json(self):
@@ -127,7 +127,7 @@ class LockToolTest(unittest.TestCase):
         self.assertEqual(entry["version"], "1.2.3")
         self.assertEqual(len(entry["artifacts"]), 2)
         self.assertIn("job-abc123", entry["schedules_owned"])
-        self.assertIn("gtd.drain_hour", entry["config_keys"])
+        self.assertIn("democap.run_hour", entry["config_keys"])
         for sha in entry["artifacts"].values():
             self.assertRegex(sha, r"^[0-9a-f]{64}$")
 

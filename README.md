@@ -35,11 +35,11 @@ Built and passing the [three CI tiers](docs/TESTING.md) today:
 | Capability | Type | What it does |
 |---|---|---|
 | [**kb**](capabilities/kb/) | infra | Multi-base knowledge infrastructure: registry, rules-first routing, the base engine (immutable `raw/` + current-truth wiki), and the deterministic [`base` tool](capabilities/kb/tool/) |
-| [**gtd-capture**](capabilities/gtd-capture/) | usecase | Capture a thought in under 5 seconds; a nightly drain turns pending captures into next-actions and reminders |
+| [**work-tracker**](capabilities/work-tracker/) | usecase | Commitments only you can keep: filed as you speak, time blocked in the same exchange, a nightly steward keeping the backlog honest, and an exit when they are done |
 | [**capability-lifecycle**](capabilities/capability-lifecycle/) | infra | The whole life of a capability, as skills in your harness: install · upgrade · remove · onboard (the interview engine → your `MOD.md`) · import (wrap what you already built) · build (a chat request that's really a use case → intake → design → approval) · contribute · evolve. Owns the household and its pinned renders, the [`aos-lock`](capabilities/capability-lifecycle/tool/) tool (lockfile + computed skill names), the per-harness cheat-sheets, and Anthropic's [`skill-creator`](https://github.com/anthropics/skills) by reference |
 
 Planned next, in [build order](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#7-reference-capabilities--build-order) — each step proves one new seam:
-**time-blocking** (calendar writes + degraded modes) · **ptt-mode** (voice) ·
+**ptt-mode** (voice) ·
 **interviewing** (capability-on-capability) · **news-tracker** (the "boring port") ·
 **permission-gate** (capabilities that ship code) · **router** (front-door dispatch) ·
 **agent-comms** (agent↔agent, glass-box).
