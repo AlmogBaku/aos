@@ -2,7 +2,7 @@
 id: kb
 version: 0.7.0
 tags: [infra]
-summary: Multi-base knowledge infrastructure — registry, routing, the base engine (store · curation · state), the deterministic `base` tool, and one Archiver agent across all bases.
+summary: Multi-base knowledge infrastructure — registry, routing, the base engine (store · curation · state), the deterministic `kb` tool, and one Archiver agent across all bases.
 depends:
   host:
     cron: preferred
@@ -32,7 +32,7 @@ schedules:
     degraded: manual
   - id: sync
     cron: "*/5 * * * *"
-    exec: base sync --all
+    exec: kb sync --all
     degraded: manual
 kb:
   zones:
@@ -61,19 +61,19 @@ the capability is the `kb` entry skill.)*
 
 The root infrastructure capability: every base (KB instance, `base == repo`) a user
 has, plus the machinery around them — registry, routing, grants, the three-pillar
-engine (store: raw + current-truth wiki pages; curation: capture → skeptical
-promotion → lint; state: one capped attention window per base), the deterministic
-`base` tool (an installable uv package under `tool/`), and one Archiver agent that
-serves all bases. Other capabilities declare abstract `kb.writes` intents; the route
-skill resolves them.
+engine (store: `_raw/` + current-truth wiki pages; curation: capture → skeptical
+promotion → lint; state: one capped attention window per base, sharded per principal),
+the deterministic `kb` tool (an installable uv package under `tool/`), and one
+Archiver agent that serves all bases. Other capabilities declare abstract `kb.writes`
+intents; the route skill resolves them.
 
 ## What you materialize, and why
 
-0. **The tool — first.** Install the capability's deterministic executor so `base`
+0. **The tool — first.** Install the capability's deterministic executor so `kb`
    is on PATH for every agent and cron:
-   `uv tool install --from <home>/upstream/capabilities/kb/tool aos-base`
+   `uv tool install --from <home>/upstream/capabilities/kb/tool aos-kb`
    (record in the lockfile under the capability; removal = `uv tool uninstall
-   aos-base`). uv is a bootstrap prerequisite; if it later disappears → degraded:
+   aos-kb`). uv is a bootstrap prerequisite; if it later disappears → degraded:
    skills fall back to prose execution and
    exec schedules to manual run-cards.
 1. **Skills** per `used_by`: the `kb` entry skill goes to the front agent AND the
@@ -88,17 +88,21 @@ skill resolves them.
 3. **Schedules — in the same session as any base, never deferred.** `nightly-promote`
    (23:30, after gtd-capture's 23:00 drain) and `weekly-lint` are agent jobs on the
    archiver. **`sync` is an exec job**: wire the harness cron to run
-   `base sync --all` directly (the installed command) — deterministic-only, no LLM
+   `kb sync --all` directly (the installed command) — deterministic-only, no LLM
    wakes up; optionally compose the harness's notifier
    around it (`… || notify`). All degrade to `manual` run-cards without cron.
 4. **Zones**: the `kb.zones` above are the archiver's maintenance surface in each
    base — grant rows appended to that base's `AGENTS.md` at install (user-approved
-   diff), revoked at removal. The front agent additionally gets `raw/captures/**`
-   (route-into) and `state.yaml` + `profile/**` (write) rows — seeded by the init
+   diff), revoked at removal. The front agent additionally gets `_raw/**`
+   (route-into) and `.kb/state/**` + `profile/**` (write) rows — seeded by the init
    templates.
 5. **Onboarding** asks which bases exist; `kb-init`/`kb-adopt` then write the user-owned
    `kb-registry.yaml` (overlay family — never committed upstream). The init interview
-   designs each base's zones/types once (theme-driven), written into its BASE.yaml.
+   designs each base's zones/types once (theme-driven), written into its
+   `.kb/base.yml`. `kb init` scaffolds by default from a cloned template repo
+   (read-only, unauthenticated, no fork — `--templates <local-dir>` skips the network
+   step; a clone failure falls back to the templates shipped in this checkout,
+   announced, never blocking).
 
 ## Contracts to preserve
 
@@ -106,7 +110,8 @@ skill resolves them.
   LLM; prose execution is the degraded mode (kb skill → reference/wiring.md).
 - Shared bases never accept LLM-routed or unreviewed agent writes (RFC-006's
   uncontested core; route skill).
-- `BASE.yaml layout: 1` — tools refuse loudly on mismatch; never path-guess.
+- `.kb/base.yml`'s `layout` field — tools refuse loudly on mismatch; never path-guess.
+  A root `BASE.yaml` (no `.kb/`) is layout 1 and points at `kb migrate`.
 
 ## Contested core — RFC-006
 

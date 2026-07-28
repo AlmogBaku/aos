@@ -57,19 +57,27 @@ def cmd_search(ctx: typer.Context, query: str, limit: int = 10,
     exact = [pg for pg in pages
              if ql == pg["title"].lower()
              or ql in [a.lower() for a in pg["aliases"]]]
+    # :memory: is process-lifetime otherwise — harmless under the old one-shot-
+    # subprocess-per-invocation model, but a real leak once many invocations share one
+    # long-lived process (CliRunner's in-process test suite is what surfaced it).
+    # sqlite3's own context manager only commits/rolls back — it does not close the
+    # connection — so this closes explicitly rather than relying on `with`.
     db = sqlite3.connect(":memory:")
-    db.execute("CREATE VIRTUAL TABLE pages USING fts5(rel, title, description, body)")
-    for pg in pages:
-        db.execute("INSERT INTO pages VALUES (?,?,?,?)",
-                   (pg["rel"], pg["title"], pg["description"], pg["body"]))
-    fts_q = " OR ".join(f'"{t}"' for t in re.findall(r"\w+", q)) or f'"{q}"'
     try:
-        rows = db.execute(
-            "SELECT rel, title, snippet(pages, 3, '[', ']', '…', 12), bm25(pages) "
-            "FROM pages WHERE pages MATCH ? ORDER BY bm25(pages) LIMIT ?",
-            (fts_q, limit)).fetchall()
-    except sqlite3.OperationalError:
-        rows = []
+        db.execute("CREATE VIRTUAL TABLE pages USING fts5(rel, title, description, body)")
+        for pg in pages:
+            db.execute("INSERT INTO pages VALUES (?,?,?,?)",
+                       (pg["rel"], pg["title"], pg["description"], pg["body"]))
+        fts_q = " OR ".join(f'"{t}"' for t in re.findall(r"\w+", q)) or f'"{q}"'
+        try:
+            rows = db.execute(
+                "SELECT rel, title, snippet(pages, 3, '[', ']', '…', 12), bm25(pages) "
+                "FROM pages WHERE pages MATCH ? ORDER BY bm25(pages) LIMIT ?",
+                (fts_q, limit)).fetchall()
+        except sqlite3.OperationalError:
+            rows = []
+    finally:
+        db.close()
 
     if exact:
         for pg in exact:

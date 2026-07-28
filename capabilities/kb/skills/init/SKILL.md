@@ -1,6 +1,6 @@
 ---
 name: init
-description: "Creates a new base (knowledge base) — interview, BASE.yaml, scaffold, register, schedule. Use when the user wants a fresh base ('create a work base', 'kb init personal'), including during bootstrap when no base exists yet."
+description: "Creates a new base (knowledge base) — interview, scaffold, register, schedule. Use when the user wants a fresh base ('create a work base', 'kb init personal'), including during bootstrap when no base exists yet."
 ---
 
 # init
@@ -13,7 +13,7 @@ contract.
 
 Ask once, design once — the user is never bothered about structure again (afterwards
 the agent operates autonomously inside the frozen zone set; zone changes are
-owner-approved BASE.yaml edits):
+owner-approved `.kb/base.yml` edits):
 
 - **Name, path** (default `~/<name>-base`), **remote** (optional), **audience**
   (`private` default | `shared`), **sync** (`rebase-5min` needs a remote; adopted
@@ -21,24 +21,31 @@ owner-approved BASE.yaml edits):
 - **Purpose** — one paragraph; it is the router's AND recall's rubric. Write it well.
 - **Theme → zones and types.** An engineering base wants different zones/types than a
   family or self base. Start from the template defaults (entities/concepts/projects/
-  profile) and adjust WITH the user; put the result in BASE.yaml (`zones:`, `types:`).
-  Anything they say about *what belongs where* is routing gold — it becomes `purpose`
-  text and `routing.keywords`.
+  profile) and adjust WITH the user; put the result in `.kb/base.yml` (`zones:`,
+  `types:`). Anything they say about *what belongs where* is routing gold — it becomes
+  `purpose` text and `routing.keywords`.
 
 ## 2. Scaffold [D]
 
 ```
-base init <name> --path <path> --audience <a> --sync <s> --purpose "<p>" \
+kb init <name> --path <path> --audience <a> --sync <s> --purpose "<p>" \
   [--remote <url>] [--default]
 ```
 
-(Templates default to `<home>/upstream/capabilities/kb/skills/init/templates`;
-override with `--templates` when running from elsewhere.)
+By default the tool `git clone`s a template repo (read-only, unauthenticated, no
+fork — just the templates, hosted for discoverability) and drops the clone's own
+`.git` history before rendering; `--template <url>` points at a different one. Pass
+`--templates <local-dir>` to skip the network step entirely and render straight from a
+local directory instead (defaults to
+`<home>/upstream/capabilities/kb/skills/init/templates` when the clone fails for any
+reason — no network, bad URL, git not configured for the host — and this is announced,
+never silent, never blocking).
 
-The tool renders templates (BASE.yaml, AGENTS.md + Grants seed, index, log,
-state.yaml, zone AGENTS files), git-inits with per-agent identity, registers in
-`kb-registry.yaml`, logs `bootstrap`, commits. Then apply the interview's zone/type
-adjustments to BASE.yaml + matching directories, and show the user the diff.
+The tool renders templates (`.kb/base.yml`, `AGENTS.md` + Grants seed, `index.md`,
+per-principal state shard, zone `AGENTS.md` files), git-inits with the user's own git
+identity, registers in `kb-registry.yaml`, commits `bootstrap`. Then apply the
+interview's zone/type adjustments to `.kb/base.yml` + matching directories, and show
+the user the diff.
 
 ## 3. Schedules [D]
 
@@ -49,5 +56,5 @@ tell the user what to run when.
 
 ## 4. Verify [D]
 
-`base lint` must run clean on the fresh tree. Report: tree, grants, registry entry,
+`kb lint` must run clean on the fresh tree. Report: tree, grants, registry entry,
 schedules (or degraded modes).

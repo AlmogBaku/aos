@@ -8,6 +8,9 @@ import re
 
 VERSION = "0.7.0"
 LAYOUT = 2
+# `kb init`'s default template source — a plain, read-only, unauthenticated clone;
+# --template overrides it, --templates (local dir) skips the network step entirely.
+TEMPLATE_REPO_URL = "https://github.com/AlmogBaku/aos-kb-template"
 # The closed `aos-verb` trailer vocabulary — the same words the five-field log.md
 # grammar used, now carried by the commit that made the change.
 AOS_VERBS = {

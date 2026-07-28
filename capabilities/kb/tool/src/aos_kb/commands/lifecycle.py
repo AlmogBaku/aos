@@ -7,13 +7,14 @@ design — migrate is the one verb that must accept one)."""
 
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Annotated, Literal, Optional
 
 import typer
 import yaml
 
-from ..constants import VERSION, LAYOUT
+from ..constants import VERSION, LAYOUT, TEMPLATE_REPO_URL
 from ..frontmatter import slugify, read_frontmatter, write_frontmatter
 from ..identity import (
     today, die, agent_subject, is_repo, git, is_weak_principal, principal_file,
@@ -30,6 +31,35 @@ from .lint import _run_lint
 app = typer.Typer()
 
 
+def _resolve_templates(templates: Optional[str], template_repo: str,
+                       tmp_holder: list) -> Path:
+    """Where init's templates come from: --templates (a local dir — skip the network
+    step entirely, unchanged from before this repo existed) beats a clone of
+    --template/the default TEMPLATE_REPO_URL, which falls back to the tree shipped
+    inside this checkout on any clone failure (no network, bad URL, git not configured
+    for the host, ...). The fallback is silent-but-noted, never blocking or prompting —
+    the same shape as the `git lfs version` check just below in cmd_init.
+
+    `tmp_holder` is a one-element list the caller appends the TemporaryDirectory to
+    (if a clone happened), so it can be cleaned up only after every render() call that
+    reads out of it has run — a `with` block here would tear it down too soon."""
+    if templates:
+        return Path(templates).expanduser()
+    tmp = tempfile.TemporaryDirectory()
+    dst = Path(tmp.name) / "template"
+    r = subprocess.run(["git", "clone", "-q", "--depth", "1", template_repo, str(dst)],
+                       capture_output=True, text=True, check=False)
+    if r.returncode == 0 and (dst / "base.yml").exists():
+        shutil.rmtree(dst / ".git", ignore_errors=True)
+        tmp_holder.append(tmp)   # keep the TemporaryDirectory alive past this call
+        return dst
+    tmp.cleanup()
+    print(f"note: couldn't clone the template repo ({template_repo}) — "
+          f"falling back to the templates shipped in this checkout "
+          f"(`git lfs version`-style degrade: never blocks, never prompts).")
+    return find_upstream_root() / "capabilities" / "kb" / "skills" / "init" / "templates"
+
+
 @app.command("init", help="scaffold + register a new base")
 def cmd_init(
     ctx: typer.Context,
@@ -41,7 +71,11 @@ def cmd_init(
     remote: Optional[str] = None,
     tag: Optional[str] = None,
     default: bool = False,
-    templates: Optional[str] = None,
+    templates: Annotated[Optional[str], typer.Option(
+        help="a local template directory — skips the network step entirely")] = None,
+    template: Annotated[str, typer.Option(
+        help="template repo to clone (git URL or local path); "
+             "ignored if --templates is given")] = TEMPLATE_REPO_URL,
     kb_version: str = VERSION,
     curation: Annotated[Literal["self", "designated"], typer.Option(
         help="self: everyone drains their own queue (default). designated: one "
@@ -53,8 +87,8 @@ def cmd_init(
     root = Path(path).expanduser().resolve()
     if (root / ".kb" / "base.yml").exists():
         die(f"{root} already has a .kb/base.yml")
-    tpl = Path(templates).expanduser() if templates else \
-        find_upstream_root() / "capabilities" / "kb" / "skills" / "init" / "templates"
+    tmp_holder = []
+    tpl = _resolve_templates(templates, template, tmp_holder)
     if not (tpl / "base.yml").exists():
         die(f"templates not found at {tpl} (pass --templates)")
     root.mkdir(parents=True, exist_ok=True)
@@ -153,6 +187,8 @@ def cmd_init(
                 agent_subject(ctx.obj), (principal_name(ctx.obj, root, pid), pid))
     print(f"base {name}: scaffolded at {root}, registered"
           f"{' as default' if reg.get('default') == name else ''}.")
+    for tmp in tmp_holder:      # the cloned template's TemporaryDirectory, if any
+        tmp.cleanup()
 
 
 @app.command("adopt", help="register an existing tree; report divergence; zero "

@@ -19,6 +19,7 @@ Run: uv run tests/tool/test_kb.py
 """
 import datetime as _dt
 import os
+import shutil
 import subprocess
 import tempfile
 import time
@@ -1038,6 +1039,85 @@ class PrincipalTest(unittest.TestCase):
                  "alice@example.com", "--verb", "write", "--path", "profile/x.md"],
                 self.env)
         self.assertIn("GRANTED", r.stdout)
+
+
+class TemplateCloneTest(unittest.TestCase):
+    """`kb init` clones a template repo by default (no fork — a plain, read-only,
+    unauthenticated `git clone` of a public URL, nothing more). A local bare repo
+    stands in for the real one, so this carries no live-network dependency."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "dana@example.com",
+                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+        # A bare repo seeded with exactly the shape --templates already expects — the
+        # template repo IS the templates directory, just hosted on GitHub instead of
+        # shipped inside this checkout.
+        self.bare = self.dir / "template.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(self.bare)], check=True)
+        seed = self.dir / "seed"
+        shutil.copytree(TEMPLATES, seed)
+        subprocess.run(["git", "init", "-q"], cwd=seed, check=True)
+        subprocess.run(["git", "add", "-A"], cwd=seed, check=True)
+        subprocess.run(["git", "commit", "-qm", "seed"], cwd=seed, check=True,
+                       env=git_env())
+        subprocess.run(["git", "push", "-q", str(self.bare), "HEAD:refs/heads/main"],
+                       cwd=seed, check=True)
+        # A plain `git clone` checks out the bare repo's HEAD, which `git init --bare`
+        # may default to `master` regardless of what branch was actually pushed.
+        subprocess.run(["git", "symbolic-ref", "HEAD", "refs/heads/main"],
+                       cwd=self.bare, check=True)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_a_successful_clone_renders_identically_to_local_templates(self):
+        cloned = self.dir / "cloned"
+        r = run(["init", "cloned", "--path", str(cloned), "--purpose", "via clone",
+                 "--template", str(self.bare), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        for f in [".kb/base.yml", "AGENTS.md", "index.md", ".gitignore"]:
+            self.assertTrue((cloned / f).exists(), f)
+        for p in cloned.rglob("*"):
+            if p.is_file() and ".git/" not in str(p):
+                self.assertNotIn("{{", p.read_text(encoding="utf-8", errors="ignore"),
+                                 f"unrendered placeholder in {p}")
+        # the clone's own history must not ride along as this base's provenance —
+        # only the fresh `git init` + bootstrap commit exist, never the seed commit
+        log = subprocess.run(["git", "log", "--all", "--oneline"], cwd=cloned,
+                             capture_output=True, text=True).stdout
+        self.assertNotIn("seed", log)
+        self.assertIn("bootstrap", log)
+
+    def test_a_failed_clone_falls_back_to_local_templates_without_blocking(self):
+        # find_upstream_root() resolves the fallback via <AOS_HOME>/upstream, so a
+        # household fixture needs one — a symlink to this real checkout, exactly what
+        # a real household's `upstream/` is (the aos kit clone itself).
+        (self.home / "upstream").symlink_to(REPO)
+        root = self.dir / "fallback"
+        r = run(["init", "fallback", "--path", str(root), "--purpose", "no network",
+                 "--template", str(self.dir / "does-not-exist.git")], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("falling back", r.stderr + r.stdout)
+        self.assertTrue((root / ".kb" / "base.yml").exists())
+
+    def test_templates_flag_skips_the_network_step_entirely(self):
+        # --templates (a local dir) beats --template (a repo to clone) — unchanged
+        # from before this repo existed, and every other test in this file relies on
+        # exactly this to avoid a live-network dependency.
+        root = self.dir / "local"
+        r = run(["init", "local", "--path", str(root), "--purpose", "local dir",
+                 "--templates", str(TEMPLATES),
+                 "--template", str(self.dir / "unreachable.git")], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("falling back", r.stdout + r.stderr)
+        self.assertTrue((root / ".kb" / "base.yml").exists())
 
 
 class LayoutTest(unittest.TestCase):
