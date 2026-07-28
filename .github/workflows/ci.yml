@@ -34,5 +34,7 @@ jobs:
           node tools/lint/aos-lint.mjs $BASE
       - name: lint selftest
         run: node tools/lint/selftest/run.mjs
+      - name: kb surface gate
+        run: node tools/check-kb-surface.mjs
       - name: golden structural checks
         run: node tests/golden/check.mjs

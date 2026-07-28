@@ -20,7 +20,8 @@ else
   echo "check.sh: uv not found — tier-0 tool tests SKIPPED (install: https://docs.astral.sh/uv/)" >&2
 fi
 
-# tier 1 — kit lint + selftest; tier 2 — golden structural checks
+# tier 1 — kit lint + selftest, plus the kb surface gate; tier 2 — golden structural checks
 node tools/lint/aos-lint.mjs "$@"
 node tools/lint/selftest/run.mjs
+node tools/check-kb-surface.mjs
 node tests/golden/check.mjs
