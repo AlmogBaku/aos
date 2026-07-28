@@ -22,11 +22,27 @@ is only the Claude Code half.
 > turned out wrong. Claude Code ships frequently, so treat a mapping that disagrees with
 > what you observe as the sheet being stale, not the harness being wrong.
 
-**Rule zero: this harness has no scheduler.** There is no cron primitive, so every
-`schedules[]` entry hits its declared degraded mode — almost always `manual`. Do not invent
-one: a background task is not a schedule (it dies with the session), and a `crontab` entry
-would be outside the harness and invisible to `verify` and `remove`. Say plainly in the
-install summary which schedules degraded and what the user must run by hand.
+**Rule zero: the scheduler is real but session-bound, and the default does not persist.**
+Claude Code has 5-field cron (`CronCreate`/`CronList`/`CronDelete` tools, local timezone), so
+`schedules[]` maps — but three properties make it unlike every other harness's cron, and an aos
+schedule needs all three handled:
+
+1. **`durable: true` is required.** The default is in-memory: the job dies with the session and
+   nothing is written to disk, so an aos schedule that omits it silently disappears on the next
+   restart. Durable jobs land in `.claude/scheduled_tasks.json`.
+2. **Recurring jobs auto-expire after 7 days.** They fire one final time and delete themselves.
+   No aos schedule survives a week unattended, so tell the user plainly: this is a renewable
+   schedule, not a standing one.
+3. **Jobs fire only while the REPL is idle**, never mid-query and never with the app closed.
+   A nightly 23:30 promote will not run on a machine that is asleep or a session that is busy;
+   missed one-shot durable tasks are surfaced for catch-up, missed recurring ones are simply lost.
+
+So record the job id from `CronCreate` in the lockfile (that is what `remove` deletes with
+`CronDelete`), and **say in the install summary that the schedule expires in 7 days and needs
+the app running.** If the capability's contract genuinely needs an unattended guarantee — kb's
+5-minute `sync`, say — that is a `manual` degrade with an honest explanation, not a cron job
+that looks wired and quietly stops. Never reach for a system `crontab`: it is outside the
+harness and invisible to `verify` and `remove`.
 
 
 ## Primitive mapping
@@ -39,9 +55,9 @@ user asks otherwise.
 | aos concept | Claude Code primitive | Where / how |
 |---|---|---|
 | skill | Agent Skills folder: `skills/<name>/SKILL.md` — a **symlink** to the pinned render in `<home>/personal` | link at `~/.claude/skills/<installed-name>`. The folder name and frontmatter `name` must agree, which they do: `aos-lock render` writes the installed name into both (contract), so the render needs no adjustment |
-| agent | subagent definition: `~/.claude/agents/<name>.md` (frontmatter `name`, `description`, optional `tools`, `model` + markdown body = its prompt) | the dir may not exist yet — create it. Invoked by description-match or by name; there is no per-agent skills list, so `used_by` scoping is advisory here (see Feature notes) |
+| agent | subagent definition: `~/.claude/agents/<name>.md` (frontmatter `name`, `description`, optional `tools`, `model` + markdown body = its prompt) | the dir may not exist yet — create it. Invoked by description-match or by name. `tools:` restricts tools (confirmed); whether skills can be scoped per-agent is **unverified** — see Feature notes before relying on `used_by` |
 | front agent (`main`) | the main conversation — not a file you create | it has no definition file to write; give it skills and context blocks instead |
-| schedule | **none** — no cron primitive exists | every entry degrades (contract): `manual` = materialize the prompt as an invocable skill + tell the user how to run it · `inline`/`skip` per the manifest. Record the degrade in the lockfile and the summary |
+| schedule | `CronCreate` tool — 5-field cron, local timezone, **`durable: true` or it dies with the session** | record the returned job id in the lockfile; `CronDelete` on removal. Recurring jobs auto-expire after 7 days and fire only while the REPL is idle — see Rule zero. A contract needing an unattended guarantee degrades to `manual` instead |
 | context block | `~/.claude/CLAUDE.md` (user scope) or `<project>/CLAUDE.md`; `AGENTS.md` is read as an equivalent | auto-loaded every session — this is real push-context, so the MARS mode boundary lands here properly. Append inside aos markers only |
 | tool on PATH | an ordinary executable | `uv tool install` puts it on PATH like anywhere else; no harness registration needed. Bash is always available |
 | secret | environment, or `env` in `~/.claude/settings.json` | see Secrets — there is no dedicated secret store, which constrains what may be installed |
@@ -72,10 +88,15 @@ skills and context files on the next session, and `/context` shows what is loade
    restrict, which is how you enforce "no messaging tools"), and the agent's prompt body
    from `agents/<name>/*.md`. `workspace: shared` ⇒ no new agent; fold into the main
    conversation instead.
-4. **Schedules — expect to degrade every one.** There is no cron here. For `manual`,
-   materialize the prompt as an invocable skill and tell the user the trigger in plain words
-   ("ask me to run the weekly maintenance on Saturdays"). Record each degrade so `remove`
-   and `verify` still enumerate it.
+4. **Schedules — wire them, with Rule zero's three caveats.** `CronCreate` with the manifest's
+   cron expression, the prompt from `prompt_ref`, `recurring: true`, and **`durable: true`** —
+   without that last one the job is gone at the next restart. Record the returned job id in the
+   lockfile so `remove` can `CronDelete` it. Then tell the user the two things they cannot see:
+   it expires in 7 days, and it only fires while the app is open and idle. Where the capability's
+   contract needs a guarantee stronger than that, take the declared degrade (`manual` =
+   materialize the prompt as an invocable skill and name the trigger in plain words) and say why
+   in the summary — a job that looks wired and quietly stops is worse than one the user knows to
+   run.
 5. **Context blocks** inside the marker pair, appended to `~/.claude/CLAUDE.md` (or
    `AGENTS.md` if that is what the user keeps). Blank line before, trailing newline after —
    an identity file ending mid-marker corrupts the next capability's append.
@@ -135,7 +156,9 @@ Walk `aos-lock show <id>` backwards; nothing here is inferred from the filesyste
 4. Uninstall the tool if the capability installed one: `uv tool uninstall <package>`.
 5. Drop the pinned render under `<home>/personal/capabilities/<id>/` and the lockfile entry
    (`aos-lock remove <id>`).
-6. Nothing to unschedule — there were no schedules to make (Rule zero).
+6. `CronDelete` each job id the lockfile records. A session-only job (one created without
+   `durable: true`) may already be gone — that is not drift, but say so rather than reporting a
+   deletion that did not happen.
 
 Then confirm: `ls ~/.claude/skills/ | grep <prefix>` returns nothing, and `/context` in a
 fresh session no longer lists them.
@@ -143,11 +166,15 @@ fresh session no longer lists them.
 
 ## Feature notes
 
-- **`used_by` scoping is advisory here, not enforced.** Claude Code's subagents have no
-  per-agent skills list, so a skill in `~/.claude/skills/` is reachable by the main
-  conversation and, in practice, by subagents too. A capability that depends on scoping for
-  *safety* (an agent that must not reach a skill) cannot get that guarantee on this harness —
-  say so in the install summary rather than implying the scoping held.
+- **`used_by` scoping: treat it as unverified, and do not promise it.** A subagent definition
+  restricts **tools** (`tools:` in its frontmatter — that is how you enforce "no messaging
+  tools"), and that much is confirmed. Whether it can restrict *skills* the way Hermes's
+  per-agent lists do is **not verified on this harness**, and a skill in `~/.claude/skills/` is
+  at minimum reachable by the main conversation. So a capability that needs scoping for
+  **safety** — an agent that must not reach a skill — does not get that guarantee here until
+  someone confirms the mechanism. Check the running build, say what you found in the install
+  summary, and fix-and-PR this line either way. Never imply the scoping held when you did not
+  test it.
 - **Plan mode is native and worth using.** `capability-build`'s read-only gate is enforced
   by the harness here, not by prose — the strongest form of that gate across all sheets.
 - **The diff gate is native too.** Every write is shown for approval, so the contract's

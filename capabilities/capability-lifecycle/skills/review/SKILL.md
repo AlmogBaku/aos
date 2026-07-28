@@ -14,6 +14,9 @@ interfaces are prose an LLM follows; bugs are unreachable branches, dangling edg
 unstated preconditions. Hence the order: steps 1–5 read it as a system, and the cheap textual
 sweep comes last rather than first.
 
+Section headings carry **[A]** where the work is judgment and **[D]** where a command answers.
+The [D] parts cannot be faked; do those literally rather than concluding them.
+
 Copy this checklist and work it in order:
 
 ```
@@ -36,6 +39,10 @@ improvisation in a capability is indistinguishable from a bug.
 Read `CAPABILITY.md` for what is declared, then each skill for what actually happens. Where
 they disagree, the skill wins at runtime and the manifest is the defect.
 
+**A shipped tool's source is in scope**, not just its `--help`. Prose can only promise; the code
+is what happens. Reviews of this kit have found their worst defects — data loss, a silently
+flipped record — by reading the tool, never by reading about it.
+
 ## 2. Components: units vs resources **[A]**
 
 Two layers, kept separate — conflating them hides both kinds of gap:
@@ -54,26 +61,33 @@ skill reference is a defect today, not a style choice).
 ## 3. Diagram it **[A]**
 
 Draw it when there is **more than one moving part** — several skills, or an agent, or a
-schedule, or a tool. Skip it for a single-skill capability with nothing else: a two-box
-diagram carries no information and teaches the reader that these diagrams are decoration,
-which is exactly the write-only artifact check 6b exists to catch.
+schedule, or a tool. Skip it for a single-skill capability with nothing else; a two-box diagram
+carries no information, and shipping one is the write-only artifact 6b exists to catch.
 
 Mermaid, not ASCII — it is the kit's convention, renders on GitHub, and survives editing
 where hand-aligned ASCII rots on the first change. Two shapes carry most capabilities: a
 `sequenceDiagram` for the journey (who calls whom, in order) and a `flowchart` for the
-component graph, resources in subgraphs. The kb capability's `docs/design.md` is the worked
-example — `<home>/upstream/capabilities/kb/docs/design.md` in a household.
+component graph, resources in subgraphs.
 
-A flow you cannot draw is a flow you do not understand yet, and ambiguity that survives prose
-rarely survives a diagram. Two rules:
+**Derive the graph from the skills and the tool first, then diff it against any diagram the
+capability already ships — a mismatch is a finding, and the shipped one is usually the stale
+side.** Reading an existing diagram first tells you what someone believed, which is exactly what
+you are testing. For shape only (not content), `<home>/upstream/capabilities/kb/docs/design.md`
+is a worked example.
+
+Ambiguity that survives prose rarely survives a diagram — that is the point of drawing it. Two
+rules:
 
 - A `;` inside a **sequence-diagram** message is a statement separator and breaks rendering —
   use an em dash. It is harmless inside a quoted flowchart label.
 - **Verify by rendering, not by reading.** A block that parses in your head can still fail on
   GitHub, and a diagram that silently fails is worse than none: the reader sees raw source and
-  stops trusting the document. Mermaid is not a repo dependency, so render with
-  `npx @mermaid-js/mermaid-cli -i <file>` when you can. Offline, say the block is unverified
-  rather than claiming it renders.
+  stops trusting the document. Three rungs, best first: `npx @mermaid-js/mermaid-cli -i <file>`
+  renders for real, but needs a Puppeteer browser and fails in most sandboxes and CI containers;
+  failing that, `mermaid@11`'s `parse()` under a jsdom global validates the grammar (including
+  the `;` case) with no browser; failing both, say **unverified** rather than implying it
+  renders. Name which rung you used — "grammar-verified, not render-verified" is an honest
+  result, "renders correctly" on an unrendered block is not.
 
 ## 4. Stress the logic **[A]**
 
@@ -85,9 +99,12 @@ Walk the decision tree adversarially and look for:
   when the other side changes;
 - what happens on retry, on partial completion, and on a step that returns nothing.
 
-Then check soundness against the kit's standing invariants: capture latency is sacred,
-grants default to deny, a schedule has exactly one owner, and a capability that adds a second
-lifetime rule beside `expires:` is wrong by construction.
+Then check soundness against whichever standing invariants this capability actually touches —
+skip the rest rather than padding: capture latency is sacred, grants default to deny, a schedule
+has exactly one owner, one lifetime rule (`expires:`) and no second, and **attribution is the
+enforcement substrate** — every write is its own commit with the human as author and the acting
+agent as committer, so anything that lets a write reach git unattributed, or under the wrong
+subject, breaks the audit that everything else rests on.
 
 ## 5. Happy path, failure modes, journey **[A]**
 
@@ -96,10 +113,10 @@ how does it fail, and **how would the failure surface** — as a crash a user re
 exit-0 wrong answer nobody notices. The second kind is the dangerous one, and it is what
 sections 6a and 6c hunt.
 
-Turn the interesting cases into eval queries where the capability's triggering is contested.
-The kit's own `tests/evals/kb/` has near-miss sets to copy the shape from
-(`<home>/upstream/tests/evals/kb/README.md`) — read its "harness could not measure" note before
-trusting any number it produces.
+Where — and only where — the capability's *triggering* is genuinely contested, propose eval
+queries in your report; **you write no files, so do not create them.** `tests/evals/kb/` shows
+the near-miss shape, and its "harness could not measure" note is required reading before anyone
+trusts a number from that harness. If triggering is not contested, say so and move on.
 
 ## 6. The sweep **[D]** where a command can answer, **[A]** where judgment is needed
 
@@ -109,8 +126,13 @@ Mechanical, and it catches what careful reading misses:
 `--help`. The kit's linter validates schema — frontmatter, `used_by`, reference depth — and
 cannot validate behaviour, so a verb that is really an option, a required flag omitted, or a
 flag deleted from the tool all ship green. The failure lands on the agent that followed the
-instruction. The kit ships `tools/check-kb-commands.mjs` for kb and work-tracker
-(`node <home>/upstream/tools/check-kb-commands.mjs`); prefer running it to re-deriving it.
+instruction.
+
+The kit ships `tools/check-kb-commands.mjs`, but it is **hardcoded to kb and work-tracker** — run
+it only when one of those is your target. On anything else it exits 0 without opening the
+capability under review, which reads as a pass and is not one. Otherwise extract the invocations
+yourself and diff them against `--help`. And note what no such script can see: a command can
+exist with exactly the documented flags and still be unable to do what the prose claims.
 
 **b. Every artifact created must name its reader.** The rule the kit already states: *a queue
 file is only justified when the work item has no artifact of its own*. Generalised — if
@@ -122,11 +144,14 @@ enforces, refuses, checks or scopes something, prove it on a throwaway fixture. 
 tool protects you are worse than absent when false, because they stop the agent from
 protecting itself.
 
-**d. Would a weaker model reach the goal?** Unambiguous steps, no unstated prerequisites, an
-explicit stop condition on every failure path, and the reasoning behind each rule so it
-generalises past the literal case. For skill-authoring craft — description shape, triggering,
-progressive disclosure — use `writing-skills` and `skill-creator` if installed; the aos naming
-rules still win. Don't restate their guidance here.
+**d. Would a weaker model reach the goal? [D] where you can prove it.** Don't conclude this —
+test it. Take the two longest branches you drew in step 1 and name, concretely, the one fact a
+fresh agent would lack at each: an unstated prerequisite, a missing stop condition, a required
+flag the prose omits. If you cannot name one, say the branch is clean. Then check the aos-side
+mechanics that do not need any other skill: every skill declared in `used_by`, references one
+level deep with no chains, installed names computed not authored, and the manifest's own counts
+matching the README and its prose (a version-bumping commit is exactly where those drift). For
+description craft and triggering, `writing-skills` and `skill-creator` own it if installed.
 
 **e. Prefer a script once a defect class appears twice.** Two careful readings that both miss
 the same kind of thing is evidence a script is cheaper than a third reading.

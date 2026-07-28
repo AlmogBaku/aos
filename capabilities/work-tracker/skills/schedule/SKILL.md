@@ -11,13 +11,12 @@ midnight.
 
 ## 1. Estimate
 
-How long is this, honestly? Prefer the user's own number when they gave one. Where they
-didn't, a rough estimate beats none: the estimate exists so `wt-schedule` knows how much
-calendar to look for and so the steward can spot a two-minute job that has been sitting for
-three weeks.
+How long is this, honestly? Prefer the user's own number where they gave one; otherwise a
+rough estimate beats none, because it decides how much calendar to look for and lets the
+steward spot a two-minute job that has sat for three weeks.
 
-Record it as `estimate:` on the action — `45m`, `2h`. Keep the granularity the user asked for
-during onboarding; inventing precision they did not ask for (`37m`) reads as noise.
+Record it as `estimate:` on the action — `45m`, `2h`. Keep the granularity from onboarding;
+invented precision (`37m`) reads as noise.
 
 ## 2. Read the calendar before proposing anything
 

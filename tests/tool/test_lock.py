@@ -747,6 +747,34 @@ class SkillNameTest(unittest.TestCase):
         self.assertNotIn("Traceback", r.stderr)
         self.assertTrue(target.is_dir())      # never rmtree'd through the link
 
+    def test_render_into_the_packages_own_skills_dir_is_refused(self):
+        """The destructive case, and it is not a corner case: a capability that
+        `capability-build` or `capability-import` wrote lives in
+        `personal/capabilities/<id>/`, which is exactly where the install and upgrade
+        skills say to render — so `--out <pkg>/skills` fires on that capability's FIRST
+        upgrade. rmtree runs before copytree, so the user's hand-written skill and its
+        whole reference/ tree are deleted and then the copy dies on the source it just
+        removed. Refuse before touching anything."""
+        cap = self.cap("democap", ["democap", "sort"])
+        precious = cap / "skills" / "democap" / "reference" / "deep.md"
+        precious.parent.mkdir(parents=True, exist_ok=True)
+        precious.write_text("irreplaceable hand-written content\n")
+        entry = cap / "skills" / "democap" / "SKILL.md"
+        before = entry.read_text()
+
+        r = run(["render", str(cap), "democap", "--out", str(cap / "skills"), "--force"])
+        self.assertEqual(r.returncode, 1)
+        self.assertNotIn("Traceback", r.stderr)          # not an unhandled FileNotFoundError
+        self.assertIn("own tree", r.stderr)
+        # the whole point: the source survived
+        self.assertTrue(precious.is_file(), "reference/ tree was destroyed")
+        self.assertEqual(precious.read_text(), "irreplaceable hand-written content\n")
+        self.assertEqual(entry.read_text(), before)
+
+        # and a render to a genuinely separate root still works
+        out = Path(self.tmp.name) / "renders"
+        self.assertEqual(run(["render", str(cap), "democap", "--out", str(out)]).returncode, 0)
+
     def test_bad_harness_skills_arg_is_a_generic_error(self):
         cap = self.cap("democap", ["democap"])
         r = self.skills(cap, "--check", "--harness-skills", str(self.home / "nope"))
