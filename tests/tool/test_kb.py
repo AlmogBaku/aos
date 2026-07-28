@@ -2175,5 +2175,224 @@ class TemplateSurfaceTest(unittest.TestCase):
                 self.assertIn(expect, r.stdout)
 
 
+class WorkTrackerZoneTest(unittest.TestCase):
+    """work-tracker's `actions/` is an ordinary wiki zone, and that is the whole point: a
+    usecase capability builds on zones kb already understands rather than teaching kb a
+    new word. These tests pin the install-time contract, because every one of them fails
+    silently rather than loudly if it is got wrong.
+
+    Its own setUp rather than a BaseToolTest subclass — that class is a concrete leaf with
+    ~65 tests of its own, so inheriting it would re-run every one under a second name.
+    """
+
+    # The eight fields an action page carries beyond the universal schema. `status` and
+    # `project` belong here as much as the six bookkeeping ones do: the tool's schema check
+    # is a closed set, so an undeclared `status` is a lint finding on EVERY action page.
+    EXTENSIONS = "[due, estimate, block, slipped, since, waiting_on, status, project]"
+    TYPES = ("[person, company, product, concept, project, meeting, capture, clipping, "
+             "note, action]")
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "dana@example.com",
+                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "commitments",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args):
+        return run(["--base", str(self.root), *args], self.env)
+
+    # The two grant rows work-tracker's install appends. BOTH are needed, and which
+    # agents they name is not obvious: `wt-capture` is used_by: [main], so the FRONT agent
+    # writes action pages as the user speaks, while the steward writes during the nightly
+    # pass. A steward-only row leaves every interactive capture as an audit critical, and a
+    # main-only row does the same to every nightly maintenance write.
+    GRANT_ROWS = [
+        "| agent:main | `actions/**` | write | user | 2026-07-29 | work-tracker@0.1.0 | "
+        "the live commitment path (`wt-capture`) |",
+        "| agent:steward | `actions/** projects/**` | write | user | 2026-07-29 | "
+        "work-tracker@0.1.0 | nightly maintenance; project links |",
+    ]
+
+    def install(self):
+        """What work-tracker's install actually does to the base, in one place."""
+        for assignment in (f"zones.actions={{kind: wiki}}", f"types={self.TYPES}",
+                           f"frontmatter.extensions={self.EXTENSIONS}"):
+            r = self.b("config", "set", assignment)
+            self.assertEqual(r.returncode, 0, r.stderr)
+        self.grant()
+
+    def grant(self):
+        """Append the grant rows to the base's Grants table.
+
+        There is deliberately no verb for this — a grant row is a user-approved diff, and
+        `kb` refusing to grant itself permissions is the point. So install edits AGENTS.md,
+        and so does this: the table's last row is the `*` catch-all, and rows are inserted
+        before it only because reading order puts specific subjects above the wildcard.
+        """
+        p = self.root / "AGENTS.md"
+        lines = p.read_text(encoding="utf-8").splitlines()
+        star = next(i for i, ln in enumerate(lines) if ln.startswith("| `*`"))
+        lines[star:star] = self.GRANT_ROWS
+        p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        r = self.b("commit", "--verb", "create", "--path", "AGENTS.md",
+                   "--summary", "work-tracker grant rows")
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def days(self, n):
+        return (_dt.date.today() + _dt.timedelta(days=n)).isoformat()
+
+    def action(self, name, body="Write the KubeCon CFP.", **fm):
+        p = self.root / "actions" / f"{name}.md"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        fm.setdefault("title", name)
+        fm.setdefault("type", "action")
+        fm.setdefault("created", _dt.date.today().isoformat())
+        fm.setdefault("timestamp", f"{_dt.date.today().isoformat()}T10:00")
+        front = "\n".join(f"{k}: {v}" for k, v in fm.items())
+        p.write_text(f"---\n{front}\n---\n{body}\n")
+        return p
+
+    def test_an_undeclared_zone_is_invisible_rather_than_a_finding(self):
+        # The failure mode that makes the install contract load-bearing. Base.md_files()
+        # only walks zones declared in .kb/base.yml, so an actions/ directory nobody
+        # declared is not "wrong" — it does not exist as far as every verb is concerned.
+        # find returns nothing and lint reports nothing, both with exit 0. Declaring the
+        # zone is therefore not tidiness; it is the difference between a tracked
+        # commitment and a file the tool will never look at again.
+        self.action("invisible", status="next")
+        r = self.b("find", "--where", "type=action")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("(0 ", r.stdout)
+        self.assertNotIn("invisible", self.b("lint").stdout)
+
+    def test_an_action_page_lints_clean_with_the_declared_extensions(self):
+        self.install()
+        self.action("write-the-cfp", status="next", due=self.days(5), estimate="45m",
+                    block=f"{self.days(3)}T10:00", slipped=0,
+                    since=_dt.date.today().isoformat(),
+                    project="\"[[projects/booking-deal]]\"")
+        self.b("index", "rebuild")
+        self.b("commit", "--verb", "create", "--path", "actions/write-the-cfp.md",
+               "--summary", "the CFP commitment")
+        r = self.b("lint")
+        # A fully declared action page draws no schema, type or index complaint, and no
+        # grants critical of its own.
+        self.assertNotIn("outside schema", r.stdout)
+        self.assertNotIn("not in base.yml types", r.stdout)
+        self.assertNotIn("index drift", r.stdout)
+        self.assertNotIn("actions/write-the-cfp.md with no matching grant", r.stdout)
+
+    def test_the_only_criticals_left_are_kbs_own_pre_existing_ones(self):
+        """Pins a **pre-existing kb defect** so it cannot be mistaken for work-tracker's.
+
+        `kb config set` writes `.kb/base.yml` and `kb index rebuild` writes `index.md`,
+        both as the acting agent — and the seeded grants table gives `agent:main` a row for
+        neither, though both verbs are documented for ordinary use. So any base whose
+        schema was ever edited carries a permanent audit critical, on a fresh untouched
+        base too: verified independently of work-tracker.
+
+        Asserting the shape rather than `Critical (0)` keeps this test honest about what it
+        can prove today. Fixing it means changing kb's seeded template, which is mirrored
+        in the aos-kb-template repo — a push, and therefore a decision, not a drive-by.
+        """
+        self.install()
+        self.b("index", "rebuild")
+        out = self.b("lint").stdout
+        criticals = [ln for ln in out.splitlines() if "grants audit" in ln]
+        self.assertTrue(criticals, "expected the pre-existing criticals to still be here")
+        for line in criticals:
+            self.assertTrue(
+                ".kb/base.yml" in line or "index.md" in line or "AGENTS.md" in line,
+                f"a critical that is NOT the known kb config/index/AGENTS gap: {line}")
+
+    def test_an_undeclared_field_is_a_finding(self):
+        self.install()
+        self.action("x", status="next", priority="high")
+        self.assertIn("outside schema", self.b("lint").stdout)
+
+    def test_status_and_project_are_part_of_the_declared_eight(self):
+        # Declaring only the six bookkeeping fields puts a finding on every action page
+        # the capability will ever write, which reads as a broken install rather than a
+        # schema list two words short.
+        self.b("config", "set", "zones.actions={kind: wiki}")
+        self.b("config", "set", f"types={self.TYPES}")
+        self.b("config", "set",
+               "frontmatter.extensions=[due, estimate, block, slipped, since, waiting_on]")
+        self.action("short", status="next", project="\"[[projects/deal]]\"")
+        out = self.b("lint").stdout
+        self.assertIn("outside schema", out)
+        self.assertIn("status", out)
+        self.assertIn("project", out)
+
+    def test_a_completed_action_prunes_only_after_expires_passes(self):
+        self.install()
+        self.action("done", status="done", expires=self.days(1))
+        self.b("prune")
+        self.assertTrue((self.root / "actions/done.md").exists())
+        r = self.b("set", "actions/done.md", f"expires={self.days(-1)}")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.b("prune")
+        self.assertFalse((self.root / "actions/done.md").exists())
+
+    def test_a_due_date_in_the_past_never_prunes_an_open_action(self):
+        # due: is a deadline; expires: is an end of life. Conflating them would delete
+        # exactly the commitments most worth raising, so this is the guard on that.
+        self.install()
+        self.action("overdue", status="next", due=self.days(-30))
+        self.b("prune")
+        self.assertTrue((self.root / "actions/overdue.md").exists())
+
+    def test_the_backstop_query_finds_an_unscheduled_commitment(self):
+        self.install()
+        self.action("needs-a-slot", status="next")
+        self.action("has-a-slot", status="next", block=f"{self.days(1)}T09:00")
+        r = self.b("find", "--where", "status=next", "--without", "block")
+        self.assertIn("needs-a-slot", r.stdout)
+        self.assertNotIn("has-a-slot", r.stdout)
+
+    def test_both_grant_rows_are_needed_not_just_the_steward_one(self):
+        """The install trap. `wt-capture` is used_by: [main], so the front agent writes
+        action pages during an ordinary conversation, and the steward writes during the
+        nightly pass. Granting one and not the other looks like it worked — the write
+        succeeds, the commit lands — and surfaces a week later as a grants-audit critical,
+        which is the worst shape a permission failure can take."""
+        self.install()
+        for subject in ("agent:main", "agent:steward"):
+            with self.subTest(subject=subject):
+                r = self.b("grants", "check", "--subject", subject,
+                           "--verb", "write", "--path", "actions/cfp.md")
+                self.assertIn("GRANTED", r.stdout)
+        # And the steward alone reaches project pages, because linking an action to its
+        # project is maintenance, not capture.
+        self.assertIn("GRANTED", self.b("grants", "check", "--subject", "agent:steward",
+                                        "--verb", "write",
+                                        "--path", "projects/deal.md").stdout)
+
+    def test_a_steward_write_with_no_grant_row_is_an_audit_critical(self):
+        """The counterfactual for the row above — proof the audit really catches this,
+        rather than the rows being decorative."""
+        for assignment in ("zones.actions={kind: wiki}", f"types={self.TYPES}",
+                           f"frontmatter.extensions={self.EXTENSIONS}"):
+            self.b("config", "set", assignment)          # note: no self.grant()
+        self.action("ungranted", status="next")
+        self.b("commit", "--verb", "create", "--path", "actions/ungranted.md",
+               "--summary", "a write with no row")
+        out = self.b("lint").stdout
+        self.assertIn("grants audit", out)
+        self.assertIn("actions/ungranted.md", out)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)
