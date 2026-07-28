@@ -9,9 +9,11 @@ description: "Answers a question from what is already stored in the user's knowl
 training data while implying it came from the bases. The searching agent is *you*, the
 asking agent.
 
-1. **Pick bases.** An explicit mention wins ("in my work base"). Otherwise route the
-   question yourself: registry `purpose` fields are the rubric, and read grants bound the
-   scope. Candidates are cheap — read deeply only in the top-ranked base or two.
+1. **Pick bases.** An explicit mention wins ("in my work base"). Otherwise route the question
+   yourself against the registry — read it directly at `$AOS_REGISTRY`, else
+   `<home>/personal/kb-registry.yaml`, since no verb lists bases — where each entry's
+   `purpose` is the rubric. Candidates are cheap; read deeply only in the top-ranked base or
+   two, and pass `--base <name>` on every command so you know which one answered.
 2. **Find candidates with two engines, combined freely.**
    - *Agentic navigation* (default): `index.md`'s one-liners as the table of contents →
      follow `[[wikilinks]]` → grep. Best for structure-shaped questions over curated pages.
@@ -33,10 +35,14 @@ asking agent.
    `origin:` pointing at this session. On a shared base the offer lands in the queue like
    every other agent write.
 6. **Bump state** — only if you are this base's state writer (`agent:main` by default;
-   confirm with `kb grants check --subject <you> --verb write --path .kb/state/x.yml`) and an
-   attention item was materially used: `kb state bump --note <substring>`. The substring must
-   match exactly one item, and the command errors if it matches none or several — read the
-   error and pick a longer substring rather than retrying blindly.
+   confirm with `kb grants check --subject <you> --verb write --path .kb/state/x.yml` — any
+   path under the zone, the check is against the glob) and an attention item was materially
+   used: `kb state bump --note <substring>`. The substring must match exactly one item, and the
+   command errors if it matches none or several — read the error and pick a longer substring
+   rather than retrying blindly. **DENIED → do not bump, and say so in your answer.**
+   `kb state bump` will succeed regardless, because no write verb consults the grants table;
+   the violation only surfaces in the next weekly audit, which is why honouring the check is
+   yours to do.
 
 Where the harness supports sub-contexts, delegate the read-heavy traversal in step 3 to one
 and return only the answer plus citations — it keeps the caller's context clean. Degraded

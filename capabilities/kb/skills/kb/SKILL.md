@@ -55,12 +55,21 @@ pages cite raw.
 
 Both ways a page leaves are destructive, so both get looked at before and after:
 
-- **Expired** → `kb prune --dry-run` to see the list, then `kb prune`, then read what it
-  reports as deleted. Git is the undo, but an undo nobody knows they need is no undo, so the
-  point of the dry run is to notice a page you did not expect on that list.
+- **Expired** → `kb --base <name> prune --dry-run` to see the list, then the same command
+  without `--dry-run`, then read what it reports as deleted. Git is the undo, but an undo
+  nobody knows they need is no undo, so the point of the dry run is to notice a page you did
+  not expect on that list.
 - **Stopped mattering** → that is a judgment, not a date, so it leaves through
-  `kb archive <page> --reason "<why>"` — a `git rm` plus an attributed commit. Confirm the
-  commit landed (`kb history`) rather than assuming it did.
+  `kb --base <name> archive <page> --reason "<why>"` — a `git rm` plus an attributed commit.
+  Confirm the commit landed (`kb history`) rather than assuming it did. The tool will archive
+  with **no** `--reason` and destroy the page anyway; if you cannot state the reason, you have
+  not earned the archive, so don't run the command.
+
+**Name `--base` explicitly on both, every time.** A bare `kb prune` resolves a base by walking
+up from the current directory and then falling back to the *registry default* — so run from
+anywhere else, it deletes from a base you were not thinking about, and reports success. The
+dry run and the real run resolve independently, so without an explicit `--base` they are not
+even guaranteed to be talking about the same base.
 
 ## Links
 

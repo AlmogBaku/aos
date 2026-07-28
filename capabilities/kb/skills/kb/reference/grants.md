@@ -36,8 +36,11 @@ age out.
 
 ## Enforcement, honestly
 
-Three layers, weakest first. **(1)** The self-check at write time — this lookup, which
-catches honest mistakes. **(2)** The weekly lint's audit: git authorship crossed against
+Three layers, weakest first. **(1)** **Your own** pre-write check — you run
+`kb grants check` yourself, because the tool does not. No write verb consults this table:
+`kb capture`, `kb set` and the rest will perform any write you ask for, as any subject you
+name, and exit 0. Skipping the check is not blocked, it is merely *found* — up to a week
+later, by layer 2. **(2)** The weekly lint's audit: git authorship crossed against
 this table. Every write is its own commit, author = the human principal and committer = the
 acting agent, so a write with no matching row is a finding every time and nothing is batched
 under one identity to hide behind. Only `bootstrap` is exempt, because it scaffolds the tree
@@ -46,8 +49,16 @@ vocabulary. Inside one user's harness, agents are cooperating processes; across 
 boundary, enforcement is the gate's job. On a **shared** base, agent writes land as
 proposals in the queue and never directly.
 
-**Reads are not yet enforced by the tool.** `grant_check` is consulted by `kb grants check`
-and by the weekly audit — no read verb calls it, so `kb search` and `kb find` will return
-what is on disk regardless of this table. Honouring read scope is currently the agent's own
-discipline (and, across a trust boundary, the future gate's job). Treat a `read` row as a
-statement of what you are *permitted* to look at, not as a wall that will stop you.
+**Nothing in the tool is a wall.** `grant_check` has three call sites: this table's own
+lookup verb, and the weekly audit. Neither reads nor writes consult it, so `kb search` and
+`kb find` return what is on disk and `kb capture` writes what you hand it, whatever the table
+says. Treat every row as a statement of what you are *permitted* to do, honoured by your own
+discipline — not as something that will stop you.
+
+**The acting subject is unverified, and that makes `AOS_AGENT` forgeable.** The tool records
+whatever `--agent` / `AOS_AGENT` says as the committer, with no check that you are that
+subject. So naming a subject whose grants you lack — `agent:archiver`, say, to reach the wiki
+zones — produces commits that pass the audit clean. **Never do this.** It is not a workaround
+for a missing grant, it is forgery of the only attribution the whole enforcement story rests
+on, and it defeats layer 2 silently and permanently. A write you lack the grant for is a
+`kind: refusal` entry, or a row the user adds.

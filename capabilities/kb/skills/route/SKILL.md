@@ -9,12 +9,18 @@ description: "Decides which of the user's knowledge bases a piece of content sho
 filter on the candidate list, not a confidence threshold, so no bar can ever be tuned into
 letting one through.
 
-Resolve one write to one base from `kb-registry.yaml`. Cost: at most one model call,
-usually zero. Latency is sacred here — a wrong-but-cheap landing in a *private* base is
-corrected by the archiver's nightly pass, and a synchronous question is not.
+Resolve one write to one base. Cost: at most one model call, usually zero. Latency is sacred
+here — a wrong-but-cheap landing in a *private* base is corrected by the archiver's nightly
+pass, and a synchronous question is not.
+
+**Start by reading the registry directly**: `$AOS_REGISTRY`, else
+`<home>/personal/kb-registry.yaml`. Each entry under `kbs:` carries the `name`, `audience`,
+`purpose`, `tag` and `routing` you need below. There is no verb that lists bases, so reading
+the YAML is the intended method rather than a workaround.
 
 **Candidate set**: only bases where the writing subject holds a `route-into` grant
-(`kb grants check --subject <s> --verb route-into --path _raw/x` per base). Zero candidates
+(`kb grants check --subject <s> --verb route-into --path _raw/x` per base — any path under the
+zone; the check is against the glob, not a real file). Zero candidates
 does not mean drop the payload: hand it back to the caller tagged
 `kb_routing.status: refused` (a field on the map, not a bare scalar — see below) and record
 it with `kb refuse --path <target> --subject <s> --reason "no route-into grant"`, which files

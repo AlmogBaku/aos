@@ -8,8 +8,9 @@ description: "Registers a knowledge tree the user already has as a base and repo
 **Zero writes into the adopted tree.** Divergence is a finding, never an error. Promise that
 out loud — it is the thing users actually fear.
 
-1. **Sanity.** The path exists, is a git repo (if not, offer `git init`; don't insist), and
-   is not already registered.
+1. **Sanity.** The path exists and is a git repo (if not, offer `git init`; don't insist).
+   Don't try to check whether it is already registered — no verb lists the registry, and
+   `kb adopt` fails with "already registered" on its own, which is the answer you wanted.
 2. **Interview the tree, not the user.** `kb adopt <path> --name <n> --audience <a>
    --purpose "<p>"` registers it (sync is always `manual` — auto-commit is opt-in only),
    detects `.kb/base.yml`, and honours the most-restrictive audience rule: a tree declaring
@@ -24,7 +25,17 @@ out loud — it is the thing users actually fear.
    positional** — a bare `kb migrate <path>` is a usage error). It does the moves with
    `git mv` so history follows each file, and commits them.
 
-   Two traps here. `kb migrate` refuses on an uncommitted worktree, which is the right
+   **`kb migrate` has no `--dry-run`**, so "showing them what will move" means telling them,
+   from this list — it is the whole migration: `BASE.yaml` → `.kb/base.yml`; the root state file →
+   `.kb/state/<principal>.yml` (a single root-level state file is this principal's by
+   definition — a single-writer base had one); an old `state/` directory shards the same way;
+   `raw/` → `_raw/`, flattened, **except** anything still pending,
+   which goes to `.kb/pending/` because that is what pending means now; the old machinery and
+   archive directories dropped; zone contract files re-rendered rather than moved. Say plainly that a
+   `git revert` of the migration commit is the only undo, so the worktree must be committed
+   first anyway.
+
+   Two more traps. `kb migrate` refuses on an uncommitted worktree, which is the right
    answer — commit or stash first. And any *other* verb run from inside an unmigrated tree
    silently resolves to the **registry's default base** instead, because path resolution
    walks parents looking for `.kb/base.yml` and falls back when it finds none. So a `kb lint`

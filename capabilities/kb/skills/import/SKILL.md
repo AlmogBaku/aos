@@ -37,6 +37,12 @@ frontmatter fields in use, wikilink density, large binaries, and the **shape** �
 `plain`, or `base-native` (stop: that is `kb-adopt`, not import). Present a short digest and
 a first-cut mapping proposal.
 
+**Sanity-check the counts before presenting them.** The default skip list covers `.git`,
+`.obsidian`, `node_modules`, `.kb` and backups — but not `.venv`, `__pycache__`, `dist` or
+`build`, so a source tree containing code will report thousands of files and list interpreter
+binaries as "large binaries" worth mapping. If the numbers look wrong they are: name the
+build and virtualenv directories in the skip list and survey again.
+
 ## 1b. Grants — do this before you write anything
 
 You run as `agent:main`, and the seeded table grants `agent:main` write on `_raw/**`,
@@ -54,11 +60,16 @@ requiring the user:
 - **Add rows for the duration** — `agent:main` write on `.kb/work/** index.md` plus the
   wiki zones the agreement names, `via: kb-import@<version>` so removal is mechanical. Show
   the diff, get approval, and offer to revoke them at the end.
-- **Or hand the wiki writes to `agent:archiver`**, which already holds them, and keep
-  yourself to survey, agreement and reporting.
+- **Or let the archiver do the wiki writes itself** — invoke that agent so it performs them
+  under its own identity, and keep yourself to survey, agreement and reporting.
 
 Row changes are `user`-only. Never write past a DENIED check and never edit the table
 yourself.
+
+**Never set `--agent` / `AOS_AGENT` to `agent:archiver` to borrow its grants.** The tool does
+not verify the acting subject, so those writes succeed and the weekly audit passes them — which
+is precisely what makes it forgery of the one attribution enforcement rests on, rather than a
+workaround. Delegation means the other agent runs the command.
 
 ## 2. Mapping — the agreement
 
@@ -85,8 +96,12 @@ resumability mechanism: any executor can drain it, and re-entry is free. Then ba
 about twenty:
 
 - **Mechanical sets** (assets, already-provenanced archives) need no subagent: `cp` per the
-  agreement, then tick the lines. Old inbox files: one `kb capture` per line, dedup makes
-  it idempotent.
+  agreement, then tick the lines — **then attribute the batch**, because a `cp` plus a hand-tick
+  is an unattributed working-tree change: `kb --base <name> commit --verb create --path <each>
+  --summary "<set> batch N"` (all three flags are required). Skip it and those files reach git
+  only through the sync sweep, which names no acting subject and makes stage 5's "lint clean"
+  unreachable. Old inbox files: one `kb capture` per line, dedup makes it idempotent, and those
+  are already attributed.
 - **Wiki-bound sets**: hand each subagent a slice of unticked lines, the agreement, and the
   transform rules. Each subagent reads the source page, writes the new page under
   **current-truth doctrine** (facts as they stand now; dated history worth keeping becomes a

@@ -16,7 +16,11 @@ agent operates autonomously inside the frozen zone set, and a zone change is an
 owner-approved `.kb/base.yml` edit.
 
 - **Name, path** (default `~/<name>-base`), **remote** (optional), **audience**
-  (`private` default, or `shared`), **sync** (`rebase-5min` needs a remote).
+  (`private` default, or `shared`), **sync** (`rebase-5min` or `manual`).
+- **`rebase-5min` requires a remote, and nothing enforces that** — stop and get one if the
+  user wants it. `kb init --sync rebase-5min` with no `--remote` succeeds, and the resulting
+  cron then reports `synced (no remote)` and exits 0 every five minutes forever, syncing
+  nothing. No remote yet? Choose `manual` and switch later.
 - **Purpose** — one paragraph. It is the rubric for both routing and recall. Write it well.
 - **Theme → zones and types.** An engineering base wants different zones and types than a
   family or self base. Start from the template defaults and adjust *with* the user.
