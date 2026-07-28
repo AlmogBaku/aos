@@ -1,14 +1,13 @@
-# weekly-lint
+# weekly-maintain
 
 For each registered base:
 
-1. `base lint --write-report` — the deterministic catalog runs in the tool; the
-   report lands in `_ops/lint-report-YYYY-WW.md`, committed.
-2. Read the report. Mechanical fixes you may apply directly: rebuild the index
-   (`base index rebuild`), archive stale seedlings the report names (move to
-   `_archive/`, then `base commit --verb archive`). Judgment findings (Contested inventory, duplicate
-   suspicions, unverified-with-inbound, grants-audit hits) → surface in
-   `_ops/needs-review/` with evidence and a stated default; never resolve them
-   yourself.
-3. Surface **Critical** findings for the user's next brief — only Critical.
-4. Nothing to report → output exactly `ARCHIVER: lint clean.` and deliver nothing.
+1. `kb prune` — delete what has expired and record what went. Git is the undo, so this needs
+   no confirmation; read the report and mention anything surprising.
+2. `kb lint` — the deterministic catalog runs in the tool and its **stdout is the report**;
+   there is no report file, because nothing ever read one. Mechanical fixes you may apply
+   directly: `kb index rebuild`. Judgment findings (Contested inventory, duplicate
+   suspicions, unverified-with-inbound, grants-audit hits) → `kb pending add --kind finding
+   --waits-on human` with evidence and a stated default. Never resolve them yourself.
+3. Raise **Critical** findings for the user's next brief — only Critical.
+4. Nothing to report → output exactly `ARCHIVER: maintenance clean.` and deliver nothing.

@@ -356,9 +356,8 @@ def _lint_routing(base: Base, global_opts, critical: list, findings: list) -> No
                                 f"({bar}) but status: routed")
 
 
-def _run_lint(base: Base, global_opts, *, write_report: bool = False,
-             audit_days: int = 8, stale_pending_days: int = 14,
-             ci: bool = False) -> None:
+def _run_lint(base: Base, global_opts, *, audit_days: int = 8,
+             stale_pending_days: int = 14, ci: bool = False) -> None:
     critical, findings, info = [], [], []
     types = set(base.cfg.get("types") or [])
     extensions = set((base.cfg.get("frontmatter") or {}).get("extensions") or [])
@@ -391,14 +390,10 @@ def _run_lint(base: Base, global_opts, *, write_report: bool = False,
     report = "\n".join(lines) + "\n"
     print(report, end="")
 
-    if write_report:
-        week = _dt.date.today().isocalendar()
-        dst = base.work_dir / f"lint-report-{week[0]}-{week[1]:02d}.md"
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        dst.write_text(report, encoding="utf-8")
-        agent, author, _ = acting(global_opts, base)
-        base.commit("lint", dst, f"{len(critical)} critical, {len(findings)} findings",
-                    agent, author)
+    # The report IS the interface. There used to be a --write-report flag that committed
+    # this same text into the base as a dated file; nothing ever read it, and the weekly
+    # job's real need was never a file but for criticals to become work someone sees —
+    # which is what `kb pending add --kind finding` does.
     # Report-only by default: the report is the interface, and the exit code carries no
     # verdict. `--ci` is the one exception, and it outlived the CI janitor it was built
     # for: a user wiring lint into their own hook or Action needs an exit code, and the
@@ -412,7 +407,6 @@ def _run_lint(base: Base, global_opts, *, write_report: bool = False,
                          "report is the interface)")
 def cmd_lint(
     ctx: typer.Context,
-    write_report: bool = False,
     audit_days: int = 8,
     stale_pending_days: Annotated[int, typer.Option(
         help="an entry waiting on a human longer than this is a finding")] = 14,
@@ -421,5 +415,5 @@ def cmd_lint(
              "needs a verdict rather than a report")] = False,
 ):
     base = resolve_base(ctx.obj)
-    _run_lint(base, ctx.obj, write_report=write_report, audit_days=audit_days,
+    _run_lint(base, ctx.obj, audit_days=audit_days,
              stale_pending_days=stale_pending_days, ci=ci)

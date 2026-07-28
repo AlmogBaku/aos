@@ -242,7 +242,7 @@ def cmd_adopt(
         # crashed with AttributeError on a base carrying an aged human-waits
         # pending item. Explicit keyword defaults close that gap deliberately.
         adopted_base = Base(root)
-        _run_lint(adopted_base, ctx.obj, write_report=False, audit_days=audit_days)
+        _run_lint(adopted_base, ctx.obj, audit_days=audit_days)
     else:
         print("divergence: no .kb/base.yml — not a kit-native base. Report:")
         for probe, label in [("AGENTS.md", "root contract"), ("index.md", "index"),
