@@ -51,9 +51,10 @@ nothing, not even `*`. A cross-zone write needs a row here first.
 ## Reading order
 
 1. This file · 2. `index.md` · 3. `kb history` (recent activity, from git) · 4. `kb state
-show` (where things stand). Add `kb pending list` if you process work — on a base several
-people write to it shows **yours**; somebody else's raw material is not yours to read
-unless you are the designated curator (`--all`).
+show` (where things stand). Add `kb inbox` if you process work — on a base several people
+write to, `inbox` shows **yours** and `--all` (the designated curator's path) shows
+everyone's. `kb pending list` is the unfiltered view of the same directory, so prefer
+`inbox`: somebody else's raw material is not yours to read.
 
 ## Write rules
 

@@ -48,7 +48,8 @@ events; a timeline is never a museum of old facts. It must be the page's last se
 
 ## Capture states
 
-**Location is the state.** In `.kb/pending/` means waiting; `kb ingest <id>` moves it to
+**Location is the state.** In `.kb/pending/` means waiting; `kb ingest <path>` — a
+base-relative path, as `kb inbox` prints it, not a bare id — moves it to
 `_raw/`, which means ingested and immutable. There is no separate field to disagree with the
 directory the file sits in. A correction is a new capture linked to the old one —
 `kb capture --corrects <path>` — never an edit, and never prose that a later pass has to

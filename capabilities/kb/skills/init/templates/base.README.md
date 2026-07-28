@@ -20,7 +20,7 @@ notes, in folders, in git.
 kb capture --text "…"        file a thought — takes under a second
 kb search "acme"             full-text
 kb find --where type=person  filter by frontmatter
-kb pending list              what is waiting on you
+kb inbox                     what is waiting on you
 kb state show                where your head is
 ```
 

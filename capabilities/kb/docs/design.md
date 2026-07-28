@@ -50,14 +50,14 @@ sequenceDiagram
     User->>Front: "Robin says the venue is booked"
     Front->>Tool: kb capture --text … --source chat
     Note over Tool: frontmatter, sha256 dedup, one commit — under a second
-    Tool-->>Front: .kb/pending/2026-07-27-robin-venue.md
+    Tool-->>Front: .kb/pending/20260727T2141-robin-venue.md
     Front-->>User: 👍
     Note over Arch: overnight, one pass per base
-    Arch->>Tool: kb pending list --where waits_on=agent
+    Arch->>Tool: kb inbox (this principal's, not everyone's)
     Arch->>Tool: kb search "robin"
     Tool-->>Arch: EXISTS entities/people/robin.md
     Arch->>Tool: kb set entities/people/robin.md … (grow the page)
-    Arch->>Tool: kb ingest 2026-07-27-robin-venue
+    Arch->>Tool: kb ingest .kb/pending/20260727T2141-robin-venue.md
     Note over Tool: the capture moves to _raw/ and becomes immutable
 ```
 

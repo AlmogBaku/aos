@@ -52,10 +52,24 @@ directories, and show the user the diff.
 
 ## 3. Schedules
 
-Create them per the cheat-sheet (the `kb` skill's `reference/wiring.md` has the table):
-`nightly-promote` and `weekly-maintain` as archiver agent jobs, `sync` as a script-only
-exec job with no model in the loop. The single-owner rule applies. No cron on the harness →
-materialize run-cards and tell the user what to run and when.
+Three jobs, and init is not finished until all three exist. The harness cheat-sheet gives the
+exact cron syntax for this harness; what does not vary is *what* to schedule:
+
+| id | when | runs | as |
+|---|---|---|---|
+| `nightly-promote` | `30 23 * * *` | the archiver agent, prompt `agents/archiver/promote.md` | agent job |
+| `weekly-maintain` | `0 7 * * 6` | the archiver agent, prompt `agents/archiver/lint.md` | agent job |
+| `sync` | `*/5 * * * *` | `kb sync --all` | **exec job — no model wakes up** |
+
+Two things that silently break if you skip them: the sync wrapper **must** anchor the
+registry (export `AOS_REGISTRY=<home>/personal/kb-registry.yaml`, or pass `--registry`),
+because a bare `kb sync` with no resolvable registry exits 0 having synced nothing; and the
+single-owner rule means each of these runs in exactly one harness, so check none of them
+already exists before creating it.
+
+**No cron on this harness?** Then all three degrade to `manual` run-cards: write down the
+command and the trigger for each ("run `kb sync --all` when you finish a session"; "ask the
+archiver to promote overnight"), and tell the user, because nothing will run them otherwise.
 
 ## 4. Verify
 

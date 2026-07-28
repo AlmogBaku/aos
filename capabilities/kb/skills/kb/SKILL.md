@@ -26,17 +26,33 @@ derivative; the `kb` tool never calls an LLM — mechanics are its, judgment is 
 `.kb/pending/` is the only queue — one file per item, `waits_on:` naming who is blocked
 (`agent` or `human`) and `kind:` naming what it is (`capture` `refusal` `conflict` `entity`
 `finding`). A queue *file* is only justified when the work has no artifact of its own;
-everything else is a query. `kb find --where status=next --without block` over frontmatter,
-`kb search` for full text, and the tool does the date arithmetic (`--where expires<today+7d`)
-so nobody computes "seven days before Tuesday" by hand and gets it silently wrong.
+everything else is a query.
+
+**Read it with `kb inbox`, not `kb pending list`.** Only `inbox` scopes to the acting
+principal; `pending list` is the unfiltered directory. On a base several people write to, the
+unfiltered view hands you everyone's captures — so the same item gets processed once per
+person, and somebody else's raw material enters your context. `--all` is the designated
+curator's path, not the default.
+
+For everything else, query rather than queue: `kb find --where status=next --without block`
+over frontmatter, `kb search` for full text. The tool does the date arithmetic
+(`--where expires<today+7d`), so nobody computes "seven days before Tuesday" by hand and gets
+it silently wrong.
 
 ## Lifetime
 
-kb knows exactly one thing about how long a page lives: **`expires:`**. Past it, `kb prune`
-deletes and reports what went, and git is the undo. Without it the page lives forever, and
-most pages never carry one. `_raw/` never expires — answers cite pages, pages cite raw.
-A page that merely stopped mattering is a judgment call, not a date, so it leaves through
-`kb archive <page> --reason …` (a `git rm` plus an attributed commit).
+kb knows exactly one thing about how long a page lives: **`expires:`**. Without it the page
+lives forever, and most pages never carry one. `_raw/` never expires — answers cite pages,
+pages cite raw.
+
+Both ways a page leaves are destructive, so both get looked at before and after:
+
+- **Expired** → `kb prune --dry-run` to see the list, then `kb prune`, then read what it
+  reports as deleted. Git is the undo, but an undo nobody knows they need is no undo, so the
+  point of the dry run is to notice a page you did not expect on that list.
+- **Stopped mattering** → that is a judgment, not a date, so it leaves through
+  `kb archive <page> --reason "<why>"` — a `git rm` plus an attributed commit. Confirm the
+  commit landed (`kb history`) rather than assuming it did.
 
 ## Links
 

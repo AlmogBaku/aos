@@ -1254,12 +1254,53 @@ class QueryTest(unittest.TestCase):
         p.write_text(f"---\n{front}\n---\n{body}\n")
         return p
 
+    def test_where_on_a_list_field_means_membership(self):
+        """`tags` and `aliases` are lists in every base, so equality against one has to
+        mean "is in", not "stringifies to". Comparing against "['client', 'active']"
+        returns nothing and raises no error — a silently empty result set, which is the
+        worst answer shape a query can give. recall's SKILL.md advertises
+        `--where tags=active`, so this is a documented path."""
+        self.page("entities/acme.md", type="company", tags="[client, active]",
+                  aliases='["ACME", "Acme Corp"]')
+        r = self.b("find", "--where", "tags=active")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("entities/acme.md", r.stdout)
+        # the other list field behaves the same way
+        r = self.b("find", "--where", "aliases=ACME")
+        self.assertIn("entities/acme.md", r.stdout)
+        # and a non-member still misses, so this is membership rather than "any list"
+        r = self.b("find", "--where", "tags=dormant")
+        self.assertNotIn("entities/acme.md", r.stdout)
+        # scalars are unaffected
+        r = self.b("find", "--where", "type=company")
+        self.assertIn("entities/acme.md", r.stdout)
+
     def test_where_equality_and_repeatability(self):
         r = self.b("find", "--where", "type=project", "--where", "status=next")
         self.assertIn("projects/cfp.md", r.stdout)
         self.assertIn("projects/old.md", r.stdout)
         self.assertNotIn("someday", r.stdout)
         self.assertNotIn("bm25", r.stdout)
+
+    def test_where_matches_membership_in_a_list_field(self):
+        # `tags` and `aliases` are lists in every base, and both docs/reference.md and
+        # the recall skill tell you to filter on them. Stringified equality compares
+        # against "['client', 'active']" and returns NOTHING with exit 0 — a silent
+        # wrong answer, which for a recall path means reporting a gap that isn't one.
+        self.page("entities/acme.md", type="company", tags="[client, active]",
+                  aliases="[Acme, ACME]")
+        r = self.b("find", "--where", "tags=active")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("entities/acme.md", r.stdout)
+        r = self.b("find", "--where", "aliases=ACME")
+        self.assertIn("entities/acme.md", r.stdout)
+        # A value that is not a member must still miss.
+        r = self.b("find", "--where", "tags=dormant")
+        self.assertNotIn("entities/acme.md", r.stdout)
+        # And a scalar field keeps exact-match semantics — membership must not leak
+        # into substring matching.
+        r = self.b("find", "--where", "type=compan")
+        self.assertNotIn("entities/acme.md", r.stdout)
 
     def test_without_finds_absence(self):
         # A query language that cannot ask "is this field missing" is half a language:

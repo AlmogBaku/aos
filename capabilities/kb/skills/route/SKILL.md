@@ -1,6 +1,6 @@
 ---
 name: route
-description: "Resolves which of the user's knowledge bases a write belongs in, using the registry — explicit tag first, then rules, then a confidence-gated model call across private bases only. Use when a skill or capability already holds content to file and the destination base is not explicit. Do NOT use when the user has just spoken something to remember — kb-capture handles that and calls this itself — and never use it as an excuse to ask the user 'work or personal?' mid-capture."
+description: "Decides which of the user's knowledge bases a piece of content should be filed in, checking the user's own routing rules first and only then asking a model — and never sending a model's guess into a base other people can read. Use when a skill or capability already holds something to file and the destination base is not obvious ('file this in the right base', 'which base does this belong in', 'save this somewhere sensible'). Do NOT use when the user has just spoken something to remember — kb-capture handles that and calls this itself — and never use it as an excuse to ask the user 'work or personal?' mid-capture."
 ---
 
 # route

@@ -96,7 +96,15 @@ def match_query(fm: dict, where: list, without=None) -> bool:
         if got is None:
             return False        # a missing field never satisfies a comparison
         if op == "=":
-            if str(got).strip().lower() != val.strip().lower():
+            # A list field means membership, not stringified equality. `tags` and
+            # `aliases` are lists in every base, so `--where tags=active` has to match
+            # a page carrying `tags: [client, active]` — the alternative compares
+            # against "['client', 'active']" and silently returns nothing, which is
+            # the worst answer shape a query can give.
+            if isinstance(got, (list, tuple, set)):
+                if val.strip().lower() not in {str(g).strip().lower() for g in got}:
+                    return False
+            elif str(got).strip().lower() != val.strip().lower():
                 return False
             continue
         left, right = _coerce(got, val)

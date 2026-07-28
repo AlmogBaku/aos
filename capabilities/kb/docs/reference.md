@@ -69,7 +69,7 @@ can move it).
 | `kb adopt` | W (registry only) | register an existing tree; zero writes into it |
 | `kb migrate` | W | previous layout → current, with `git mv` so history follows |
 | `kb capture` | W | file content into `.kb/pending/`; `--corrects <path>` links a correction |
-| `kb ingest` | W | move a pending capture into `_raw/` |
+| `kb ingest <path>` | W | move a pending capture into `_raw/`; base-relative path, not an id. One base — there is no cross-base form |
 | `kb pending add\|list\|resolve` | R/W | the queue |
 | `kb inbox` | R | a view: this principal's pending items (`--all` for everyone's, curator only) |
 | `kb set <page> k=v …` | W | generic frontmatter mutation, one commit |

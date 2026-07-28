@@ -25,7 +25,7 @@ from ..frontmatter import slugify, read_frontmatter
 from ..identity import today, is_repo, git, sequencer_state, is_weak_principal, \
     principal_file, resolve_principal
 from ..registry import load_registry
-from ..base import Base, resolve_base, acting
+from ..base import Base, resolve_base
 from .wiki import _link_graph
 
 app = typer.Typer()
