@@ -1621,6 +1621,34 @@ class WriteVerbTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(self.fm(self.root / "projects/cfp.md")["status"], "next")
 
+    def test_archive_validates_every_path_before_removing_any(self):
+        """`.unlink()` raises IsADirectoryError, so a directory in second position used to
+        `git rm` the first path, STAGE it, and then die on the traceback — a partial deletion
+        with no commit and no explanation. Validation belongs in the first pass."""
+        self.page("concepts/keep.md", type="concept")
+        r = self.b("archive", "concepts/keep.md", ".kb", "--reason", "oops")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertTrue((self.root / "concepts" / "keep.md").is_file(),
+                        "a valid path was removed before an invalid one was rejected")
+        self.assertEqual(self.git("status", "--porcelain").strip(), "",
+                         "a deletion was left staged")
+
+    def test_prune_still_works_on_a_base_with_no_grants_table(self):
+        """The grant-aware skip must not turn `expires:` off. `grant_check` requires the
+        subject to be REGISTERED — to hold a row of its own — so on a base with no AGENTS.md
+        nobody is registered and nothing was prunable by anyone, on any base `kb adopt`
+        registered (adopt writes nothing into the tree, so it never seeds a table). An empty
+        table means "no ACL here", not "deny everything" — which is exactly how the lint's own
+        grants audit reads it."""
+        self.page("concepts/gone.md", type="concept",
+                  expires=(_dt.date.today() - _dt.timedelta(days=1)).isoformat())
+        (self.root / "AGENTS.md").unlink()
+        r = self.b("prune")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse((self.root / "concepts" / "gone.md").exists(),
+                         "an expired page was unprunable because the base has no ACL")
+
     def test_prune_skips_what_the_acting_subject_may_not_write(self):
         """The archiver owns the weekly prune, but the seeded grants table splits the wiki:
         `profile/**` is agent:main's, "high-stakes; surface every change to the user". So a

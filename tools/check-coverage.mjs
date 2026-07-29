@@ -59,12 +59,17 @@ if (!uvAvailable()) {
 const testing = read('docs/TESTING.md');
 
 // The linter's own check inventory: every code it can emit, and the families they group into.
+// Every `family/code` string a check file mentions — NOT only the ones passed literally to
+// report(). checks/secrets.mjs defines its five codes in a table and reports them through a
+// variable (`report('error', code, …)`), so a literal-argument regex saw ZERO of them: the
+// prose said 81/13 and this gate derived 81/13, both wrong by the same five. A derived count
+// agreeing with a wrong number is the one failure a derived count is supposed to make
+// impossible, so it matches the code strings themselves and lets the selftest — which pins
+// every code by name — be the check that they are all really reachable.
 const codes = new Set();
 for (const rel of walkRepo(REPO_ROOT)) {
   if (!rel.startsWith('tools/lint/checks/') || !rel.endsWith('.mjs')) continue;
-  for (const m of read(rel).matchAll(/report\(\s*'(?:error|warn)'\s*,\s*'([a-z]+\/[a-z-]+)'/g)) {
-    codes.add(m[1]);
-  }
+  for (const m of read(rel).matchAll(/'([a-z]+\/[a-z][a-z-]*)'/g)) codes.add(m[1]);
 }
 // version/* is emitted by the diff-aware pass, which lives outside checks/ and fires only
 // with --base. It is still one of the linter's checks, so it counts.
@@ -89,8 +94,11 @@ if (!claim) {
 if (uvAvailable()) {
   for (const [suite, label] of [['tests/tool/test_kb.py', 'test_kb.py'],
     ['tests/tool/test_lock.py', 'test_lock.py']]) {
+    // Only if the doc quotes a size. It does not today, so this whole block is dormant —
+    // deliberately, because a suite size in prose is a number that rots weekly and the count
+    // is already visible in every test run. It stays wired so that quoting one is safe.
     const quoted = testing.match(new RegExp(`${label.replace('.', '\\.')}[^\\n]*?\\b(\\d+) tests`));
-    if (!quoted) continue;   // the doc need not quote a size; if it does, it must be right
+    if (!quoted) continue;
     // unittest prints "Ran N tests" to STDERR, and passes without throwing — so the stream has
     // to be captured explicitly. Piping stdout to the parent would leak the dots into this
     // gate's own output, hence the pipe on both.
@@ -105,8 +113,14 @@ if (uvAvailable()) {
 
 // The installed-skill count, wherever prose states one. `aos-lock skills` is the authority,
 // and the same number appears in README support tables and the golden expectations.
-const skillCount = listCapabilities(REPO_ROOT)
-  .reduce((n, cap) => n + (read(`${cap.rel}/CAPABILITY.md`).match(/^\s+- id:/gm) ?? []).length, 0);
+// Scoped to the `skills:` block. A bare `/^\s+- id:/` also matched `schedules[]` and
+// `kb.zones[]` entries, so it reported 26 where `aos-lock skills` — the authority this claim
+// is about — reports 22. Nothing quotes the number today, which is exactly when a wrong check
+// is cheapest to fix.
+const skillCount = listCapabilities(REPO_ROOT).reduce((n, cap) => {
+  const block = read(`${cap.rel}/CAPABILITY.md`).match(/^skills:\n((?:[ \t]+.*\n|\n)*)/m)?.[1] ?? '';
+  return n + (block.match(/^\s+- id:/gm) ?? []).length;
+}, 0);
 for (const doc of ['docs/TESTING.md', 'README.md']) {
   const m = read(doc).match(/\b(\d+) installed skills?\b/);
   if (m && Number(m[1]) !== skillCount) {

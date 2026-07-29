@@ -22,7 +22,7 @@ build here). Requires `uv`; skipped locally with a warning if absent, always on 
 
     bash tools/check.sh
 
-Runs `tools/lint/aos-lint.mjs` (81 checks in 13 code families over the §2/§3/§5 contracts — the
+Runs `tools/lint/aos-lint.mjs` (86 checks in 14 code families over the §2/§3/§5 contracts — the
 schema/contract linter, useful any time you're authoring a capability, not just for
 testing), the lint selftest (`tools/lint/selftest/run.mjs` — every contract code must fire
 on a planted-violation fixture, and a code that fires without being listed is also a
@@ -31,9 +31,12 @@ and these check *content*:
 
 - **`tools/check-retired.mjs`** — repo-wide: no retired vocabulary survives, no artifact
   invokes the old command name, and every shipped skill description carries its trigger
-  clause, a negative clause naming a sibling, and third person. The allowlist is four
-  prefixes and a `<!-- retired-ok: reason -->` marker, so an exemption is visible in the
-  file rather than hidden in the gate.
+  clause, a negative clause naming a **sibling** skill, and third person. Exemptions are
+  deliberately narrow and each states its reason in the file: a short prefix allowlist for
+  material that is *historical by nature* (transcripts, the append-only ledger, frozen
+  snapshots, LAYOUT 1 fixtures), a per-file-and-per-token list for source that must NAME the
+  old world in order to migrate it, and a `<!-- retired-ok: <tokens> -->` marker that exempts
+  **only the tokens it names** — never the rest of the file.
 - **`tools/check-coverage.mjs`** — every CLI verb is documented (parsed from the tool's own
   `--help`, so the list cannot drift), and every count quoted in prose is the count the
   tools report.

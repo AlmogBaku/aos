@@ -50,7 +50,10 @@ import { readFrontmatter } from './lib/frontmatter.mjs';
 const ALLOW_PREFIX = [
   'tests/transcripts/',
   'docs/BUILD-GAPS.md',
-  'capabilities/kb/tool/',
+  // NOT capabilities/kb/tool/ wholesale — see TOOL_SOURCE_OK below. A whole-directory
+  // exemption there hid nine source files from every token, which is the shape this gate's
+  // own header warns about.
+
   'tests/golden/hermes/',
   // LAYOUT 1 by design: import-src-v1/ is the source an import walks, so its shape IS the
   // fixture. A gate that "fixed" it would delete the thing under test. Same for the eval
@@ -71,7 +74,7 @@ const ALLOW_PREFIX = [
 // A section deliberately showing a superseded pattern marks itself — the shape Anthropic's
 // authoring guide endorses for old patterns — so the exemption is visible in the file rather
 // than hidden in this gate.
-const MARKER = /<!--\s*retired-ok:/;
+const MARKER = /<!--\s*retired-ok:([^>]*?)-->/g;
 
 // Tokens the LAYOUT 2 design retires. Each is a whole word or path fragment that cannot
 // survive anywhere in the tracked tree outside the allowlist above.
@@ -117,7 +120,12 @@ const RETIRED = [
 // CONTRIBUTING.md and check.sh.
 const VERBS = 'init|adopt|capture|inbox|state|search|links|lint|grants|index|sync|commit'
   + '|history|refuse|verify|import|find|set|prune|archive|pending|ingest|config|migrate';
-const BASE_CMD = new RegExp(`(?<![\\w-])base (?:${VERBS})\\b`);
+// The lookbehind also has to exclude `..base` / `.base`, or a Python `from ..base import Base`
+// reads as a `base import` invocation — which is how the wholesale tool/ allowlist came to
+// look necessary. It was hiding a false positive, not eight true ones.
+// `\s+` not a literal space, so a wrapped or double-spaced invocation still matches; global,
+// so a file with three of them reports three rather than one.
+const BASE_CMD = new RegExp(`(?<![\\w.-])base\\s+(?:${VERBS})\\b`, 'g');
 
 // The line that installs kb's tool must name the new package. Scoped to lines installing from
 // a kb tool path rather than every `uv tool install`, because aos-lock's own install line is
@@ -131,7 +139,10 @@ const KB_INSTALL_LINE = /uv tool install --from[^\n]*kb\/tool[^\n]*/g;
 // seven skills and taught nothing consistent. So this check is scoped to the two capabilities
 // that dropped it, exactly as the kb-scoped gate had it.
 const DA_MARKER = /\[[DA]\]/;
-const DA_SCOPE = ['capabilities/kb/', 'capabilities/work-tracker/'];
+// The prose surface only. The tool's own source is code — its comments are not a skill
+// teaching a notation, and `admin.py` uses [D] in a docstring about determinism itself.
+const DA_SCOPE = ['capabilities/kb/skills/', 'capabilities/kb/docs/',
+  'capabilities/work-tracker/'];
 
 // One deliberate old-pattern exception, per the authoring guide's shape: adopt must name the
 // LAYOUT 1 detection marker, because detecting it is what its step 3 does. Keyed to a FULL
@@ -142,6 +153,22 @@ const OLD_PATTERN_OK = new Map([
   // Prose describing what was REMOVED and why, which is the opposite of a leftover: each
   // sentence's subject is the retired thing's absence.
   ['capabilities/kb/docs/design.md', new Set(['next-actions.md', '_ops/'])],
+  // The tool has to NAME LAYOUT 1 in order to migrate it, and explain what it removed. Keyed
+  // per file and per token rather than exempting the directory: a wholesale exemption hid nine
+  // source files from every token, and appending a fresh `_ops/` leftover to base.py still
+  // reported clean. Verified by planting exactly that.
+  ['capabilities/kb/tool/src/aos_kb/base.py', new Set(['BASE.yaml'])],
+  ['capabilities/kb/tool/src/aos_kb/cli.py', new Set(['BASE.yaml', 'log.md'])],
+  ['capabilities/kb/tool/src/aos_kb/commands/admin.py', new Set(['log.md'])],
+  ['capabilities/kb/tool/src/aos_kb/commands/capture.py', new Set(['triage:'])],
+  ['capabilities/kb/tool/src/aos_kb/commands/lifecycle.py', new Set([
+    'aos-base', '_archive/', 'BASE.yaml', 'methodology:', '_ops/', 'state.yaml',
+    'raw/captures/', 'triage:', '.base/', 'principals:'])],
+  ['capabilities/kb/tool/src/aos_kb/commands/lint.py',
+    new Set(['growth_stage', 'triage:', '--write-report'])],
+  ['capabilities/kb/tool/src/aos_kb/commands/survey.py', new Set(['BASE.yaml'])],
+  ['capabilities/kb/tool/src/aos_kb/commands/wiki.py', new Set(['_archive/'])],
+  ['capabilities/kb/tool/src/aos_kb/constants.py', new Set(['log.md'])],
   // `uv tool uninstall aos-base` is the whole point of the sentence: anyone upgrading from
   // the old package name has it on PATH, where it shadows the new command and both appear to
   // work. The instruction has to NAME the retired package to remove it.
@@ -187,15 +214,27 @@ for (const rel of walkRepo(REPO_ROOT)) {
   if (!wanted(rel)) continue;
   let text;
   try { text = readFileSync(join(REPO_ROOT, rel), 'utf8'); } catch { continue; }
-  if (MARKER.test(text)) continue;
+  // The marker exempts the TOKENS IT NAMES, not the file. `<!-- retired-ok: log.md, _ops/ -->`
+  // reads as "this file deliberately discusses those two". A bare marker with no tokens
+  // exempts nothing and says so — the earlier version skipped the whole file on any marker,
+  // so the first use would have silently blinded every unrelated leftover in it.
+  const marked = new Set();
+  for (const m of text.matchAll(MARKER)) {
+    for (const tok of m[1].split(',')) if (tok.trim()) marked.add(tok.trim());
+  }
 
   for (const [token, why] of RETIRED) {
     if (!text.includes(token)) continue;
-    if (OLD_PATTERN_OK.get(rel)?.has(token)) continue;
+    if (OLD_PATTERN_OK.get(rel)?.has(token) || marked.has(token)) continue;
     fail(rel, `retired token "${token}" — ${why}`);
   }
-  const cmd = text.match(BASE_CMD);
-  if (cmd) fail(rel, `invokes "${cmd[0]}" — the command is \`kb\``);
+  // "base config" and "base schema" read as the command form but are ordinary noun phrases —
+  // a base's config, a base's schema. The verb list cannot tell them apart, so the two words
+  // that collide are named here rather than dropped from the list.
+  for (const cmd of text.match(BASE_CMD) ?? []) {
+    if (/^base\s+(?:config|schema)$/.test(cmd)) continue;
+    fail(rel, `invokes "${cmd.replace(/\s+/g, ' ')}" — the command is \`kb\``);
+  }
   for (const line of text.match(KB_INSTALL_LINE) ?? []) {
     if (!line.includes('aos-kb')) fail(rel, `kb install line does not name aos-kb: "${line.trim()}"`);
   }
@@ -246,7 +285,11 @@ function siblingNamed(desc, cap) {
     ? manifest.skill_prefix : `${cap.id}-`;
   const names = (manifest.skills ?? [])
     .map((s) => (s.id === cap.id || String(s.id).startsWith(prefix) ? s.id : `${prefix}${s.id}`));
-  return [...names, cap.id].some((n) => desc.includes(n));
+  // A SIBLING, not the capability itself. `cap.id` appears in most descriptions anyway, so
+  // accepting it let "Does not need any configuration — kb works out of the box." pass while
+  // discriminating nothing. The entry skill is the one exception: its id IS the capability id,
+  // so it can only point at the narrower skills, which the filter below leaves it able to do.
+  return names.filter((n) => n !== cap.id).some((n) => desc.includes(n));
 }
 
 for (const p of prefixes) {

@@ -165,9 +165,18 @@ function checkReferenceDepth(cap, files, report) {
     // same sibling; a file naming ITSELF is not a violation, and neither is a path into a
     // different skill's reference/ (that is skill/no-cross-path's job).
     const self = file.slice(dir.length + 1);
-    const NESTED_RE = /]\((?:\.\/)?([a-z0-9._/-]+\.md)(?:#[^)]*)?\)|`(?:\.\/)?([a-z0-9._/-]+\.md)`/gi;
+    // Only a path that RESOLVES to a sibling counts. Matching on basename alone made a
+    // legitimate cross-skill reference by installed name (`kb-route/reference/lifecycle.md`)
+    // fire against this skill's own `lifecycle.md` — the case the comment above claims is
+    // safe. So a bare `x.md`, `./x.md` or `reference/x.md` is a sibling reference; anything
+    // carrying a longer prefix is somebody else's file and is `skill/no-cross-path`'s to judge.
+    const NESTED_RE = /]\((?:\.\/)?([A-Za-z0-9._/-]+\.md)(?:[#"'][^)]*)?\)|`(?:\.\/)?([A-Za-z0-9._/-]+\.md)(?:#[A-Za-z0-9._-]+)?`/g;
     for (const m of text.matchAll(NESTED_RE)) {
-      const target = (m[1] ?? m[2]).split('/').pop();
+      const ref = m[1] ?? m[2];
+      const parts = ref.split('/');
+      // sibling-shaped: `x.md` or `reference/x.md`, nothing deeper
+      if (parts.length > 2 || (parts.length === 2 && parts[0] !== 'reference')) continue;
+      const target = parts[parts.length - 1];
       if (target !== self && siblings.has(target)) {
         report('error', 'skill/nested-reference', file,
           `references the sibling "${target}" — every reference file must hang directly off SKILL.md, or it gets read only in part (name the SKILL instead, and let it link both)`);

@@ -240,6 +240,7 @@ def cmd_prune(ctx: typer.Context, dry_run: bool = False):
     correct. Skipping is right rather than refusing: one ungranted page must not stop the
     rest of the sweep."""
     base, agent, author, _ = acting_in(ctx.obj)
+    grants = base.grants()
     gone, skipped = [], []
     for p in base.md_files(kinds=("wiki",)):     # NOT raw
         fm, _ = read_frontmatter(p)
@@ -253,7 +254,13 @@ def cmd_prune(ctx: typer.Context, dry_run: bool = False):
             print(f"{base.rel(p)}: unparseable expires {exp!r} — left in place")
             continue
         rel = base.rel(p)
-        if not base.grant_check(agent, "write", rel):
+        # An EMPTY grants table means "no ACL here", not "deny everything" — the same reading
+        # the lint's own grants audit takes (`or not grants` → skip). `grant_check` requires the
+        # subject to be registered, so without this an adopted base (adopt writes nothing into
+        # the tree, so it never seeds a table) had NOTHING prunable by any subject, and
+        # `expires:` — documented in four places as the only lifetime rule — silently did
+        # nothing at all.
+        if grants and not base.grant_check(agent, "write", rel):
             skipped.append(rel)
             continue
         gone.append(rel)
@@ -289,6 +296,13 @@ def cmd_archive(ctx: typer.Context, path: Annotated[list[str], typer.Argument()]
         p = _in_base(base, rel)
         if not p.exists():
             die(f"no such page: {rel}")
+        # A directory is not a page, and the check has to happen HERE — in the validate pass,
+        # before anything is removed. `.unlink()` raises IsADirectoryError, so a directory in
+        # second position used to `git rm` the first path, stage it, and then die on the
+        # traceback: a partial deletion with no commit and no explanation.
+        if not p.is_file():
+            die(f"{rel}: not a file — `archive` takes pages, one at a time "
+                f"(a directory is removed by archiving what is in it)", 13)
         rels.append(base.rel(p))
     for rel in rels:
         if git(base.root, "rm", "-q", "--", rel).returncode != 0:
