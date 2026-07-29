@@ -9,10 +9,16 @@ Not in context yet? Load the `capability-lifecycle` skill first — the map, the
 the naming rules. **Read-only** counterpart to `capability-build`: writes nothing, reports
 everything for a human to act on.
 
-**A capability is software** — components are skills, agents, tools, crons and overlays;
-interfaces are prose an LLM follows; bugs are unreachable branches, dangling edges and
-unstated preconditions. Hence the order: steps 1–5 read it as a system, and the cheap textual
-sweep comes last rather than first.
+**A capability is software.** Its components are skills, agents, tools, crons and overlays; its
+interfaces are prose an LLM follows; its bugs are unreachable branches, dangling edges and
+unstated preconditions.
+
+Reviewing it sentence-by-sentence finds typos. Reviewing it as a *system* finds the defects that
+matter — **which is why steps 1–5 come first and the textual sweep comes last, not the other way
+round.** Two real runs of this skill on this kit each found every high-severity defect in steps
+1–5 and none in the sweep, and one of those was a data-loss bug that two careful readings had
+already missed. If the cheap mechanical checks feel more productive to start with, that is the
+temptation this order exists to defeat.
 
 Section headings carry **[A]** where the work is judgment and **[D]** where a command answers.
 The [D] parts cannot be faked; do those literally rather than concluding them.
@@ -61,8 +67,10 @@ skill reference is a defect today, not a style choice).
 ## 3. Diagram it **[A]**
 
 Draw it when there is **more than one moving part** — several skills, or an agent, or a
-schedule, or a tool. Skip it for a single-skill capability with nothing else; a two-box diagram
-carries no information, and shipping one is the write-only artifact 6b exists to catch.
+schedule, or a tool. Skip it for a single-skill capability with nothing else: a two-box diagram
+carries no information, and shipping one teaches the reader that these diagrams are decoration —
+the write-only artifact 6b exists to catch. The judgment is whether *relationships* matter here,
+not how many files there are.
 
 Mermaid, not ASCII — it is the kit's convention, renders on GitHub, and survives editing
 where hand-aligned ASCII rots on the first change. Two shapes carry most capabilities: a
@@ -75,8 +83,12 @@ side.** Reading an existing diagram first tells you what someone believed, which
 you are testing. For shape only (not content), `<home>/upstream/capabilities/kb/docs/design.md`
 is a worked example.
 
-Ambiguity that survives prose rarely survives a diagram — that is the point of drawing it. Two
-rules:
+Drawing is the point, not decoration: a flow you cannot draw is a flow you do not understand yet,
+and ambiguity that survives prose rarely survives a diagram. The data-loss bug mentioned above
+was found exactly here — two instructions that read as unrelated sentences named one directory,
+which is invisible in prose and unmissable as two nodes.
+
+Two rules, both learned the expensive way:
 
 - A `;` inside a **sequence-diagram** message is a statement separator and breaks rendering —
   use an em dash. It is harmless inside a quoted flowchart label.
