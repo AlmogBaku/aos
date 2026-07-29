@@ -96,6 +96,17 @@ construction.
 | Register a tree that already exists | `kb-adopt` |
 | Bulk-migrate another KB's content | `kb-import` |
 
+**The scheduled passes are not skills, and that is why they are not in this table.** They are
+*agent prompts* — `agents/archiver/promote.md` (the nightly promote) and
+`agents/archiver/lint.md` (the weekly maintenance) — which the archiver agent is woken with,
+and they live in the capability source rather than in any installed skill. If you are the
+archiver and you were woken by a schedule, your prompt is your procedure: follow it, not this
+map. If you are the front agent and the user asks for one on demand (*"promote the inbox
+now"*), read that prompt from `<home>/upstream/capabilities/kb/agents/archiver/` and follow
+it as written — do not reconstruct a promote pass from this skill, because the judgment that
+makes promotion safe (default-empty, and what clears the bar) is stated there and nowhere
+else.
+
 ## Authority
 
 - Freely: read what you are granted; capture; `search` / `find` / `links` / `lint`.

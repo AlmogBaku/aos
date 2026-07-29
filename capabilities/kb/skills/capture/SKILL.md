@@ -13,6 +13,12 @@ the user anything here is what makes people stop capturing.
 2. Write it: `kb --base <name> capture --text "<verbatim content>" --source <channel>`.
    Frontmatter, sha256 dedup, an entry in `.kb/pending/` and an attributed commit all come
    free from the tool. Verbatim means verbatim — no cleanup, no summarising, no titling.
+   **`--source` is where the thought arrived**, in `<medium>` or `<medium>:<detail>` form:
+   `chat` for the ordinary case — the user typing to you — then `whatsapp:voice`,
+   `telegram`, `email`, `slack:<channel>`, `forwarded` for the rest. It is free text, not a
+   closed set, so the rule is only that a later reader can tell where it came from; `chat`
+   is the right answer far more often than anything else, and guessing something ornate
+   makes the provenance worse, not better. It prints the pending path — keep it for step 3.
 3. A correction to something already captured is a **new capture linked to the old one**:
    `kb capture --corrects <path> --text "…"`. Never edit a capture, and never leave the
    link to be inferred from prose later.
