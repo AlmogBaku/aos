@@ -513,17 +513,28 @@ def cmd_render(args):
         fail(14, f"{cap_dir.name}: no declared skill '{args.skill}'")
     src = cap_dir / "skills" / args.skill
     dest = Path(args.out).expanduser() / row["installed_name"]
-    # Rendering into the source's own tree DESTROYS the source: the rmtree below runs
-    # before the copytree, so `src` is gone by the time we read it. This is not a corner
-    # case — a capability that `capability-build` or `capability-import` wrote lives in
-    # `personal/capabilities/<id>/`, which is exactly where the skills say to render, so
-    # it fires on that capability's FIRST upgrade and takes the user's hand-written skill
-    # with it. Refuse before touching anything: `--out` needs a destination outside the
-    # package (the household's own skills root), not the package's own `skills/`.
-    src_r, dest_r = src.resolve(), dest.resolve()
-    if src_r == dest_r or src_r in dest_r.parents or dest_r in src_r.parents:
-        fail(1, f"--out would render {src} into its own tree ({dest}) — the copy would "
-                f"delete the source. Render outside the package.")
+    # `--out` must never point inside the package being rendered. Two distinct failures
+    # live here, and a capability that `capability-build` or `capability-import` wrote hits
+    # them on its FIRST upgrade, because it lives in `personal/capabilities/<id>/` — which
+    # is exactly where install and upgrade say to render:
+    #
+    #   1. DATA LOSS, when dest lands on the source itself (the entry skill, whose id
+    #      equals the capability's, so `installed_name == args.skill`). The rmtree below
+    #      runs before the copytree, so the user's hand-written skill and its whole
+    #      reference/ tree are deleted and then the copy dies on what it just removed.
+    #   2. A BRICKED MANIFEST, when dest lands elsewhere under the package's `skills/`
+    #      (any non-entry skill: `skills/drain` renders to `skills/<prefix>drain`). That
+    #      is a second on-disk skill nothing declares, so every later `manifest`, `skills`
+    #      and `render` on the capability fails exit 12 — and the install that created it
+    #      can no longer be upgraded or removed.
+    #
+    # Rejecting the whole package directory covers both, and is what the skills mean by
+    # "render into the household's skills root": somewhere outside the package.
+    src_r, dest_r, pkg_r = src.resolve(), dest.resolve(), cap_dir.resolve()
+    if dest_r == pkg_r or pkg_r in dest_r.parents:
+        fail(1, f"--out points inside the package being rendered ({dest}) — that would "
+                f"{'delete the source' if dest_r == src_r else 'add an undeclared skill the manifest then rejects'}. "
+                f"Render to a destination outside {cap_dir}.")
     if dest.is_symlink():
         # A link where the render belongs is someone else's artifact, not ours to rmtree.
         fail(1, f"{dest} is a symlink — remove it first (renders are real directories)")

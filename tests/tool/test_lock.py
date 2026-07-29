@@ -765,7 +765,7 @@ class SkillNameTest(unittest.TestCase):
         r = run(["render", str(cap), "democap", "--out", str(cap / "skills"), "--force"])
         self.assertEqual(r.returncode, 1)
         self.assertNotIn("Traceback", r.stderr)          # not an unhandled FileNotFoundError
-        self.assertIn("own tree", r.stderr)
+        self.assertIn("inside the package", r.stderr)
         # the whole point: the source survived
         self.assertTrue(precious.is_file(), "reference/ tree was destroyed")
         self.assertEqual(precious.read_text(), "irreplaceable hand-written content\n")
@@ -774,6 +774,30 @@ class SkillNameTest(unittest.TestCase):
         # and a render to a genuinely separate root still works
         out = Path(self.tmp.name) / "renders"
         self.assertEqual(run(["render", str(cap), "democap", "--out", str(out)]).returncode, 0)
+
+    def test_render_of_a_non_entry_skill_into_the_package_is_refused_too(self):
+        """The second half of the same defect, and a narrower guard misses it. A non-entry
+        skill renders to `<prefix><id>`, so `skills/sort` -> `skills/democap-sort` never
+        touches the source — but it plants a second on-disk skill nothing declares, and
+        every later manifest/skills/render on that capability then fails exit 12. The
+        install that created it can no longer be upgraded or removed."""
+        cap = self.cap("democap", ["democap", "sort"])
+        r = run(["render", str(cap), "sort", "--out", str(cap / "skills")])
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("inside the package", r.stderr)
+        self.assertFalse((cap / "skills" / "democap-sort").exists())
+        # the manifest the guard was protecting still validates
+        self.assertEqual(run(["manifest", str(cap)]).returncode, 0)
+
+    def test_render_to_the_package_root_is_refused(self):
+        """`--out <pkg>` puts the render beside CAPABILITY.md rather than under skills/.
+        It destroys nothing and does not brick the manifest, so it is the mildest case —
+        but it is still litter inside a package the user owns, and no skill ever asks for
+        it. Refusing keeps the rule simple enough to state: --out lives outside."""
+        cap = self.cap("democap", ["democap"])
+        r = run(["render", str(cap), "democap", "--out", str(cap), "--force"])
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("inside the package", r.stderr)
 
     def test_bad_harness_skills_arg_is_a_generic_error(self):
         cap = self.cap("democap", ["democap"])
