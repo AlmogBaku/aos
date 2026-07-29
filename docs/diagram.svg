@@ -25,11 +25,10 @@
   <!-- Tier: organisms (use-case capabilities) -->
   <text class="tier-label" x="30" y="34">USE-CASE CAPABILITIES <tspan class="atomic">· organisms</tspan></text>
   <g>
-    <rect class="box org" x="30"  y="46" width="128" height="46"/><text class="box-t" x="94"  y="74">GTD capture</text>
-    <rect class="box org" x="170" y="46" width="128" height="46"/><text class="box-t" x="234" y="74">Time blocking</text>
-    <rect class="box org" x="310" y="46" width="128" height="46"/><text class="box-t" x="374" y="74">News tracker</text>
-    <rect class="box org" x="450" y="46" width="138" height="46"/><text class="box-t" x="519" y="74">Personal trainer</text>
-    <rect class="box org" x="600" y="46" width="90" height="46"/><text class="box-t" x="645" y="74">…</text>
+    <rect class="box org" x="30"  y="46" width="150" height="46"/><text class="box-t" x="105" y="70">Work tracker</text><text class="caption" x="105" y="84">capture · schedule · steward</text>
+    <rect class="box org" x="192" y="46" width="128" height="46"/><text class="box-t" x="256" y="74">News tracker</text>
+    <rect class="box org" x="332" y="46" width="138" height="46"/><text class="box-t" x="401" y="74">Personal trainer</text>
+    <rect class="box org" x="482" y="46" width="90" height="46"/><text class="box-t" x="527" y="74">…</text>
   </g>
 
   <!-- Tier: molecules (infrastructure capabilities) -->
@@ -44,7 +43,7 @@
   <!-- Tier: atoms -->
   <text class="tier-label" x="30" y="252">SKILLS <tspan class="atomic">· atoms · Agent Skills spec (SKILL.md) — the portable core</tspan></text>
   <rect class="box atom" x="30" y="264" width="730" height="34"/>
-  <text class="caption" x="395" y="286">kb-route · kb-recall · gtd-quick-capture · gtd-drain · capability-install · capability-evolve · …</text>
+  <text class="caption" x="395" y="286">kb-capture · kb-recall · wt-capture · wt-schedule · capability-install · capability-review · …</text>
 
   <!-- Side: MOD.md (templates) -->
   <g>
@@ -70,7 +69,7 @@
     <rect class="box cell" x="44"  y="356" width="196" height="54"/><text class="box-t" x="142" y="378">upstream/</text><text class="caption" x="142" y="396">the kit clone · pristine</text>
     <rect class="box cell" x="252" y="356" width="286" height="54"/><text class="box-t" x="395" y="378">personal/</text><text class="caption" x="395" y="396">your repo: MOD.md · pinned renders · your capabilities</text>
     <rect class="box cell" x="550" y="356" width="168" height="54"/><text class="box-t" x="634" y="378">vendor/</text><text class="caption" x="634" y="396">referenced third-party skills</text>
-    <rect class="box cell" x="730" y="356" width="186" height="54"/><text class="box-t" x="823" y="378">.aos/</text><text class="caption" x="823" y="396">machine-local · installs.lock.yaml</text>
+    <rect class="box cell" x="730" y="356" width="186" height="54"/><text class="box-t" x="823" y="378">.aos/</text><text class="caption" x="823" y="396">machine-local · lockfile · principals</text>
   </g>
 
   <!-- Transform band -->
@@ -84,7 +83,8 @@
     <text class="side" x="230" y="12">NanoClaw · <tspan font-style="italic">groups + DB tasks</tspan></text>
     <text class="side" x="440" y="12">OpenClaw · <tspan font-style="italic">agents + workspace files</tspan></text>
     <text class="side" x="0"   y="28">Nanobot · <tspan font-style="italic">agents/*.md + MCP</tspan></text>
-    <text class="side" x="230" y="28" opacity="0.45">Claude Code · OpenCode <tspan font-style="italic">(later)</tspan></text>
+    <text class="side" x="230" y="28">Claude Code · <tspan font-style="italic">skills + CronCreate</tspan></text>
+    <text class="side" x="440" y="28" opacity="0.45">OpenCode <tspan font-style="italic">(later)</tspan></text>
   </g>
 
   <!-- Pages tier -->
@@ -115,5 +115,5 @@
   <path class="flow" d="M670 568 L 670 610" marker-end="url(#arr)"/>
 
   <text x="480" y="686" class="caption">shared repo ships templates · your harness runs pages · MOD.md is the difference</text>
-  <text x="480" y="702" class="caption">aos (placeholder, RFC-001) · architecture v0.1 · 2026-07-26 · MIT</text>
+  <text x="480" y="702" class="caption">aos (placeholder, RFC-001) · architecture v0.1 · 2026-07-29 · MIT</text>
 </svg>

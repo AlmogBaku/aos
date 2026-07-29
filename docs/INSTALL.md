@@ -54,15 +54,23 @@ Paste into your agent:
    `{store, key}` reference lands in the file.
 5. **Knowledge base setup.** Have a KB already? It gets *adopted* — registered in
    `kb-registry.yaml` with a report of how it diverges from the kit's methodology,
-   **nothing rewritten**. Starting fresh? `base init personal` scaffolds one from
-   templates. Migrating a big existing KB wholesale is its own guided flow (the
+   **nothing rewritten**. Starting fresh? `kb init personal` scaffolds one — by default
+   cloning the public template repo, falling back to the templates in your own checkout if
+   there's no network. Migrating a big existing KB wholesale is its own guided flow (the
    `kb-import` skill) you can run later.
+   - **On an older base**: `kb migrate --base <name>` carries a layout-1 tree to the
+     current layout, `git mv` throughout so `git log --follow` still traces every page.
+     Then `uv tool uninstall aos-base` — the old command name would otherwise sit on your
+     PATH shadowing the new one, and both would appear to work.
+   - **No git identity configured?** Nothing blocks. The write lands, `kb lint` reports
+     the unattributed commit, and the interview fixes it. Refusing to record your thought
+     because we don't know your email would trade the one thing capture cannot lose.
 6. **kb installs through the new `capability-install` skill.** The agent reads
    the briefing, checks that no skill name it ships is already taken in your harness,
    renders the skills against your MOD.md (committed in `personal/`), and materializes
    them per the cheat-sheet — renders linked into the right agents, the archiver agent
-   created, its schedules registered, kb's `base` tool installed
-   (`uv tool install --from ~/aos/upstream/capabilities/kb/tool aos-base`).
+   created, its schedules registered, kb's `kb` tool installed
+   (`uv tool install --from ~/aos/upstream/capabilities/kb/tool aos-kb`).
 7. **Done.** The agent tells you what was installed, where, and any degraded modes in
    effect — specifically, not vaguely.
 
@@ -77,18 +85,18 @@ Everything else is a sentence, on demand:
 
 | You say | What happens |
 |---|---|
-| `install gtd-capture` | Briefing read → missing deps recursed → its interview → diff gate → materialize → lockfile |
+| `install work-tracker` | Briefing read → missing deps recursed → its interview → diff gate → materialize → lockfile |
 | `update` | After `git pull`: your hand-edits folded into MOD.md → fresh upstream × MOD.md re-rendered into `personal/` → diff gate |
-| "make the drain run at 22:00" | The evolve skill: change applied AND recorded in your MOD.md — survives every upgrade |
-| `remove gtd-capture` | The lockfile entry walked backwards; your `MOD.md` survives removal |
+| "make the steward run at 22:00" | The evolve skill: change applied AND recorded in your MOD.md — survives every upgrade |
+| `remove work-tracker` | The lockfile entry walked backwards; your `MOD.md` survives removal |
 
 ## Degraded modes, in plain words
 
 Capabilities declare what they need from a host and what happens when it's missing —
 installing anyway is fine, silently pretending is not:
 
-- **No cron?** Scheduled work (nightly drain, promote) becomes a run-card you trigger by
-  asking ("drain the inbox now").
+- **No cron?** Scheduled work (the nightly steward, the promote pass) becomes a run-card
+  you trigger by asking ("run the steward now").
 - **`uv` gone after bootstrap?** (it's required to bootstrap) — kb's verbs degrade to
   prose procedures until it's back; the lifecycle's bookkeeping needs it restored.
 - **A channel you haven't set up yet is not a missing feature.** What counts is whether
@@ -109,6 +117,7 @@ installing anyway is fine, silently pretending is not:
 | Referenced third-party skills | `~/aos/vendor` (e.g. `skill-creator`) | their authors — kept current, never copied into the kit |
 | Skill links / agents / schedules | your harness's own locations (per cheat-sheet; a skill is a symlink to its one committed render in `personal/`, never a copy) | your agent, tracked in the lockfile |
 | Install record | `~/aos/.aos/installs.lock.yaml` (household level) | your agent, machine-local |
+| Who you are, per machine | `~/aos/.aos/kb-principal.yml` — written by the `kb` tool on first use | the tool, machine-local |
 
 Hand-editing materialized artifacts is fine — the agent folds your edits back into
 MOD.md when it notices (see [USAGE.md](USAGE.md)). Everything yours lives in

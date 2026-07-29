@@ -34,7 +34,7 @@ Built and passing the [three CI tiers](docs/TESTING.md) today:
 
 | Capability | Type | What it does |
 |---|---|---|
-| [**kb**](capabilities/kb/) | infra | Multi-base knowledge infrastructure: registry, rules-first routing, the base engine (immutable `raw/` + current-truth wiki), and the deterministic [`base` tool](capabilities/kb/tool/) |
+| [**kb**](capabilities/kb/) | infra | Multi-base knowledge infrastructure: registry, rules-first routing, the base engine (immutable `_raw/` + current-truth wiki), and the deterministic [`kb` tool](capabilities/kb/tool/) |
 | [**work-tracker**](capabilities/work-tracker/) | usecase | Commitments only you can keep: filed as you speak, time blocked in the same exchange, a nightly steward keeping the backlog honest, and an exit when they are done |
 | [**capability-lifecycle**](capabilities/capability-lifecycle/) | infra | The whole life of a capability, as skills in your harness: install · upgrade · remove · onboard (the interview engine → your `MOD.md`) · import (wrap what you already built) · build (a chat request that's really a use case → intake → design → approval) · contribute · evolve. Owns the household and its pinned renders, the [`aos-lock`](capabilities/capability-lifecycle/tool/) tool (lockfile + computed skill names), the per-harness cheat-sheets, and Anthropic's [`skill-creator`](https://github.com/anthropics/skills) by reference |
 
@@ -91,14 +91,18 @@ New here? The human-facing walkthrough is [docs/INSTALL.md](docs/INSTALL.md).
 You    ▸ capture: renew the passport before the Berlin trip
 Agent  ▸ 🦜                          # your MOD.md picked that confirmation — instant, no questions
 
-23:00  ▸ the drainer agent walks the pending captures: "renew passport"
-         becomes a next-action; this morning's duplicate was already dropped
+You    ▸ I need to find time to write the CFP before Friday
+Agent  ▸ filed, and blocked 09:00-11:00 Thursday — outside your sacred hours.
+         Sound right?                # the same exchange, not at midnight
+
+23:00  ▸ the steward walks the backlog: the CFP block still stands, one
+         commitment has slipped three times and is worth re-deciding — it asks
 23:30  ▸ kb's archiver promotes what is actually knowledge into wiki pages
-         (skeptical by default — most captures aren't) and logs its pass
+         (skeptical by default — most captures aren't)
 
 You    ▸ what's on my plate for the Berlin trip?
-Agent  ▸ next-actions with links into your KB — and "not in the KB" when it
-         doesn't know, instead of inventing an answer
+Agent  ▸ a query, not a list file — with links into your KB, and "not in the KB"
+         when it doesn't know, instead of inventing an answer
 ```
 
 Capture is dumb and fast; judgment runs on schedules; recall cites its sources and admits
@@ -129,7 +133,7 @@ Seven commitments make the loop work (plain-words tour in [docs/CONCEPTS.md](doc
 - **A skill's name is single-owner.** Harnesses keep one flat skill namespace, so the name a
   skill installs under is computed (`<skill_prefix><id>`) and gated against everything
   already there — your other capabilities, the lockfile, and skills aos never installed.
-- **Deterministic where it counts.** Real machinery (like kb's `base` tool) is standalone,
+- **Deterministic where it counts.** Real machinery (like kb's `kb` tool) is standalone,
   judgment-free software: files and exit codes, no LLM inside.
 
 ## Repo layout

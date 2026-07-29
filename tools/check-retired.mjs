@@ -57,6 +57,13 @@ const ALLOW_PREFIX = [
   // queries, whose negative cases quote the old layout on purpose.
   'tests/fixtures/import-src-v1/',
   'tests/evals/',
+  // The suite's job includes proving the old shape is GONE — `test_layout_1_artifacts_are_
+  // absent` names every retired path in order to assert it does not exist, and MigrateTest
+  // builds a layout-1 tree inline because that is what migration takes as input. A gate
+  // firing here would ban the tests that keep the retirement honest. (MigrateTest's own
+  // docstring says it built the tree inline rather than committing a second fixture for
+  // exactly this reason.)
+  'tests/tool/test_kb.py',
   // This file names every retired token in order to ban it.
   'tools/check-retired.mjs',
 ];
@@ -135,6 +142,10 @@ const OLD_PATTERN_OK = new Map([
   // Prose describing what was REMOVED and why, which is the opposite of a leftover: each
   // sentence's subject is the retired thing's absence.
   ['capabilities/kb/docs/design.md', new Set(['next-actions.md', '_ops/'])],
+  // `uv tool uninstall aos-base` is the whole point of the sentence: anyone upgrading from
+  // the old package name has it on PATH, where it shadows the new command and both appear to
+  // work. The instruction has to NAME the retired package to remove it.
+  ['docs/INSTALL.md', new Set(['aos-base'])],
 ]);
 
 // Descriptions are injected into the system prompt, so the authoring guide is explicit that a

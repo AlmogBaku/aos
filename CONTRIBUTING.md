@@ -110,7 +110,7 @@ capabilities/<id>/
                                               #   uv package, spec §2.4)
 ```
 
-Start from the worked example: **gtd-capture** is walked file-by-file in
+Start from the worked example: **work-tracker** is walked file-by-file in
 [design/capability-anatomy.md](https://github.com/AlmogBaku/aos/blob/spec/design/capability-anatomy.md),
 and its manifest is the spec's own example. Or don't hand-roll at all — the kit's
 **`capability-import`** skill wraps what's already in your harness: ask your agent to import

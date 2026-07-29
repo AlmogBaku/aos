@@ -5,7 +5,7 @@ starts on purpose; none runs from CI or from an implementation agent's own initi
 
 - [ ] **Real personal install**: bootstrap per `BOOTSTRAP.md` (capability-lifecycle first — its
       own interview is the global one — then kb) on the live Hermes with the
-      user's own answers (not fixtures) — capability-lifecycle + kb + gtd-capture.
+      user's own answers (not fixtures) — capability-lifecycle + kb + work-tracker.
 - [ ] **`kb adopt` report on the production KB** — report-only; nothing committed, nothing rewritten.
 - [ ] **2-week live routing replay** — hand-labeled real captures vs router decisions;
       misroute rate < 5% (ARCHITECTURE Appendix B #2). Evidence feeds RFC-006.
