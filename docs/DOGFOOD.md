@@ -31,3 +31,10 @@ starts on purpose; none runs from CI or from an implementation agent's own initi
 - [ ] **Commitment tracking against real commitments** — the thing work-tracker exists for,
       and the only way to find out whether the speech-act split holds outside fixtures: does
       *"I need to find time to…"* fire reliably, and does *"write the CFP"* stay silent?
+- [ ] **Multi-model skill testing** — the authoring guide's checklist asks for every skill to be
+      tested with **Haiku, Sonnet and Opus**, because "what works perfectly for Opus might need
+      more detail for Haiku". Only a **Sonnet-tier** pass has run (2026-07-29, kb's seven
+      skills, five ordinary tasks — it found four real gaps, all fixed). Haiku is untested, and
+      it is the tier most likely to need the guidance that reads as over-explaining to Opus.
+      The eval sets at `tests/evals/` are the queries; what is missing is a harness that can
+      observe triggering (see their README's "harness could not measure" note).

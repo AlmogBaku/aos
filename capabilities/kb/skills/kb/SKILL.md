@@ -1,6 +1,6 @@
 ---
 name: kb
-description: "Explains how the user's knowledge bases are laid out and which kb skill handles a given job — the tree, the pending queue, expiry, links, base health, maintenance. Use when the user asks how their knowledge base works, what state a base is in, why something was or was not kept, or wants base maintenance run, and no narrower kb skill matches. Do NOT use to file something the user just said (that is kb-capture), to answer a question from stored knowledge (that is kb-recall), or to pick a destination base for a write already in hand (that is kb-route)."
+description: "Explains how the user's knowledge bases are laid out and which kb skill handles a given job — the tree, the one queue, expiry, links, base health, maintenance. Use when the user asks how their knowledge base works, what state a base is in, why something was or was not kept, or wants base maintenance run, and no narrower kb skill matches. Do NOT use to file something the user just said (that is kb-capture), to answer a question from stored knowledge (that is kb-recall), or to pick a destination base for a write already in hand (that is kb-route)."
 ---
 
 # kb — the base system in one page
