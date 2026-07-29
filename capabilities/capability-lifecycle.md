@@ -44,7 +44,7 @@ It ships `ONBOARDING.md` + `MOD.example.md`, but their subject is the **user**, 
 
 ## v0.1 acceptance
 
-One uninterrupted sequence on a real harness: paste-block → welcome-and-explain before any action → prerequisites verified → the nine skills + `aos-lock` materialize (name gate → STAGE→GATE→EXECUTE, tool-recorded lockfile) → the global interview runs from `capability-onboard` → kb installs *through `capability-install`* → a **separate, fresh prompt** installs gtd-capture (proving day-N triggering with no BOOTSTRAP in context) → a planted name collision stops that install at the gate with nothing written → an evolve records a nuance in the capability's MOD.md and refreshes hashes (`aos-lock verify` clean) → removal via `capability-remove` walks the lockfile to a prestate-identical harness. Structural checks per the golden-render protocol (RFC-002).
+One uninterrupted sequence on a real harness: paste-block → welcome-and-explain before any action → prerequisites verified → the ten skills + `aos-lock` materialize (name gate → STAGE→GATE→EXECUTE, tool-recorded lockfile) → the global interview runs from `capability-onboard` → kb installs *through `capability-install`* → a **separate, fresh prompt** installs gtd-capture (proving day-N triggering with no BOOTSTRAP in context) → a planted name collision stops that install at the gate with nothing written → an evolve records a nuance in the capability's MOD.md and refreshes hashes (`aos-lock verify` clean) → removal via `capability-remove` walks the lockfile to a prestate-identical harness. Structural checks per the golden-render protocol (RFC-002).
 
 ## Note on build order
 
