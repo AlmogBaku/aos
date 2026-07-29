@@ -4,7 +4,7 @@ status: draft-for-group-review
 date: 2026-07-17
 implements: ../ARCHITECTURE.md §3–§4 (esp. §4.1–4.4), §5
 informs: ../rfcs/RFC-006-multi-kb-routing.md, ../rfcs/RFC-007-permission-gate-vocabulary.md
-extraction-source: Almog's production KB — this pattern has run live since June 2026 (AGENTS.md zone table, _ops/, log.md; state/ and SCHEMA.md since redesigned — see kb-methodology.md)
+extraction-source: Almog's production KB — this pattern has run live since June 2026 (the AGENTS.md zone table; the machinery directory, the log file, the flat state file and SCHEMA.md have all since been redesigned — see kb-methodology.md)
 ---
 
 # KB & Authorization Layer — Concrete Design
@@ -15,13 +15,20 @@ extraction-source: Almog's production KB — this pattern has run live since Jun
 > executable by a dumb script or trivially checkable when an LLM does it) or
 > **[A] agentic** (LLM judgment, backstopped, never trusted alone).
 >
-> **Sweep owed (2026-07-27).** `log.md` was retired — git commits carry the audit trail
-> now, one per write, author = the human principal and committer = the acting agent
-> (kb-methodology §6.5). §4.5's enforcement layers are corrected below; the remaining
-> `log.md` mentions in this document (§1 component table, §2.5's line grammar, the §3
-> sequence diagrams, the §5 D/A table, the §6 worked example) still describe the retired
-> mechanism and are owed a pass. §8 gains the principal question. RFC-010 carries the
-> reasoning.
+> **Swept (2026-07-29).** The pass this note asked for is done. The log file is gone from
+> every section that described it — §1's component table, §2.5 (which specified its line
+> grammar and now specifies the commit that replaced it), the §3 sequence diagrams, the §5
+> D/A table and the §6 worked example. **Git is the one audit substrate**: one commit per
+> write, author = the human principal, committer = the acting agent (kb-methodology §6.5).
+> The layout is LAYOUT 2 throughout — `.kb/base.yml`, `_raw/`, `.kb/pending/` as the single
+> queue, and state always sharded to `.kb/state/<principal>.yml`.
+>
+> **The `principal` is a first-class subject now, and that is RFC-007 territory.** §4.1's
+> subject vocabulary is a closed set, and a human principal is a subject in it — recorded
+> here as evidence for **RFC-007 §8 Q2**, deliberately *not* resolved: the roster question
+> (who may act as whom, on a base several people write to) is the contested part, and the
+> grants table naming principal ids directly is an implementation that works today rather
+> than a decision that closes the RFC. RFC-010 carries the multi-user reasoning.
 
 > Where ARCHITECTURE already decided, this document is **normative** and cites the section.
 > Where it goes deeper than the spec, items are marked **(proposed)** — they are inputs to
@@ -38,14 +45,14 @@ Every moving part, what it physically is, where it lives, who executes it.
 |---|---|---|---|---|
 | 1 | `kb-registry.yaml` | A user-owned YAML file (§4.1). Data, not code. | The **personal root** (`<home>/personal/`), next to global `MOD.md`. Upstream never touches it (overlay-family invariant). | Read by the router skill on every routed write; written by `kb init`/`kb adopt` and by the user directly. |
 | 2 | **Router** | A skill — `capabilities/kb/skills/route/SKILL.md`. Steps 1–2 and 4 of §4.2 are deterministic — executed via the `base` tool (grants lookup, registry parse, capture write); step 3 is one cheap LLM call. There is **no router daemon**. | Kit repo (skill); runs inside whatever agent is performing the capture. | The writing agent, inline in the capture path. |
-| 3 | **Authz check** | A verb of the `base` tool (`base grants check` — so non-routed direct writes can call it too). A table lookup, nothing more; refusals recorded via `base refuse`. | Kit repo — `capabilities/kb/tool/`. | The writing agent, immediately before any KB write. |
+| 3 | **Authz check** | A verb of the `kb` tool (`kb grants check` — so non-routed direct writes can call it too). A table lookup, nothing more; refusals recorded via `base refuse`. | Kit repo — `capabilities/kb/tool/`. | The writing agent, immediately before any KB write. |
 | 4 | **Zone/grant table** | A machine-readable markdown table inside each KB's `AGENTS.md` (§4.4 "maintainer-zone table", evolved — format in §2.2 below). Human-first, lint-parsed. | **Each KB repo**, in its `AGENTS.md`. | Read by the router skill / `base grants check` and lint; appended by install-time zone registration; the user edits it freely. |
 | 5 | **Archiver agent** | `capabilities/kb/agents/archiver.agent.yaml` (neutral spec) — materialized per harness as a real scheduled agent. Live reference: the production Archiver profile. | Spec in kit repo; the running instance in the **harness**. | The harness scheduler: nightly drain (23:00), weekly lint, 5-min git sync. |
-| 6 | **Lint** | A verb of the `base` tool (`base lint`) — deterministic checks driven by each base's BASE.yaml (methodology §6.4); report-only. | Kit repo — `capabilities/kb/tool/` (the installed `base` command). | Archiver on schedule; also invoked one-shot by `base adopt` and after zone registration. |
-| 7 | **Review / drain queue** | Two markdown files per KB: the pending-capture view (`base inbox` over `raw/captures/` — uncertain-routed captures) and `_ops/needs-review.md` (judgment calls, authz refusals, lint criticals — generalizes the production needs-review queue). | Each KB repo. | Archiver appends; the **user** (or their chief-of-staff agent) drains; Archiver never resolves its own judgment calls. |
-| 8 | **`log.md` append** | A convention, not a component: one appended line per mutation, format fixed by SCHEMA (§2.5 below). | Each KB repo root. | Every writer, as the last step of every write. Lint audits it. |
+| 6 | **Lint** | A verb of the `kb` tool (`kb lint`) — deterministic checks driven by each base's `.kb/base.yml` (methodology §6.4); report-only. | Kit repo — `capabilities/kb/tool/` (the installed `base` command). | Archiver on schedule; also invoked one-shot by `base adopt` and after zone registration. |
+| 7 | **The one queue** | One directory per KB, `.kb/pending/` — a file per item, `kind:` and `waits_on:` (`kb inbox` over it/` — uncertain-routed captures) and `_ops/needs-review.md` (judgment calls, authz refusals, lint criticals — generalizes the production needs-review queue). | Each KB repo. | Archiver appends; the **user** (or their chief-of-staff agent) drains; Archiver never resolves its own judgment calls. |
+| 8 | **The audit record** | Not a component at all: one git commit per mutation, author = the human principal, committer = the acting agent (§2.5 below). | Each KB repo root. | Every writer, as the last step of every write. Lint audits it. |
 | 9 | **`kb init` / `kb adopt`** | Skills. `init` = template scaffold + registry append + grant-table seed. `adopt` = registry append + lint run + divergence report; **never rewrites** the existing KB (§4.4, normative). | Kit repo. | The user's main agent, on request. |
-| 10 | **`state.yaml` rolling-window maintenance** | Tool-managed verbs (`base state add|bump|drop|check`) + cap enforcement + the state_stale lint check. Full mechanics: methodology §7. | Each base repo (`state.yaml`). | The base's single writer agent via the tool; Archiver proposes evictions; lint backstops. |
+| 10 | **`.kb/state/<principal>.yml` rolling-window maintenance** | Tool-managed verbs (`kb state add|bump|drop|check`) + cap enforcement + the state_stale lint check. Full mechanics: methodology §7. | Each base repo (`state.yaml`). | The base's single writer agent via the tool; Archiver proposes evictions; lint backstops. |
 | 11 | **Zone registration (install-time)** | Part of the §5 agentic install: the installing LLM renders `kb/` zone templates into the target KB and appends grant rows — with user approval per row. | Capability `kb/` dirs; results land in KB repos. | The harness's installing LLM; user approves grants. |
 | 12 | **The `base` tool** | The capability-shipped deterministic executor (RFC-004 decided; ARCHITECTURE §2.4): registry parse, grant-table parse, glob match, schema validation, capture/catalog, state verbs, lint, search, refusal bookkeeping, log append, sync. No routing judgment ever; never calls an LLM. | Kit repo — `capabilities/kb/tool/` (installable uv package; the `base` command). | Called by the skills; runs exec-scheduled for sync. |
 | 13 | **Git sync** | The existing 5-min rebase-only cron, per KB, honoring the registry `sync:` field. | Each KB repo / harness cron. | Harness scheduler. Conflicts surface in the morning brief, never auto-resolved. |
@@ -70,9 +77,9 @@ flowchart TB
     subgraph kbrepo["Each KB repo"]
       GR["AGENTS.md ## Grants<br/>subjects × objects × verbs"]
       INB["raw/captures/ pending<br/>capture + uncertain"]
-      NR["_ops/needs-review.md<br/>refusals · judgment calls"]
-      LOG["log.md<br/>append-only audit"]
-      DATA["raw/ · wiki pages · state.yaml"]
+      NR[".kb/pending/<br/>refusals · conflicts · judgment calls"]
+      LOG["git history<br/>one commit per write"]
+      DATA["_raw/ · wiki pages · .kb/state/"]
     end
     WA(["writing agent<br/>(capture path)"]) --> RT
     RT --> REG
@@ -115,7 +122,7 @@ kbs:
       Personal ops, relationships, life admin, drafts.
                                  # note: there is no inbox file — the `intent: inbox`
                                  # and uncertain routings land in raw/captures/ with
-                                 # triage: pending; `base inbox` is the view (methodology §6.1)
+                                 # lands in .kb/pending/; `kb inbox` is the view (methodology §6.1)
     routing:
       channels: ["whatsapp:*", "telegram:*"]
       keywords: []
@@ -159,11 +166,11 @@ space-separated globs); `verbs` space-separated from the closed set
 | *                      | **                                        | read             | user    | 2026-06-30 | —                | every registered agent reads everything (this KB is private) |
 | agent:archiver         | raw/**                                    | write            | user    | 2026-06-30 | kb@0.1.0         | immutable layer; promote-only |
 | agent:archiver         | entities/** concepts/** comparisons/** queries/** | write    | user    | 2026-06-30 | kb@0.1.0         | Layer-2 synthesis |
-| agent:archiver         | _ops/** _archive/** index.md log.md       | write            | user    | 2026-06-30 | kb@0.1.0         | scaffolding + append-only log |
-| agent:main           | state.yaml                                | write            | user    | 2026-06-30 | —                | the single state writer (methodology §7) |
+| agent:archiver         | _raw/** index.md .kb/pending/**           | write            | user    | 2026-06-30 | kb@0.1.0         | ingest + promotion scaffolding |
+| agent:main           | .kb/state/**                              | write            | user    | 2026-06-30 | —                | the single state writer (methodology §7) |
 | agent:main           | profile/**                                | write            | user    | 2026-06-30 | — | high-stakes slow-tempo pages; surface changes to the user |
-| capability:gtd-capture | raw/captures/**                           | write route-into | user    | 2026-07-20 | gtd-capture@0.1.0 | requested at install; drains nightly |
-| capability:kb          | log.md _ops/needs-review.md               | write            | user    | 2026-06-30 | kb@0.1.0         | so refusals/flags can be recorded by the router itself |
+| capability:work-tracker | actions/** projects/** index.md          | write route-into | user    | 2026-07-20 | work-tracker@0.1.0 | requested at install. `index.md` is on this row AND the archiver's, because both rebuild it |
+| capability:kb          | .kb/pending/**                            | write            | user    | 2026-06-30 | kb@0.1.0         | so refusals/flags can be recorded by the router itself |
 ```
 
 What changed vs. the live table, and why:
@@ -197,7 +204,7 @@ kb_routing:
   status: routed                 # routed | uncertain — uncertain ⇒ drain re-visits
   intent: inbox                  # the abstract intent that was resolved
   router: agent:main           # subject that executed the routing
-  via: capability:gtd-capture    # capability whose skill initiated the write
+  via: capability:work-tracker   # capability whose skill initiated the write
   routed_at: 2026-07-17T14:22+03:00
   llm_excluded: []               # (proposed) shared KBs the classifier was forbidden
                                  # from choosing but whose purpose matched — drain hint
@@ -208,16 +215,27 @@ structured. A drain re-route rewrites the record (`method` becomes what the re-r
 used), and the old record is appended to `kb_routing_history:` — decisions are never
 silently overwritten.
 
-### 2.5 `log.md` line (normative — taken unchanged from the production SCHEMA)
+### 2.5 The audit record: a commit, not a line (normative)
+
+Every mutation is **its own git commit**, and the two-identity model carries what a log line
+used to:
 
 ```
-YYYY-MM-DDTHH:MM±TZ | <agent> | <verb> | <path> | <one-line summary>
+author    = the human principal whose knowledge it is
+committer = the acting agent that applied it
+trailer   = aos-verb: <verb>
+subject   = <verb>: <path>  <one-line summary>
 ```
 
-Verbs: `create | promote | merge | archive | flag | resolve | sync-conflict | lint`
-**plus (proposed) two additions for this layer:** `route` (a routed write; summary
-includes the `kb_routing.method`) and `refuse` (an authz denial, §4.5). Append-only,
-never edited — this file is one of the two audit substrates (the other is git history).
+Verbs: `create | promote | merge | archive | flag | resolve | sync-conflict | lint | route |
+refuse | capture | ingest | set | prune | commit`. `route` records a routed write (the summary
+carries `kb_routing.method`) and `refuse` an authz denial (§4.5).
+
+**There is one audit substrate, and it is git.** A second append-only file was a copy of what
+git already held, which meant it could disagree — and a hand-written line is exactly the kind
+of thing an interrupted agent omits, so the copy was also the less trustworthy of the two. It
+was retired for that reason rather than for tidiness. `git log --format='%an %cn %s'` answers
+"who wrote this down, whose is it, what changed" without any convention to maintain.
 
 ---
 
@@ -230,12 +248,12 @@ Legend on every arrow: **[D]** deterministic · **[A]** agentic · **[H]** human
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Cap as capability skill<br/>(e.g. gtd-capture, intent: inbox)
+    participant Cap as capability skill<br/>(e.g. work-tracker, intent: inbox)
     participant R as router skill<br/>(same agent, inline)
     participant Reg as kb-registry.yaml
     participant Gr as target KB<br/>AGENTS.md ## Grants
     participant KB as target KB files
-    participant Ar as Archiver<br/>(nightly drain)
+    participant Ar as Archiver<br/>(nightly promote)
     participant U as user
 
     Cap->>R: write(intent=inbox, payload, source, hints) [D]
@@ -251,10 +269,10 @@ sequenceDiagram
     R->>Gr: authz lookup: subject × resolved zone × verb [D table+glob]
     alt grant exists
         R->>KB: write file + kb_routing frontmatter + SCHEMA frontmatter [D templated]
-        R->>KB: append log.md `route` line [D]
+        R->>KB: commit the write, aos-verb: route [D]
     else no grant
-        R->>KB: REFUSE the write — kb capability appends log.md `refuse` line [D]
-        R->>KB: append _ops/needs-review.md refusal block [D]
+        R->>KB: REFUSE the write — kb capability makes a `refuse` commit [D]
+        R->>KB: write .kb/pending/ entry, kind: refusal [D]
         R-->>Cap: error returned — capture payload kept in caller's context [D]
     end
     Note over Cap,KB: capture path ends here — total cost ≤ one LLM call,<br/>usually zero. Latency sacred (§4.2). Everything below is async.
@@ -263,7 +281,7 @@ sequenceDiagram
     alt target is a private KB, confidence high
         Ar->>KB: re-route: move file, rewrite kb_routing (+history), log `promote` [A move, D bookkeeping]
     else target is a shared KB — always
-        Ar->>KB: append proposal to _ops/needs-review.md — NEVER auto-move [D]
+        Ar->>KB: write .kb/pending/ proposal — NEVER auto-move [D]
         U->>KB: approves → move executes as method: explicit [H, then D]
     end
 ```
@@ -274,8 +292,8 @@ Two properties worth stating flatly:
   deterministic candidate filter before it (shared KBs are not in its choice set —
   normative, §4.3) and a deterministic threshold check after it.
 - **A refusal is not an exception path that loses data.** The payload stays with the
-  caller; the refusal is itself written (by `capability:kb`, which holds `log.md` +
-  `_ops/needs-review.md` grants for exactly this purpose) and surfaced. Capture latency
+  caller; the refusal is itself written (by `capability:kb`, which holds the
+  `.kb/pending/` grants for exactly this purpose) and surfaced. Capture latency
   is preserved even when authorization fails.
 
 ### 3.2 The read path (simpler)
@@ -290,7 +308,7 @@ sequenceDiagram
 
     Cap->>Reg: resolve KB (explicit name, or default) [D]
     Cap->>Gr: read grant? (usually the `* / ** / read` row) [D]
-    Cap->>KB: honor the KB's required reading order (AGENTS.md → index.md → log.md tail) [D checklist]
+    Cap->>KB: honor the KB's required reading order (AGENTS.md → index.md → `kb history`) [D checklist]
     Cap->>KB: read [D]
 ```
 
@@ -319,7 +337,7 @@ sequenceDiagram
     I->>KB: render kb/ zone template into target path [A render, diff-previewed]
     I->>U: present grant rows to append (subject, object, verbs, via) [D render]
     U->>Gr: approve → rows appended, grantor: user, granted: today [H approve, D append]
-    I->>KB: append log.md `create` lines for zone + grants [D]
+    I->>KB: commit the zone + grant rows, aos-verb: create [D]
     I->>L: run lint on the KB [D]
     I->>Lock: record zone paths + grant rows under the capability entry [D]
     Note over Lock: removal = reverse from lockfile:<br/>delete rows where via matches, log `resolve`, lint again [D]
@@ -339,20 +357,29 @@ self-approves them.
 |---|---|---|
 | `user` | The human. Root of all authority. | `user` |
 | `agent:<name>` | A named agent identity in this user's harness(es). | `agent:archiver`, `agent:main` |
-| `capability:<id>` | Any agent, when executing that capability's skills. | `capability:gtd-capture` |
+| `capability:<id>` | Any agent, when executing that capability's skills. | `capability:work-tracker` |
+| `principal:<id>` | **A human whose knowledge it is** — the git *author* of a write, as distinct from the agent that applied it. On a base one person owns, this collapses into `user`; on a base several people write to it is the subject the audit turns on. | `principal:dana@example.com` |
 | `*` | Any registered subject (any row-holder in this table). Used mainly for the read wildcard. | `*` |
-| *(unknown-external)* | Anything not matching a row. **Not a subject form — the absence of one.** Default posture applies: deny, park, surface. | an uninstalled capability, a foreign agent |
+| *(unknown-external)* | Anything not matching a row. **Not a subject form — the absence of one.** Default posture applies: deny, park, surface. | a
+
+> **`principal:` is recorded as evidence for RFC-007 §8 Q2, not as its resolution.** The
+> vocabulary above is a closed set, so adding a form is a real extension — and it earned its
+> place the honest way: git's two-identity model was already carrying the distinction (author
+> vs committer), so the table was describing fewer subjects than the store actually had. What
+> stays open is the *roster* question — who may act as whom on a base several people write to,
+> and how that is declared. The grants table naming principal ids directly is what works
+> today; whether it is the answer is RFC-007's to decide.n uninstalled capability, a foreign agent |
 
 **(proposed)** When agent X runs capability Y's skill, the effective subject is checked as
-*either* matching — a grant to `agent:archiver` or to `capability:gtd-capture` each
-suffices — but the decision record and log line carry **both** (`router:` and `via:` in
+*either* matching — a grant to `agent:archiver` or to `capability:work-tracker` each
+suffices — but the decision record and the commit carry **both** (`router:` and `via:` in
 §2.4), so the audit can attribute precisely. Whether the permission gate keys on the
 agent, the capability, or the pair is an open question for RFC-007 (§8 Q2).
 
 ### 4.2 Objects
 
 Three granularities, all expressed as the `object` glob: a whole **KB** (`**`), a
-**zone** (`raw/**`, `profile/**`), a **file pattern** (`state.yaml`,
+**zone** (`_raw/**`, `profile/**`), a **file pattern** (`.kb/state/**`,
 `projects/*.md`). Grants live per-KB, so the KB itself is identified by which
 `AGENTS.md` the row sits in — there is no cross-KB grant syntax and none is needed.
 
@@ -374,7 +401,7 @@ Three granularities, all expressed as the `object` glob: a whole **KB** (`**`), 
   (c) a user-global table would silently diverge from what a shared KB's other members
   see. The registry holds no grants — routing hints and audience only.
 - **Default posture: deny.** No row → no verb. Unknown-external subjects don't get an
-  error and a shrug — they get refusal + `refuse` log line + a `_ops/needs-review.md`
+  error and a shrug — they get refusal + a `refuse` commit + a `.kb/pending/`
   block (§3.1), i.e. the same "park in pending/review" semantics the Hermes WhatsApp
   gate applies to unknown senders (RFC-007), deliberately: one vocabulary, two
   enforcement points.
@@ -394,7 +421,7 @@ flowchart LR
     G3 --> ACT["agent action"]
     subgraph coop["Inside your harness — cooperative agents"]
       G1["① Self-check at write<br/>router / base grants check reads Grants<br/><i>catches honest mistakes</i>"]
-      G2["② After-the-fact audit<br/>lint: git-diff × Grants + log.md<br/><i>catches violations that slipped ①</i>"]
+      G2["② After-the-fact audit<br/>lint: git author/committer × Grants<br/><i>catches violations that slipped ①</i>"]
     end
     ACT --> G1
     G1 -->|"grant exists"| WRITE["write to KB"]
@@ -408,7 +435,7 @@ flowchart LR
 
 The three layers, weakest to strongest:
 
-1. **Self-check at the point of write [D].** The router skill's `base grants check` call
+1. **Self-check at the point of write [D].** The router skill's `kb grants check` call
    makes every writing agent do a table lookup before writing. This is an honest-agent
    control: it catches *mistakes* (the overwhelmingly common failure), not *malice*. It
    is trustworthy because the check is deterministic and cited in the contract file
@@ -420,13 +447,13 @@ The three layers, weakest to strongest:
    - **Writes outside granted zones** — walk `git log` between lint runs; diff each
      commit's touched paths against the Grants table for the **committer's** subject.
      Any touched path with no matching `write` grant → violation entry in
-     `_ops/needs-review/`. This works because every KB is a git repo and **every write
+     `.kb/pending/`. This works because every KB is a git repo and **every write
      is its own commit**: author = the human principal whose knowledge it is, committer
      = the acting agent (kb-methodology §6.5). Nothing is batched under one identity, so
      the audit has no exemption to make beyond `bootstrap`, which scaffolds the tree
      before any grant row exists.
    - **Unattributed writes** — a commit whose author is outside the base's
-     `principals:` roster, or one that reached git only through the sync sweep rather
+     grants table, or one that reached git only through the sync sweep rather
      than a verb. Both are reported. An agent that skips attribution doesn't escape the
      audit — skipping *is* the finding.
      > Superseded (2026-07-27): this bullet previously required every commit's paths to
@@ -474,7 +501,7 @@ harness-level sandboxing, which no markdown table provides — and we say so.
 | Default-inbox fallback (step 4) | router | D | fixed target from registry | drain queue depth monitored |
 | Authz lookup | writing agent | D | table row + glob match | lint git-diff audit re-derives every decision after the fact |
 | File write + frontmatter stamp | writing agent | D | templated write against SCHEMA | lint schema validation |
-| `log.md` append | writing agent | D | fixed line format, append-only | lint: diff-without-log = violation |
+| the audit commit | writing agent | D | one commit per write, two identities | lint: an unattributed commit, or an author with no grant row = violation |
 | Refusal handling | kb capability | D | log `refuse` + needs-review block | user drains queue |
 | Git sync (5-min rebase) | harness cron | D | existing production script | conflicts surfaced, never auto-resolved |
 | Drain: collect uncertain | Archiver | D | frontmatter scan | queue-depth trend in lint report |
@@ -492,7 +519,7 @@ harness-level sandboxing, which no markdown table provides — and we say so.
 | `kb init` scaffold | kb skill | D | template copy | lint runs clean on fresh KB (acceptance) |
 | `kb init` purpose/audience interview | onboarding | **A** | eliciting a good routing rubric is conversation | re-runnable, diffable (§3.2) |
 | `kb adopt` | kb skill | D (lint + report) | must never rewrite a live KB (§4.4) | it only reports; user acts |
-| `state.yaml` rewrite | the base's single writer via `base state` | **A** (content) + D (cap + grammar + writer check) | attention synthesis is judgment | methodology §7: cap enforced by tool, state_stale lint, git history is the archive |
+| state rewrite | the base's single writer via `kb state` | **A** (content) + D (cap + grammar + writer check) | attention synthesis is judgment | methodology §7: cap enforced by tool, state_stale lint, git history is the archive |
 
 Reading of the table: **every [A] row has a [D] or [H] row directly downstream of it.**
 That is the design rule, not a coincidence — judgment is allowed wherever a deterministic
@@ -549,9 +576,9 @@ kbs:
 **Case 1 — work item arrives on a personal channel.** WhatsApp voice note: *"Dana says
 the Acme pipeline number needs updating before the board deck."*
 Step 2, channel tier: `personal/channel[whatsapp:*]` matches. Keyword tier is never
-reached (channel tier wins — §2.1 precedence). → written to `~/personal-kb/raw/captures/ (triage: pending)`,
+reached (channel tier wins — §2.1 precedence). → written to `~/personal-kb/.kb/pending/`,
 `method: rule`. Nightly drain [A] re-reads it, recognizes work content — but work is
-**shared**, so it *proposes* the move in `_ops/needs-review.md`; the user approves next
+**shared**, so it *proposes* the move in `.kb/pending/`; the user approves next
 morning; the move executes as `method: explicit`. **Net effect: a work item captured in
 <1s with zero prompts, landing in the work KB one review later — and the shared repo was
 never touched by a machine guess.** (If RFC-006's replay shows this pattern dominating
@@ -561,7 +588,7 @@ deterministic knob, not more LLM.)
 **Case 2 — ambiguous item.** Typed directly to the main agent (no channel binding):
 *"call the accountant about the invoices."* No rule hit. Step 3: classifier candidates =
 {personal, mgmt} (work excluded — shared). Returns `{kb: personal, confidence: 0.58}` —
-below 0.7. Step 4: → `~/personal-kb/raw/captures/ (triage: pending)`, `method: default, status: uncertain,
+below 0.7. Step 4: → `~/personal-kb/.kb/pending/`, `method: default, status: uncertain,
 confidence: 0.58`. Drain handles it at leisure. Capture cost: one cheap call, no prompt.
 
 **Case 3 — explicit tag.** *"work: pricing objection from the TailorMade call — log
@@ -583,14 +610,14 @@ machine-classified content into a repo other people pull.*
 
 **Case 5 — unknown capability writes to an ungranted zone.** A freshly-sideloaded
 capability (never installed via §3.3, so no grant rows) tries to write
-`~/mgmt-kb/state.yaml`. Authz lookup: no row → **refused**. `capability:kb`
-appends to mgmt's `log.md`: `2026-07-17T15:02+03:00 | kb | refuse | state.yaml |
+`~/mgmt-kb/.kb/state/dana.yml`. Authz lookup: no row → **refused**. `capability:kb`
+makes a `refuse` commit in mgmt: `refuse | .kb/state/dana.yml |
 capability:sideload-x via agent:main — no grant; parked` and a block in
-`_ops/needs-review.md` with the attempted payload's summary. The user sees it in the
+`.kb/pending/` with the attempted payload's summary. The user sees it in the
 next brief and either installs the capability properly (grants via §3.3) or removes it.
 If the capability *ignores the skill contract and writes anyway* (the cooperative
 model's limit): the weekly lint's git-diff audit finds a commit touching
-`state.yaml` by an author with no matching grant → violation flagged, user
+a state shard by an author with no matching grant → violation flagged, user
 alerted. Caught after the fact — which is exactly what §4.5 promises, no more.
 
 ---
@@ -598,11 +625,11 @@ alerted. Caught after the fact — which is exactly what §4.5 promises, no more
 ## 7. State — moved
 
 State mechanics live in the engine design now: **[kb-methodology.md §7](kb-methodology.md)**
-(one capped `state.yaml` per base — the rolling attention window; single logical writer;
+(one capped shard per principal per base — the rolling attention window; single logical writer;
 bump-on-use; Archiver-proposed evictions; the `state_stale` lint predicate; cold-start
 composition across bases, private first). What remains authorization-relevant here:
 
-- The **single writer** is named by the narrowest matching `write` grant on `state.yaml`
+- The **single writer** is named by the narrowest matching `write` grant on `.kb/state/**`
   (the table in §2.2 does this: `agent:main`). Two distinct authors touching it inside a
   lint window → violation.
 - Slow-tempo identity documents (north star, principles, career) are ordinary wiki pages
@@ -622,7 +649,7 @@ composition across bases, private first). What remains authorization-relevant he
    singular. So a shared base cannot express "Alice's agent may write here, Bob's may
    not", and cannot say whose captures are whose. Built on `main` as evidence, not as a
    decision: git's own author/committer split (author = the human whose knowledge it is,
-   committer = the acting agent) plus a `BASE.yaml principals:` roster mapping author
+   committer = the acting agent) plus the grants table itself, which names principal ids directly and IS the roster (a separate `principals:` list was a second copy of the same fact) mapping author
    email → subject. Absent a roster every write is `user`, so private bases are
    unchanged. This is the sanctioned door Q2 already anticipated when it warned the
    answer "may change the table format" — walking through it, and asking Q2 to confirm
