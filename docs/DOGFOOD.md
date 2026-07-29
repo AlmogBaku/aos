@@ -21,3 +21,13 @@ starts on purpose; none runs from CI or from an implementation agent's own initi
       real attention window). The skill exists for exactly this session.
 - [ ] **State cap + eviction tuning**: dogfood `state.max_items` (default 20) and the
       42-day staleness window against real attention churn.
+- [ ] **A month of a real two-person base** (RFC-010 Q1's own decision method): per-principal
+      curation, `kb lint` run by hand or by each member's automation, counting what the
+      pending queue actually accumulates and what a human had to fix. If per-principal
+      curation keeps the queue drainable, CI curation is unnecessary rather than deferred.
+- [ ] **`kb config set`'s missing grant row** — decide it rather than carrying it: the fix
+      needs a push to `aos-kb-template`, so it is a decision (see the BUILD-GAPS row). Until
+      then every base whose schema was edited carries one permanent audit critical.
+- [ ] **Commitment tracking against real commitments** — the thing work-tracker exists for,
+      and the only way to find out whether the speech-act split holds outside fixtures: does
+      *"I need to find time to…"* fire reliably, and does *"write the CFP"* stay silent?

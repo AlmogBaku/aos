@@ -26,7 +26,27 @@ Runs `tools/lint/aos-lint.mjs` (81 checks in 13 code families over the §2/§3/�
 schema/contract linter, useful any time you're authoring a capability, not just for
 testing), the lint selftest (`tools/lint/selftest/run.mjs` — every contract code must fire
 on a planted-violation fixture, and a code that fires without being listed is also a
-failure), and the golden structural checker. CI runs the same on every push/PR.
+failure), and three gates the linter structurally cannot cover, because it validates schema
+and these check *content*:
+
+- **`tools/check-retired.mjs`** — repo-wide: no retired vocabulary survives, no artifact
+  invokes the old command name, and every shipped skill description carries its trigger
+  clause, a negative clause naming a sibling, and third person. The allowlist is four
+  prefixes and a `<!-- retired-ok: reason -->` marker, so an exemption is visible in the
+  file rather than hidden in the gate.
+- **`tools/check-coverage.mjs`** — every CLI verb is documented (parsed from the tool's own
+  `--help`, so the list cannot drift), and every count quoted in prose is the count the
+  tools report.
+- **`tools/check-kb-commands.mjs`** — every documented `kb <verb> --flag`, in the
+  capabilities *and* `docs/`, exists in the tool. Two careful human passes over the same
+  prose still shipped nine commands that failed on invocation; that is the class this closes.
+
+Then the golden structural checker. CI runs the same on every push/PR.
+
+**Outside `check.sh` on purpose:** `node tools/check-template-drift.mjs` compares the shipped
+init templates against the `aos-kb-template` repo `kb init` clones. It needs the network and
+reports offline as a *skip* — a gate that fails on a plane is a gate people learn to skip — so
+run it by hand after touching `templates/`.
 
 ## Tier 2 — golden render (the e2e)
 
