@@ -20,9 +20,14 @@ else
   echo "check.sh: uv not found — tier-0 tool tests SKIPPED (install: https://docs.astral.sh/uv/)" >&2
 fi
 
-# tier 1 — kit lint + selftest, plus the kb surface gate; tier 2 — golden structural checks
+# tier 1 — kit lint + selftest, plus the repo-wide retired-token and coverage gates;
+# tier 2 — golden structural checks.
+# check-template-drift.mjs is deliberately NOT here: it needs the network and reports offline
+# as a skip, and a gate that fails on a plane is a gate people learn to skip. Run it by hand
+# after touching templates/.
 node tools/lint/aos-lint.mjs "$@"
 node tools/lint/selftest/run.mjs
-node tools/check-kb-surface.mjs
+node tools/check-retired.mjs
+node tools/check-coverage.mjs
 node tools/check-kb-commands.mjs
 node tests/golden/check.mjs

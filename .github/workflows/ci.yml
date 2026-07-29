@@ -34,8 +34,10 @@ jobs:
           node tools/lint/aos-lint.mjs $BASE
       - name: lint selftest
         run: node tools/lint/selftest/run.mjs
-      - name: kb surface gate
-        run: node tools/check-kb-surface.mjs
+      - name: retired-token gate
+        run: node tools/check-retired.mjs
+      - name: coverage gate
+        run: node tools/check-coverage.mjs
       - name: kb documented-command check
         run: node tools/check-kb-commands.mjs
       - name: golden structural checks
