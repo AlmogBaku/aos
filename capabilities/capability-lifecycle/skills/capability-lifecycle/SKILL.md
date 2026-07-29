@@ -1,6 +1,6 @@
 ---
 name: capability-lifecycle
-description: The aos capability lifecycle's front door. Use when the user asks to install, update, upgrade, remove, or customize an aos capability, mentions or shares a CAPABILITY.md or a capability directory, asks what capabilities are installed or what aos is, or asks about the manifest, the lockfile, or a harness cheat-sheet — and no narrower lifecycle skill matches.
+description: "The aos capability lifecycle's front door. Use when the user asks to install, update, upgrade, remove, or customize an aos capability, mentions or shares a CAPABILITY.md or a capability directory, asks what capabilities are installed or what aos is, or asks about the manifest, the lockfile, or a harness cheat-sheet. Routes to the narrower skill that owns the job — capability-install, capability-upgrade, capability-remove, capability-onboard, capability-evolve, capability-import, capability-build, capability-contribute, capability-review — and carries the household layout, the install contract and the naming rules they all share. Do NOT use when one of those already matches the ask; this is the map, not the work."
 ---
 
 # capability-lifecycle — the map

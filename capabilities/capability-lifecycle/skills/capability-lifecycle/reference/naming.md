@@ -14,12 +14,12 @@ runtime, where CI cannot reach. If the two ever disagree, the code is the bug.
 
 ## What to name things
 
-- **Skills are action-oriented**: `install`, `evolve`, `drain`, `route`. A skill is a job
+- **Skills are action-oriented**: `install`, `evolve`, `capture`, `route`. A skill is a job
   the agent does.
-- **Agents are role-oriented**: `archiver`, `drainer`, `librarian`. An agent is someone who
+- **Agents are role-oriented**: `archiver`, `steward`, `librarian`. An agent is someone who
   holds a job.
 - **The entry skill is the exception**: it is named after its capability (`kb`,
-  `gtd-capture`), because it is the capability's front door, not one of its jobs.
+  `work-tracker`), because it is the capability's front door, not one of its jobs.
   (`structure/entry-skill`)
 - Never a vague name (`helper`, `utils`, `tools`) and never a bare noun (`documents`,
   `data`). Pick one pattern per capability and hold it.
@@ -130,7 +130,7 @@ Consequences worth stating, because each one was a real bug:
 - **Never a parent-directory reference.** The materialized directory carries the installed
   name, not the source id, so climbing out of the skill folder breaks even when the path
   looks right in the repo. (`skill/no-cross-path`)
-- When you write a path for the *user's* tree — a KB's `_ops/needs-review/`, a draft's
+- When you write a path for the *user's* tree — a KB's `.kb/pending/`, a draft's
   `agents/<name>.agent.yaml` — say once which root it is relative to. Those are data
   locations, not load targets, and an unrooted one is a guess.
 

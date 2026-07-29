@@ -72,7 +72,7 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
      > aos already installed (a schedule, a threshold, a preference) — that is
      > `capability-evolve`, not building.
 
-     The carve-out earns its place: without it the block fires on "change my drain time",
+     The carve-out earns its place: without it the block fires on "change my steward hour",
      which is the overlay round-trip, not a new automation — found in the 0.3.0 e2e.
      This block is the detector's teeth. A skill description is pull-context (consulted
      only when the model thinks to), but a harness with a native cron tool will satisfy a
@@ -126,10 +126,10 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
   intact. The honest cost: the boundary now reaches consume-only users too, because
   BOOTSTRAP installs this capability for everyone.
 - **Skill ids are action-oriented and short** (`install`, `evolve`, `contribute`); agents
-  are role-oriented (`archiver`, `drainer`). The id is capability-local — the name that
+  are role-oriented (`archiver`, `steward`). The id is capability-local — the name that
   ships is `<skill_prefix><id>`, computed by `aos-lock skills`. That is why the id here is
   `install` and not the old `capability-installer`: the prefix carries that meaning now, so
-  the id must not repeat it. Full rules in `reference/naming.md`.
+  the id must not repeat it. Full rules in the naming reference this capability ships.
 - **A skill name is single-owner.** Harnesses keep one flat skill namespace, so two
   capabilities shipping one name is a silent override. `aos-lock skills --check` is the
   gate — against every capability in the household, the lockfile's recorded links, and the

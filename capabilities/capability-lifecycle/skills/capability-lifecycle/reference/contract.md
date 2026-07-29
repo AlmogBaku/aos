@@ -15,7 +15,10 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   `~/aos`) contains `upstream/` (the kit clone — pristine, never anything personal, not
   even untracked files), `personal/` (the user's one private git repo: MOD files at
   mirrored capability paths, the pinned renders, their private capabilities), `.aos/`
-  (machine state — the lockfile), and `vendor/` (third-party skills aos references rather
+  (machine state — the lockfile, plus any machine-local file a capability's tool writes for
+  itself: kb's `kb-principal.yml` is the one today. Machine-local means gitignored and
+  per-machine, so it is recreated by the tool rather than carried between machines), and
+  `vendor/` (third-party skills aos references rather
   than ships — cloned, symlinked, and recorded like anything else, but never rendered and
   never origin-tagged: they are not ours to modify). A capability id resolves against `personal/`
   first, then `upstream/`; a personal package shadowing an upstream id is reported

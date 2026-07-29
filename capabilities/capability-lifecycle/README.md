@@ -1,7 +1,7 @@
 # capability-lifecycle
 
 The whole life of a capability, shipped as one capability: install, upgrade, remove,
-onboard, import, build, contribute, evolve, review. After bootstrap, "install gtd-capture" triggers
+onboard, import, build, contribute, evolve, review. After bootstrap, "install work-tracker" triggers
 a real skill in your harness; nothing depends on re-reading repo files.
 
 Everything lives in the household (`~/aos`): `upstream/` the pristine kit clone,

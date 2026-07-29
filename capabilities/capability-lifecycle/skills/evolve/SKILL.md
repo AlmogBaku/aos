@@ -1,6 +1,6 @@
 ---
 name: evolve
-description: Changes how an installed aos capability behaves for this user and records it in their MOD.md so it survives every upgrade. Use when the user asks to change an installed capability's behavior (reschedule, tone, thresholds, preferences), asks to promote a tweak upstream or says a change should be for everyone, when verify finds hand-edit drift to capture, or when a hand-edited rendered artifact is noticed.
+description: "Changes how an installed aos capability behaves for THIS user and records it in their MOD.md so it survives every upgrade. Use when the user asks to reschedule, retune, retone or otherwise adjust an installed capability (\"make the steward run at 22:00\", a threshold, a preference), when they say a tweak should be for everyone, or when a hand-edited render needs capturing back. Do NOT use to change the shipped source for all users — it classifies that and hands it to capability-contribute — and not to install, upgrade or remove, which are their own skills."
 ---
 
 # capability-evolve

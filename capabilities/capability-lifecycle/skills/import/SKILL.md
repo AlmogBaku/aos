@@ -1,6 +1,6 @@
 ---
 name: import
-description: Imports an existing use case from this harness into an aos capability draft. Use when the user asks to wrap, package, export, or contribute something they already built ("import my trainer setup into the kit").
+description: "Imports a use case the user already built in this harness into an aos capability draft: inventories the pieces, splits generic mechanism from personal nuance, and emits a package plus a gap report under personal/, never installing it. Use when the user asks to wrap, package, export, extract or contribute something they already have running (\"import my trainer setup into the kit\"). Do NOT use for something that does not exist yet — that is capability-build — and not to send the draft upstream, which is capability-contribute."
 ---
 
 # capability-import

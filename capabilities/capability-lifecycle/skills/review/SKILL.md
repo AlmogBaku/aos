@@ -1,6 +1,6 @@
 ---
 name: review
-description: Reviews a capability as architecture and then as prose — traces its flows and decision points, maps its units against the resources powering them, diagrams it, stress-tests the logic, and checks that every command it documents exists and every artifact it writes has a reader. Use when asked to review, audit, critique or sanity-check a capability or its skills, before contributing one upstream, after building or evolving one, when something in a capability "looks wrong" but nobody can say where, or when a capability's prose and its tool may have drifted apart.
+description: "Reviews a capability as architecture and then as prose — traces its flows and decision points, maps its units against the resources powering them, diagrams it, stress-tests the logic, and checks that every command it documents exists and every artifact it writes has a reader. Use when asked to review, audit, critique or sanity-check a capability or its skills, before contributing one upstream, after building or evolving one, when something in a capability \"looks wrong\" but nobody can say where, or when a capability's prose and its tool may have drifted apart. Read-only, so it reports findings and fixes nothing: Do NOT use to apply a fix — that is capability-contribute upstream, or capability-evolve for one user."
 ---
 
 # capability-review
@@ -107,7 +107,7 @@ Walk the decision tree adversarially and look for:
 
 - branches that cannot be reached, and branches that overlap so two paths both fire;
 - two paths writing the same file, or the same state, with no ordering between them;
-- an ordering assumption nobody declared ("after the nightly drain") — those rot silently
+- an ordering assumption nobody declared ("after the nightly steward pass") — those rot silently
   when the other side changes;
 - what happens on retry, on partial completion, and on a step that returns nothing.
 
