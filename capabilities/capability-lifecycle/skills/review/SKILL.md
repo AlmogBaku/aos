@@ -160,10 +160,17 @@ protecting itself.
 test it. Take the two longest branches you drew in step 1 and name, concretely, the one fact a
 fresh agent would lack at each: an unstated prerequisite, a missing stop condition, a required
 flag the prose omits. If you cannot name one, say the branch is clean. Then check the aos-side
-mechanics that do not need any other skill: every skill declared in `used_by`, references one
-level deep with no chains, installed names computed not authored, and the manifest's own counts
-matching the README and its prose (a version-bumping commit is exactly where those drift). For
-description craft and triggering, `writing-skills` and `skill-creator` own it if installed.
+mechanics: every skill declared in `used_by`, installed names computed not authored, and the
+manifest's own counts matching the README and its prose — a version-bumping commit is exactly
+where those drift.
+
+For skill quality itself, work [reference/skill-rubric.md](reference/skill-rubric.md): eight
+judgment dimensions — four for the body, four for the description — with the mechanical half
+excluded because the linter already fails the build over it. **Read its opening rule before
+scoring anything.** The rubric is a floor: a weak dimension means something is wrong, a strong
+one means stop. Polishing a skill that already reads well buys the last points by deleting
+reasoning, and reasoning is what lets a model handle the case a rule does not literally name.
+Task achievement is the target, not a tidy score.
 
 **e. Prefer a script once a defect class appears twice.** Two careful readings that both miss
 the same kind of thing is evidence a script is cheaper than a third reading.

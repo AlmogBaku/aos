@@ -64,6 +64,21 @@ export function checkSkills({ caps, files, report }) {
       } else if (!/\bwhen\b/i.test(desc)) {
         report('warn', 'skill/description-when', file, 'description should say when to use the skill (trigger phrasing)');
       }
+      // A description is injected into the system prompt to choose among a hundred skills, so
+      // its point of view is load-bearing: the authoring guide calls first/second person a
+      // discovery problem, not a style preference. Every shipped skill already passes, which is
+      // why this is an error rather than a warning — it guards a property we have, instead of
+      // reporting one we lack. The review skill's reference/skill-rubric.md carries the
+      // judgment half of description quality, which no regex can reach.
+      if (typeof desc === 'string') {
+        const pov = desc.match(
+          /\b(?:I can|I will|I help|I'll|helps? you|lets you|allows you|enables you|you can|you should|use this (?:to|when|for))\b/i);
+        if (pov) {
+          report('error', 'skill/description-person', file,
+            `description says "${pov[0]}" — write it in third person ("Records a thought…", `
+            + `not "I can help you…" or "Use this to…"); it is injected into the system prompt`);
+        }
+      }
       for (const [field, value] of [['name', name], ['description', desc]]) {
         if (typeof value === 'string' && XML_TAG_RE.test(value)) {
           report('error', 'skill/xml-tags', file,
