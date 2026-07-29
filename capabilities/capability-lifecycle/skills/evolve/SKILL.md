@@ -48,6 +48,9 @@ appended record (the `capability-lifecycle` skill's `reference/overlay.md`).
    with the statement. **Never open a PR or file an issue yourself — every upstream
    write needs the user's explicit yes (contract).**
 
-Capture mode (drift found by `verify` or by noticing a hand-edit): same steps, but
-step 3 is skipped — the change already exists; you are folding it into MOD.md
+Capture mode (drift found by `verify` or by noticing a hand-edit): same steps, but step 3's
+**second half** is skipped — the render already carries the change, so there is nothing to apply.
+**Step 3's MOD.md write still happens, and it is the whole point of capture mode**: the edit
+exists on disk and nowhere in the overlay, so the next upgrade would silently drop it. Skip the
+write and step 5's "recorded in your MOD.md — survives every upgrade" is a lie
 (the `capability-lifecycle` skill's `reference/overlay.md`, "Capture and fold").

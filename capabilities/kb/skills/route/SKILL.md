@@ -23,8 +23,11 @@ the YAML is the intended method rather than a workaround.
 zone; the check is against the glob, not a real file). Zero candidates
 does not mean drop the payload: hand it back to the caller tagged
 `kb_routing.status: refused` (a field on the map, not a bare scalar — see below) and record
-it with `kb refuse --path <target> --subject <s> --reason "no route-into grant"`, which files
-a `kind: refusal` entry in `.kb/pending/`.
+it with `kb --base <default> refuse --path <target> --subject <s> --reason "no route-into
+grant"`, which files a `kind: refusal` entry in `.kb/pending/`. **Name the base**: `refuse`
+resolves like every other verb, so without `--base` the record silently lands in the registry
+default — and choosing a base is precisely what just failed. The default base is the right
+place for it; say so in the reason.
 
 Resolution order — stop at the first match:
 

@@ -132,7 +132,18 @@ trusts a number from that harness. If triggering is not contested, say so and mo
 
 ## 6. The sweep **[D]** where a command can answer, **[A]** where judgment is needed
 
-Mechanical, and it catches what careful reading misses:
+Mechanical, and it catches what careful reading misses. **This is the step to parallelise** — 6a
+and 6c are per-claim and independent, and 6c's reproductions are the slowest thing in the review,
+so hand them to subagents and collect the verdicts.
+
+**Do not parallelise steps 1–5, and do not split a capability by skill.** Every defect worth
+finding in this kit lived *between* skills, not inside one: of ten real findings in one review,
+nine needed two or more skills in view at once and exactly one was visible in a single file. An
+agent holding only `upgrade` cannot see that its render destination is another skill's source
+directory — that finding *is* the relationship. The economics point the same way: the shared
+context every per-skill agent must re-read (manifest, entry skill, contract, naming) outweighs
+the per-skill bodies it would save, so splitting by skill multiplies context instead of saving it.
+Fan out **by capability** when reviewing several; keep one capability in one head.
 
 **a. Every command the prose names must exist, with those flags.** Run it, or read its
 `--help`. The kit's linter validates schema — frontmatter, `used_by`, reference depth — and

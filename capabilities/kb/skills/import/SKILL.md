@@ -40,8 +40,12 @@ a first-cut mapping proposal.
 **Sanity-check the counts before presenting them.** The default skip list covers `.git`,
 `.obsidian`, `node_modules`, `.kb` and backups — but not `.venv`, `__pycache__`, `dist` or
 `build`, so a source tree containing code will report thousands of files and list interpreter
-binaries as "large binaries" worth mapping. If the numbers look wrong they are: name the
-build and virtualenv directories in the skip list and survey again.
+binaries as "large binaries" worth mapping.
+
+If the numbers look wrong, they are — and **the skip list is compiled into the tool with no flag
+to extend it**, so there is no second survey to run. Filter it yourself: survey a subdirectory,
+or present the digest with the build and virtualenv trees excluded by hand and **say which ones
+you excluded**. Never promise the user a re-run you cannot produce.
 
 ## 1b. Grants — do this before you write anything
 
