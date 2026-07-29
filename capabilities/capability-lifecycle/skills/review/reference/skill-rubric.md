@@ -5,6 +5,7 @@
 - The mechanical half is already the linter's
 - Content: conciseness · actionability · workflow clarity · progressive disclosure
 - Description: specificity · completeness · trigger terms · distinctiveness
+- Calibration: what this rubric catches that a density metric does not
 - Worked verdicts from this kit
 
 ## How to use this (and how not to)
@@ -81,6 +82,35 @@ space, an explicit negative naming the sibling that should win: *"Do NOT use to 
 user just said — that is kb-capture."* Skills sharing a namespace without negatives mis-fire in
 both directions. Only add a negative where competition is real; an obviously-irrelevant exclusion
 tests nothing.
+
+## Calibration: what this rubric catches that a density metric does not
+
+Scored four skills (`capability-install`, `capability-evolve`, `kb-route`, `kb-import`) with this
+rubric, and separately with the external scorer it was reverse-engineered from. Rankings agreed;
+the rubric scored 4–8 points lower on each, which is the right direction for a floor.
+
+The useful result is not the numbers. **The scorer found zero actionable defects. The rubric
+found three, and two independent runs of it converged on the same two.** All three were real and
+all three are now fixed:
+
+- `evolve`'s capture mode said "step 3 is skipped" where step 3 held both the MOD write and the
+  render apply — so a literal follower wrote no overlay statement and then announced that it had.
+  **Fluent prose, self-contradicted in one sentence.** Caught by *workflow clarity*.
+- `import` said to add directories to the survey's skip list and re-run. There is no such flag;
+  the list is a module constant. The surrounding diagnosis was exact, which makes it worse — the
+  agent trusts it, then cannot act. Caught by *actionability*.
+- `route`'s refusal write dropped `--base`, so the record landed in the registry default in the
+  one case where routing had just established it could not choose a base. Caught by
+  *workflow clarity*.
+
+The pattern: a density metric rewards text that reads tightly, and all three of these read
+tightly. What a rubric aimed at **task achievement** asks instead is "would an agent following
+this reach the goal?" — which is how a contradiction and an impossible instruction surface.
+
+Two things the calibration runs deliberately left alone, and were right to: `install`'s thinner
+description, and the install/upgrade/onboard trigger overlap. Real as relative scores, already
+absorbed by the entry skill's routing table and install's own step 2 — editing them is the polish
+the floor rule forbids.
 
 ## Worked verdicts from this kit
 
