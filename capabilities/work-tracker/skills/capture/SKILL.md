@@ -25,14 +25,13 @@ that question routes every request into the list.
 queries nor its `--without block` backstop, which makes the commitment permanently invisible.
 Trivial work is `next` with a small `estimate:`, not a status of its own.
 
-`someday` is what protects the list. Without it every musing becomes a scheduled commitment,
-and a schedule you stop trusting is worse than none.
+`someday` protects the list: without it every musing becomes a scheduled commitment, and a
+schedule the user stops trusting is worse than none.
 
 **Never block on the recommendation.** Ask about the two-minute job in the same breath as
-confirming, not instead of it — a commitment lost to a clarifying question is worse than one
-filed with a wrong estimate. If the exchange resolves it (*"yeah, done"*), file it `done`
-with an `expires:` rather than deleting the page: the record of having done it is worth the
-one line.
+confirming, not instead of it — a commitment lost to a clarifying question costs more than a
+wrong estimate. If the exchange resolves it (*"yeah, done"*), file it `done` with an
+`expires:` rather than skipping the page.
 
 ## Write it
 
