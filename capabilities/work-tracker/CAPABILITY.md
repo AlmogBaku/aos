@@ -69,10 +69,17 @@ the CFP"* is a commitment, which becomes a page. Same content words, different s
 
 ## The base: exactly one, and it must be private
 
-```yaml
-# kb-registry.yaml
-commitments: personal-kb      # MUST be audience: private
+**The base's registry `name` must literally be `commitments`**, because every skill invokes
+`kb --base commitments <verb>` and `--base` matches the registry's `name` field and nothing else —
+not a tag, not an alias. Point it at an existing private base or create one:
+
 ```
+kb init commitments --path <path> --audience private --purpose "commitments I have to keep"
+```
+
+Reusing a base the user already has instead? It has to be renamed to `commitments`, or every
+command in all five skills exits 1 with `unknown base 'commitments'`. Do not paper over that
+by editing the skills — the name is the contract.
 
 Three reasons, and the first is not stylistic:
 
@@ -96,7 +103,8 @@ which is why each is spelled out:
    with exit 0, because the tool only walks declared zones. This is not tidiness; it is the
    difference between a tracked commitment and a file nothing ever reads again.
 2. **Add the type** — append `action` to the base's `types:` list, or every page draws a
-   `type 'action' not in base.yml types` finding.
+   `type 'action' not in base.yml types` finding *once the zone exists*. Before that it draws
+   nothing at all, for the reason above: the two omissions compound into total silence.
 3. **Declare eight extensions** — `due estimate block slipped since waiting_on status
    project` in `frontmatter.extensions`. The page schema is closed, so a field that is not
    declared is a finding on *every* action page. `status` and `project` are as undeclared as
@@ -106,13 +114,18 @@ which is why each is spelled out:
 
    | subject | object | verbs | notes |
    |---|---|---|---|
-   | `agent:main` | `actions/**` | write | the live commitment path (`wt-capture`, `wt-schedule`) |
-   | `agent:steward` | `actions/** projects/**` | write | nightly maintenance; project links |
+   | `agent:main` | `actions/** index.md` | write | the live commitment path (`wt-capture`, `wt-schedule`) |
+   | `agent:steward` | `actions/** projects/** index.md` | write | nightly maintenance; project links |
 
    **Both rows, not one.** `wt-capture` is `used_by: [main]`, so the *front* agent writes
    action pages during an ordinary conversation while the steward writes overnight. Granting
    one leaves the other's writes as grants-audit criticals — and that failure mode is silent:
    the write succeeds, the commit lands, and the weekly lint surfaces it days later.
+
+   **`index.md` is on both rows and is easy to miss.** kb's seed grants it to
+   `agent:archiver` alone, but a new page is invisible on the map until the index lists it, so
+   both of these agents run `kb index rebuild` — and without the grant every rebuild is a
+   grants-audit critical of exactly the silent kind described above.
 
 The `projects/**` row is the steward's alone, because linking an action to its project is
 maintenance rather than capture.

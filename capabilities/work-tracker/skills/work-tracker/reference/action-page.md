@@ -4,7 +4,7 @@ One commitment, one page in `actions/`.
 
 ```yaml
 type: action
-status: next            # next | waiting | someday | done
+status: next            # next | waiting | someday | done — no other value
 project: "[[projects/booking-deal]]"
 due: 2026-08-03         # a deadline. Nothing about it deletes anything
 estimate: 45m
@@ -20,11 +20,26 @@ the commitments base's `frontmatter.extensions` at install. The page schema is c
 field that is not declared becomes a lint finding on every action page — which reads as a
 broken install rather than a list two words short.
 
+**Writing `project` needs the inner quotes** — `kb set` parses each value as YAML, so a bare
+`[[…]]` is stored as a nested list rather than a link, with exit 0 and no complaint:
+
+```
+kb --base commitments set actions/x.md 'project="[[projects/booking-deal]]"'
+```
+
+Frontmatter links are invisible to `kb links`, which reads body text only. `kb find --where
+'project=[[projects/booking-deal]]'` is how you traverse them.
+
 ## `due` is a deadline; `expires` is an end of life
 
 These are opposites and the difference is destructive if collapsed. `kb prune` deletes what
 `expires` says is over and never looks at `due`, so an overdue commitment is raised, not
-removed. A page carries `expires` only once it is `done`.
+removed.
+
+**`expires` is set only on completion, and that is a discipline rather than a guarantee.**
+`kb prune` reads `expires` alone — it does not check `status`, so an `expires` accidentally
+written onto a `next` action deletes a live commitment on the next pass. Nothing in the tool
+will stop it.
 
 `review_by` is a third thing again — *ask me about this later*. Never convert one into
 another.

@@ -2218,10 +2218,12 @@ class WorkTrackerZoneTest(unittest.TestCase):
     # writes action pages as the user speaks, while the steward writes during the nightly
     # pass. A steward-only row leaves every interactive capture as an audit critical, and a
     # main-only row does the same to every nightly maintenance write.
+    # `index.md` is on both rows: kb's seed grants it to agent:archiver alone, but a page is
+    # invisible on the map until the index lists it, so both of these agents rebuild it.
     GRANT_ROWS = [
-        "| agent:main | `actions/**` | write | user | 2026-07-29 | work-tracker@0.1.0 | "
-        "the live commitment path (`wt-capture`) |",
-        "| agent:steward | `actions/** projects/**` | write | user | 2026-07-29 | "
+        "| agent:main | `actions/** index.md` | write | user | 2026-07-29 | "
+        "work-tracker@0.1.0 | the live commitment path (`wt-capture`) |",
+        "| agent:steward | `actions/** projects/** index.md` | write | user | 2026-07-29 | "
         "work-tracker@0.1.0 | nightly maintenance; project links |",
     ]
 
@@ -2246,8 +2248,13 @@ class WorkTrackerZoneTest(unittest.TestCase):
         star = next(i for i, ln in enumerate(lines) if ln.startswith("| `*`"))
         lines[star:star] = self.GRANT_ROWS
         p.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        r = self.b("commit", "--verb", "create", "--path", "AGENTS.md",
-                   "--summary", "work-tracker grant rows")
+        # Committed as `user`, which is what install actually does: adding a grant row is
+        # `user`-only authority by the table's own rule, and the audit exempts `user`
+        # accordingly. Attributing it to an agent would make the very act of granting
+        # permissions an ungranted write.
+        r = run(["--base", str(self.root), "commit", "--verb", "create",
+                 "--path", "AGENTS.md", "--summary", "work-tracker grant rows"],
+                {**self.env, "AOS_AGENT": "user"})
         self.assertEqual(r.returncode, 0, r.stderr)
 
     def days(self, n):
@@ -2293,29 +2300,48 @@ class WorkTrackerZoneTest(unittest.TestCase):
         self.assertNotIn("not in base.yml types", r.stdout)
         self.assertNotIn("index drift", r.stdout)
         self.assertNotIn("actions/write-the-cfp.md with no matching grant", r.stdout)
+        # And the documented index rebuild is granted, which needs `index.md` on the row.
+        self.assertNotIn("index.md with no matching grant", r.stdout)
 
-    def test_the_only_criticals_left_are_kbs_own_pre_existing_ones(self):
+    def test_index_rebuild_is_granted_to_both_writing_agents(self):
+        """`index.md` is the grant row's easiest omission and its silent one.
+
+        kb's seed grants `index.md` to `agent:archiver` alone, but `wt-capture` and the
+        steward both run `kb index rebuild` — a page is invisible on the map until the index
+        lists it. Without the grant every rebuild is an audit critical that surfaces days
+        later at the weekly lint, long after the run that caused it.
+        """
+        self.install()
+        for subject in ("agent:main", "agent:steward"):
+            with self.subTest(subject=subject):
+                r = self.b("grants", "check", "--subject", subject,
+                           "--verb", "write", "--path", "index.md")
+                self.assertIn("GRANTED", r.stdout)
+
+    def test_the_only_criticals_left_are_kbs_own_pre_existing_one(self):
         """Pins a **pre-existing kb defect** so it cannot be mistaken for work-tracker's.
 
-        `kb config set` writes `.kb/base.yml` and `kb index rebuild` writes `index.md`,
-        both as the acting agent — and the seeded grants table gives `agent:main` a row for
-        neither, though both verbs are documented for ordinary use. So any base whose
-        schema was ever edited carries a permanent audit critical, on a fresh untouched
-        base too: verified independently of work-tracker.
+        `kb config set` writes `.kb/base.yml` as the acting agent, and kb's seeded grants
+        table gives `agent:main` no row for it — though `config set` is documented for
+        ordinary use. So any base whose schema was ever edited carries a permanent audit
+        critical, on a fresh untouched base too: verified independently of work-tracker.
 
-        Asserting the shape rather than `Critical (0)` keeps this test honest about what it
-        can prove today. Fixing it means changing kb's seeded template, which is mirrored
-        in the aos-kb-template repo — a push, and therefore a decision, not a drive-by.
+        `index.md` used to be in this allowlist and should not have been: that one was
+        work-tracker's own missing grant row, and allowlisting it here hid the gap rather
+        than reporting it. Now the grant rows carry `index.md` and this asserts only the
+        genuinely-kb-side residue — which is what keeps the allowlist honest.
+
+        Fixing the base.yml case means changing kb's seeded template, which is mirrored in
+        the aos-kb-template repo — a push, and therefore a decision, not a drive-by.
         """
         self.install()
         self.b("index", "rebuild")
         out = self.b("lint").stdout
         criticals = [ln for ln in out.splitlines() if "grants audit" in ln]
-        self.assertTrue(criticals, "expected the pre-existing criticals to still be here")
+        self.assertTrue(criticals, "expected the pre-existing critical to still be here")
         for line in criticals:
-            self.assertTrue(
-                ".kb/base.yml" in line or "index.md" in line or "AGENTS.md" in line,
-                f"a critical that is NOT the known kb config/index/AGENTS gap: {line}")
+            self.assertIn(".kb/base.yml", line,
+                          f"a critical that is NOT the known kb config gap: {line}")
 
     def test_an_undeclared_field_is_a_finding(self):
         self.install()
@@ -2380,18 +2406,30 @@ class WorkTrackerZoneTest(unittest.TestCase):
                                         "--verb", "write",
                                         "--path", "projects/deal.md").stdout)
 
-    def test_a_steward_write_with_no_grant_row_is_an_audit_critical(self):
-        """The counterfactual for the row above — proof the audit really catches this,
-        rather than the rows being decorative."""
+    def test_an_ungranted_write_is_an_audit_critical_for_either_agent(self):
+        """The counterfactual for the rows above — proof the audit really catches this,
+        rather than the rows being decorative.
+
+        Both subjects are exercised explicitly, and the assertion names the subject it
+        expects. An earlier version of this test relied on the class fixture's default
+        agent, so despite its name it only ever exercised `agent:main` and would have
+        passed unchanged with the steward row deleted — the exact class of vacuous test
+        the review of this branch was looking for.
+        """
         for assignment in ("zones.actions={kind: wiki}", f"types={self.TYPES}",
                            f"frontmatter.extensions={self.EXTENSIONS}"):
             self.b("config", "set", assignment)          # note: no self.grant()
-        self.action("ungranted", status="next")
-        self.b("commit", "--verb", "create", "--path", "actions/ungranted.md",
-               "--summary", "a write with no row")
-        out = self.b("lint").stdout
-        self.assertIn("grants audit", out)
-        self.assertIn("actions/ungranted.md", out)
+        for subject in ("agent:main", "agent:steward"):
+            with self.subTest(subject=subject):
+                name = f"ungranted-{subject.split(':')[1]}"
+                self.action(name, status="next")
+                env = {**self.env, "AOS_AGENT": subject}
+                r = run(["--base", str(self.root), "commit", "--verb", "create",
+                         "--path", f"actions/{name}.md",
+                         "--summary", "a write with no row"], env)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                out = self.b("lint").stdout
+                self.assertIn(f"grants audit: {subject} wrote actions/{name}.md", out)
 
 
 class StewardQueryTest(unittest.TestCase):

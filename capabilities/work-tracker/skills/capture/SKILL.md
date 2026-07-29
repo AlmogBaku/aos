@@ -12,13 +12,18 @@ Write the page, confirm, hand off. Under five seconds to the confirmation.
 **Is this mine to do?** Not *"is it actionable?"* — everything is actionable to an agent, so
 that question routes every request into the list.
 
-| The commitment is | status | then |
-|---|---|---|
-| real work of the user's | `next` | hand off to `wt-schedule` |
-| someone else's to answer | `waiting` + `waiting_on:` | nothing more |
-| a deadline, not hours | `next` + `due:` | a reminder, no block |
-| not now, maybe never | `someday` | nothing more |
-| trivial | `next` + `estimate:` | say *"that's a two-minute job — worth doing now?"* **and file it anyway** |
+| The commitment is | status: | plus | then |
+|---|---|---|---|
+| real work of the user's | `next` | — | hand off to `wt-schedule` |
+| someone else's to answer | `waiting` | `waiting_on:` | nothing more |
+| a deadline, not hours | `next` | `due:` | a reminder, no block |
+| not now, maybe never | `someday` | — | nothing more |
+| trivial | `next` | `estimate:` | say *"that's a two-minute job — worth doing now?"* **and file it anyway** |
+
+**`status` is one of exactly those four words.** Nothing validates it, so a fifth value —
+`trivial`, `blocked`, `urgent` — is written happily and then matches none of the steward's
+queries nor its `--without block` backstop, which makes the commitment permanently invisible.
+Trivial work is `next` with a small `estimate:`, not a status of its own.
 
 `someday` is what protects the list. Without it every musing becomes a scheduled commitment,
 and a schedule you stop trusting is worse than none.
@@ -39,17 +44,18 @@ kb --base commitments commit --verb create --path actions/write-the-cfp.md \
   --summary "commitment: write the KubeCon CFP"
 ```
 
-All three flags are required. Skip this and the page reaches git only through the sync
-sweep, with no acting subject, and `kb lint` reports it.
+All three flags are required. Skip this and the page reaches git only through the sync sweep,
+with no acting subject, and `kb lint` reports it — as a *report*, not a failure: bare `kb lint`
+exits 0 even with criticals in it, so read what it says rather than trusting the exit code.
 
-Frontmatter, and **all of the first line is required** — `kb lint` reports a page missing any
-of it:
+Frontmatter. The four marked `required` are the ones `kb lint` reports as missing — write all
+seven anyway, since the steward's queries depend on `status` and `since`:
 
 ```yaml
 title: call the dentist        # required
+type: action                   # required
 created: 2026-07-29            # required
 timestamp: 2026-07-29T14:32    # required
-type: action
 status: next                   # plus due / estimate / waiting_on per the table above
 since: 2026-07-29
 slipped: 0

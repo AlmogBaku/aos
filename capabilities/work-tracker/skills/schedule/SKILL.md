@@ -46,9 +46,17 @@ kb --base commitments set actions/write-the-cfp.md block=2026-08-01T10:00 estima
 so nothing else is needed. Both fields are declared at install — an undeclared one exits 14
 rather than writing a page lint would later flag.
 
-Link the action to its project in the same pass where one exists
-(`project="[[projects/booking-deal]]"`). That link is what lets the steward answer *"what is
-this for"* without reading the body.
+Link the action to its project in the same pass where one exists. **The outer quotes are
+load-bearing** — `kb set` runs each value through a YAML parser, so a bare `[[…]]` is read as
+a nested list and stored as one, silently and with exit 0:
+
+```
+kb --base commitments set actions/write-the-cfp.md 'project="[[projects/booking-deal]]"'
+```
+
+That link is what lets the steward answer *"what is this for"* without reading the body — via
+`kb find --where 'project=[[projects/booking-deal]]'`, since `kb links` reads body text only
+and never frontmatter.
 
 ## 4. Report the slot back
 

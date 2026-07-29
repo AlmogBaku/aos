@@ -114,7 +114,14 @@ const WT_SKILLS = {
 // the guide's phrasing and the one to reach for; "Does not <verb>" is accepted because
 // forcing the imperative into steward's sentence produced worse English, not a better
 // trigger, and the discriminating content is identical.
+//
+// A bare `Does not` is NOT enough, because the phrase is far too common to be evidence of
+// anything: "Does not need any configuration." passed the first version of this check while
+// discriminating nothing at all. What makes a negative clause real is that it says where the
+// work goes INSTEAD, so the clause must also name a sibling skill. That is the same bar the
+// prose already meets, now enforced rather than assumed.
 const NEGATIVE_CLAUSE = /\bDo NOT use\b|\bDoes not\b/;
+const SIBLING_REF = /\b(?:kb|wt)-[a-z-]+\b|\bwork tracking\b/;
 
 // The authoring guide is explicit: descriptions are injected into the system prompt, so a
 // first/second-person voice causes discovery problems. Third person only.
@@ -171,8 +178,12 @@ const descriptionShape = (capRel, skills) => {
     if (!m) { fail(rel, 'no description in frontmatter'); continue; }
     const desc = m[1];
     if (!/\bUse when\b/.test(desc)) fail(rel, 'description has no "Use when" trigger clause');
-    if (needsNegative && !NEGATIVE_CLAUSE.test(desc)) {
-      fail(rel, 'description has no negative clause ("Do NOT use" / "Does not …") — this skill competes for a trigger space');
+    if (needsNegative) {
+      if (!NEGATIVE_CLAUSE.test(desc)) {
+        fail(rel, 'description has no negative clause ("Do NOT use" / "Does not …") — this skill competes for a trigger space');
+      } else if (!SIBLING_REF.test(desc)) {
+        fail(rel, 'description has a negative clause but names no sibling skill — say where the work goes instead, or the clause discriminates nothing');
+      }
     }
     if (FIRST_OR_SECOND_PERSON.test(desc)) {
       fail(rel, `description is not third person ("${desc.match(FIRST_OR_SECOND_PERSON)[0]}") — it is injected into the system prompt`);
