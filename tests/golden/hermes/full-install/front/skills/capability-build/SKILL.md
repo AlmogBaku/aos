@@ -1,9 +1,21 @@
 ---
 name: capability-build
-description: "Detects when a request has drifted from a one-off task into building something persistent (a new skill, agent, cron, or standing automation) and offers to plan it properly before anything gets built. Use BEFORE creating any cron job, scheduled task, recurring reminder, or standing automation — whenever the user describes something recurring or systemic: 'every morning/day/weekday at some time, do X', 'send me a daily/weekly summary or digest', 'remind me every...', 'let's build something that...', 'can we make it so every time X, Y', 'watch X and do Y when...', 'I keep doing this manually, can we automate it', or an explicit ask for a new skill/agent/cron/capability. Not for one-off asks even if phrased with add/create/make ('add this to my calendar', 'create a file called notes.md') and not for feedback on a capability that already exists — that's capability-contribute (source-level) or capability-evolve (one user's install)."
-x-aos-origin: capability-lifecycle@0.3.0
+description: 'Detects when a request has drifted from a one-off task into building
+  something persistent (a new skill, agent, cron, or standing automation) and offers
+  to plan it properly before anything gets built. Use BEFORE creating any cron job,
+  scheduled task, recurring reminder, or standing automation — whenever the user describes
+  something recurring or systemic: ''every morning/day/weekday at some time, do X'',
+  ''send me a daily/weekly summary or digest'', ''remind me every...'', ''let''s build
+  something that...'', ''can we make it so every time X, Y'', ''watch X and do Y when...'',
+  ''I keep doing this manually, can we automate it'', or an explicit ask for a new
+  skill/agent/cron/capability. Not for one-off asks even if phrased with add/create/make
+  (''add this to my calendar'', ''create a file called notes.md'') and not for feedback
+  on a capability that already exists — that''s capability-contribute (source-level)
+  or capability-evolve (one user''s install).'
+metadata:
+  aos:
+    origin: capability-lifecycle@0.3.4
 ---
-
 # capability-build — the detector
 
 **Invariant: nothing durable gets written without the user's explicit approval of a

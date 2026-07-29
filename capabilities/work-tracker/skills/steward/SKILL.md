@@ -25,9 +25,9 @@ comparison — a bare `<` is shell redirection.
 |---|---|---|
 | overdue | `--where status=next --where 'due<today'` | re-date, raise, or propose dropping |
 | about to expire | `--where 'expires<today+7d'` | extend, or let it go |
-| stalled | `--where status=waiting --where 'since<today-14d'` | worth a nudge? |
+| stalled | `--where status=waiting --where 'since<today-{{mod: followup_cadence}}'` | worth a nudge? |
 | block passed, nothing moved | `--where status=next --where 'block<today'` | **reschedule silently, `slipped++`** |
-| someday gone cold | `--where status=someday --where 'since<today-90d'` | still someday, now, or never? |
+| someday gone cold | `--where status=someday --where 'since<today-{{mod: retention_days}}'` | still someday, now, or never? |
 
 Plus one **backstop**, which is not a pipeline stage:
 

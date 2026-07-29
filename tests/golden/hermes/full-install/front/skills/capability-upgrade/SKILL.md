@@ -1,9 +1,16 @@
 ---
 name: capability-upgrade
-description: Upgrades installed aos capabilities by re-applying the user's MOD.md deltas to fresh upstream. Use when the user says "update" or "upgrade" (the whole kit or one capability), or after a git pull of the aos upstream clone.
-x-aos-origin: capability-lifecycle@0.3.0
+description: Upgrades installed aos capabilities by folding the user's uncaptured
+  hand-edits into their MOD.md and re-applying it to fresh upstream, diff-gated, one
+  reviewable commit per render. Use when the user says "update" or "upgrade" — the
+  whole kit or one capability — or after a git pull of the aos upstream clone. Do
+  NOT use for a capability that is not installed yet (that is capability-install)
+  or to change what a capability does for this user (capability-evolve); this skill
+  preserves existing personalization rather than adding any.
+metadata:
+  aos:
+    origin: capability-lifecycle@0.3.4
 ---
-
 # capability-upgrade
 
 Not in context yet? Load the `capability-lifecycle` skill first — the map, the

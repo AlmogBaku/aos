@@ -78,8 +78,13 @@ Needs real hours → invoke `wt-schedule`, in a sub-agent where the harness has 
 otherwise. Say which you did, because *"blocked 14:00–16:00 tomorrow"* and *"filed, no
 calendar here"* are different promises and the user is entitled to know which one they got.
 
-The user should experience one act, not two. `wt-schedule` comes back with the slot; you
-confirm once, with the slot in it.
+The user should experience one act, not two. `wt-schedule` comes back with the time; you
+confirm once, with the time in it.
+
+**How the confirmation reads is the user's call**: {{mod: action_format}}. Some people want the
+commitment phrased back in full, some want one emoji and nothing else. Honour it exactly —
+this is the line they see several times a day, and it is the whole surface of an interaction
+whose other half is silent.
 
 ## When something fails
 

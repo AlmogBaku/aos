@@ -24,6 +24,11 @@ function liveRoots(exp) {
   const roots = {
     front: join(homedir(), '.hermes', 'profiles', 'aos-test'),
     home: join(REPO_ROOT, 'tests', '.sandbox', 'aos-home'),
+    // The harness ROOT, for the shared dirs a profile does not own: `--script` files land in
+    // ~/.hermes/scripts/ per the cheat-sheet's Materialization guide, which is the only place
+    // Hermes reads them from. Snapshot mode has no equivalent — the root is outside every
+    // profile tree — so a `root:` reference is live-only by construction.
+    root: join(homedir(), '.hermes'),
   };
   for (const a of exp.agents ?? []) roots[a] = join(homedir(), '.hermes', 'profiles', `aos-${a}`);
   return roots;
@@ -31,6 +36,8 @@ function liveRoots(exp) {
 
 function snapshotRoots(exp, snapDir) {
   const roots = { front: join(snapDir, 'front'), home: join(snapDir, 'home') };
+  // No `root:` — see liveRoots(). A snapshot records profile trees and the household, not
+  // the harness root, so a root: reference is skipped rather than failed here.
   for (const a of exp.agents ?? []) roots[a] = join(snapDir, a);
   return roots;
 }
@@ -121,6 +128,11 @@ function runExpectations(expName, roots, liveMode = false) {
         fail('golden/sentinel', `${expName}: "${s.text}" not found in ${s.in}`);
       }
     } else if (s.in_dir) {
+      // A `root:` reference names the harness root (~/.hermes), which sits outside every
+      // profile tree — so snapshots cannot contain it and the sentinel is live-only. Skipping
+      // is right rather than failing: a snapshot that never recorded the file cannot testify
+      // about it either way, and a permanent red here would train people to ignore the gate.
+      if (!liveMode && s.in_dir.startsWith('root:')) continue;
       const dir = resolveRef(roots, s.in_dir);
       let found = false;
       for (const f of walk(dir ?? '')) {

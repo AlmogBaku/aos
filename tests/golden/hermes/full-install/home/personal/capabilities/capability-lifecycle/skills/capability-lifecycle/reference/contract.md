@@ -15,7 +15,10 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   `~/aos`) contains `upstream/` (the kit clone — pristine, never anything personal, not
   even untracked files), `personal/` (the user's one private git repo: MOD files at
   mirrored capability paths, the pinned renders, their private capabilities), `.aos/`
-  (machine state — the lockfile), and `vendor/` (third-party skills aos references rather
+  (machine state — the lockfile, plus any machine-local file a capability's tool writes for
+  itself: kb's `kb-principal.yml` is the one today. Machine-local means gitignored and
+  per-machine, so it is recreated by the tool rather than carried between machines), and
+  `vendor/` (third-party skills aos references rather
   than ships — cloned, symlinked, and recorded like anything else, but never rendered and
   never origin-tagged: they are not ours to modify). A capability id resolves against `personal/`
   first, then `upstream/`; a personal package shadowing an upstream id is reported
@@ -75,12 +78,12 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   lockfile-recorded link, or by a skill the harness already has (aos-installed or not).
   Stop and report it; **never rename at install time** — the name belongs to the package, so
   the fix is upstream (`capability-contribute`) or in the user's own package. Full rules:
-  `reference/naming.md`.
+  the naming rules the `capability-lifecycle` entry skill links.
 - **Skills materialize as pinned renders + symlinks, never copies.** `aos-lock render
   <cap-dir> <id> --out personal/capabilities/<capability>/skills` does the mechanical half:
   the whole folder travels (`reference/`, `scripts/`, `templates/` — scripts are executed,
   never loaded as context), the render lands under the **installed name**, its frontmatter
-  `name` is rewritten to match, and `x-aos-origin: <capability>@<version>` is stamped inside
+  `name` is rewritten to match, and `metadata.aos.origin: <capability>@<version>` is stamped inside
   the frontmatter block. Then you fill `{{mod: …}}` slots in the render (leave unfilled slots
   intact) — that judgment is yours, the copy is not. Symlink the render into the skills
   location of every agent in its `used_by`, under the same installed name: **dir, frontmatter
@@ -126,7 +129,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   references only — `{store: <name>, key: <key>}`.
 - **Removal** walks the lockfile entry backwards; `MOD.md` is never deleted (§3.3), and
   render deletions in `personal/` happen via a commit (revertible). Verify by
-  re-running introspection until no aos provenance (`x-aos-origin:`, `aos:` names,
+  re-running introspection until no aos provenance (`metadata.aos.origin`, `aos:` names,
   marker blocks, links into `personal/`) remains.
 - **References resolve by three rules.** Inside a skill's own folder: relative paths
   (the whole-folder render keeps them valid — and links preserve them), and never into a

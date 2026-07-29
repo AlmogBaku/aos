@@ -1,9 +1,18 @@
 ---
 name: capability-install
-description: Installs an aos capability into this harness. Use when the user says "install" and names a capability, offers a capability directory or CAPABILITY.md for installation, or another install needs a missing dependency installed first.
-x-aos-origin: capability-lifecycle@0.3.0
+description: 'Installs an aos capability into this harness: reads its briefing, gates
+  the skill names it would claim, renders it against the user''s MOD.md, and materializes
+  agents, symlinks, schedules and context blocks behind a diff gate. Use when the
+  user says "install" or "set up" and names a capability, offers a capability directory
+  or CAPABILITY.md to install, or when another install needs a missing dependency
+  installed first. Do NOT use to re-render an already-installed capability against
+  fresher upstream — that is capability-upgrade — and not to change how an installed
+  one behaves, which is capability-evolve. The interview it runs mid-install belongs
+  to capability-onboard.'
+metadata:
+  aos:
+    origin: capability-lifecycle@0.3.4
 ---
-
 # capability-install
 
 Not in context yet? Load the `capability-lifecycle` skill first — the map, the contract,
@@ -18,7 +27,7 @@ the overlay doctrine, and the Experience rules. Then:
 2. **[D]** `aos-lock show <id>`: installed at this version → say so, stop; older →
    hand to `capability-upgrade`.
 3. **[D]** Dependencies: each `depends.capabilities` missing from `aos-lock list` →
-   announce briefly ("gtd-capture needs kb — setting that up first"), install it first,
+   announce briefly ("work-tracker needs kb — setting that up first"), install it first,
    its interview included.
 4. **[D]** Load your cheat-sheet **now** — it travels with the `capability-lifecycle`
    skill as `reference/harness-<harness-runtime>.md` (load that skill, then read the file;
@@ -40,7 +49,7 @@ the overlay doctrine, and the Experience rules. Then:
    cheat-sheet's Secrets section) → write `<home>/personal/capabilities/<id>/MOD.md`.
 7. **[A]** Render, then transform: `aos-lock render <dir> <skill-id> --out
    <home>/personal/capabilities/<id>/skills` per declared skill (mechanical — installed
-   name, frontmatter `name`, `x-aos-origin`), then fill `{{mod}}` slots and bake `<home>`
+   name, frontmatter `name`, `metadata.aos.origin`), then fill `{{mod}}` slots and bake `<home>`
    in the render per that same `reference/overlay.md`. Shipped files stay untouched.
 8. **[A]** **STAGE** per the cheat-sheet's Materialization guide: the render sits in
    `personal/`'s working tree (uncommitted) plus the exact native command plan —
@@ -55,6 +64,12 @@ the overlay doctrine, and the Experience rules. Then:
 10. **[D]** **EXECUTE** the approved plan: commit the render in `personal/` (dated
    message — the persist hook), create the symlinks, run the native plan; **[A]** `kb:`
    zones → draft grant rows into each target KB's `## Grants` table, user approves.
+   A capability's tool may write its own machine-local file under `<home>/.aos/` on first
+   use — kb's `kb-principal.yml` is the one today. Do **not** create it yourself: the tool
+   owns it, the same way `aos-lock` owns the lockfile. Say it exists in the summary so
+   the user is not surprised by a file nobody mentioned, and leave it out of `record`
+   (machine-local state is not a materialized artifact — hashing it would report drift the
+   first time the tool touched it).
 11. **[D]** `aos-lock record <id> --version <v> --source-root <root> --artifact
     <render-file>… --link <symlink>… --job <id>… --config-key <k>…` — `<root>` is
     whichever root step 1 resolved the capability dir in (`upstream` for shipped

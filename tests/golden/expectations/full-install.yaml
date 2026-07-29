@@ -130,10 +130,13 @@ sentinels:
   - {text: "🦜", in: "front:skills/wt-capture/SKILL.md"}
   # the MARS mode boundary is the ONE block aos writes to the front agent's identity file
   - {text: "aos:capability-lifecycle:mode-boundary", in: "front:SOUL.md"}
-  # the sync wrapper must pin the household's registry — a bare `kb sync` silently no-ops
-  # (the wrapper's canonical home is the harness scripts dir, recorded in the lockfile;
-  # the profile-level copy is what this root can see)
-  - {text: "kb-registry.yaml", in_dir: "archiver:scripts"}
+  # the sync wrapper must pin the household's registry — a bare `kb sync` silently no-ops.
+  # Its home is the HARNESS ROOT scripts dir (`~/.hermes/scripts/`), which is where the
+  # cheat-sheet's Materialization guide sends `--script` files and the only place Hermes
+  # reads them from. An earlier expectation looked in `archiver:scripts` for a profile-level
+  # copy; the 2026-07-29 live run put it where the contract says, so the expectation was the
+  # stale side. `root:` resolves to ~/.hermes.
+  - {text: "kb-registry.yaml", in_dir: "root:scripts"}
   # steward_hour 22:47 → cron expression "47 22 * * *" in the steward's jobs
   - {text: "47 22", in_dir: "steward:cron"}
   # The global MOD's sacred time must reach the schedule-touching agent. Matched on the
