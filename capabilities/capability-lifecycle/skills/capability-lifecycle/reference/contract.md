@@ -75,7 +75,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   lockfile-recorded link, or by a skill the harness already has (aos-installed or not).
   Stop and report it; **never rename at install time** — the name belongs to the package, so
   the fix is upstream (`capability-contribute`) or in the user's own package. Full rules:
-  `reference/naming.md`.
+  the naming rules the `capability-lifecycle` entry skill links.
 - **Skills materialize as pinned renders + symlinks, never copies.** `aos-lock render
   <cap-dir> <id> --out personal/capabilities/<capability>/skills` does the mechanical half:
   the whole folder travels (`reference/`, `scripts/`, `templates/` — scripts are executed,

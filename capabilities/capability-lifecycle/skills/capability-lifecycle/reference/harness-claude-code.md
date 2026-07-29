@@ -13,7 +13,7 @@
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
 Claude Code (Anthropic's CLI/desktop/IDE coding agent). The aos half of the install contract
 — provenance, lockfile, markers, secret references, degraded-mode meanings, removal
-discipline — is the `capability-lifecycle` entry skill's `reference/contract.md`; this sheet
+discipline — is the `capability-lifecycle` entry skill's install contract; this sheet
 is only the Claude Code half.
 
 > [!WARNING]
@@ -72,7 +72,7 @@ Files Claude Code consumes — anything else you write is inert: `CLAUDE.md`/`AG
 ## Materialization guide
 
 Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle`
-entry skill's `reference/contract.md`). Nothing here needs a restart — Claude Code picks up
+entry skill's install contract). Nothing here needs a restart — Claude Code picks up
 skills and context files on the next session, and `/context` shows what is loaded now.
 
 1. **The tool first**, if the capability ships one: `uv tool install --from
@@ -120,7 +120,7 @@ one-line edits stops reading by the fourth.
 - **Available skills:** the skill registry is built from `~/.claude/skills/`,
   `<project>/.claude/skills/`, and installed plugins. Plugin skills appear namespaced
   (`plugin:skill`), which is why an aos installed name must still be globally unique
-  (`reference/naming.md`) — the flat namespace is shared with them.
+  (the naming rules the entry skill links) — the flat namespace is shared with them.
 - **Agents:** `ls ~/.claude/agents/`. There is no verb that lists them in-session.
 - **Settings actually in effect:** `~/.claude/settings.json` merged with
   `settings.local.json` merged with project settings; the local file wins. Read all three

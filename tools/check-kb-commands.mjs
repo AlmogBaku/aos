@@ -26,7 +26,12 @@ const CAP = 'capabilities/kb';
 // cross-capability skill references out), so its skills carry real invocations with no
 // other check on them. A documented command that fails on invocation is the same defect
 // wherever it is written.
-const CAPS = [CAP, 'capabilities/work-tracker'];
+// Plus the human-facing docs, which are just as able to document a command that fails on
+// invocation — and more likely to be trusted, since a person types from them directly. Nine
+// commands in the capability prose failed on invocation after two careful human passes; there
+// is no reason docs/ would be different, and no reason to find out the expensive way.
+const SCOPES = [CAP, 'capabilities/work-tracker', 'docs/', 'README.md', 'AGENTS.md',
+  'BOOTSTRAP.md', 'CONTRIBUTING.md'];
 const TOOL = join(REPO_ROOT, 'capabilities/kb/tool');
 
 function uvAvailable() {
@@ -106,8 +111,9 @@ const failures = [];
 const CMD_RE = /`kb\s+([^`]+)`/g;
 
 for (const rel of walkRepo(REPO_ROOT)) {
-  if (!CAPS.some((c) => rel.startsWith(`${c}/`))) continue;
+  if (!SCOPES.some((s) => rel === s || rel.startsWith(s.endsWith('/') ? s : `${s}/`))) continue;
   if (rel.startsWith(`${CAP}/tool/`)) continue;      // the tool documents itself
+  if (rel === 'docs/BUILD-GAPS.md') continue;        // append-only rows quote commands as they were
   if (!rel.endsWith('.md') && !rel.endsWith('.yaml')) continue;
   const abs = join(REPO_ROOT, rel);
   if (!existsSync(abs)) continue;

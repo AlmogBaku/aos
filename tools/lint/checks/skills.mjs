@@ -158,10 +158,19 @@ function checkReferenceDepth(cap, files, report) {
     } catch {
       continue;
     }
-    for (const m of text.matchAll(/]\((?:\.\/)?([a-z0-9._-]+\.md)(?:#[^)]*)?\)/gi)) {
-      if (siblings.has(m[1])) {
+    // Two forms, because authors write both and the truncation is identical: a markdown link
+    // `](deep.md)`, and a backticked path `` `reference/deep.md` `` — which is in fact the
+    // commoner shape in this kit. Matching only the link form left the majority invisible.
+    // The basename is compared, so `reference/x.md` and `./x.md` and `x.md` all resolve to the
+    // same sibling; a file naming ITSELF is not a violation, and neither is a path into a
+    // different skill's reference/ (that is skill/no-cross-path's job).
+    const self = file.slice(dir.length + 1);
+    const NESTED_RE = /]\((?:\.\/)?([a-z0-9._/-]+\.md)(?:#[^)]*)?\)|`(?:\.\/)?([a-z0-9._/-]+\.md)`/gi;
+    for (const m of text.matchAll(NESTED_RE)) {
+      const target = (m[1] ?? m[2]).split('/').pop();
+      if (target !== self && siblings.has(target)) {
         report('error', 'skill/nested-reference', file,
-          `links to the sibling reference "${m[1]}" — every reference file must hang directly off SKILL.md, or it gets read only in part`);
+          `references the sibling "${target}" — every reference file must hang directly off SKILL.md, or it gets read only in part (name the SKILL instead, and let it link both)`);
       }
     }
     const lines = text.split('\n');

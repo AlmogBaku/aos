@@ -113,8 +113,8 @@ Three ways to reference something, and they cover every case:
 
 | What you need | How to write it |
 |---|---|
-| depth for this skill | a plain relative path — `reference/naming.md`, `scripts/check.py` |
-| another skill, or knowledge it owns | name the skill (`capability-lifecycle`), then its own path (`reference/overlay.md`) — the agent loads the skill, and the path resolves inside it (`skill/no-cross-path`) |
+| depth for this skill | a plain relative path from SKILL.md — `reference/<topic>.md`, `scripts/check.py` |
+| another skill, or knowledge it owns | name the skill (`capability-lifecycle`), then its own path — the agent loads the skill, and the path resolves inside it (`skill/no-cross-path`) |
 | something in the household | write it from a root — `<home>/upstream/capabilities/<id>/…`, `<home>/personal/…` — which does resolve at runtime |
 
 Consequences worth stating, because each one was a real bug:

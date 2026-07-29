@@ -12,7 +12,7 @@
 
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
 NanoClaw. The aos half of the install contract — provenance, lockfile, markers, secret
-references, degraded-mode meanings, removal discipline — is the `capability-lifecycle` entry skill's `reference/contract.md`; this sheet is
+references, degraded-mode meanings, removal discipline — is the `capability-lifecycle` entry skill's install contract; this sheet is
 only the NanoClaw half. One sheet covers **v2** (current) and **v1** (frozen at v1.2.0;
 migration is `/migrate-from-v1`): each concept is stated once, and where the execution
 surface differs it splits inline as "v2: `ncl …` · v1: ask the main agent / edit editable files".
@@ -61,7 +61,7 @@ already fit the class; never hardcode provider names.
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle` entry skill's `reference/contract.md`).
+Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle` entry skill's install contract).
 
 1. **Agents → agent groups.** v2: `ncl groups create --name "Scout" --folder scout`; wire to
    a chat with `ncl messaging-groups create --channel-type <t> --platform-id <id> --name <n>
@@ -174,7 +174,7 @@ uninstall script — manual cleanup plus stopping the `launchd/` service.
 | `email` | ⚠ both | v2 `/add-gmail-tool` (read/search/send/label/draft) + `/add-resend` outbound channel; v1 `add-gmail` skill; absent ⇒ degraded mode |
 | `secrets-store` | v2 ✓ · v1 ⚠ | `.env` always; v2 optionally the OneCLI vault; v1 `.env` only |
 
-Degraded-mode wiring (meanings in the entry skill's `reference/contract.md`): `manual` ⇒ the invocable skill lands in
+Degraded-mode wiring (meanings in the `capability-lifecycle` entry skill's install contract): `manual` ⇒ the invocable skill lands in
 `.claude/skills/` scoped (v2 `skills` field) to the group that would have owned the job;
 `inline` ⇒ no verified task-edit verb exists — cancel the owning task and recreate it under
 the same `aos:` name with the appended prompt.
