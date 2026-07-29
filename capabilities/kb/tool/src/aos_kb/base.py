@@ -310,3 +310,38 @@ def acting(args, base: Base) -> tuple[str, tuple[str, str], str]:
     pid = resolve_principal(args, base.cfg.get("name", base.root.name), base.root)
     author = (principal_name(args, base.root, pid), pid)
     return agent, author, base.grant_subject(pid)
+
+
+# The tool's own files. A write verb that accepts one of these is not editing knowledge, it
+# is dismantling the base: `archive .kb/base.yml` exited 0 and left every later verb saying
+# "not a base", and `pending resolve AGENTS.md` git-rm'd the ACL — after which every grant
+# read DENIED and `lint` reported Critical (0), because the grants audit skips when there are
+# no grants to audit. The deletion erased its own evidence, which is the worst shape a
+# destructive bug can take. `kb config set` is the way to change the config; there is no way,
+# and no reason, to reach these through a page verb.
+TOOL_OWNED = ("AGENTS.md", ".kb/base.yml", ".kb/", "index.md")
+
+
+def in_base(base: Base, rel: str, *, protect_tool_files: bool = True) -> Path:
+    """Resolve a base-relative path, refusing anything that escapes the tree.
+
+    Every verb taking a path argument must route through this: a path is untrusted input,
+    and `verify`, `ingest` and `pending resolve` each accepted `../` before this was
+    enforced — `verify` flipped a file outside the base to `verified: true` at exit 0.
+    """
+    p = (base.root / rel).resolve()
+    try:
+        p.relative_to(base.root)
+    except ValueError:
+        die(f"{rel}: outside the base — refusing to write there", 13)
+    if protect_tool_files:
+        norm = base.rel(p) if p != base.root else ""
+        # Only the STRUCTURAL files, not all of `.kb/` — the tool legitimately writes pending
+        # entries and state shards through these same verbs, so a blanket `.kb/` ban would
+        # block its own designed paths. What must never be reachable through a *page* verb is
+        # the config, the ACL, and the generated index: each has its own verb
+        # (`config set`, an approved AGENTS.md edit, `index rebuild`).
+        if norm in ("AGENTS.md", "index.md", ".kb/base.yml"):
+            die(f"{rel}: the tool owns this file — a page verb must not reach it "
+                f"(`kb config set` for config, `kb index rebuild` for the index)", 13)
+    return p

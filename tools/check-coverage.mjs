@@ -114,6 +114,21 @@ for (const doc of ['docs/TESTING.md', 'README.md']) {
   }
 }
 
+// 3. MOD.example.md's `onboarded_version` must match its own capability's version. It is the
+// shipped seed of the field that governs re-ask behaviour, and a version bump that misses it
+// ships a seed claiming the user onboarded on a release that never existed. Found by review
+// rather than by any gate, which is why it is one now.
+for (const cap of listCapabilities(REPO_ROOT)) {
+  const seedRel = `${cap.rel}/MOD.example.md`;
+  let seed;
+  try { seed = read(seedRel); } catch { continue; }   // the pair is optional (§2.1)
+  const declared = read(`${cap.rel}/CAPABILITY.md`).match(/^version:\s*(\S+)/m)?.[1];
+  const seeded = seed.match(/^onboarded_version:\s*(\S+)/m)?.[1];
+  if (declared && seeded && declared !== seeded) {
+    fail(seedRel, `onboarded_version ${seeded} but the capability is ${declared}`);
+  }
+}
+
 if (failures.length) {
   console.error(`coverage gate: ${failures.length} failure(s)\n`);
   for (const f of failures) console.error(`  ${f}`);

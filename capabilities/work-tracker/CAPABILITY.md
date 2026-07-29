@@ -1,6 +1,6 @@
 ---
 id: work-tracker
-version: 0.1.0
+version: 0.1.1
 tags: [usecase]
 summary: Commitments the user must keep themselves — captured as they speak, scheduled immediately, maintained nightly, and completed with an exit.
 depends:
@@ -66,6 +66,11 @@ the CFP"* is a commitment, which becomes a page. Same content words, different s
 3. **One schedule.** `nightly-steward` defaults to 23:00; the user's `steward_hour` answer
    overrides the cron at materialization. Degrades to `manual` without cron.
 4. **Base changes — four of them, and all four are load-bearing.** See below.
+5. **The `actions/` zone contract.** Copy `kb/zones/actions.AGENTS.md.tmpl` to
+   `<base>/actions/AGENTS.md` when you declare the zone. It is the local authority note the
+   writing agents read before touching a page — a plain file, no `{{placeholders}}`, so the
+   copy is mechanical. Without it the zone exists and nothing states its rules, which is how a
+   fifth `status` value gets invented in a directory whose contract nobody wrote down.
 
 ## The base: exactly one, and it must be private
 

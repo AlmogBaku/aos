@@ -1,6 +1,6 @@
 ---
 capability: kb
-onboarded_version: 0.7.0
+onboarded_version: 0.7.1
 answers:
   principal_id: dana@example.com
   existing_kbs: []

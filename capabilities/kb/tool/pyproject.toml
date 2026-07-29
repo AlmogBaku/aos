@@ -1,6 +1,6 @@
 [project]
 name = "aos-kb"                  # kit name is RFC-001's; command below is what matters
-version = "0.7.0"                # tracks the kb capability version
+version = "0.7.1"                # tracks the kb capability version
 description = "Deterministic executor for aos kb bases (capability-shipped tool, ARCHITECTURE §2.4)"
 # >=3.10, not >=3.9: two independent reasons converge on the same floor. First, the
 # file already used bare `X | None` unions with no `from __future__ import

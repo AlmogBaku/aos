@@ -15,7 +15,7 @@ from ..constants import PENDING_KINDS, WAITS_ON
 from ..frontmatter import read_frontmatter, write_frontmatter
 from ..query import parse_where, match_query, fm_get, WhereOpt, WithoutOpt
 from ..identity import now_ts, today, die, git, resolve_principal
-from ..base import Base, resolve_base, acting
+from ..base import Base, resolve_base, acting, in_base as _in_base
 from ._shared import acting_in
 
 app = typer.Typer()
@@ -123,7 +123,7 @@ def cmd_ingest(ctx: typer.Context, path: Annotated[list[str], typer.Argument()])
     capture across it."""
     base, agent, author, _ = acting_in(ctx.obj)
     for rel in path:
-        src = (base.root / rel).resolve()
+        src = _in_base(base, rel)
         if not src.exists():
             die(f"no such pending item: {rel}")
         fm, body = read_frontmatter(src)
@@ -216,7 +216,14 @@ def cmd_pending_resolve(ctx: typer.Context,
                         path: Annotated[list[str], typer.Argument()] = []):
     base, agent, author, _ = acting_in(ctx.obj)
     for rel in path:
-        p = base.root / rel
+        p = _in_base(base, rel)
+        # It is the QUEUE's verb. A wiki page is not its business, and `git rm` on one is a
+        # silent deletion dressed as bookkeeping — this accepted any path in the base, so
+        # `pending resolve AGENTS.md` destroyed the grants table and every later grant read
+        # DENIED while lint reported Critical (0), the audit having nothing left to audit.
+        if base.rel(p) != "" and not base.rel(p).startswith(".kb/pending/"):
+            die(f"{rel}: not a pending item — `pending resolve` only resolves "
+                f".kb/pending/ entries (use `kb archive` for a page)", 13)
         if not p.exists():
             die(f"no such pending item: {rel}")
         if git(base.root, "rm", "-q", "--", base.rel(p)).returncode != 0:

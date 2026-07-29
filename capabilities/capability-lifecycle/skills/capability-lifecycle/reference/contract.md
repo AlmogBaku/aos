@@ -64,7 +64,10 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   list). An entry carries: version, source root, render-file paths + sha256,
   harness symlinks (`--link` — the tool reads each link's target itself), job ids under
   `schedules_owned`, config keys, `.env` variable names, scripts; a capability's
-  installed tool binary is recorded as an `--artifact` (hash the command on PATH). You
+  installed tool binary is recorded as an `--artifact` — but **resolve the symlink first**
+  (`readlink -f $(command -v <tool>)`): `uv tool install` puts a *link* on PATH, and a symlink
+  passed as `--artifact` is refused at exit 16 by design (that flag hashes files; links are
+  `--link`'s job). Recording the resolved binary is what lets `verify` notice a stale tool. You
   call verbs (`aos-lock --help`), you never read or write the YAML. No lockfile record,
   no artifact. If a crash lands between EXECUTE and `record`, everything written
   carries provenance anyway — re-introspect for the tags and record or remove what you

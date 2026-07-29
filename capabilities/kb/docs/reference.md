@@ -37,7 +37,7 @@ Lookup, not narrative. The reasoning is in [design.md](design.md).
 | `origin` | path | the capture this page came from |
 | `expires` | date | optional; the only lifetime field kb interprets |
 | `review_by` | date | optional; *ask me again* — **not** a deletion date |
-| `meta` | map | free per-doc fields; used by 2+ docs → graduate to `frontmatter.extensions` |
+| `metadata` | map | free per-doc fields; used by 2+ docs → graduate to `frontmatter.extensions`. Flat, and the same word `SKILL.md` uses for the same idea — a bare new field is rejected at write time, so this is where it goes |
 
 **Raw captures** additionally: `source`, `source_sha256`, `captured_at`, `captured_by`,
 `kb_routing` (when routed), `failed` (when the capture errored), `corrects` (when written
@@ -141,7 +141,7 @@ is not one I can speak to".
 | 11 | any verb | layout mismatch — a tree on the previous layout, or a `layout:` this tool does not speak. Never path-guessed; run `kb migrate` |
 | 12 | `state add` only | the attention window is at `state.max_items` — adding when full is an eviction decision, so `kb state drop` something first |
 | 13 | `migrate` · write verbs | refused on an unsafe state: an uncommitted worktree, or a path outside the base |
-| 14 | `init` only | a template left an unrendered `{{placeholder}}` — the template declares a variable this tool does not substitute |
+| 14 | `init`; also `set` | `init`: a template left an unrendered `{{placeholder}}` — it declares a variable this tool does not substitute. `set`: the field is outside the base schema (add it to `frontmatter.extensions`, or nest it under `metadata`). The commoner path is `set`, so do not read a 14 as a template bug |
 
 **`kb sync` is the only source of 2–5**, and with `--all` it visits several bases and exits
 with the **worst** code any one of them produced, so a 3 means *at least one* base

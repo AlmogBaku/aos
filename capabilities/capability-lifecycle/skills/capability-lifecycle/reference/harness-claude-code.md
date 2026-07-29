@@ -154,11 +154,13 @@ Walk `aos-lock show <id>` backwards; nothing here is inferred from the filesyste
    it merely referenced.
 3. Remove context blocks by their marker pair, leaving surrounding text untouched.
 4. Uninstall the tool if the capability installed one: `uv tool uninstall <package>`.
-5. Drop the pinned render under `<home>/personal/capabilities/<id>/` and the lockfile entry
-   (`aos-lock remove <id>`).
-6. `CronDelete` each job id the lockfile records. A session-only job (one created without
+5. `CronDelete` each job id the lockfile records. A session-only job (one created without
    `durable: true`) may already be gone — that is not drift, but say so rather than reporting a
    deletion that did not happen.
+6. **Last, once nothing else needs to read it**: drop the pinned render under
+   `<home>/personal/capabilities/<id>/` and then the lockfile entry (`aos-lock remove <id>`).
+   The entry is the list every earlier step walks, so removing it first strands whatever has
+   not been undone yet — the job ids especially, which exist nowhere else.
 
 Then confirm: `ls ~/.claude/skills/ | grep <prefix>` returns nothing, and `/context` in a
 fresh session no longer lists them.

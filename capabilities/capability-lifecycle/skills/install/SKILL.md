@@ -64,7 +64,9 @@ the overlay doctrine, and the Experience rules. Then:
     <render-file>… --link <symlink>… --job <id>… --config-key <k>…` — `<root>` is
     whichever root step 1 resolved the capability dir in (`upstream` for shipped
     capabilities, `personal` for the user's own); render files go to `--artifact`
-    (hashed), symlinks to `--link` (a symlink passed as `--artifact` fails: exit 16). **`record` replaces the entry
+    (hashed), symlinks to `--link` (a symlink passed as `--artifact` fails: exit 16 — so a
+    tool binary needs `readlink -f $(command -v <tool>)` first, since `uv tool install` puts a
+    link on PATH). **`record` replaces the entry
     wholesale**: on a second-harness install, start from `aos-lock show <id>` and pass the
     combined set (both harnesses' links), never just this harness's.
 12. Celebrate specifically: what, where, which schedules, degraded modes in effect.

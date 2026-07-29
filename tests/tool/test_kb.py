@@ -19,6 +19,7 @@ Run: uv run tests/tool/test_kb.py
 """
 import datetime as _dt
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -1620,6 +1621,72 @@ class WriteVerbTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(self.fm(self.root / "projects/cfp.md")["status"], "next")
 
+    def test_prune_skips_what_the_acting_subject_may_not_write(self):
+        """The archiver owns the weekly prune, but the seeded grants table splits the wiki:
+        `profile/**` is agent:main's, "high-stakes; surface every change to the user". So a
+        zone-blind prune made the archiver's own job manufacture a grants-audit critical
+        against itself, in the same run — and delete a page the table says to surface. Every
+        skill's prose was individually correct; the defect was the intersection."""
+        for zone, name in (("concepts", "mine.md"), ("profile", "theirs.md")):
+            page = self.root / zone / name
+            page.parent.mkdir(parents=True, exist_ok=True)
+            page.write_text("---\ntitle: T\ntype: concept\ncreated: 2026-07-01\n"
+                            "timestamp: 2026-07-01\nverified: false\nexpires: 2026-07-02\n"
+                            "---\nold\n")
+            self.b("commit", "--path", f"{zone}/{name}", "--verb", "create", "--summary", "seed")
+        r = self.b("--agent", "agent:archiver", "prune")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse((self.root / "concepts" / "mine.md").exists(), "granted zone not pruned")
+        self.assertTrue((self.root / "profile" / "theirs.md").exists(),
+                        "pruned a page the acting subject holds no write grant for")
+        self.assertIn("profile/theirs.md", r.stdout, "the skip must be reported, not silent")
+        # and the audit it used to trip is clean for this write
+        r = self.b("lint")
+        self.assertNotIn("agent:archiver wrote profile/theirs.md", r.stdout)
+
+    def test_every_path_taking_write_verb_stays_inside_the_base(self):
+        """A path argument is untrusted input. `set` and `archive` route through _in_base;
+        `verify`, `ingest` and `pending resolve` did not, so each accepted `../` and wrote
+        (or deleted) outside the tree — `verify` flipped a foreign file to verified: true at
+        exit 0. Nothing pinned the guard, which is why three absences shipped green."""
+        outside = self.root.parent / "outside-victim.md"
+        outside.write_text("---\ntitle: V\ntype: concept\ncreated: 2026-07-29\n"
+                           "verified: false\n---\nbody\n")
+        for args in (["verify", "../outside-victim.md"],
+                     ["ingest", "../outside-victim.md"],
+                     ["pending", "resolve", "../outside-victim.md"],
+                     ["set", "../outside-victim.md", "tags=[x]"],
+                     ["archive", "../outside-victim.md", "--reason", "no"]):
+            r = self.b(*args)
+            self.assertNotEqual(r.returncode, 0, f"{args[0]} accepted a path outside the base")
+            self.assertIn("outside the base", r.stderr, f"{args[0]}: wrong error")
+        self.assertIn("verified: false", outside.read_text(), "a foreign file was mutated")
+        self.assertTrue(outside.exists(), "a foreign file was deleted")
+
+    def test_the_tools_own_files_are_never_a_write_target(self):
+        """`archive .kb/base.yml` exited 0 and unmade the base — every later verb then said
+        "not a base". And `pending resolve AGENTS.md` git-rm'd the ACL: every grant flipped to
+        DENIED while `lint` reported Critical (0), because the grants audit skips when there
+        are no grants to audit. The deletion erased its own evidence."""
+        for args in (["archive", ".kb/base.yml", "--reason", "oops"],
+                     ["pending", "resolve", "AGENTS.md"],
+                     ["pending", "resolve", ".kb/base.yml"],
+                     ["set", ".kb/base.yml", "tags=[x]"]):
+            r = self.b(*args)
+            self.assertNotEqual(r.returncode, 0, f"{' '.join(args)} was allowed")
+        self.assertTrue((self.root / ".kb" / "base.yml").is_file(), "the base config was destroyed")
+        self.assertTrue((self.root / "AGENTS.md").is_file(), "the grants table was destroyed")
+        r = self.b("grants", "check", "--subject", "user", "--verb", "write", "--path", "index.md")
+        self.assertIn("GRANTED", r.stdout, "the ACL stopped answering")
+
+    def test_pending_resolve_only_resolves_pending_items(self):
+        """It is the queue's verb, so a wiki page is not its business — and `git rm` on one
+        is a silent deletion dressed as bookkeeping."""
+        self.page("concepts/live.md", type="concept")
+        r = self.b("pending", "resolve", "concepts/live.md")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertTrue((self.root / "concepts" / "live.md").is_file())
+
     def test_the_free_fields_map_is_called_metadata(self):
         # One word for "extra fields" across the whole kit. SKILL.md's own schema calls this
         # `metadata`, so a KB page calling it `meta` made the same concept read as two —
@@ -1697,9 +1764,13 @@ class ExpiryTest(WriteVerbTest):
     There is no second staleness concept, because nothing would key on one."""
 
     def test_prune_deletes_what_expired_and_reports_what_went(self):
+        # As agent:archiver, which is the subject the weekly schedule runs and the one the
+        # seeded table grants the synthesis zones. The default agent:main holds no grant on
+        # concepts/**, and prune now honours that — see
+        # test_prune_skips_what_the_acting_subject_may_not_write.
         self.page("concepts/gone.md", type="concept",
                   expires=(_dt.date.today() - _dt.timedelta(days=1)).isoformat())
-        r = self.b("prune")
+        r = self.b("--agent", "agent:archiver", "prune")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertFalse((self.root / "concepts/gone.md").exists())
         self.assertIn("concepts/gone.md", r.stdout)
@@ -1744,7 +1815,7 @@ class ExpiryTest(WriteVerbTest):
     def test_prune_dry_run_changes_nothing(self):
         self.page("concepts/gone.md", type="concept",
                   expires=(_dt.date.today() - _dt.timedelta(days=1)).isoformat())
-        r = self.b("prune", "--dry-run")
+        r = self.b("--agent", "agent:archiver", "prune", "--dry-run")
         self.assertIn("concepts/gone.md", r.stdout)
         self.assertTrue((self.root / "concepts/gone.md").exists())
 
@@ -2054,7 +2125,13 @@ class PackagingTest(unittest.TestCase):
         # assertion, since LAYOUT flips in the task that can honour it.
         r = run(["--version"])
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("kb 0.7.0", r.stdout)
+        # The version is read from the manifest rather than pinned here: the number is the
+        # capability's, and three copies of a literal in a test file is three things a bump has
+        # to remember. What this asserts is the COMMAND name and that the two agree.
+        declared = re.search(r"^version: (\S+)",
+                             (REPO / "capabilities/kb/CAPABILITY.md").read_text(),
+                             re.M).group(1)
+        self.assertIn(f"kb {declared}", r.stdout)
 
     def test_the_old_command_name_is_gone(self):
         pyproject = (TOOL_DIR / "pyproject.toml").read_text()
@@ -2083,7 +2160,10 @@ class InstalledScriptSmokeTest(unittest.TestCase):
     def test_the_installed_script_runs_and_reports_its_version(self):
         r = self.run_installed(["--version"])
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("kb 0.7.0 (layout 2)", r.stdout)
+        declared = re.search(r"^version: (\S+)",
+                             (REPO / "capabilities/kb/CAPABILITY.md").read_text(),
+                             re.M).group(1)
+        self.assertIn(f"kb {declared} (layout 2)", r.stdout)
 
     def test_the_installed_script_completes_a_real_verb_end_to_end(self):
         with tempfile.TemporaryDirectory() as tmp:

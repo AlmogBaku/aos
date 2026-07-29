@@ -23,7 +23,7 @@ from ..constants import WIKILINK_RE, UNIVERSAL_FIELDS, RAW_FIELDS, PENDING_FIELD
 from ..frontmatter import read_frontmatter, write_frontmatter
 from ..query import parse_where, match_query, WhereOpt, WithoutOpt
 from ..identity import die, today, git
-from ..base import Base, resolve_base, acting
+from ..base import Base, resolve_base, acting, in_base as _in_base
 from ._shared import acting_in
 
 app = typer.Typer()
@@ -186,16 +186,6 @@ def cmd_index(ctx: typer.Context,
     print(f"index.md rebuilt ({sum(1 for _ in base.md_files())} pages)")
 
 
-def _in_base(base: Base, rel: str) -> Path:
-    """Resolve a base-relative path, refusing anything that escapes the tree."""
-    p = (base.root / rel).resolve()
-    try:
-        p.relative_to(base.root)
-    except ValueError:
-        die(f"{rel}: outside the base — refusing to write there", 13)
-    return p
-
-
 @app.command("set", help="mutate frontmatter (one attributed commit)")
 def cmd_set(ctx: typer.Context, path: str,
            assignment: Annotated[list[str], typer.Argument(metavar="key=value")]):
@@ -239,9 +229,18 @@ def cmd_prune(ctx: typer.Context, dry_run: bool = False):
     """`expires:` is the ONLY thing kb knows about a page's lifetime. Passed means
     gone, and git is the undo. `due:` is a deadline (work-tracker's field, never
     interpreted here) and `review_by:` means "ask me again" — the opposite of expires.
-    _raw/ never expires: source material is the trust chain."""
+    _raw/ never expires: source material is the trust chain.
+
+    It also SKIPS what the acting subject holds no write grant for, and says so. This verb is
+    the one place a scheduled job deletes without a human present, and the wiki is not one
+    ACL: the seeded table gives the archiver the synthesis zones while `profile/**` stays
+    agent:main's, marked "surface every change to the user". Zone-blind, the archiver's own
+    weekly job deleted a profile page unattended AND manufactured a grants-audit critical
+    against itself in the same run — the prose of every skill involved being individually
+    correct. Skipping is right rather than refusing: one ungranted page must not stop the
+    rest of the sweep."""
     base, agent, author, _ = acting_in(ctx.obj)
-    gone = []
+    gone, skipped = [], []
     for p in base.md_files(kinds=("wiki",)):     # NOT raw
         fm, _ = read_frontmatter(p)
         exp = (fm or {}).get("expires")
@@ -253,9 +252,16 @@ def cmd_prune(ctx: typer.Context, dry_run: bool = False):
         except ValueError:
             print(f"{base.rel(p)}: unparseable expires {exp!r} — left in place")
             continue
-        gone.append(base.rel(p))
+        rel = base.rel(p)
+        if not base.grant_check(agent, "write", rel):
+            skipped.append(rel)
+            continue
+        gone.append(rel)
+    for rel in skipped:
+        print(f"{rel}: expired, but {agent} holds no write grant — left for its owner")
     if not gone:
-        print("prune: nothing has expired.")
+        print("prune: nothing has expired." if not skipped
+              else f"prune: nothing this subject may delete ({len(skipped)} left for their owners).")
         return
     for rel in gone:
         print(f"pruned: {rel} (expired)")
@@ -297,7 +303,7 @@ def cmd_archive(ctx: typer.Context, path: Annotated[list[str], typer.Argument()]
 @app.command("verify", help="flip a page to verified: true (user-confirmed)")
 def cmd_verify(ctx: typer.Context, page: str):
     base = resolve_base(ctx.obj)
-    p = base.root / (page if page.endswith(".md") else page + ".md")
+    p = _in_base(base, page if page.endswith(".md") else page + ".md")
     fm, body = read_frontmatter(p)
     if fm is None:
         die(f"{page}: no frontmatter")
