@@ -12,6 +12,13 @@ fi
 if command -v uv >/dev/null 2>&1; then
   uv run --quiet tests/tool/test_kb.py
   uv run --quiet tests/tool/test_lock.py
+  # AOS_PRINCIPAL_ID is pinned because this lints a SHIPPED FIXTURE, and "who is calling"
+  # is not a property of that fixture. Without it the tool synthesizes an identity from the
+  # host — and on a CI runner that is `runner@runnervm….local`, whose `.local` suffix is
+  # exactly what `is_weak_principal` is built to catch. So the check failed on the runner's
+  # hostname while passing on every developer machine that has a git identity: a red build
+  # saying nothing about the fixture. The weak-principal check itself is right and stays.
+  AOS_PRINCIPAL_ID=dana@example.com \
   uv run --quiet --project capabilities/kb/tool kb \
     --base tests/fixtures/example-base lint | tee /tmp/example-base-lint.txt
   grep -q "Critical (0)" /tmp/example-base-lint.txt

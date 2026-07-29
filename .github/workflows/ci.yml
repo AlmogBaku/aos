@@ -21,6 +21,10 @@ jobs:
         run: |
           uv run --quiet tests/tool/test_kb.py
           uv run --quiet tests/tool/test_lock.py
+          # Pinned: the runner has no git identity, so the tool would synthesize
+          # `runner@<host>.local` and the weak-principal check would fire on the RUNNER
+          # rather than on the fixture. See the same comment in tools/check.sh.
+          AOS_PRINCIPAL_ID=dana@example.com \
           uv run --quiet --project capabilities/kb/tool kb \
             --base tests/fixtures/example-base lint | tee /tmp/example-lint.txt
           grep -q "Critical (0)" /tmp/example-lint.txt
