@@ -186,8 +186,8 @@ What changed vs. the live table, and why:
 kb:
   writes: [inbox]                # abstract intents the router resolves
   zones:
-    - path: raw/captures/        # zone this capability asks the target base to register
-      owner_agent: drainer
+    - path: actions/**           # zone this capability asks the target base to register
+      owner_agent: steward       #   (AND to declare in .kb/base.yml, or it is invisible)
       verbs: [write, route-into] # (proposed) explicit verbs requested; default [write]
 ```
 
