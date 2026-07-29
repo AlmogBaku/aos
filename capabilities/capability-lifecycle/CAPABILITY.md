@@ -1,6 +1,6 @@
 ---
 id: capability-lifecycle
-version: 0.3.3
+version: 0.3.4
 tags: [infra]
 summary: The capability lifecycle as one capability — install, upgrade, remove, onboard, import, build, contribute, evolve, and review as skills for the front agent; the MOD.md overlay with its promote/retire exit side; the household layout with pinned renders and symlink installs; the per-harness cheat-sheets; and the aos-lock tool that owns the lockfile and computes every skill's installed name.
 skill_prefix: capability-
@@ -109,7 +109,7 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
    - **Best-effort, never a gate**: no network, no git, or a declined plugin install →
      say so in the install summary and carry on. Our procedure stands on its own; this is
      an aid, exactly as a cheat-sheet is.
-   - It is **not** a render: no `{{mod}}` slots, no `x-aos-origin` stamp (it is not ours
+   - It is **not** a render: no `{{mod}}` slots, no `metadata.aos.origin` stamp (it is not ours
      to tag), and it does not live under `personal/capabilities/`.
 6. Nothing else: no agents, no schedules, no KB zones.
 

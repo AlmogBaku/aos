@@ -2,7 +2,13 @@
 // name-derived lives here so the rename is a one-file sweep (plus grep).
 export const KIT_NAME = 'aos';
 export const STATE_DIR = `.${KIT_NAME}/`; // machine-local state, gitignored (ARCHITECTURE §3.1)
-export const ORIGIN_FRONTMATTER_KEY = `x-${KIT_NAME}-origin`; // install-time tag, never shipped
+// The install-time provenance stamp, never shipped upstream. It lives inside SKILL.md's own
+// `metadata` extension hatch, because that schema is EXTERNAL and we are a vendor in it —
+// a top-level `x-aos-origin` was us reserving namespace in somebody else's house. `x-*` stays
+// reserved in CAPABILITY.md, which is ours, for THIRD parties. Mirrored in aos_lock/cli.py.
+export const ORIGIN_FRONTMATTER_PATH = ['metadata', KIT_NAME, 'origin'];
+export const ORIGIN_FRONTMATTER_KEY = ORIGIN_FRONTMATTER_PATH.join('.'); // display form
+export const LEGACY_ORIGIN_FRONTMATTER_KEY = `x-${KIT_NAME}-origin`; // retired; must not ship
 export const ORIGIN_JOB_PREFIX = `${KIT_NAME}:`; // jobs.json entries: origin: aos:<cap>@<ver>
 
 // ARCHITECTURE §3.1 — the user-owned overlay family. Upstream never contains these.

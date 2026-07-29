@@ -19,7 +19,7 @@ AOS_VERBS = {
     "ingest", "pending", "prune", "set", "config", "migrate",
 }
 UNIVERSAL_FIELDS = {"title", "description", "type", "created", "timestamp", "tags",
-                    "aliases", "verified", "origin", "meta", "expires", "review_by"}
+                    "aliases", "verified", "origin", "metadata", "expires", "review_by"}
 RAW_FIELDS = {"source", "source_sha256", "captured_at", "kb_routing",
               "captured_by", "source_origin", "corrects"}
 # .kb/pending/ — one file per item. A queue FILE is only justified when the work item

@@ -2,7 +2,8 @@ import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { readFrontmatter } from '../../lib/frontmatter.mjs';
 import {
-  ORIGIN_FRONTMATTER_KEY, MAIN_AGENT, SKILL_NAME_RE, SKILL_NAME_MAX,
+  ORIGIN_FRONTMATTER_KEY, ORIGIN_FRONTMATTER_PATH, LEGACY_ORIGIN_FRONTMATTER_KEY,
+  MAIN_AGENT, SKILL_NAME_RE, SKILL_NAME_MAX,
   RESERVED_NAME_WORDS, REFERENCE_TOC_LINES,
 } from '../../lib/constants.mjs';
 import { agentNames } from './agents.mjs';
@@ -39,11 +40,17 @@ export function checkSkills({ caps, files, report }) {
       // Strict-portable profile: shipped skills carry only spec fields. Harness-
       // specific extension goes in metadata.<harness>.* per the spec's own escape hatch.
       for (const key of Object.keys(data)) {
-        if (key === ORIGIN_FRONTMATTER_KEY) {
-          report('error', 'skill/origin-tag', file, `${ORIGIN_FRONTMATTER_KEY} is an install-time tag — never shipped upstream`);
+        if (key === LEGACY_ORIGIN_FRONTMATTER_KEY) {
+          report('error', 'skill/origin-tag', file, `${LEGACY_ORIGIN_FRONTMATTER_KEY} is retired — the stamp is ${ORIGIN_FRONTMATTER_KEY}, and it is an install-time tag never shipped upstream`);
         } else if (!SKILL_KEYS.includes(key)) {
           report('error', 'skill/unknown-key', file, `"${key}" is not an Agent Skills spec field (allowed: ${SKILL_KEYS.join(', ')})`);
         }
+      }
+      // The stamp moved inside `metadata`, so rejecting the old top-level key is no longer
+      // enough — an upstream skill carrying metadata.aos.origin is the same defect wearing
+      // the new spelling, and a check that only knew the old one would pass it silently.
+      if (readOrigin(data) !== undefined) {
+        report('error', 'skill/origin-tag', file, `${ORIGIN_FRONTMATTER_KEY} is an install-time tag — never shipped upstream`);
       }
       const name = data.name;
       if (typeof name !== 'string' || !name.length || name.length > SKILL_NAME_MAX || !NAME_RE.test(name)) {
@@ -108,13 +115,29 @@ export function checkSkills({ caps, files, report }) {
 
     checkReferenceDepth(cap, files, report);
 
-    // §2.2: a multi-skill capability scoping everything to main is the degenerate
-    // case the linter questions.
+    // §2.2: a multi-skill capability scoping everything to main is the degenerate case the
+    // linter questions — but only where an alternative EXISTED. A capability with no agents
+    // and no schedules has no role to scope to, so "is that deliberate?" is unanswerable
+    // rather than unanswered, and a warning nobody can act on is one people learn to ignore.
+    // (capability-lifecycle is the case: install/upgrade/remove are all things the user asks
+    // the front agent.) A capability that LATER declares an agent and forgets to scope a
+    // skill to it fires this again, which is the signal worth keeping.
+    const hasRoles = agents.length > 0 || (manifest.schedules ?? []).length > 0;
     const allUsedBy = [...declared.values()].flatMap((s) => s.used_by ?? []);
-    if (declared.size > 1 && allUsedBy.length && allUsedBy.every((u) => u === MAIN_AGENT)) {
+    if (hasRoles && declared.size > 1 && allUsedBy.length && allUsedBy.every((u) => u === MAIN_AGENT)) {
       report('warn', 'skill/all-main', `${cap.rel}/CAPABILITY.md`, 'every skill is scoped to main — is that deliberate? (§2.2)');
     }
   }
+}
+
+// The stamp, read as structured data at whatever depth the spec hatch puts it.
+function readOrigin(data) {
+  let node = data;
+  for (const key of ORIGIN_FRONTMATTER_PATH) {
+    if (node === null || typeof node !== 'object' || !(key in node)) return undefined;
+    node = node[key];
+  }
+  return node;
 }
 
 // Progressive disclosure, per the Agent Skills authoring guide: every reference file hangs

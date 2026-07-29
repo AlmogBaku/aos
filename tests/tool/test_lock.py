@@ -16,6 +16,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 REPO = Path(__file__).resolve().parents[2]
 TOOL_DIR = REPO / "capabilities/capability-lifecycle/tool"
 
@@ -422,6 +424,14 @@ class SkillNameTest(unittest.TestCase):
             (cap / "skills" / s / "SKILL.md").write_text(SKILL_MD.format(name=s))
         return cap
 
+    def origin(self, skill_md):
+        """The provenance stamp, read as YAML. Deliberately not a substring check: the whole
+        point of moving it under `metadata.aos` is that it is structured data, and an
+        `assertIn` would pass on the string appearing anywhere — including in prose."""
+        text = skill_md.read_text()
+        fm = yaml.safe_load(text.split("---", 2)[1])
+        return ((fm or {}).get("metadata") or {}).get("aos", {}).get("origin")
+
     def skills(self, cap, *extra):
         return run(["--home", str(self.home), "skills", str(cap), *extra])
 
@@ -578,7 +588,7 @@ class SkillNameTest(unittest.TestCase):
         rendered = out / "democap-sort" / "SKILL.md"
         self.assertTrue(rendered.is_file())
         self.assertIn("name: democap-sort", rendered.read_text())
-        self.assertIn("x-aos-origin: democap@1.0.0", rendered.read_text())
+        self.assertEqual(self.origin(rendered), "democap@1.0.0")
 
     def test_render_carries_bundled_assets(self):
         cap = self.cap("democap", ["democap", "sort"])
@@ -618,12 +628,43 @@ class SkillNameTest(unittest.TestCase):
         cap = self.cap("democap", ["democap", "sort"])
         skill = cap / "skills" / "sort" / "SKILL.md"
         skill.write_text(skill.read_text().replace(
-            "---\nbody", "x-aos-origin: someoneelse@9.9.9\n---\nbody"))
+            "---\nbody", "metadata:\n  aos:\n    origin: someoneelse@9.9.9\n---\nbody"))
         out = Path(self.tmp.name) / "renders"
         run(["render", str(cap), "sort", "--out", str(out)])
-        text = (out / "democap-sort" / "SKILL.md").read_text()
-        self.assertNotIn("someoneelse", text)
-        self.assertEqual(text.count("x-aos-origin"), 1)
+        rendered = out / "democap-sort" / "SKILL.md"
+        self.assertNotIn("someoneelse", rendered.read_text())
+        self.assertEqual(self.origin(rendered), "democap@1.0.0")
+
+    def test_render_merges_the_stamp_into_an_existing_metadata_block(self):
+        """`metadata` is the Agent Skills spec's own extension hatch, so a skill may already
+        carry harness-specific keys there. Stamping ours must merge, never clobber — the old
+        line-based writer appended a top-level key and could not see a sibling at all."""
+        cap = self.cap("democap", ["democap", "sort"])
+        skill = cap / "skills" / "sort" / "SKILL.md"
+        skill.write_text(skill.read_text().replace(
+            "---\nbody", "metadata:\n  hermes:\n    profile: aos-test\n---\nbody"))
+        out = Path(self.tmp.name) / "renders"
+        r = run(["render", str(cap), "sort", "--out", str(out)])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rendered = out / "democap-sort" / "SKILL.md"
+        fm = yaml.safe_load(rendered.read_text().split("---", 2)[1])
+        self.assertEqual(fm["metadata"]["aos"]["origin"], "democap@1.0.0")
+        self.assertEqual(fm["metadata"]["hermes"]["profile"], "aos-test")
+
+    def test_a_skill_merely_MENTIONING_the_origin_key_is_not_claimed_as_ours(self):
+        """The collision gate falls back to provenance when the lockfile is lost, and the old
+        test was `ORIGIN_KEY in text` — a substring, so a skill whose PROSE discussed the tag
+        read as aos-installed. That hands a stranger's name to an install that should have
+        stopped at exit 17."""
+        cap = self.cap("democap", ["democap"])
+        harness = self.home / "harness-skills"
+        stranger = harness / "democap"
+        stranger.mkdir(parents=True)
+        (stranger / "SKILL.md").write_text(
+            "---\nname: democap\ndescription: Not ours. Use when nothing.\n---\n"
+            "This document explains what metadata.aos.origin means. It carries no such key.\n")
+        r = self.skills(cap, "--check", "--harness-skills", str(harness))
+        self.assertEqual(r.returncode, 17, f"expected a collision, got:\n{r.stdout}{r.stderr}")
 
     def test_relative_capability_dir_works(self):
         """`aos-lock skills .` from inside the capability — the contract's commands are
@@ -710,7 +751,8 @@ class SkillNameTest(unittest.TestCase):
         render = self.home / "personal" / "capabilities" / "democap" / "skills" / "democap-sort"
         render.mkdir(parents=True)
         (render / "SKILL.md").write_text(
-            "---\nname: democap-sort\ndescription: d. Use when.\nx-aos-origin: democap@1.0.0\n---\nb\n")
+            "---\nname: democap-sort\ndescription: d. Use when.\n"
+            "metadata:\n  aos:\n    origin: democap@1.0.0\n---\nb\n")
         (harness / "democap-sort").symlink_to(render)
         # no lockfile entry at all — the household knows nothing about this install
         r = self.skills(cap, "--check", "--harness-skills", str(harness))

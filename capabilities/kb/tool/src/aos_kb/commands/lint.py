@@ -59,7 +59,7 @@ def _lint_pages(base: Base, critical: list, findings: list, info: list,
         unknown = set(fm) - UNIVERSAL_FIELDS - extensions - RAW_FIELDS \
             - PENDING_FIELDS
         if unknown:
-            findings.append(f"{rel}: fields outside schema (move under meta:): "
+            findings.append(f"{rel}: fields outside schema (move under metadata:): "
                             f"{sorted(unknown)}")
         if not body.strip():
             findings.append(f"{rel}: empty page")

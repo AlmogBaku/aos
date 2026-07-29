@@ -43,6 +43,10 @@ const EXPECTED = [
   'cheatsheet/section', 'structure/harnesses-dir',
   'secrets/token', 'secrets/jwt', 'secrets/phone', 'secrets/whatsapp-jid',
   'kb/zone-key', 'kb/owner-agent',
+  // §2.2's degenerate case, and it is EXPECTED rather than tolerated: the check only fires
+  // where an alternative existed (an agent or a schedule to scope to), so nothing else in
+  // this fixture can plant it — prefix-cap carries a `janitor` agent for exactly this.
+  'skill/all-main',
 ];
 
 const findings = [];
@@ -68,8 +72,27 @@ for (const want of ['harnesses/badharness.md', 'skills/capture/reference/harness
     process.exit(1);
   }
 }
+// skill/all-main must fire where a role EXISTED to scope to and was ignored, and must stay
+// silent where there was never an alternative. Both halves are pinned by file, because the
+// code firing at all proves nothing: `name-cap` is five main-only skills with no agents, so a
+// check that ignored the role question entirely would still light this code up.
+const allMainFiles = new Set(findings.filter((f) => f.code === 'skill/all-main').map((f) => f.file));
+if (![...allMainFiles].some((f) => f.includes('prefix-cap'))) {
+  console.error('selftest FAILED — skill/all-main did not fire on prefix-cap, which scopes '
+    + 'every skill to main while declaring a `janitor` agent');
+  process.exit(1);
+}
+for (const quiet of ['name-cap', 'half-cap']) {
+  if ([...allMainFiles].some((f) => f.includes(quiet))) {
+    console.error(`selftest FAILED — skill/all-main fired on ${quiet}, which declares no agent `
+      + 'and no schedule: there was no role to scope to, so the question is unanswerable '
+      + 'rather than unanswered');
+    process.exit(1);
+  }
+}
+
 const missing = EXPECTED.filter((code) => !fired.has(code));
-const unexpected = [...fired].filter((code) => !EXPECTED.includes(code) && !code.startsWith('structure/') && code !== 'skill/description-when' && code !== 'skill/name-dir' && code !== 'skill/all-main');
+const unexpected = [...fired].filter((code) => !EXPECTED.includes(code) && !code.startsWith('structure/') && code !== 'skill/description-when' && code !== 'skill/name-dir');
 
 if (missing.length) {
   console.error(`selftest FAILED — checks that never fired on the fixture:\n  ${missing.join('\n  ')}`);

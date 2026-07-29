@@ -36,5 +36,5 @@ contract, and the Experience rules.
    links into it.
 5. Tell the user their MOD.md stays: "your answers survive — in your personal repo,
    reinstalling brings it back personalized."
-6. **[D]** Verify: re-introspect until no `x-aos-origin:`, `aos:` names, marker
+6. **[D]** Verify: re-introspect until no `metadata.aos.origin`, `aos:` names, marker
    blocks, or links into `personal/` remain; `aos-lock remove <id>`; friendly close.

@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { homedir } from 'node:os';
 import { parse } from 'yaml';
-import { normalizeTree, SKIP } from './normalize.mjs';
+import { normalizeTree, SKIP, originStamp } from './normalize.mjs';
 import { REPO_ROOT } from '../../tools/lib/repo.mjs';
 import { ORIGIN_FRONTMATTER_KEY } from '../../tools/lib/constants.mjs';
 
@@ -86,7 +86,7 @@ function runExpectations(expName, roots, liveMode = false) {
       // A referenced third-party skill (installed from vendor/, never rendered) carries no
       // origin tag by contract — it is not ours to modify. `exp.vendored` names them.
       if ((exp.vendored ?? []).includes(relParts[0])) continue;
-      if (!readFileSync(f, 'utf8').includes(`${ORIGIN_FRONTMATTER_KEY}:`)) {
+      if (originStamp(f) === undefined) {
         fail('golden/origin-tag', `${expName}: ${f} lacks ${ORIGIN_FRONTMATTER_KEY}`);
       }
     }

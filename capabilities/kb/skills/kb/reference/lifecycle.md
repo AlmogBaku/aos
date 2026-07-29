@@ -22,7 +22,7 @@ aliases: ["Acme", "ACME"]      # variant spellings; cheaper than duplicate pages
 verified: false                # agent-written pages start false; `kb verify` flips it
 origin: _raw/2026-06-30-call.md    # the capture this page came from
 expires: 2026-10-15            # optional — the ONLY thing kb knows about lifetime
-meta: {}                       # free per-doc fields; used by 2+ docs → graduate to
+metadata: {}                   # free per-doc fields; used by 2+ docs → graduate to
                                # .kb/base.yml frontmatter.extensions
 ---
 ```

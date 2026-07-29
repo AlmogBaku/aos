@@ -92,7 +92,7 @@ Work top-down from `CAPABILITY.md`, under the install contract (the `capability-
 - `hermes config show` / `config get <dotted.key>`; `hermes doctor`.
 - Filesystem: `~/.hermes/skills/`, `profiles/*/`, `cron/jobs.json`,
   `channel_directory.json`.
-- aos artifacts: `.aos/installs.lock.yaml`, `x-aos-origin:` frontmatter, `aos:` job-name
+- aos artifacts: `.aos/installs.lock.yaml`, `metadata.aos.origin` frontmatter, `aos:` job-name
   prefixes, `<!-- aos:… -->` markers.
 
 ## Secrets

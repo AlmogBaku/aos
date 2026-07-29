@@ -5,6 +5,28 @@
 import { readdirSync, statSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmdirSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
+import { parse } from 'yaml';
+import { ORIGIN_FRONTMATTER_PATH } from '../../tools/lib/constants.mjs';
+
+// The install-time provenance stamp, read as structured frontmatter. Both golden scripts used
+// `.includes('x-aos-origin:')`, which matched the string anywhere in the file — including in a
+// skill whose prose merely discussed provenance. Now that the stamp is nested inside the spec's
+// `metadata` hatch there is no line to match at all, so this has to parse.
+export function originStamp(skillMd) {
+  let text;
+  try { text = readFileSync(skillMd, 'utf8'); } catch { return undefined; }
+  if (!text.startsWith('---\n')) return undefined;
+  const end = text.indexOf('\n---', 3);
+  if (end === -1) return undefined;
+  let data;
+  try { data = parse(text.slice(4, end + 1)); } catch { return undefined; }
+  let node = data;
+  for (const key of ORIGIN_FRONTMATTER_PATH) {
+    if (node === null || typeof node !== 'object' || !(key in node)) return undefined;
+    node = node[key];
+  }
+  return node;
+}
 
 const [src, dest] = process.argv.slice(2);
 
@@ -47,7 +69,7 @@ function copy(s, d) {
     mkdirSync(d, { recursive: true });
     // A skills/ dir with a .bundled_manifest is a harness-managed skill store:
     // snapshot ONLY what the INSTALL materialized (top-level dirs whose SKILL.md
-    // carries x-aos-origin) — bundled harness content and the store's own metadata
+    // carries the origin stamp) — bundled harness content and the store's own metadata
     // (.bundled_manifest, .hub) are run-varying noise.
     if (existsSync(join(s, '.bundled_manifest'))) {
       for (const name of readdirSync(s)) {
@@ -55,8 +77,7 @@ function copy(s, d) {
         if (!statSync(child).isDirectory()) { continue; }
         if (name === '.hub') { continue; }
         const skillMd = join(child, 'SKILL.md');
-        if (existsSync(skillMd) &&
-            readFileSync(skillMd, 'utf8').includes('x-aos-origin:')) {
+        if (existsSync(skillMd) && originStamp(skillMd) !== undefined) {
           copy(child, join(d, name));
         }
       }

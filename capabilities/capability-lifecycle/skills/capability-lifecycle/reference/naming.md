@@ -48,7 +48,7 @@ Consequences that bite if you forget them:
 - **Cross-skill references in prose use the installed name.** References resolve by name at
   runtime, and the bare id names nothing once installed — say `kb-route`, not `route`.
   (`skills/ref-unqualified`)
-- The `x-aos-origin` tag is added by `aos-lock render` at install and never shipped
+- The `metadata.aos.origin` stamp is added by `aos-lock render` at install and never shipped
   upstream. (`skill/origin-tag`)
 
 ## Uniqueness is a gate, not a convention

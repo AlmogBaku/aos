@@ -80,7 +80,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   <cap-dir> <id> --out personal/capabilities/<capability>/skills` does the mechanical half:
   the whole folder travels (`reference/`, `scripts/`, `templates/` — scripts are executed,
   never loaded as context), the render lands under the **installed name**, its frontmatter
-  `name` is rewritten to match, and `x-aos-origin: <capability>@<version>` is stamped inside
+  `name` is rewritten to match, and `metadata.aos.origin: <capability>@<version>` is stamped inside
   the frontmatter block. Then you fill `{{mod: …}}` slots in the render (leave unfilled slots
   intact) — that judgment is yours, the copy is not. Symlink the render into the skills
   location of every agent in its `used_by`, under the same installed name: **dir, frontmatter
@@ -126,7 +126,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   references only — `{store: <name>, key: <key>}`.
 - **Removal** walks the lockfile entry backwards; `MOD.md` is never deleted (§3.3), and
   render deletions in `personal/` happen via a commit (revertible). Verify by
-  re-running introspection until no aos provenance (`x-aos-origin:`, `aos:` names,
+  re-running introspection until no aos provenance (`metadata.aos.origin`, `aos:` names,
   marker blocks, links into `personal/`) remains.
 - **References resolve by three rules.** Inside a skill's own folder: relative paths
   (the whole-folder render keeps them valid — and links preserve them), and never into a

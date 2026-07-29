@@ -61,7 +61,7 @@ def parse_where(exprs) -> list:
 
 
 def fm_get(fm: dict, dotted: str):
-    """Dotted paths reach nested frontmatter (meta.status)."""
+    """Dotted paths reach nested frontmatter (metadata.status)."""
     cur = fm
     for part in dotted.split("."):
         if not isinstance(cur, dict) or part not in cur:

@@ -39,7 +39,7 @@ the overlay doctrine, and the Experience rules. Then:
    cheat-sheet's Secrets section) → write `<home>/personal/capabilities/<id>/MOD.md`.
 7. **[A]** Render, then transform: `aos-lock render <dir> <skill-id> --out
    <home>/personal/capabilities/<id>/skills` per declared skill (mechanical — installed
-   name, frontmatter `name`, `x-aos-origin`), then fill `{{mod}}` slots and bake `<home>`
+   name, frontmatter `name`, `metadata.aos.origin`), then fill `{{mod}}` slots and bake `<home>`
    in the render per that same `reference/overlay.md`. Shipped files stay untouched.
 8. **[A]** **STAGE** per the cheat-sheet's Materialization guide: the render sits in
    `personal/`'s working tree (uncommitted) plus the exact native command plan —

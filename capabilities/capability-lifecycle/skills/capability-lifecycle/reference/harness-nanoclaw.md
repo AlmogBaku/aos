@@ -116,7 +116,7 @@ Work top-down from `CAPABILITY.md`, under the install contract (the `capability-
   chats, sessions) or ask the main agent; list `.claude/skills/`; read
   `groups/<f>/CLAUDE.md`, `groups/global/CLAUDE.md`, `conversations/`; pino logs; macOS
   service under `launchd/`.
-- aos artifacts: `.aos/installs.lock.yaml`, `x-aos-origin:` frontmatter, `aos:` task names,
+- aos artifacts: `.aos/installs.lock.yaml`, `metadata.aos.origin` frontmatter, `aos:` task names,
   `<!-- aos:… -->` markers.
 
 ## Secrets

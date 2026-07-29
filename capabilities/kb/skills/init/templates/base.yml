@@ -33,4 +33,4 @@ state:
   # rewrites in place is the one shape git cannot merge.
 
 frontmatter:
-  extensions: []               # per-base fields; a meta: field used by 2+ docs graduates here
+  extensions: []               # per-base fields; a metadata: field used by 2+ docs graduates here

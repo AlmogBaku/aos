@@ -88,7 +88,7 @@ runtime tools or files.
 - Runtime tools: `listScheduledTasks` (schedules), `searchSkills`.
 - Web chat UI on `:8080`; flags `--debug`, `--trace`.
 - Filesystem: `nanobot.yaml`, `agents/`, `skills/`, `workflows/`, `nanobot.env`.
-- aos artifacts: `.aos/installs.lock.yaml`, `x-aos-origin:` frontmatter, `aos:` task
+- aos artifacts: `.aos/installs.lock.yaml`, `metadata.aos.origin` frontmatter, `aos:` task
   names, `<!-- aos:… -->` markers.
 
 ## Secrets

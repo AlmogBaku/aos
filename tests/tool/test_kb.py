@@ -549,7 +549,7 @@ class BaseToolTest(unittest.TestCase):
         cap = next((self.root / ".kb" / "pending").glob("*.md"))
         cap.write_text(cap.read_text()
                        .replace("kind: capture", "kind: capture\nfailed: odd")
-                       .replace("verified: false", "verified: false\nmeta: broken"))
+                       .replace("verified: false", "verified: false\nmetadata: broken"))
         r = self.b("inbox", "--failed")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("1 failed item", r.stdout)
@@ -1332,8 +1332,8 @@ class QueryTest(unittest.TestCase):
 
     def test_dotted_paths_reach_into_nested_frontmatter(self):
         self.page("concepts/routed.md", type="concept",
-                  meta="{status: uncertain, method: rule}")
-        r = self.b("find", "--where", "meta.status=uncertain")
+                  metadata="{status: uncertain, method: rule}")
+        r = self.b("find", "--where", "metadata.status=uncertain")
         self.assertIn("routed", r.stdout)
 
     def test_every_fetch_verb_takes_the_query(self):
@@ -1608,7 +1608,7 @@ class WriteVerbTest(unittest.TestCase):
     def test_set_refuses_a_field_outside_the_schema(self):
         # Otherwise `kb set` quietly introduces a field lint will then flag. `status:`
         # is the honest example: it is work-tracker's field, and kb refusing it is the
-        # layering working — the base declares its extensions or nests under meta:.
+        # layering working — the base declares its extensions or nests under metadata:.
         self.page("projects/cfp.md", type="project")
         r = self.b("set", "projects/cfp.md", "status=next")
         self.assertNotEqual(r.returncode, 0)
@@ -1619,6 +1619,20 @@ class WriteVerbTest(unittest.TestCase):
         r = self.b("set", "projects/cfp.md", "status=next")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(self.fm(self.root / "projects/cfp.md")["status"], "next")
+
+    def test_the_free_fields_map_is_called_metadata(self):
+        # One word for "extra fields" across the whole kit. SKILL.md's own schema calls this
+        # `metadata`, so a KB page calling it `meta` made the same concept read as two —
+        # and the KB half is the one with no external vendor to defer to. Flat, not nested:
+        # unlike SKILL.md there is no other party to namespace against.
+        self.page("projects/cfp.md", type="project")
+        r = self.b("set", "projects/cfp.md", "metadata.owner=alice")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.fm(self.root / "projects/cfp.md")["metadata"]["owner"], "alice")
+        # the retired spelling is now an ordinary out-of-schema field, and the error says so
+        r = self.b("set", "projects/cfp.md", "meta.owner=alice")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("metadata", r.stderr)
 
     def test_archive_is_a_git_rm_plus_a_reason(self):
         self.page("concepts/dead.md", type="concept")

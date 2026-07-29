@@ -107,7 +107,7 @@ Work top-down from `CAPABILITY.md`, under the install contract (the `capability-
 - `openclaw config get <path>`; `config validate`; `openclaw security audit --deep`.
 - Filesystem: `~/.openclaw/skills/`, `workspace*/`, `cron/jobs.json`,
   `agents/<agentId>/` (leaf layout unverified — enumerate, don't assume).
-- aos artifacts: `.aos/installs.lock.yaml`, `x-aos-origin:` frontmatter, `aos:` job
+- aos artifacts: `.aos/installs.lock.yaml`, `metadata.aos.origin` frontmatter, `aos:` job
   names, `<!-- aos:… -->` markers.
 - Logs: `OPENCLAW_LOG_LEVEL`, `OPENCLAW_DIAGNOSTICS`.
 

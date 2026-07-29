@@ -219,7 +219,7 @@ def cmd_set(ctx: typer.Context, path: str,
         root_key = key.split(".")[0]
         if root_key not in allowed:
             die(f"{root_key!r} is outside the base schema — add it to "
-                f".kb/base.yml frontmatter.extensions first, or nest it under meta:",
+                f".kb/base.yml frontmatter.extensions first, or nest it under metadata:",
                 14)
         cur, parts = fm, key.split(".")
         for part in parts[:-1]:
