@@ -35,9 +35,8 @@ that ships a skill.
 | "what's installed?" | `aos-lock list` |
 | your harness's mapping | `reference/harness-<harness-runtime>.md` — an aid, not a gate: loaded per operation, never standing context; none → `reference/no-cheatsheet.md` |
 
-Manifest quick facts: CAPABILITY.md frontmatter is strict-typed (`aos-lock manifest
-<dir>` parses and validates it — its errors name the field and rule); the fields are
-`id · version · tags · summary · depends · schedules · skills · skill_prefix · kb`, `x-*`
+Manifest quick facts: CAPABILITY.md frontmatter is strict-typed (`aos-lock manifest <dir>` parses and validates it — its
+errors name the field and rule); the fields are `id · version · tags · summary · depends · schedules · skills · skill_prefix · kb`, `x-*`
 reserved for extensions; the prose below the frontmatter is the installer's
 briefing, never runtime context. A skill's id is capability-local — the name it installs
 under is `aos-lock skills <dir>`'s answer, and it is single-owner across the whole harness
