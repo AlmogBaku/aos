@@ -1,0 +1,5 @@
+# state — the rolling attention window for {{name}}, for one principal.
+# One-line items pointing INTO the wiki pages; never knowledge itself.
+# Rewritten in place (git history is the archive). Hard cap: .kb/base.yml state.max_items.
+# Managed via `kb state add|bump|drop|check` — single writer: agent:main.
+items: []

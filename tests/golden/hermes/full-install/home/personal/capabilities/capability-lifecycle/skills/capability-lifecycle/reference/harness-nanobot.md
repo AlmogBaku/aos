@@ -13,7 +13,7 @@
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
 Nanobot (obot-platform/nanobot, the MCP-host agent runtime). The aos half of the install
 contract — provenance, lockfile, markers, secret references, degraded-mode meanings,
-removal discipline — is the `capability-lifecycle` entry skill's `reference/contract.md`; this sheet is only the Nanobot half.
+removal discipline — is the `capability-lifecycle` entry skill's install contract; this sheet is only the Nanobot half.
 
 > [!WARNING]
 > Research-drafted: no aos e2e install has run on this harness yet (ARCHITECTURE §5.3).
@@ -50,7 +50,7 @@ deprecated `mcp-servers.yaml|json` (don't add one; only one variant is allowed).
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle` entry skill's `reference/contract.md`). Config edits take
+Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle` entry skill's install contract). Config edits take
 effect on the next `nanobot run` — restart after materializing.
 
 1. **Agents.** Create `agents/<id>.md`: frontmatter `name:` + fields, `purpose` + persona
@@ -88,7 +88,7 @@ runtime tools or files.
 - Runtime tools: `listScheduledTasks` (schedules), `searchSkills`.
 - Web chat UI on `:8080`; flags `--debug`, `--trace`.
 - Filesystem: `nanobot.yaml`, `agents/`, `skills/`, `workflows/`, `nanobot.env`.
-- aos artifacts: `.aos/installs.lock.yaml`, `x-aos-origin:` frontmatter, `aos:` task
+- aos artifacts: `.aos/installs.lock.yaml`, `metadata.aos.origin` frontmatter, `aos:` task
   names, `<!-- aos:… -->` markers.
 
 ## Secrets
@@ -131,7 +131,7 @@ There is no uninstall command — drive everything from the lockfile entry, in o
 | `email` | ✗ | roadmap ⇒ degraded mode |
 | `secrets-store` | ⚠ partial | `env:` + `sensitive:` redaction, no vault — treat as env-file-grade |
 
-Degraded-mode wiring (meanings in the entry skill's `reference/contract.md`): `manual` ⇒ the invocable skill lands in
+Degraded-mode wiring (meanings in the `capability-lifecycle` entry skill's install contract): `manual` ⇒ the invocable skill lands in
 `skills/` attached to the agent that would have owned the task; `inline` ⇒
 `updateScheduledTask` appends (inside markers) to an existing aos-owned task's prompt.
 

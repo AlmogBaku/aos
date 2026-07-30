@@ -1,9 +1,18 @@
 ---
 name: capability-lifecycle
-description: The aos capability lifecycle's front door. Use when the user asks to install, update, upgrade, remove, or customize an aos capability, mentions or shares a CAPABILITY.md or a capability directory, asks what capabilities are installed or what aos is, or asks about the manifest, the lockfile, or a harness cheat-sheet — and no narrower lifecycle skill matches.
-x-aos-origin: capability-lifecycle@0.3.0
+description: The aos capability lifecycle's front door. Use when the user asks to
+  install, update, upgrade, remove, or customize an aos capability, mentions or shares
+  a CAPABILITY.md or a capability directory, asks what capabilities are installed
+  or what aos is, or asks about the manifest, the lockfile, or a harness cheat-sheet.
+  Routes to the narrower skill that owns the job — capability-install, capability-upgrade,
+  capability-remove, capability-onboard, capability-evolve, capability-import, capability-build,
+  capability-contribute, capability-review — and carries the household layout, the
+  install contract and the naming rules they all share. Do NOT use when one of those
+  already matches the ask; this is the map, not the work.
+metadata:
+  aos:
+    origin: capability-lifecycle@0.3.4
 ---
-
 # capability-lifecycle — the map
 
 Capabilities are self-describing prompts; **you are the installer**. Judgment is yours;
@@ -32,6 +41,7 @@ that ships a skill.
 | "fix/change <capability> for everyone" · contribute upstream | `capability-contribute` |
 | "change how <capability> behaves for me" | `capability-evolve` |
 | "promote my tweak" / "this should be for everyone" | `capability-evolve` classifies, then hands to `capability-contribute` |
+| "review/audit <capability>" · before contributing · "something looks wrong here" | `capability-review` — read-only, architecture first |
 | "what's installed?" | `aos-lock list` |
 | your harness's mapping | `reference/harness-<harness-runtime>.md` — an aid, not a gate: loaded per operation, never standing context; none → `reference/no-cheatsheet.md` |
 

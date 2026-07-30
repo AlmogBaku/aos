@@ -1,6 +1,6 @@
 ---
 name: import
-description: Imports an existing use case from this harness into an aos capability draft. Use when the user asks to wrap, package, export, or contribute something they already built ("import my trainer setup into the kit").
+description: "Imports a use case the user already built in this harness into an aos capability draft: inventories the pieces, splits generic mechanism from personal nuance, and emits a package plus a gap report under personal/, never installing it. Use when the user asks to wrap, package, export, extract or contribute something they already have running (\"import my trainer setup into the kit\"). Do NOT use for something that does not exist yet — that is capability-build — and not to send the draft upstream, which is capability-contribute."
 ---
 
 # capability-import
@@ -31,9 +31,17 @@ Copy this checklist and work the stages in order:
 - [ ] 5. Emit — reference/emit.md (GAP format: reference/gap-report.md)
 ```
 
-Skill names in the draft follow `capability-lifecycle`'s `reference/naming.md` —
-action-oriented, bare ids, and `aos-lock --home <home> skills <draft-dir> --check` before you emit, so a
-name the harness already uses is caught in the draft rather than at install.
+Skill names in the draft follow the `capability-lifecycle` skill's naming rules —
+action-oriented, bare ids — and the name gate runs **as soon as the draft's `CAPABILITY.md`
+exists**, before you write its skills: `aos-lock --home <home> skills <draft-dir> --check
+--harness-skills <each skills dir this harness reads>`, so a name the harness already uses is
+caught in the draft rather than at install.
+
+**The draft's manifest `id` must equal its directory name**, which the tool enforces — so a
+`<id>-draft/` directory carries `id: <id>-draft`, and the gate therefore checks
+`<id>-draft-<skill>` rather than the `<id>-<skill>` that will actually install. Check the real
+names too: run the gate again after the final `<id>-draft` → `<id>` rename, which is the only
+point the computed names are the ones a harness will see.
 
 ## Authority
 

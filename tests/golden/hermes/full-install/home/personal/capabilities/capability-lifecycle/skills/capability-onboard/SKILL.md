@@ -1,9 +1,16 @@
 ---
 name: capability-onboard
-description: Runs a capability's onboarding interview and writes the user's MOD.md overlay. Use when installing or re-onboarding any aos capability, when the user asks to redo/refresh their answers, or when bootstrapping the global MOD.md for a new user.
-x-aos-origin: capability-lifecycle@0.3.0
+description: 'Runs a capability''s onboarding interview — typed questions, batched,
+  secrets to the harness store — and writes the answers to the user''s MOD.md overlay.
+  Use when installing a capability that ships ONBOARDING.md, when the user asks to
+  redo, refresh or revisit their answers, or when bootstrapping the global MOD.md
+  for a new user. Do NOT use to change a behaviour no question covers: an unasked
+  change is a prose statement written by capability-evolve, and a new question is
+  a source change owned by capability-contribute.'
+metadata:
+  aos:
+    origin: capability-lifecycle@0.3.4
 ---
-
 # capability-onboard
 
 You are the only writer of MOD.md files. Typed answers → frontmatter; prose nuance →

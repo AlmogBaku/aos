@@ -1,6 +1,6 @@
 # No cheat-sheet for your harness?
 
-The contract (`contract.md`) is the aos half and holds everywhere; a cheat-sheet only
+The install contract is the aos half and holds everywhere; a cheat-sheet only
 adds your harness's half. Derive it yourself:
 
 | aos concept | find your harness's |
@@ -18,7 +18,7 @@ adds your harness's half. Derive it yourself:
 2. **[A]** Draft
    `<home>/upstream/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`
    answering §5.2's six sections (Primitive mapping, Materialization guide, Introspection
-   guide, Secrets, Removal, Feature notes — `harness-hermes.md` beside this file is
+   guide, Secrets, Removal, Feature notes — the Hermes sheet the entry skill links is
    the reference shape). Keep it lean: your harness's half only. Write it **on a
    branch** (`git -C <home>/upstream switch -c cheatsheet-<harness>`): a cheat-sheet is
    generic knowledge, not personalization — the clone stays pristine on `main`, and the

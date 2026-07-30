@@ -8,8 +8,11 @@ export const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 // planted violations and is linted only by its own runner.
 // .aos/ is deliberately NOT skipped: a committed .aos path must be caught by
 // the overlay check (in CI the tree is a clean checkout, so no local noise).
-// .claude/.agents/.venv: local harness/tooling state, never kit content.
-const SKIP_DIRS = new Set(['.git', 'node_modules', '.sandbox', '.claude', '.agents', '.venv']);
+// .claude/.agents/.venv/__pycache__: local harness/tooling state and build artifacts, never
+// kit content. __pycache__ matters because these walks do not read .gitignore, so a compiled
+// .pyc would otherwise be scanned as a source file — and a token check reads its string table.
+const SKIP_DIRS = new Set(['.git', 'node_modules', '.sandbox', '.claude', '.agents', '.venv',
+  '__pycache__']);
 const SKIP_PREFIXES = ['tools/lint/selftest/'];
 
 export function walkRepo(root = REPO_ROOT) {

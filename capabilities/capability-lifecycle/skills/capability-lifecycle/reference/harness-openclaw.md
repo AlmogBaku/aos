@@ -12,7 +12,7 @@
 
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
 OpenClaw. The aos half of the install contract — provenance, lockfile, markers, secret
-references, degraded-mode meanings, removal discipline — is the `capability-lifecycle` entry skill's `reference/contract.md`; this sheet
+references, degraded-mode meanings, removal discipline — is the `capability-lifecycle` entry skill's install contract; this sheet
 is only the OpenClaw half.
 
 > [!WARNING]
@@ -52,7 +52,7 @@ agent's default doesn't already fit the class; never hardcode provider names.
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle` entry skill's `reference/contract.md`).
+Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle` entry skill's install contract).
 
 1. **Agents.** `openclaw agents add <name> --workspace ~/.openclaw/workspace-<name>
    --non-interactive`; persona → the workspace's `SOUL.md`, identity → `IDENTITY.md` then
@@ -64,7 +64,7 @@ Work top-down from `CAPABILITY.md`, under the install contract (the `capability-
    symlink it into the owning agent's `<workspace>/skills/<installed-name>` per `used_by`
    (`~/.openclaw/skills/` only for genuinely every-agent skills), record each link
    (`aos-lock record … --link`); naming rules per the install contract (the
-   `capability-lifecycle` entry skill's `reference/contract.md`). OpenClaw takes skill
+   `capability-lifecycle` entry skill's install contract). OpenClaw takes skill
    identity from frontmatter, not the folder — `aos-lock render` already wrote the installed
    name there, so nothing to adjust; `description` is required. Enumerate existing names for
    the name gate with `openclaw skills list --json`, or pass each root dir below to
@@ -107,7 +107,7 @@ Work top-down from `CAPABILITY.md`, under the install contract (the `capability-
 - `openclaw config get <path>`; `config validate`; `openclaw security audit --deep`.
 - Filesystem: `~/.openclaw/skills/`, `workspace*/`, `cron/jobs.json`,
   `agents/<agentId>/` (leaf layout unverified — enumerate, don't assume).
-- aos artifacts: `.aos/installs.lock.yaml`, `x-aos-origin:` frontmatter, `aos:` job
+- aos artifacts: `.aos/installs.lock.yaml`, `metadata.aos.origin` frontmatter, `aos:` job
   names, `<!-- aos:… -->` markers.
 - Logs: `OPENCLAW_LOG_LEVEL`, `OPENCLAW_DIAGNOSTICS`.
 
@@ -158,7 +158,7 @@ Drive everything from the lockfile entry, in order:
 | `email` | ⚠ via skill | `gog` (Gmail) + native Gmail PubSub hooks (`openclaw webhooks gmail setup`); absent ⇒ degraded mode |
 | `secrets-store` | ✓ | `.env` + config `env`/SecretRef (OS keyring via `gog`) |
 
-Degraded-mode wiring (meanings in the entry skill's `reference/contract.md`): `manual` ⇒ the invocable skill lands in
+Degraded-mode wiring (meanings in the `capability-lifecycle` entry skill's install contract): `manual` ⇒ the invocable skill lands in
 the workspace skills dir of the agent that would have owned the job; `inline` ⇒ no
 documented `cron edit` — recreate the target aos-owned job (`cron remove` + `cron add`,
 same name) with the appended prompt.

@@ -1,9 +1,15 @@
 ---
 name: capability-remove
-description: Removes an installed aos capability exactly, walking its lockfile entry backwards. Use when the user says "remove" or "uninstall" and names an installed capability.
-x-aos-origin: capability-lifecycle@0.3.0
+description: Removes an installed aos capability exactly, walking its lockfile entry
+  backwards — jobs, symlinks, marker blocks, config keys, agents it created, its tool
+  — and leaving the user's MOD.md in place so a re-install returns personalized. Use
+  when the user says "remove", "uninstall", or "get rid of" and names an installed
+  capability. Do NOT use to undo one setting or turn off a single schedule — that
+  is capability-evolve — and not to retire something upstream, which is capability-contribute.
+metadata:
+  aos:
+    origin: capability-lifecycle@0.3.4
 ---
-
 # capability-remove
 
 Not in context yet? Load the `capability-lifecycle` skill first — the map, the
@@ -35,7 +41,13 @@ contract, and the Experience rules.
    its tool (`uv tool uninstall`). A recorded link into `<home>/vendor` is a referenced
    third-party skill: unlink it, and offer to drop the vendor clone only if no other entry
    links into it.
+   **Its machine-local state under `<home>/.aos/` is not in the lockfile, so nothing walks
+   it backwards** — removing kb leaves `kb-principal.yml` behind. Offer to delete it, and
+   say what it is: the list mapping this machine's human principals to their bases. It is
+   the user's, not the capability's, so an unasked deletion loses an answer they gave; a
+   re-install would otherwise adopt the old identity silently, which is right often enough
+   to be worth asking about rather than guessing.
 5. Tell the user their MOD.md stays: "your answers survive — in your personal repo,
    reinstalling brings it back personalized."
-6. **[D]** Verify: re-introspect until no `x-aos-origin:`, `aos:` names, marker
+6. **[D]** Verify: re-introspect until no `metadata.aos.origin`, `aos:` names, marker
    blocks, or links into `personal/` remain; `aos-lock remove <id>`; friendly close.

@@ -47,7 +47,7 @@ of three sources is not clean, so pass `--home` and the harness's skills dirs ex
 
 `render` is the mechanical half of materialization: it copies `skills/<id>/` whole (with
 `reference/`, `templates/`, `scripts/`) to `<out>/<installed-name>/`, rewrites the render's
-frontmatter `name` to the installed name, and stamps `x-aos-origin: <cap>@<version>`. It
+frontmatter `name` to the installed name, and stamps `metadata.aos.origin: <cap>@<version>`. It
 leaves `{{mod: …}}` slots alone — filling those is the agent's job, afterwards. Re-running
 with `--force` is byte-identical; without it, a non-empty destination is an error.
 

@@ -4,22 +4,52 @@ How a capability proves it works (implements RFC-002).
 
 ## Tier 0 — capability tool tests (blocking)
 
-`bash tools/check.sh` first runs the capability tool suites — kb's `base`
-(`uv run tests/tool/test_base.py`) and capability-lifecycle's `aos-lock`
-(`uv run tests/tool/test_lock.py`) — black-box subprocess tests; the report text is the
-contract. It then lints the shipped example base (`tests/fixtures/example-base/` must pass
-`base lint` with zero criticals/findings — template/example/tool drift breaks the build
-here). Requires `uv`; skipped locally with a warning if absent, always on in CI.
+`bash tools/check.sh` first runs the capability tool suites — kb's `kb`
+(`uv run tests/tool/test_kb.py`) and capability-lifecycle's `aos-lock`
+(`uv run tests/tool/test_lock.py`). `test_kb.py` invokes `aos_kb.cli:app` in-process via
+typer's `CliRunner` (fast: the whole suite runs in ~20s), asserting on the same
+stdout/stderr/exit-code surface a real invocation produces — the report text is still the
+contract, not tool internals. A `Result` adapter gives every assertion the
+`.returncode`/`.stdout`/`.stderr` shape a subprocess result has, so the invocation layer
+can change without touching test bodies. One class, `InstalledScriptSmokeTest`, stays a
+real subprocess: CliRunner never leaves the process, so it can't prove `[project.scripts]
+kb = ...` actually resolves as an installed console script — that's the one thing this
+class exists to check. It then lints the shipped example base (`tests/fixtures/example-base/`
+must pass `kb lint` with zero criticals/findings — template/example/tool drift breaks the
+build here). Requires `uv`; skipped locally with a warning if absent, always on in CI.
 
 ## Tier 1 — deterministic lint (blocking)
 
     bash tools/check.sh
 
-Runs `tools/lint/aos-lint.mjs` (85 checks in 14 code families over the §2/§3/§5 contracts — the
+Runs `tools/lint/aos-lint.mjs` (86 checks in 14 code families over the §2/§3/§5 contracts — the
 schema/contract linter, useful any time you're authoring a capability, not just for
 testing), the lint selftest (`tools/lint/selftest/run.mjs` — every contract code must fire
 on a planted-violation fixture, and a code that fires without being listed is also a
-failure), and the golden structural checker. CI runs the same on every push/PR.
+failure), and three gates the linter structurally cannot cover, because it validates schema
+and these check *content*:
+
+- **`tools/check-retired.mjs`** — repo-wide: no retired vocabulary survives, no artifact
+  invokes the old command name, and every shipped skill description carries its trigger
+  clause, a negative clause naming a **sibling** skill, and third person. Exemptions are
+  deliberately narrow and each states its reason in the file: a short prefix allowlist for
+  material that is *historical by nature* (transcripts, the append-only ledger, frozen
+  snapshots, LAYOUT 1 fixtures), a per-file-and-per-token list for source that must NAME the
+  old world in order to migrate it, and a `<!-- retired-ok: <tokens> -->` marker that exempts
+  **only the tokens it names** — never the rest of the file.
+- **`tools/check-coverage.mjs`** — every CLI verb is documented (parsed from the tool's own
+  `--help`, so the list cannot drift), and every count quoted in prose is the count the
+  tools report.
+- **`tools/check-kb-commands.mjs`** — every documented `kb <verb> --flag`, in the
+  capabilities *and* `docs/`, exists in the tool. Two careful human passes over the same
+  prose still shipped nine commands that failed on invocation; that is the class this closes.
+
+Then the golden structural checker. CI runs the same on every push/PR.
+
+**Outside `check.sh` on purpose:** `node tools/check-template-drift.mjs` compares the shipped
+init templates against the `aos-kb-template` repo `kb init` clones. It needs the network and
+reports offline as a *skip* — a gate that fails on a plane is a gate people learn to skip — so
+run it by hand after touching `templates/`.
 
 ## Tier 2 — golden render (the e2e)
 

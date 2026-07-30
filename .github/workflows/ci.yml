@@ -19,9 +19,13 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: tier-0 capability tool tests + example-base fixture
         run: |
-          uv run --quiet tests/tool/test_base.py
+          uv run --quiet tests/tool/test_kb.py
           uv run --quiet tests/tool/test_lock.py
-          uv run --quiet --project capabilities/kb/tool base \
+          # Pinned: the runner has no git identity, so the tool would synthesize
+          # `runner@<host>.local` and the weak-principal check would fire on the RUNNER
+          # rather than on the fixture. See the same comment in tools/check.sh.
+          AOS_PRINCIPAL_ID=dana@example.com \
+          uv run --quiet --project capabilities/kb/tool kb \
             --base tests/fixtures/example-base lint | tee /tmp/example-lint.txt
           grep -q "Critical (0)" /tmp/example-lint.txt
           grep -q "Findings (0)" /tmp/example-lint.txt
@@ -34,5 +38,11 @@ jobs:
           node tools/lint/aos-lint.mjs $BASE
       - name: lint selftest
         run: node tools/lint/selftest/run.mjs
+      - name: retired-token gate
+        run: node tools/check-retired.mjs
+      - name: coverage gate
+        run: node tools/check-coverage.mjs
+      - name: kb documented-command check
+        run: node tools/check-kb-commands.mjs
       - name: golden structural checks
         run: node tests/golden/check.mjs

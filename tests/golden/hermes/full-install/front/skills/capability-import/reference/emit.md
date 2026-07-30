@@ -7,7 +7,7 @@ Write under the user's personal root — every path below is relative to
   matrix: this harness only, this user as runner), `skills/`, `agents/`, `ONBOARDING.md`,
   `MOD.example.md` (invented placeholder answers, zero personal data), `kb/` templates.
 - `MOD.md` — the user's actual nuances (overlay family: never in a PR).
-- `GAP.md` — per the GAP format in `reference/gap-report.md` (the skill's checklist
+- `GAP.md` — per the GAP format the `capability-import` skill links (its checklist
   links it).
 
 Then:

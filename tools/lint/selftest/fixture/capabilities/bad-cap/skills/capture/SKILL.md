@@ -1,6 +1,6 @@
 ---
 name: capture
-description: Captures things.
+description: Captures things. Use this to file a thought, and I can help you find it later.
 x-aos-origin: bad-cap@0.0.1
 custom_field: not-allowed
 ---

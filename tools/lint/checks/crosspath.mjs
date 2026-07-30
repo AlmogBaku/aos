@@ -74,7 +74,7 @@ function checkOwnReferences({ files, report, root }) {
 }
 
 // A bare relative path (no scheme, no anchor, not rooted at a household dir) whose first
-// segment is a capability-package directory. Deliberately narrow: `_ops/…` and `state/…`
-// are paths inside a user's KB, and `<id>-draft/agents/…` is a draft the skill writes —
-// neither is a load target in the source tree.
+// segment is a capability-package directory. Deliberately narrow: `.kb/pending/…` and
+// `_raw/…` are paths inside a user's KB, and `<id>-draft/agents/…` is a draft the skill
+// writes — neither is a load target in the source tree.
 const PACKAGE_PATH = /(?:\]\(|`)((?:harnesses|adapters|tool|capabilities)\/[A-Za-z0-9_<>./-]*\.(?:md|ya?ml))/g;

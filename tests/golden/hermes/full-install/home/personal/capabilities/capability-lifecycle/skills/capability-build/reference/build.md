@@ -31,7 +31,13 @@ harness's skills dir(s)>`. Exit 17 means the name is taken; rename in the packag
 For the skill's own craft — drafting, description triggering, evals — use the
 `skill-creator` skill if it is installed; the aos rules above still win on names.
 
-Before calling it done: run the kit linter **against the personal root** —
+Before calling it done: run the **`capability-review` skill** over what you built. The linter
+below validates schema — frontmatter, `used_by`, reference depth — and structurally cannot
+check whether the prose you wrote describes a tool that behaves that way, or whether the flow
+holds together. That gap is where most of this kit's recorded defects have lived. Review is
+read-only, so it costs you nothing but the reading.
+
+Then run the kit linter **against the personal root** —
 `node <home>/upstream/tools/lint/aos-lint.mjs --root <home>/personal` (without
 `--root` it lints the kit and reports green on a package it never opened) — the new
 package must add zero errors — and show the user the full file tree plus a one-line summary of each new file.

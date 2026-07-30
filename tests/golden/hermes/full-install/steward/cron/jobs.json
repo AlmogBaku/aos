@@ -1,0 +1,47 @@
+{
+  "jobs": [
+    {
+      "id": "<ID>",
+      "name": "aos:work-tracker:nightly-steward",
+      "prompt": "Environment for every shell/tool call in this job: export AOS_HOME=<HOME>/aos/tests/.sandbox/aos-home AOS_AGENT=agent:steward AOS_REGISTRY=<HOME>/aos/tests/.sandbox/aos-home/personal/kb-registry.yaml before running any `kb` command (or prefix each invocation with these three env vars inline).\n\n# nightly-steward\n\nRun the `wt-steward` skill over the commitments base — one base, always private, named in the registry as `commitments`. **One pass per night; never loop.**\n\nClose out per the skill's own report section. `STEWARD: backlog clean.` is only the right output when all five signals AND the backstop are empty; a night with nothing overdue but a commitment stuck waiting still gets a report, never silence.",
+      "skills": [
+        "work-tracker",
+        "wt-steward"
+      ],
+      "skill": "work-tracker",
+      "model": null,
+      "provider": null,
+      "provider_snapshot": null,
+      "model_snapshot": null,
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "47 22 * * *",
+        "display": "47 22 * * *"
+      },
+      "schedule_display": "47 22 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "<TIMESTAMP>",
+      "next_run_at": "<TIMESTAMP>",
+      "last_run_at": null,
+      "last_status": null,
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": null,
+      "enabled_toolsets": null,
+      "workdir": null
+    }
+  ],
+  "updated_at": "<TIMESTAMP>"
+}

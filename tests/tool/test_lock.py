@@ -16,6 +16,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 REPO = Path(__file__).resolve().parents[2]
 TOOL_DIR = REPO / "capabilities/capability-lifecycle/tool"
 
@@ -72,7 +74,7 @@ class LockToolTest(unittest.TestCase):
     def record(self):
         return self.lock("record", "democap", "--version", "1.2.3",
                          "--artifact", str(self.a1), "--artifact", str(self.a2),
-                         "--job", "job-abc123", "--config-key", "gtd.drain_hour")
+                         "--job", "job-abc123", "--config-key", "democap.run_hour")
 
     # -- manifest ----------------------------------------------------------
     def test_manifest_valid_prints_json(self):
@@ -127,7 +129,7 @@ class LockToolTest(unittest.TestCase):
         self.assertEqual(entry["version"], "1.2.3")
         self.assertEqual(len(entry["artifacts"]), 2)
         self.assertIn("job-abc123", entry["schedules_owned"])
-        self.assertIn("gtd.drain_hour", entry["config_keys"])
+        self.assertIn("democap.run_hour", entry["config_keys"])
         for sha in entry["artifacts"].values():
             self.assertRegex(sha, r"^[0-9a-f]{64}$")
 
@@ -422,6 +424,14 @@ class SkillNameTest(unittest.TestCase):
             (cap / "skills" / s / "SKILL.md").write_text(SKILL_MD.format(name=s))
         return cap
 
+    def origin(self, skill_md):
+        """The provenance stamp, read as YAML. Deliberately not a substring check: the whole
+        point of moving it under `metadata.aos` is that it is structured data, and an
+        `assertIn` would pass on the string appearing anywhere — including in prose."""
+        text = skill_md.read_text()
+        fm = yaml.safe_load(text.split("---", 2)[1])
+        return ((fm or {}).get("metadata") or {}).get("aos", {}).get("origin")
+
     def skills(self, cap, *extra):
         return run(["--home", str(self.home), "skills", str(cap), *extra])
 
@@ -501,7 +511,7 @@ class SkillNameTest(unittest.TestCase):
 
     def test_collision_inside_one_capability(self):
         """The entry skill's name, reached a second time through the prefix."""
-        cap = self.cap("gtd-capture", ["gtd-capture", "capture"], prefix="gtd-")
+        cap = self.cap("work-tracker", ["work-tracker", "tracker"], prefix="work-")
         r = self.skills(cap, "--check")
         self.assertEqual(r.returncode, 17)
         self.assertIn("itself", r.stderr)
@@ -578,7 +588,7 @@ class SkillNameTest(unittest.TestCase):
         rendered = out / "democap-sort" / "SKILL.md"
         self.assertTrue(rendered.is_file())
         self.assertIn("name: democap-sort", rendered.read_text())
-        self.assertIn("x-aos-origin: democap@1.0.0", rendered.read_text())
+        self.assertEqual(self.origin(rendered), "democap@1.0.0")
 
     def test_render_carries_bundled_assets(self):
         cap = self.cap("democap", ["democap", "sort"])
@@ -618,12 +628,43 @@ class SkillNameTest(unittest.TestCase):
         cap = self.cap("democap", ["democap", "sort"])
         skill = cap / "skills" / "sort" / "SKILL.md"
         skill.write_text(skill.read_text().replace(
-            "---\nbody", "x-aos-origin: someoneelse@9.9.9\n---\nbody"))
+            "---\nbody", "metadata:\n  aos:\n    origin: someoneelse@9.9.9\n---\nbody"))
         out = Path(self.tmp.name) / "renders"
         run(["render", str(cap), "sort", "--out", str(out)])
-        text = (out / "democap-sort" / "SKILL.md").read_text()
-        self.assertNotIn("someoneelse", text)
-        self.assertEqual(text.count("x-aos-origin"), 1)
+        rendered = out / "democap-sort" / "SKILL.md"
+        self.assertNotIn("someoneelse", rendered.read_text())
+        self.assertEqual(self.origin(rendered), "democap@1.0.0")
+
+    def test_render_merges_the_stamp_into_an_existing_metadata_block(self):
+        """`metadata` is the Agent Skills spec's own extension hatch, so a skill may already
+        carry harness-specific keys there. Stamping ours must merge, never clobber — the old
+        line-based writer appended a top-level key and could not see a sibling at all."""
+        cap = self.cap("democap", ["democap", "sort"])
+        skill = cap / "skills" / "sort" / "SKILL.md"
+        skill.write_text(skill.read_text().replace(
+            "---\nbody", "metadata:\n  hermes:\n    profile: aos-test\n---\nbody"))
+        out = Path(self.tmp.name) / "renders"
+        r = run(["render", str(cap), "sort", "--out", str(out)])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rendered = out / "democap-sort" / "SKILL.md"
+        fm = yaml.safe_load(rendered.read_text().split("---", 2)[1])
+        self.assertEqual(fm["metadata"]["aos"]["origin"], "democap@1.0.0")
+        self.assertEqual(fm["metadata"]["hermes"]["profile"], "aos-test")
+
+    def test_a_skill_merely_MENTIONING_the_origin_key_is_not_claimed_as_ours(self):
+        """The collision gate falls back to provenance when the lockfile is lost, and the old
+        test was `ORIGIN_KEY in text` — a substring, so a skill whose PROSE discussed the tag
+        read as aos-installed. That hands a stranger's name to an install that should have
+        stopped at exit 17."""
+        cap = self.cap("democap", ["democap"])
+        harness = self.home / "harness-skills"
+        stranger = harness / "democap"
+        stranger.mkdir(parents=True)
+        (stranger / "SKILL.md").write_text(
+            "---\nname: democap\ndescription: Not ours. Use when nothing.\n---\n"
+            "This document explains what metadata.aos.origin means. It carries no such key.\n")
+        r = self.skills(cap, "--check", "--harness-skills", str(harness))
+        self.assertEqual(r.returncode, 17, f"expected a collision, got:\n{r.stdout}{r.stderr}")
 
     def test_relative_capability_dir_works(self):
         """`aos-lock skills .` from inside the capability — the contract's commands are
@@ -710,7 +751,8 @@ class SkillNameTest(unittest.TestCase):
         render = self.home / "personal" / "capabilities" / "democap" / "skills" / "democap-sort"
         render.mkdir(parents=True)
         (render / "SKILL.md").write_text(
-            "---\nname: democap-sort\ndescription: d. Use when.\nx-aos-origin: democap@1.0.0\n---\nb\n")
+            "---\nname: democap-sort\ndescription: d. Use when.\n"
+            "metadata:\n  aos:\n    origin: democap@1.0.0\n---\nb\n")
         (harness / "democap-sort").symlink_to(render)
         # no lockfile entry at all — the household knows nothing about this install
         r = self.skills(cap, "--check", "--harness-skills", str(harness))
@@ -746,6 +788,58 @@ class SkillNameTest(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
         self.assertNotIn("Traceback", r.stderr)
         self.assertTrue(target.is_dir())      # never rmtree'd through the link
+
+    def test_render_into_the_packages_own_skills_dir_is_refused(self):
+        """The destructive case, and it is not a corner case: a capability that
+        `capability-build` or `capability-import` wrote lives in
+        `personal/capabilities/<id>/`, which is exactly where the install and upgrade
+        skills say to render — so `--out <pkg>/skills` fires on that capability's FIRST
+        upgrade. rmtree runs before copytree, so the user's hand-written skill and its
+        whole reference/ tree are deleted and then the copy dies on the source it just
+        removed. Refuse before touching anything."""
+        cap = self.cap("democap", ["democap", "sort"])
+        precious = cap / "skills" / "democap" / "reference" / "deep.md"
+        precious.parent.mkdir(parents=True, exist_ok=True)
+        precious.write_text("irreplaceable hand-written content\n")
+        entry = cap / "skills" / "democap" / "SKILL.md"
+        before = entry.read_text()
+
+        r = run(["render", str(cap), "democap", "--out", str(cap / "skills"), "--force"])
+        self.assertEqual(r.returncode, 1)
+        self.assertNotIn("Traceback", r.stderr)          # not an unhandled FileNotFoundError
+        self.assertIn("inside the package", r.stderr)
+        # the whole point: the source survived
+        self.assertTrue(precious.is_file(), "reference/ tree was destroyed")
+        self.assertEqual(precious.read_text(), "irreplaceable hand-written content\n")
+        self.assertEqual(entry.read_text(), before)
+
+        # and a render to a genuinely separate root still works
+        out = Path(self.tmp.name) / "renders"
+        self.assertEqual(run(["render", str(cap), "democap", "--out", str(out)]).returncode, 0)
+
+    def test_render_of_a_non_entry_skill_into_the_package_is_refused_too(self):
+        """The second half of the same defect, and a narrower guard misses it. A non-entry
+        skill renders to `<prefix><id>`, so `skills/sort` -> `skills/democap-sort` never
+        touches the source — but it plants a second on-disk skill nothing declares, and
+        every later manifest/skills/render on that capability then fails exit 12. The
+        install that created it can no longer be upgraded or removed."""
+        cap = self.cap("democap", ["democap", "sort"])
+        r = run(["render", str(cap), "sort", "--out", str(cap / "skills")])
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("inside the package", r.stderr)
+        self.assertFalse((cap / "skills" / "democap-sort").exists())
+        # the manifest the guard was protecting still validates
+        self.assertEqual(run(["manifest", str(cap)]).returncode, 0)
+
+    def test_render_to_the_package_root_is_refused(self):
+        """`--out <pkg>` puts the render beside CAPABILITY.md rather than under skills/.
+        It destroys nothing and does not brick the manifest, so it is the mildest case —
+        but it is still litter inside a package the user owns, and no skill ever asks for
+        it. Refusing keeps the rule simple enough to state: --out lives outside."""
+        cap = self.cap("democap", ["democap"])
+        r = run(["render", str(cap), "democap", "--out", str(cap), "--force"])
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("inside the package", r.stderr)
 
     def test_bad_harness_skills_arg_is_a_generic_error(self):
         cap = self.cap("democap", ["democap"])

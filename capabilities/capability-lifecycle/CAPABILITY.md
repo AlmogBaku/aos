@@ -1,8 +1,8 @@
 ---
 id: capability-lifecycle
-version: 0.3.2
+version: 0.3.4
 tags: [infra]
-summary: The capability lifecycle as one capability — install, upgrade, remove, onboard, import, build, contribute, and evolve as skills for the front agent; the MOD.md overlay with its promote/retire exit side; the household layout with pinned renders and symlink installs; the per-harness cheat-sheets; and the aos-lock tool that owns the lockfile and computes every skill's installed name.
+summary: The capability lifecycle as one capability — install, upgrade, remove, onboard, import, build, contribute, evolve, and review as skills for the front agent; the MOD.md overlay with its promote/retire exit side; the household layout with pinned renders and symlink installs; the per-harness cheat-sheets; and the aos-lock tool that owns the lockfile and computes every skill's installed name.
 skill_prefix: capability-
 skills:
   - id: capability-lifecycle
@@ -23,6 +23,8 @@ skills:
     used_by: [main]
   - id: evolve
     used_by: [main]
+  - id: review
+    used_by: [main]
 ---
 
 # capability-lifecycle — the installer's briefing
@@ -41,7 +43,7 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
    (`uv` is a hard bootstrap prerequisite). Then `aos-lock --home <home> init` creates
    the lockfile — the tool's file from this moment on; you call verbs, you never edit
    the YAML.
-2. **All nine skills to the front agent** (`used_by: [main]` throughout), per your
+2. **All ten skills to the front agent** (`used_by: [main]` throughout), per your
    cheat-sheet (the entry skill's `reference/harness-<harness-runtime>.md`; none for your
    harness → its `reference/no-cheatsheet.md`). The skills are
    `{{mod}}`-slot-free, so the render is purely mechanical — `aos-lock render` does it,
@@ -54,7 +56,7 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
    `MOD.example.md`, and its subject is the *user*, not this capability's behaviour:
    identity, timezone, working hours, sacred time, red lines, diff-review preference.
    Run it through the `capability-onboard` skill you just installed — it writes the root
-   `MOD.md` every other capability's transform reads. This is why the nine skills being
+   `MOD.md` every other capability's transform reads. This is why the ten skills being
    slot-free matters: the inline install is mechanical, and personalization arrives
    immediately afterwards, from the same capability.
 4. **One context block** on the front agent's identity file (on Hermes: `SOUL.md`), inside
@@ -70,7 +72,7 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
      > aos already installed (a schedule, a threshold, a preference) — that is
      > `capability-evolve`, not building.
 
-     The carve-out earns its place: without it the block fires on "change my drain time",
+     The carve-out earns its place: without it the block fires on "change my steward hour",
      which is the overlay round-trip, not a new automation — found in the 0.3.0 e2e.
      This block is the detector's teeth. A skill description is pull-context (consulted
      only when the model thinks to), but a harness with a native cron tool will satisfy a
@@ -107,7 +109,7 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
    - **Best-effort, never a gate**: no network, no git, or a declined plugin install →
      say so in the install summary and carry on. Our procedure stands on its own; this is
      an aid, exactly as a cheat-sheet is.
-   - It is **not** a render: no `{{mod}}` slots, no `x-aos-origin` stamp (it is not ours
+   - It is **not** a render: no `{{mod}}` slots, no `metadata.aos.origin` stamp (it is not ours
      to tag), and it does not live under `personal/capabilities/`.
 6. Nothing else: no agents, no schedules, no KB zones.
 
@@ -124,16 +126,16 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
   intact. The honest cost: the boundary now reaches consume-only users too, because
   BOOTSTRAP installs this capability for everyone.
 - **Skill ids are action-oriented and short** (`install`, `evolve`, `contribute`); agents
-  are role-oriented (`archiver`, `drainer`). The id is capability-local — the name that
+  are role-oriented (`archiver`, `steward`). The id is capability-local — the name that
   ships is `<skill_prefix><id>`, computed by `aos-lock skills`. That is why the id here is
   `install` and not the old `capability-installer`: the prefix carries that meaning now, so
-  the id must not repeat it. Full rules in `reference/naming.md`.
+  the id must not repeat it. Full rules in the naming reference this capability ships.
 - **A skill name is single-owner.** Harnesses keep one flat skill namespace, so two
   capabilities shipping one name is a silent override. `aos-lock skills --check` is the
   gate — against every capability in the household, the lockfile's recorded links, and the
   skills the harness already has. A collision is fixed by renaming in the package, never
   at install time.
-- The nine skills are the runtime face of ARCHITECTURE §5–§6 and §9 plus
+- The ten skills are the runtime face of ARCHITECTURE §5–§6 and §9 plus
   design/install-flow.md §2–§4; the entry skill carries the shared depth (`reference/`)
   and the Experience rules every lifecycle interaction obeys.
 - **`capability-evolve` is a two-way door**: personalization flows in (the MOD), and
@@ -152,9 +154,9 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
 
 ## Contracts to preserve
 
-- **Nine skills scoped to `main`** trips the linter's `skill/all-main` warning. That is
+- **Ten skills scoped to `main`** trips the linter's `skill/all-main` warning. That is
   deliberate: every one of them is a front-agent skill, and §2.2's anti-pollution rule is
-  about bodies an agent never uses. The cost is nine descriptions in the front agent's
+  about bodies an agent never uses. The cost is ten descriptions in the front agent's
   context, which is what the entry skill's map is for.
 - **Only `capability-onboard` writes `MOD.md` files.** Re-runs ask only unanswered or
   `re_ask` questions; `--refresh` re-asks all and shows a diff before writing. Nothing
@@ -196,7 +198,7 @@ documented walk, not an automated migration — no released users exist yet.
 
 ## Removal
 
-`aos-lock show capability-lifecycle` → delete the nine skill symlinks and the
+`aos-lock show capability-lifecycle` → delete the ten skill symlinks and the
 `skill-creator` link, then the render dirs in `personal/` via a commit → remove the
 `aos:capability-lifecycle:*` context blocks → `<home>/vendor/anthropic-skills` if nothing
 else uses it → `uv tool uninstall aos-lock` → the lockfile entry is the last thing

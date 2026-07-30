@@ -20,7 +20,7 @@ word choice alone — "add"/"create"/"make" show up in plenty of one-off asks to
 - "Create a file called notes.md"
 - "Draft an email to X"
 - "Make this paragraph shorter"
-- Questions about a capability that already exists ("what does the drainer do")
+- Questions about a capability that already exists ("what does the steward do")
 
 Key on persistence, not ambiguity — an underspecified one-off ask still doesn't fire;
 an unambiguous but recurring/systemic ask still does. Gate everything and the user

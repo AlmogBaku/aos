@@ -1,6 +1,6 @@
 ---
 name: upgrade
-description: Upgrades installed aos capabilities by re-applying the user's MOD.md deltas to fresh upstream. Use when the user says "update" or "upgrade" (the whole kit or one capability), or after a git pull of the aos upstream clone.
+description: "Upgrades installed aos capabilities by folding the user's uncaptured hand-edits into their MOD.md and re-applying it to fresh upstream, diff-gated, one reviewable commit per render. Use when the user says \"update\" or \"upgrade\" — the whole kit or one capability — or after a git pull of the aos upstream clone. Do NOT use for a capability that is not installed yet (that is capability-install) or to change what a capability does for this user (capability-evolve); this skill preserves existing personalization rather than adding any."
 ---
 
 # capability-upgrade
@@ -42,7 +42,13 @@ diff in the user's own repo.
       names can differ from the recorded links — a rename means link the new name and drop
       the old one in step d. Exit 17 → stop and report; never rename locally. This
       capability's own links are exempt, so a plain re-render is always clean.
-   c. **[A]** Re-render: `aos-lock render <dir> <skill-id> --out
+   c. **[A]** **First, before `--force` touches anything**: `git -C <home>/personal status
+      --porcelain -- capabilities/<id>`. `--force` re-render is `rmtree` then `copytree`, so a
+      pre-existing **untracked** file of the user's under that directory is gone with no commit
+      to recover it from — and `aos-lock verify` cannot warn you, because it is add-blind (an
+      extra file inside a recorded render reports `clean`). Name any `??` entry to the user and
+      get a decision before proceeding; a tracked file is safe (the diff in step d shows it).
+      Then re-render: `aos-lock render <dir> <skill-id> --out
       <home>/personal/capabilities/<id>/skills --force` per declared skill, then fresh
       upstream × MOD.md — the same transform as install (`reference/overlay.md`), written
       into `personal/`'s working tree; interview only new or `re_ask` questions. A skill
@@ -58,14 +64,21 @@ diff in the user's own repo.
       capabilities/<id>` as belt-and-braces (restore already removes the staged
       additions; clean catches anything staging missed), stop. Keep every command
       path-scoped: unscoped staging or resetting would capture — or destroy —
-      unrelated work elsewhere in `personal/`. Before staging, `git status --
-      capabilities/<id>`: a pre-existing untracked file of the user's in that directory
-      would be swept in and lost on decline — name it to them first.
-   e. **[D]** EXECUTE the native plan (links usually survive re-render untouched —
+      unrelated work elsewhere in `personal/`. (The untracked-file check is step c's, because
+      by this point `--force` has already run — a warning here would name a file that no
+      longer exists.)
+   e. **[D]** **Re-install the capability's own tool if it ships one**, before recording:
+      `uv tool install --force --from <dir>/tool <package>`. Nothing else in this flow updates
+      a binary, and `uv` will otherwise serve whatever it has cached — so an upgrade that
+      re-renders every skill can leave the executable those skills call several versions
+      behind, with the prose describing behaviour the binary does not have. `--force` is what
+      makes it re-resolve; the version in the tool's `pyproject.toml` tracks the capability's,
+      so a bumped capability is a bumped package.
+   f. **[D]** EXECUTE the native plan (links usually survive re-render untouched —
       verify, don't assume); `aos-lock record <id>` with the full updated set (start
       from `aos-lock show` — `record` replaces the entry wholesale, never call it with
       a partial list; keep `--source-root` and `--link` records).
-   f. **[A]** Retirement pass (overlay.md, Promote and retire): fresh upstream now
+   g. **[A]** Retirement pass (overlay.md, Promote and retire): fresh upstream now
       covers a MOD statement — a new interview question over its subject, or the
       behavior baked in → offer to retire it (diff-shown; written only through
       `capability-evolve`).

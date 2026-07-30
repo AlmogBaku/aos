@@ -1,0 +1,2787 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml>=6.0", "aos-kb"]
+#
+# [tool.uv.sources]
+# aos-kb = { path = "../../capabilities/kb/tool", editable = true }
+# ///
+"""Tier-0 tests for the kb capability's `kb` tool (capabilities/kb/tool).
+
+In-process via typer's CliRunner, invoking the same `aos_kb.cli:app` the installed
+script wires to `main()` — the report/stdout/stderr/exit-code text is the contract;
+still no imports of anything below `cli.py`'s own `app` object. `InstalledScriptTest`
+at the bottom is the one subprocess-based class left: it is the only thing that can
+prove the actual `kb` console-script entry point resolves and runs for real, which an
+in-process CliRunner call structurally cannot exercise (it never leaves this process,
+so it never resolves `[project.scripts] kb = ...` or crosses a real process boundary).
+Run: uv run tests/tool/test_kb.py
+"""
+import datetime as _dt
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+import time
+import unittest
+from pathlib import Path
+
+import yaml
+from typer.testing import CliRunner
+
+from aos_kb.cli import app
+
+REPO = Path(__file__).resolve().parents[2]
+TOOL_DIR = REPO / "capabilities/kb/tool"
+TEMPLATES = REPO / "capabilities/kb/skills/init/templates"
+
+_runner = CliRunner()
+
+
+# A CI runner has no git identity, and `git commit` exits 128 without one. Several tests
+# make ordinary git commits (seeding a remote, letting sync's merge commit), so the
+# identity is supplied here rather than in the workflow: a test that needs one should
+# carry it, or it only passes on a developer's machine.
+#
+# Deliberately NOT `git config --global` — that would mutate the runner. These env vars
+# lose to the tool's own --author/AOS_PRINCIPAL_* handling, which is what the
+# attribution tests assert, so they change no behavior those tests measure.
+GIT_IDENTITY = {
+    "GIT_AUTHOR_NAME": "Test Runner", "GIT_AUTHOR_EMAIL": "runner@example.test",
+    "GIT_COMMITTER_NAME": "Test Runner", "GIT_COMMITTER_EMAIL": "runner@example.test",
+}
+
+
+def git_env(extra=None):
+    env = dict(os.environ)
+    env.update(GIT_IDENTITY)
+    env.update(extra or {})
+    return env
+
+
+class Result:
+    """Adapts typer's CliRunner Result to the subprocess.CompletedProcess-shaped
+    surface (.returncode/.stdout/.stderr) every existing assertion in this file already
+    expects — the invocation layer changed, the assertions did not."""
+
+    def __init__(self, cli_result):
+        self._r = cli_result
+
+    @property
+    def returncode(self):
+        return self._r.exit_code
+
+    @property
+    def stdout(self):
+        return self._r.stdout
+
+    @property
+    def stderr(self):
+        return self._r.stderr
+
+
+def run(args, env_extra=None, cwd=None):
+    """In-process invocation of the same `app` the installed `kb` script wires to.
+    `cwd` is accepted (never used by any real test — no kb invocation here relies on
+    process cwd; every base is reached via `--base <path>`) only so call sites that
+    still pass it keep working unchanged."""
+    cli_result = _runner.invoke(app, args, env=git_env(env_extra),
+                                catch_exceptions=False)
+    return Result(cli_result)
+
+
+class BaseToolTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.reg = self.dir / "kb-registry.yaml"
+        # AOS_HOME is not optional in a test: the principal file is machine-local, and
+        # without it the tool would establish an identity in the developer's real
+        # ~/.aos/ on the first verb call.
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        # The principal is pinned for the same reason GIT_IDENTITY is: on a runner with
+        # no git identity the tool would synthesize <user>@<host>.local, which lint
+        # correctly reports as weak — so a fixture that must lint clean carries one.
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "dana@example.com",
+                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "test base",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args):
+        return run(["--base", str(self.root), *args], self.env)
+
+    def git(self, *args, root=None):
+        return subprocess.run(["git", *args], cwd=root or self.root,
+                              capture_output=True, text=True, check=False).stdout
+
+    def log_lines(self, fmt="%s", root=None, n="-20"):
+        """git is the audit substrate now, so the assertions read it directly."""
+        return self.git("log", n, f"--pretty={fmt}", root=root).splitlines()
+
+    def state_file(self, root=None):
+        """State is ALWAYS sharded per principal — there is no flat state.yaml to
+        point at, so the tests resolve the one shard the fixture's principal owns."""
+        return (root or self.root) / ".kb" / "state" / "dana-example-com.yml"
+
+    def cfg_file(self, root=None):
+        return (root or self.root) / ".kb" / "base.yml"
+
+    def captures(self, root=None):
+        """Ingested captures. `_raw/` is flat and carries its own AGENTS.md, which is
+        the zone contract rather than source material."""
+        return [p for p in sorted(((root or self.root) / "_raw").glob("*.md"))
+                if "AGENTS" not in p.name]
+
+    # -- init / scaffold ---------------------------------------------------
+    def test_init_scaffolds_and_registers(self):
+        for f in [".kb/base.yml", "AGENTS.md", "index.md", ".gitignore"]:
+            self.assertTrue((self.root / f).exists(), f)
+        self.assertTrue(self.state_file().exists())
+        # log.md is gone: git holds the audit trail, and a single append-only file
+        # written by every verb was the one thing guaranteed to conflict on sync.
+        self.assertFalse((self.root / "log.md").exists())
+        self.assertTrue((self.root / "_raw").is_dir())
+        self.assertIn("name: b", self.reg.read_text())
+        self.assertIn("default: b", self.reg.read_text())
+
+    def test_init_fills_preseeded_registry_entry(self):
+        # interview-first flow: registry entry exists, tree doesn't -> init fills it
+        pre = self.dir / "pre"
+        self.reg.write_text(
+            f"default: p\nkbs:\n- name: p\n  path: {pre}\n  audience: private\n")
+        r = run(["init", "p", "--path", str(pre), "--purpose", "preseeded",
+                 "--templates", str(TEMPLATES)], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue((pre / ".kb" / "base.yml").exists())
+        self.assertEqual(self.reg.read_text().count("name: p"), 1)  # no duplicate
+
+    def test_init_refuses_double(self):
+        r = run(["init", "b2", "--path", str(self.root),
+                 "--templates", str(TEMPLATES)], self.env)
+        self.assertNotEqual(r.returncode, 0)
+
+    def test_fresh_base_lints_clean(self):
+        r = self.b("lint")
+        self.assertIn("Critical (0)", r.stdout)
+        self.assertIn("Findings (0)", r.stdout)
+
+    # -- layout guard ------------------------------------------------------
+    def test_layout_mismatch_fails_loudly(self):
+        by = self.cfg_file()
+        by.write_text(by.read_text().replace("layout: 2", "layout: 99"))
+        r = self.b("inbox")
+        self.assertEqual(r.returncode, 11)
+        self.assertIn("Refusing to guess", r.stderr)
+
+    # -- capture -----------------------------------------------------------
+    def test_capture_lands_pending_with_attributed_commit(self):
+        r = self.b("capture", "--text", "Call the accountant", "--source", "t:x")
+        self.assertIn("pending", r.stdout)
+        # A capture waits in .kb/pending/ until `kb ingest` moves it: location is the
+        # state, so there is nothing in _raw/ yet.
+        caps = list((self.root / ".kb" / "pending").glob("*.md"))
+        self.assertEqual(len(caps), 1)
+        self.assertEqual(self.captures(), [])
+        text = caps[0].read_text()
+        self.assertIn("source_sha256:", text)
+        self.assertIn("waits_on: agent", text)
+        # One write, one commit: the committer is the acting agent, and the trailers
+        # carry what the five-field log line used to.
+        body = self.git("log", "-1", "--pretty=%cn%n%s%n%b")
+        self.assertIn("agent:main", body)
+        self.assertIn("capture:", body)
+        self.assertIn("aos-verb: capture", body)
+        self.assertRegex(body, r"aos-path: \.kb/pending/")
+
+    def test_capture_author_is_the_principal_committer_is_the_agent(self):
+        # One flag where there were two: the id is the identity, and the display name
+        # rides the env — they were two ways to say one thing.
+        run(["--base", str(self.root), "--principal", "dana@example.com",
+             "--agent", "agent:archiver", "capture", "--text", "who wrote this"],
+            {**self.env, "AOS_PRINCIPAL_NAME": "Dana Fixture"})
+        an, ae, cn = self.git("log", "-1", "--pretty=%an%n%ae%n%cn").splitlines()[:3]
+        self.assertEqual(an, "Dana Fixture")     # the human whose knowledge it is
+        self.assertEqual(ae, "dana@example.com")
+        self.assertEqual(cn, "agent:archiver")   # the agent that applied it
+
+    def test_capture_stays_well_inside_the_quick_capture_budget(self):
+        # Capture now writes a file *and* commits, so the budget is worth pinning: both
+        # kb-capture and wt-capture promise under 5s end to end. In-process (CliRunner) rather than
+        # a subprocess, so this bound is about the tool's own work, not process launch
+        # + interpreter start — tightened accordingly from the subprocess-era 2.0s.
+        start = time.perf_counter()
+        self.b("capture", "--text", "how long does this take")
+        self.assertLess(time.perf_counter() - start, 1.0)
+
+    def test_duplicate_capture_dropped(self):
+        self.b("capture", "--text", "same content")
+        r = self.b("capture", "--text", "same content")
+        self.assertIn("duplicate", r.stdout)
+        self.assertEqual(len(list((self.root / ".kb" / "pending").glob("*.md"))), 1)
+
+    def test_inbox_lists_pending(self):
+        self.b("capture", "--text", "hello world")
+        r = self.b("inbox")
+        self.assertIn("1 pending item", r.stdout)
+
+    # -- state -------------------------------------------------------------
+    def test_state_add_bump_drop(self):
+        self.assertEqual(self.b("state", "add", "--note", "Wife expecting",
+                                "--ref", "entities/people/wife").returncode, 0)
+        self.assertEqual(self.b("state", "bump", "--note", "expecting").returncode, 0)
+        r = self.b("state", "show")
+        self.assertIn("Wife expecting", r.stdout)
+        self.assertEqual(self.b("state", "drop", "--note", "expecting").returncode, 0)
+        self.assertNotIn("Wife expecting", self.b("state", "show").stdout)
+
+    def test_state_cap_forces_eviction(self):
+        by = self.cfg_file()
+        by.write_text(by.read_text().replace("max_items: 20", "max_items: 2"))
+        self.b("state", "add", "--note", "one")
+        self.b("state", "add", "--note", "two")
+        r = self.b("state", "add", "--note", "three")
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("cap", r.stderr)
+
+    def test_state_check_flags_stale(self):
+        self.b("state", "add", "--note", "old thing")
+        sy = self.state_file()
+        sy.write_text(sy.read_text().replace("since: ", "since: 2020-01-01 #"))
+        r = self.b("state", "check")
+        self.assertIn("stale:", r.stdout)
+
+    # -- search ------------------------------------------------------------
+    def _page(self, rel, title, body="Body text.", **extra):
+        p = self.root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        fm = [f'title: "{title}"', "type: note", "created: 2026-01-01",
+              "timestamp: 2026-01-01", f"description: {title} page"]
+        for k, v in extra.items():
+            fm.append(f"{k}: {v}")
+        p.write_text("---\n" + "\n".join(fm) + f"\n---\n{body}\n")
+        return p
+
+    def test_search_exact_title_says_exists(self):
+        self._page("concepts/acme.md", "Acme Corp")
+        r = self.b("search", "Acme Corp")
+        self.assertIn("EXISTS", r.stdout)
+        self.assertIn("create_safety: exists", r.stdout)
+
+    def test_search_alias_says_exists(self):
+        self._page("concepts/acme.md", "Acme Corp", aliases='["Acme"]')
+        r = self.b("search", "acme")
+        self.assertIn("create_safety: exists", r.stdout)
+
+    def test_search_weak_match_probable(self):
+        self._page("concepts/pricing.md", "Pricing strategy",
+                   body="Acme objected to the pricing.")
+        r = self.b("search", "objected")
+        self.assertIn("create_safety: probable", r.stdout)
+
+    def test_search_no_match_unknown(self):
+        r = self.b("search", "zebra-xylophone")
+        self.assertIn("create_safety: unknown", r.stdout)
+
+    # -- links -------------------------------------------------------------
+    def test_links_backlinks_and_orphans(self):
+        self._page("concepts/a.md", "A", body="links to [[concepts/b]]")
+        self._page("concepts/b.md", "B")
+        r = self.b("links", "concepts/b")
+        self.assertIn("concepts/a.md", r.stdout)
+        r = self.b("links", "--orphans")
+        self.assertIn("concepts/a.md", r.stdout)  # nothing links to a
+
+    # -- lint checks -------------------------------------------------------
+    def test_lint_alias_collision_critical(self):
+        self._page("concepts/x.md", "X", aliases='["acme"]')
+        self._page("concepts/y.md", "Y", aliases='["acme"]')
+        r = self.b("lint")
+        self.assertIn("alias collision", r.stdout)
+
+    def test_lint_index_drift_both_directions(self):
+        self._page("concepts/unlisted.md", "Unlisted")
+        idx = self.root / "index.md"
+        idx.write_text(idx.read_text() + "\n- [[concepts/ghost]] — gone\n")
+        out = self.b("lint").stdout
+        self.assertIn("not listed in index.md", out)
+        self.assertIn("dead index entry", out)
+
+    def test_lint_broken_wikilink(self):
+        self._page("concepts/a.md", "A", body="see [[concepts/missing]]")
+        self.assertIn("broken wikilink", self.b("lint").stdout)
+
+    def test_lint_unknown_type_and_field(self):
+        self._page("concepts/t.md", "T")
+        p = self.root / "concepts" / "t.md"
+        p.write_text(p.read_text().replace("type: note", "type: alien\nweird: 1"))
+        out = self.b("lint").stdout
+        self.assertIn("not in base.yml types", out)
+        self.assertIn("outside schema", out)
+
+    def test_lint_backup_file_critical(self):
+        (self.root / "concepts").mkdir(exist_ok=True)
+        (self.root / "concepts" / "x.md.backup.1").write_text("old")
+        self.assertIn("backup file", self.b("lint").stdout)
+
+    def test_lint_reports_by_default_and_returns_a_verdict_on_demand(self):
+        """Report-only is the contract, and --ci is what makes it falsifiable: "the
+        report is the interface" only means something if there is a second mode to
+        contrast with. The flag outlived the CI janitor it was built for — a user's own
+        hook or Action still needs an exit code, and parsing the report text instead
+        would be far worse."""
+        (self.root / "concepts").mkdir(exist_ok=True)
+        (self.root / "concepts" / "x.md.backup.1").write_text("old")
+        self.assertEqual(self.b("lint").returncode, 0)
+        self.assertNotEqual(self.b("lint", "--ci").returncode, 0)
+
+    def test_no_base_gets_ci_wiring(self):
+        """The shared-KB CI infrastructure is descoped. A base is a git repo and
+        nothing more; whether its forge runs anything is the owner's business, not
+        something `init` decides for them."""
+        self.assertFalse((self.root / ".github").exists())
+
+    def test_lint_failed_capture_critical(self):
+        # `failed:` replaces triage: failed, and the item STAYS in .kb/pending/ — an
+        # error is not a change of location.
+        self.b("capture", "--text", "will fail")
+        cap = next((self.root / ".kb" / "pending").glob("*.md"))
+        cap.write_text(cap.read_text().replace(
+            "kind: capture", "kind: capture\nfailed: no route-into grant"))
+        out = self.b("lint").stdout
+        self.assertIn("capture failed", out)
+        self.assertTrue(cap.exists())
+
+    def test_lint_state_stale(self):
+        self._page("concepts/new.md", "New")
+        os.utime(self.state_file(), (1, 1))  # state far in the past
+        self.assertIn("state_stale", self.b("lint").stdout)
+
+    def test_lint_reports_uncommitted_writes(self):
+        # A hand-write that never became a commit has no acting subject recorded.
+        self._page("concepts/loose.md", "Loose")
+        self.assertIn("uncommitted changes", self.b("lint").stdout)
+
+    def test_lint_reports_sequencer_state_as_critical(self):
+        # Left-behind operation state is what blocks every later sync, so the lint
+        # has to see it rather than let the next tick fail silently forever.
+        (self.root / ".git" / "MERGE_HEAD").write_text("0" * 40 + "\n")
+        self.assertIn("mid-MERGE_HEAD", self.b("lint").stdout)
+
+    def test_lint_timeline_shape(self):
+        self._page("concepts/tl.md", "TL",
+                   body="Truth.\n\n---\n\n## Timeline\n- undated event\n")
+        self.assertIn("timeline entry not dated", self.b("lint").stdout)
+
+    # -- write verbs commit themselves ------------------------------------
+    def test_every_write_verb_commits(self):
+        self.b("capture", "--text", "commit me")
+        self.b("state", "add", "--note", "item")
+        self._page("concepts/v.md", "V", verified="false")
+        self.b("commit", "--verb", "create", "--path", "concepts/v.md",
+               "--summary", "new page")
+        self.b("verify", "concepts/v")
+        self.b("index", "rebuild")
+        trailers = "\n".join(self.log_lines("%b"))
+        for verb in ["capture", "state", "verify", "create", "bootstrap"]:
+            self.assertIn(f"aos-verb: {verb}", trailers, f"missing aos-verb {verb}")
+
+    def test_commit_rejects_a_verb_outside_the_vocabulary(self):
+        self._page("concepts/w.md", "W")
+        r = self.b("commit", "--verb", "yolo", "--path", "concepts/w.md",
+                   "--summary", "nope")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("unknown aos-verb", r.stderr)
+
+    def test_history_renders_recent_activity(self):
+        self.b("capture", "--text", "orient me")
+        out = self.b("history", "--limit", "5").stdout
+        self.assertIn("capture:", out)
+        self.assertIn("agent:main", out)
+        self.assertIn(".kb/pending/", out)
+
+    def test_lint_via_grammar(self):
+        am = self.root / "AGENTS.md"
+        s = am.read_text()
+        s = s.replace(
+            "| `*` | `**` | read | user |",
+            "| agent:x | `foo/**` | write | user | 2026-01-01 | kb+other@1.2.3 | bad |\n"
+            "| `*` | `**` | read | user |")
+        am.write_text(s)
+        out = self.b("lint").stdout
+        self.assertIn("doesn't parse as <capability>@<x.y.z>", out)
+
+    # -- grants ------------------------------------------------------------
+    def test_grants_granted_and_denied(self):
+        ok = self.b("grants", "check", "--subject", "agent:main", "--verb", "write",
+                    "--path", ".kb/state/dana-example-com.yml")
+        self.assertEqual(ok.returncode, 0)
+        no = self.b("grants", "check", "--subject", "capability:sideload-x",
+                    "--verb", "write", "--path", ".kb/state/dana-example-com.yml")
+        self.assertEqual(no.returncode, 1)
+
+    def test_grants_glob_semantics(self):
+        # ** crosses /, * does not; archiver may write entities but not profile
+        deep = self.b("grants", "check", "--subject", "agent:archiver",
+                      "--verb", "write", "--path", "entities/people/deep/x.md")
+        self.assertEqual(deep.returncode, 0)
+        prof = self.b("grants", "check", "--subject", "agent:archiver",
+                      "--verb", "write", "--path", "profile/soul.md")
+        self.assertEqual(prof.returncode, 1)
+
+    # -- verify ------------------------------------------------------------
+    def test_verify_flips_flag(self):
+        self._page("concepts/v.md", "V", verified="false")
+        self.b("verify", "concepts/v")
+        self.assertIn("verified: true", (self.root / "concepts" / "v.md").read_text())
+
+    # -- index rebuild -----------------------------------------------------
+    def test_index_rebuild_lists_descriptions(self):
+        self._page("concepts/idea.md", "Big Idea")
+        self.b("index", "rebuild")
+        idx = (self.root / "index.md").read_text()
+        self.assertIn("[[concepts/idea]]", idx)
+        self.assertIn("Big Idea page", idx)
+
+
+    # -- LFS (workstream B) ------------------------------------------------
+    def test_init_scaffolds_gitattributes(self):
+        ga = self.root / ".gitattributes"
+        self.assertTrue(ga.exists())
+        self.assertIn("filter=lfs", ga.read_text())
+
+    def test_lint_flags_large_binary_dodging_lfs(self):
+        big = self.root / "concepts" / "video.xyz"
+        big.parent.mkdir(exist_ok=True)
+        big.write_bytes(b"x" * (1024 * 1024 + 10))
+        self.assertIn("not matching any LFS pattern", self.b("lint").stdout)
+        tracked = self.root / "concepts" / "clip.mp4"
+        tracked.write_bytes(b"x" * (1024 * 1024 + 10))
+        out = self.b("lint").stdout
+        self.assertNotIn("clip.mp4", out.split("not matching")[0].rsplit(chr(10), 1)[-1]
+                         if "not matching" in out else out)
+        self.assertNotIn("clip.mp4: large non-text", out)
+
+    # -- import (workstream A) ---------------------------------------------
+    FIXTURE = REPO / "tests/fixtures/import-src-v1"
+
+    def _tree_hash(self, root):
+        import hashlib as h
+        acc = h.sha256()
+        for p in sorted(root.rglob("*")):
+            if p.is_file():
+                acc.update(p.relative_to(root).as_posix().encode())
+                acc.update(p.read_bytes())
+        return acc.hexdigest()
+
+    def test_import_survey_shapes(self):
+        r = run(["import", "survey", str(self.FIXTURE)], self.env)
+        self.assertIn("shape: old-methodology", r.stdout)
+        self.assertIn("markdown files:", r.stdout)
+        r = run(["import", "survey", str(self.root)], self.env)
+        self.assertIn("shape: base-native", r.stdout)
+        self.assertIn("adopt", r.stdout)
+
+    def test_import_survey_is_read_only(self):
+        before = self._tree_hash(self.FIXTURE)
+        run(["import", "survey", str(self.FIXTURE)], self.env)
+        run(["import", "survey", str(self.FIXTURE), "--json"], self.env)
+        self.assertEqual(before, self._tree_hash(self.FIXTURE))
+
+
+    # -- review-sweep regression + coverage-gap tests ----------------------
+    def test_glob_boundary_no_name_suffix_match(self):
+        # `**/x.md` must not match `not-x.md` (ACL over-grant regression)
+        am = self.root / "AGENTS.md"
+        am.write_text(am.read_text().replace(
+            "| agent:archiver | `_raw/**` |",
+            "| agent:x | `**/secret.md` | write | user | 2026-01-01 | — | t |\n"
+            "| agent:archiver | `_raw/**` |"))
+        deep = self.b("grants", "check", "--subject", "agent:x", "--verb", "write",
+                      "--path", "a/b/secret.md")
+        self.assertEqual(deep.returncode, 0)
+        top = self.b("grants", "check", "--subject", "agent:x", "--verb", "write",
+                     "--path", "secret.md")
+        self.assertEqual(top.returncode, 0)
+        suffix = self.b("grants", "check", "--subject", "agent:x", "--verb", "write",
+                        "--path", "not-secret.md")
+        self.assertEqual(suffix.returncode, 1)
+
+    def test_sync_first_push_to_empty_remote_is_not_conflict(self):
+        remote = self.dir / "empty.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+        subprocess.run(["git", "remote", "add", "origin", str(remote)],
+                       cwd=self.root, check=True)
+        r = self.b("sync")
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+        self.assertNotIn("aos-verb: sync-conflict", "\n".join(self.log_lines("%b")))
+
+    def test_adopt_layout_guard_before_registry(self):
+        foreign = self.dir / "f99"
+        foreign.mkdir()
+        (foreign / ".kb").mkdir(parents=True, exist_ok=True)
+        (foreign / ".kb" / "base.yml").write_text(
+            "layout: 99\nname: f99\nzones: {}\n")
+        r = run(["adopt", str(foreign), "--name", "f99"], self.env)
+        self.assertEqual(r.returncode, 11)
+        self.assertNotIn("f99", self.reg.read_text())  # nothing half-registered
+
+    def test_refuse_records_commit_and_review_entry(self):
+        r = self.b("refuse", "--path", ".kb/state/dana-example-com.yml",
+                   "--subject", "capability:sideload-x", "--reason", "no grant")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("aos-verb: refuse", "\n".join(self.log_lines("%b")))
+        # One file per queue entry — a single appended queue file is written by every
+        # agent on every machine, which is exactly what conflicts on every sync.
+        entries = list((self.root / ".kb" / "pending").glob("*.md"))
+        self.assertEqual(len(entries), 1)
+        self.assertIn("refused write", entries[0].read_text())
+
+    def test_inbox_failed_with_scalar_meta_survives(self):
+        self.b("capture", "--text", "will fail oddly")
+        cap = next((self.root / ".kb" / "pending").glob("*.md"))
+        cap.write_text(cap.read_text()
+                       .replace("kind: capture", "kind: capture\nfailed: odd")
+                       .replace("verified: false", "verified: false\nmetadata: broken"))
+        r = self.b("inbox", "--failed")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("1 failed item", r.stdout)
+
+    def test_state_exact_match_beats_substring(self):
+        self.b("state", "add", "--note", "item 2")
+        self.b("state", "add", "--note", "item 20")
+        r = self.b("state", "bump", "--note", "item 2")
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_index_drift_not_fooled_by_substring(self):
+        self._page("concepts/car.md", "Car")
+        self._page("concepts/car-search.md", "Car search")
+        self.b("index", "rebuild")
+        idx = self.root / "index.md"
+        # remove only the car.md entry; car-search remains (whose stem CONTAINS "car")
+        idx.write_text("\n".join(l for l in idx.read_text().splitlines()
+                                  if "[[concepts/car]]" not in l))
+        out = self.b("lint").stdout
+        self.assertIn("concepts/car.md not listed", out)
+
+    def test_timeline_in_code_fence_ignored(self):
+        self._page("concepts/doc.md", "Doc",
+                   body="Text.\n\n```markdown\n## Timeline\n- undated\n```\nMore.\n")
+        self.assertNotIn("timeline", self.b("lint").stdout.lower())
+
+    def test_orphan_self_link_still_orphan(self):
+        self._page("concepts/loner.md", "Loner", body="see [[concepts/loner]]")
+        self.assertIn("concepts/loner.md", self.b("links", "--orphans").stdout)
+
+    def test_lint_duplicate_title_critical(self):
+        self._page("concepts/a1.md", "Same Title")
+        self._page("concepts/a2.md", "Same Title")
+        self.assertIn("duplicate title", self.b("lint").stdout)
+
+    def test_lint_state_over_cap_critical(self):
+        sy = self.state_file()
+        items = "items:\n" + "".join(
+            f"- note: n{i}\n  since: 2026-01-01\n" for i in range(25))
+        sy.write_text(items)
+        self.assertIn("over cap", self.b("lint").stdout)
+
+    def test_lint_unverified_with_inbound_info(self):
+        self._page("concepts/hunch.md", "Hunch", verified="false")
+        self._page("concepts/citer.md", "Citer", body="builds on [[concepts/hunch]]")
+        self.assertIn("unverified pages with inbound", self.b("lint").stdout)
+
+    def test_lint_reports_a_sweep_commit_as_unattributed(self):
+        # sync commits a hand-write rather than dropping it — data safety first — but
+        # marks it, so the audit sees a write with no acting subject.
+        self._page("concepts/swept.md", "Swept")
+        self.b("sync")
+        self.assertIn("swept by sync", self.b("lint").stdout)
+
+    def test_lint_invalid_kind_and_missing_frontmatter(self):
+        # triage: is gone, so the closed set lint checks is the queue's own vocabulary.
+        raw = self.root / "_raw"
+        raw.mkdir(parents=True, exist_ok=True)
+        (raw / "weird.md").write_text("no frontmatter at all\n")
+        self.b("capture", "--text", "a thought")
+        pend = next((self.root / ".kb" / "pending").glob("*.md"))
+        pend.write_text(pend.read_text().replace("kind: capture", "kind: maybe"))
+        out = self.b("lint").stdout
+        self.assertIn("raw file without frontmatter", out)
+        self.assertIn("kind 'maybe' not in", out)
+
+    def test_lint_grants_audit_flags_ungranted_author(self):
+        def git(*a):
+            subprocess.run(["git", *a], cwd=self.root, check=True, env=git_env(),
+                           capture_output=True)
+        (self.root / "concepts").mkdir(exist_ok=True)
+        (self.root / "concepts" / "rogue.md").write_text("---\ntitle: R\n---\nx\n")
+        git("add", "-A")
+        # This commit's whole point is WHO made it, so it names its own identity via
+        # env rather than `-c`: GIT_COMMITTER_* from git_env() would otherwise win over
+        # a `-c user.name`, and the audit reads the committer.
+        subprocess.run(["git", "commit", "-qm", "rogue write"], cwd=self.root,
+                       check=True, capture_output=True,
+                       env=git_env({"GIT_COMMITTER_NAME": "agent:rogue",
+                                    "GIT_COMMITTER_EMAIL": "r@x"}))
+        self.assertIn("grants audit: agent:rogue", self.b("lint").stdout)
+
+    # -- sync conflict -----------------------------------------------------
+    def test_sync_conflict_aborts_clean_and_surfaces(self):
+        remote = self.dir / "remote.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+
+        def git(*a, cwd=self.root):
+            subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True,
+                           env=git_env())
+
+        git("remote", "add", "origin", str(remote))
+        git("add", "-A")
+        git("commit", "-qm", "seed", "--allow-empty")
+        git("push", "-qu", "origin", "HEAD")
+        branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                                cwd=self.root, capture_output=True,
+                                text=True).stdout.strip()
+        other = self.dir / "other"
+        subprocess.run(["git", "clone", "-q", "-b", branch, str(remote), str(other)],
+                       check=True, capture_output=True)
+        (other / "AGENTS.md").write_text(
+            (other / "AGENTS.md").read_text() + "\nremote change\n")
+        git("-c", "user.name=other", "-c", "user.email=o@x",
+            "commit", "-aqm", "remote", cwd=other)
+        git("push", "-q", cwd=other)
+        (self.root / "AGENTS.md").write_text(
+            (self.root / "AGENTS.md").read_text() + "\nlocal conflicting change\n")
+
+        r = self.b("sync")
+        self.assertEqual(r.returncode, 3)
+        self.assertIn("aos-verb: sync-conflict", "\n".join(self.log_lines("%b")))
+        entries = list((self.root / ".kb" / "pending").glob("*.md"))
+        self.assertTrue(any("sync conflict" in e.read_text() for e in entries))
+        # repo left consistent — nothing mid-flight, so the next tick can run
+        st = subprocess.run(["git", "status"], cwd=self.root, capture_output=True,
+                            text=True).stdout
+        self.assertNotIn("rebase in progress", st)
+        self.assertNotIn("You have unmerged paths", st)
+
+    def test_sync_refuses_while_an_operation_is_mid_flight(self):
+        # The permanent-stall bug: staging a conflicted worktree commits the conflict
+        # markers, and git then refuses to start another operation over the leftover
+        # state, so every later tick fails too. Refusing up front keeps it recoverable.
+        (self.root / ".git" / "MERGE_HEAD").write_text("0" * 40 + "\n")
+        (self.root / "AGENTS.md").write_text("<<<<<<< HEAD\nUNMERGED-SENTINEL\n")
+        r = self.b("sync")
+        self.assertEqual(r.returncode, 5)
+        self.assertIn("mid-MERGE_HEAD", r.stderr)
+        # and it did NOT commit the conflicted worktree
+        self.assertNotIn("UNMERGED-SENTINEL", self.git("show", "HEAD:AGENTS.md"))
+
+    def test_sync_recovers_after_the_abort(self):
+        # The other half of refusing: the stall has to be RECOVERABLE, or a loud
+        # message is just a permanent one.
+        (self.root / ".git" / "MERGE_HEAD").write_text("0" * 40 + "\n")
+        self.assertEqual(self.b("sync").returncode, 5)
+        (self.root / ".git" / "MERGE_HEAD").unlink()
+        self.assertEqual(self.b("sync").returncode, 0)
+
+    def test_sync_all_reports_skipped_bases_rather_than_dropping_them(self):
+        # An adopted base is always `manual`, so silence here reads as "everything is
+        # synced" when nothing was even looked at.
+        r = run(["sync", "--all", "--no-jitter"], self.env)
+        self.assertIn("skipped", r.stdout)
+
+    def test_only_the_unattended_path_staggers(self):
+        """Five-minute crons fire on wall-clock boundaries, so N machines collide
+        systematically rather than rarely — the --all path staggers before its first
+        fetch. An interactive sync must not sit there for no reason, and neither must a
+        --all run with nothing scheduled to do.
+
+        The stagger is up to 20s, so this asserts the two paths that must NOT wait; the
+        waiting one is verified by --no-jitter existing at all (a test that slept 20s to
+        prove a sleep would be the slowest test in the suite by an order of magnitude).
+        """
+        start = time.perf_counter()
+        self.b("sync")                                   # single base, interactive
+        self.assertLess(time.perf_counter() - start, 2.0, "an interactive sync waited")
+        start = time.perf_counter()
+        run(["sync", "--all"], self.env)                 # fixture is sync: manual
+        self.assertLess(time.perf_counter() - start, 2.0,
+                        "--all waited with no scheduled base to sync")
+
+    # -- adopt -------------------------------------------------------------
+    def test_adopt_zero_writes_and_most_restrictive_audience(self):
+        foreign = self.dir / "foreign"
+        foreign.mkdir()
+        (foreign / ".kb").mkdir()
+        (foreign / ".kb" / "base.yml").write_text(
+            "layout: 2\nname: f\naudience: shared\nzones: {}\n")
+        before = sorted(p.name for p in foreign.rglob("*"))
+        r = run(["adopt", str(foreign), "--name", "f", "--audience", "private"],
+                self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("audience: shared", r.stdout)  # shared wins over private claim
+        after = sorted(p.name for p in foreign.rglob("*"))
+        self.assertEqual(before, after)  # zero writes into the tree
+
+    def test_adopt_non_base_reports_convergence(self):
+        foreign = self.dir / "plain"
+        foreign.mkdir()
+        (foreign / "notes.md").write_text("# notes\n")
+        r = run(["adopt", str(foreign)], self.env)
+        self.assertIn("no .kb/base.yml", r.stdout)
+        self.assertIn("convergence path", r.stdout)
+
+    def test_adopt_of_a_kit_native_base_with_a_stale_pending_item_does_not_crash(self):
+        # cmd_adopt calls into lint's report logic directly (commands/lifecycle.py, via
+        # commands/lint.py's _run_lint), and previously (pre-typer, cli.py's
+        # cmd_adopt/cmd_lint) crashed with AttributeError against a base carrying an old
+        # waits_on: human pending item, because adopt's own subparser never declared
+        # --stale-pending-days and cmd_lint read args.stale_pending_days with no
+        # getattr default. Pinned here as a regression test for that fixed bug.
+        foreign = self.dir / "foreign"
+        foreign.mkdir()
+        (foreign / ".kb").mkdir()
+        (foreign / ".kb" / "base.yml").write_text(
+            "layout: 2\nname: f\naudience: private\nzones: {}\n")
+        (foreign / ".kb" / "pending").mkdir()
+        (foreign / ".kb" / "pending" / "old.md").write_text(
+            "---\ntitle: old\nkind: finding\nwaits_on: human\n"
+            "created: '2000-01-01'\n---\nstale on purpose\n")
+        r = run(["adopt", str(foreign), "--name", "f"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertNotIn("AttributeError", r.stderr)
+
+
+class SharedBaseTest(unittest.TestCase):
+    """A base two people share.
+
+    Every property here only appears once there is more than one principal — which is
+    exactly the question the single-user design never had to answer."""
+
+    # One env var per person now, and it is the git author address itself: the roster
+    # that used to translate an email into a grants subject is gone, because the email
+    # IS the subject.
+    ALICE = {"AOS_PRINCIPAL_ID": "alice@example.com",
+             "AOS_PRINCIPAL_NAME": "Alice Example"}
+    BOB = {"AOS_PRINCIPAL_ID": "bob@example.com",
+           "AOS_PRINCIPAL_NAME": "Bob Example"}
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home)}
+        self.root = self.dir / "team"
+        r = run(["init", "team", "--path", str(self.root), "--audience", "shared",
+                 "--purpose", "team base", "--templates", str(TEMPLATES),
+                 "--default"], {**self.env, **self.ALICE})
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args, who=None):
+        return run(["--base", str(self.root), *args], {**self.env, **(who or {})})
+
+    def fm(self, p):
+        return yaml.safe_load(p.read_text().split("---")[1])
+
+    def captures(self, root=None):
+        """`_raw/` is flat and carries its own zone AGENTS.md, which is a contract
+        rather than source material."""
+        return [p for p in sorted(((root or self.root) / "_raw").glob("*.md"))
+                if "AGENTS" not in p.name]
+
+    def test_a_shared_base_gets_no_workflow_either(self):
+        """`--audience shared` used to emit a janitor workflow. It no longer does: a
+        shared base has no neutral actor today, and shipping a workflow that implies
+        otherwise is the claim being withdrawn."""
+        self.assertFalse((self.root / ".github").exists())
+
+    def test_state_is_sharded_per_principal(self):
+        self.b("state", "add", "--note", "alice's thread", who=self.ALICE)
+        self.b("state", "add", "--note", "bob's thread", who=self.BOB)
+        # Named for the person, not their grants row: two people can share one row
+        # (or hold none, falling back to `user`) without collapsing into one shard.
+        alice = self.root / ".kb" / "state" / "alice-example-com.yml"
+        bob = self.root / ".kb" / "state" / "bob-example-com.yml"
+        self.assertTrue(alice.exists() and bob.exists())
+        # Each shard has exactly one writer, so neither rewrites the other's file —
+        # which is what makes "single writer" literally true on a shared base.
+        self.assertIn("alice's thread", alice.read_text())
+        self.assertNotIn("bob's thread", alice.read_text())
+
+    def test_inbox_shows_only_this_principals_captures(self):
+        self.b("capture", "--text", "alice note", who=self.ALICE)
+        self.b("capture", "--text", "bob note", who=self.BOB)
+        mine = self.b("inbox", who=self.ALICE).stdout
+        self.assertIn("(1 pending item)", mine)
+        self.assertIn("belong to other principals", mine)
+        # A count, never a path: the other principal's material must not land in
+        # this agent's context at all.
+        self.assertNotIn("bob", mine.lower())
+        self.assertIn("(2 pending items)", self.b("inbox", "--all",
+                                                  who=self.ALICE).stdout)
+
+    def test_dedup_does_not_drop_another_principals_identical_capture(self):
+        self.b("capture", "--text", "the same link", who=self.ALICE)
+        r = self.b("capture", "--text", "the same link", who=self.BOB)
+        self.assertNotIn("duplicate", r.stdout)
+        self.assertEqual(len(list((self.root / ".kb" / "pending").glob("*.md"))), 2)
+        self.assertNotIn("alice", r.stdout.lower())  # no path disclosure either
+
+    def test_dedup_still_drops_the_same_principals_resend(self):
+        self.b("capture", "--text", "double send", who=self.ALICE)
+        self.assertIn("duplicate",
+                      self.b("capture", "--text", "double send",
+                             who=self.ALICE).stdout)
+
+    def test_llm_routed_write_into_a_shared_base_is_critical(self):
+        self.b("capture", "--text", "routed by a classifier", who=self.ALICE)
+        cap = next((self.root / ".kb" / "pending").glob("*.md"))
+        cap.write_text(cap.read_text().replace(
+            "kind: capture",
+            "kind: capture\nkb_routing:\n  method: llm\n  confidence: 0.9\n"
+            "  status: routed"))
+        self.assertIn("no LLM-routed write may ever land here",
+                      self.b("lint", who=self.ALICE).stdout)
+
+    def test_a_departed_principals_state_shard_is_reported(self):
+        """The roster check this replaces asked "is this author registered?". With the
+        grants table as the only roster the answer is `user` for anyone unlisted, which
+        is legitimate — so the drift worth reporting is a shard nobody owns: someone who
+        left, or a typo that silently made a second person."""
+        self.b("state", "add", "--note", "a thread", who=self.ALICE)
+        stray = self.root / ".kb" / "state" / "someone-who-left.yml"
+        stray.write_text("items: []\n")
+        out = self.b("lint", who=self.ALICE).stdout
+        self.assertIn("orphaned state shard", out)
+        self.assertIn("someone-who-left", out)
+
+    def test_two_machines_capturing_concurrently_do_not_conflict(self):
+        remote = self.dir / "team.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+        subprocess.run(["git", "remote", "add", "origin", str(remote)],
+                       cwd=self.root, check=True)
+        self.assertEqual(self.b("sync", who=self.ALICE).returncode, 0)
+
+        clone = self.dir / "bobs-machine"
+        subprocess.run(["git", "clone", "-q", str(remote), str(clone)],
+                       check=True, capture_output=True)
+
+        # Both capture before either syncs — the real shape of two machines on one
+        # interval. One file per record means there is simply nothing to merge.
+        self.b("capture", "--text", "alice's find", who=self.ALICE)
+        run(["--base", str(clone), "capture", "--text", "bob's find"],
+            {**self.env, **self.BOB})
+
+        self.assertEqual(self.b("sync", who=self.ALICE).returncode, 0)
+        r = run(["--base", str(clone), "sync"], {**self.env, **self.BOB})
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+
+        # One file per record is what makes this true, and it holds in the queue as
+        # much as in _raw/: two people capturing on two machines write two distinct
+        # filenames, so there is simply nothing to merge.
+        caps = sorted((clone / ".kb" / "pending").glob("*.md"))
+        self.assertEqual(len(caps), 2, [p.name for p in caps])
+        # "No conflict was surfaced" is now a question about KIND, not about the
+        # directory being empty: the captures themselves live in the same queue.
+        kinds = {self.fm(p).get("kind") for p in caps}
+        self.assertEqual(kinds, {"capture"}, "a sync conflict was surfaced")
+
+
+class PrincipalTest(unittest.TestCase):
+    """The principal resolves on the first verb call, with no init step, and never
+    prompts — a cron has no tty and capture latency is sacred."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home)}
+        self.pfile = self.home / ".aos" / "kb-principal.yml"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def base(self, name, **kw):
+        root = self.dir / name
+        argv = ["init", name, "--path", str(root), "--templates", str(TEMPLATES)]
+        for k, v in kw.items():
+            argv += [f"--{k.replace('_', '-')}", v]
+        r = run(argv, self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return root
+
+    def author_email(self, root):
+        """The principal is what git records as the author, so that is where an
+        assertion can see it — no verb needs to print it."""
+        return subprocess.run(["git", "log", "-1", "--pretty=%ae"], cwd=root,
+                              capture_output=True, text=True).stdout.strip()
+
+    def test_first_verb_call_writes_the_principal_file_with_no_init_step(self):
+        root = self.base("b")
+        self.pfile.unlink(missing_ok=True)
+        r = run(["--base", str(root), "capture", "--text", "a thought"],
+                {**self.env, "AOS_PRINCIPAL_ID": "alice@personal.dev"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue(self.pfile.exists(), "the first verb call establishes identity")
+        entries = yaml.safe_load(self.pfile.read_text())
+        self.assertIsInstance(entries, list)
+        self.assertEqual(entries[0]["id"], "alice@personal.dev")
+
+    def test_env_beats_the_file_and_the_file_is_first_match_wins(self):
+        root_work = self.base("acme_wiki")
+        root_home = self.base("home")
+        self.pfile.write_text(yaml.safe_dump([
+            {"id": "alice@acme.com", "bases": ["acme_*"]},
+            {"id": "alice@personal.dev", "bases": ["*"]},
+        ], sort_keys=False))
+        r = run(["--base", str(root_work), "capture", "--text", "at work"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.author_email(root_work), "alice@acme.com")
+        r = run(["--base", str(root_home), "capture", "--text", "at home"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.author_email(root_home), "alice@personal.dev")
+        run(["--base", str(root_work), "capture", "--text", "as someone else"],
+            {**self.env, "AOS_PRINCIPAL_ID": "override@example.com"})
+        self.assertEqual(self.author_email(root_work), "override@example.com")
+
+    def test_a_bare_star_last_is_the_catch_all(self):
+        self.pfile.write_text(yaml.safe_dump([{"id": "only@example.com",
+                                               "bases": ["*"]}], sort_keys=False))
+        root = self.base("anything")
+        r = run(["--base", str(root), "capture", "--text", "x"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.author_email(root), "only@example.com")
+
+    def test_no_git_identity_synthesizes_writes_anyway_and_lint_reports_it(self):
+        root = self.base("b")
+        self.pfile.unlink(missing_ok=True)
+        # The suite injects GIT_* so a CI runner can commit at all; clearing them here
+        # is what actually reproduces "no identity", since they beat `git config`.
+        # `git config --unset` only clears the repo level; the developer's --global
+        # identity (and the suite's own GIT_*) would still answer. Neutralising all
+        # three is what actually reproduces a machine with no identity.
+        bare = {k: "" for k in GIT_IDENTITY}
+        bare.update({"GIT_CONFIG_GLOBAL": os.devnull,
+                     "GIT_CONFIG_SYSTEM": os.devnull})
+        for k in ("user.email", "user.name"):
+            subprocess.run(["git", "config", "--unset", k], cwd=root,
+                           capture_output=True, check=False)
+        r = run(["--base", str(root), "capture", "--text", "still lands"],
+                {**self.env, **bare})
+        self.assertEqual(r.returncode, 0, r.stderr)      # never blocks
+        self.assertNotIn("?", r.stdout.replace("(", ""))  # never prompts
+        entries = yaml.safe_load(self.pfile.read_text())
+        self.assertTrue(entries[0]["id"].endswith(".local"),
+                        f"expected a synthesized id, got {entries[0]['id']!r}")
+        r = run(["--base", str(root), "lint"], {**self.env, **bare})
+        self.assertIn("weak principal", r.stdout)
+
+    def test_a_read_only_verb_never_establishes_an_identity(self):
+        """`kb lint` is report-only, so it must not have machine-state side effects.
+        Linting someone else's base would otherwise create the principal file as a
+        consequence of *reading* — a surprise, and the wrong answer to "whose base is
+        this"."""
+        root = self.base("b")
+        self.pfile.unlink(missing_ok=True)
+        for verb in (["lint"], ["inbox"]):
+            r = run(["--base", str(root), *verb], self.env)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertFalse(self.pfile.exists(),
+                             f"`kb {verb[0]}` wrote {self.pfile}")
+
+    def test_a_placeholder_identity_is_reported_not_accepted_silently(self):
+        root = self.base("b")
+        self.pfile.write_text(yaml.safe_dump([{"id": "agents@localhost",
+                                               "bases": ["*"]}], sort_keys=False))
+        r = run(["--base", str(root), "lint"], self.env)
+        self.assertIn("weak principal", r.stdout)
+
+    def test_no_principals_roster_is_read_from_the_config(self):
+        # The template's commented-out roster block is Plan 2's to remove; what matters
+        # here is that nothing READS it, so a base carrying one behaves identically.
+        root = self.base("b")
+        cfg = root / ".kb" / "base.yml"
+        cfg.write_text(cfg.read_text() +
+                       "\nprincipals:\n  alice@example.com: user:alice\n")
+        r = run(["--base", str(root), "capture", "--text", "rostered or not"],
+                {**self.env, "AOS_PRINCIPAL_ID": "alice@example.com"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        # The roster would have mapped this to `user:alice`; with the grants table as
+        # the only roster, an id with no grant row falls back to `user`.
+        r = run(["--base", str(root), "lint"],
+                {**self.env, "AOS_PRINCIPAL_ID": "alice@example.com"})
+        self.assertNotIn("principals roster", r.stdout)
+
+    def test_the_grants_table_is_the_roster(self):
+        # The roster existed only to translate an email into a grants subject, so the
+        # email IS the subject: one source instead of two that can disagree.
+        root = self.base("b")
+        agents = root / "AGENTS.md"
+        agents.write_text(agents.read_text().replace(
+            "| user | `**` |", "| alice@example.com | `**` |", 1))
+        r = run(["--base", str(root), "grants", "check", "--subject",
+                 "alice@example.com", "--verb", "write", "--path", "profile/x.md"],
+                self.env)
+        self.assertIn("GRANTED", r.stdout)
+
+
+class TemplateCloneTest(unittest.TestCase):
+    """`kb init` clones a template repo by default (no fork — a plain, read-only,
+    unauthenticated `git clone` of a public URL, nothing more). A local bare repo
+    stands in for the real one, so this carries no live-network dependency."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "dana@example.com",
+                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+        # A bare repo seeded with exactly the shape --templates already expects — the
+        # template repo IS the templates directory, just hosted on GitHub instead of
+        # shipped inside this checkout.
+        self.bare = self.dir / "template.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(self.bare)], check=True)
+        seed = self.dir / "seed"
+        shutil.copytree(TEMPLATES, seed)
+        subprocess.run(["git", "init", "-q"], cwd=seed, check=True)
+        subprocess.run(["git", "add", "-A"], cwd=seed, check=True)
+        subprocess.run(["git", "commit", "-qm", "seed"], cwd=seed, check=True,
+                       env=git_env())
+        subprocess.run(["git", "push", "-q", str(self.bare), "HEAD:refs/heads/main"],
+                       cwd=seed, check=True)
+        # A plain `git clone` checks out the bare repo's HEAD, which `git init --bare`
+        # may default to `master` regardless of what branch was actually pushed.
+        subprocess.run(["git", "symbolic-ref", "HEAD", "refs/heads/main"],
+                       cwd=self.bare, check=True)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_a_successful_clone_renders_identically_to_local_templates(self):
+        cloned = self.dir / "cloned"
+        r = run(["init", "cloned", "--path", str(cloned), "--purpose", "via clone",
+                 "--template", str(self.bare), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        for f in [".kb/base.yml", "AGENTS.md", "index.md", ".gitignore"]:
+            self.assertTrue((cloned / f).exists(), f)
+        for p in cloned.rglob("*"):
+            if p.is_file() and ".git/" not in str(p):
+                self.assertNotIn("{{", p.read_text(encoding="utf-8", errors="ignore"),
+                                 f"unrendered placeholder in {p}")
+        # the clone's own history must not ride along as this base's provenance —
+        # only the fresh `git init` + bootstrap commit exist, never the seed commit
+        log = subprocess.run(["git", "log", "--all", "--oneline"], cwd=cloned,
+                             capture_output=True, text=True).stdout
+        self.assertNotIn("seed", log)
+        self.assertIn("bootstrap", log)
+
+    def test_a_failed_clone_falls_back_to_local_templates_without_blocking(self):
+        # find_upstream_root() resolves the fallback via <AOS_HOME>/upstream, so a
+        # household fixture needs one — a symlink to this real checkout, exactly what
+        # a real household's `upstream/` is (the aos kit clone itself).
+        (self.home / "upstream").symlink_to(REPO)
+        root = self.dir / "fallback"
+        r = run(["init", "fallback", "--path", str(root), "--purpose", "no network",
+                 "--template", str(self.dir / "does-not-exist.git")], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("falling back", r.stderr + r.stdout)
+        self.assertTrue((root / ".kb" / "base.yml").exists())
+
+    def test_templates_flag_skips_the_network_step_entirely(self):
+        # --templates (a local dir) beats --template (a repo to clone) — unchanged
+        # from before this repo existed, and every other test in this file relies on
+        # exactly this to avoid a live-network dependency.
+        root = self.dir / "local"
+        r = run(["init", "local", "--path", str(root), "--purpose", "local dir",
+                 "--templates", str(TEMPLATES),
+                 "--template", str(self.dir / "unreachable.git")], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("falling back", r.stdout + r.stderr)
+        self.assertTrue((root / ".kb" / "base.yml").exists())
+
+
+class LayoutTest(unittest.TestCase):
+    """LAYOUT 2: the tool's own files live under `.kb/`, source material under `_raw/`.
+
+    Three subdirectories, three tests — waiting on someone · in progress · rebuildable.
+    Anything fitting none of the three does not belong under `.kb/`."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "alice@example.com",
+                    "AOS_PRINCIPAL_NAME": "Alice Example"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "test base",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args):
+        return run(["--base", str(self.root), *args], self.env)
+
+    def test_the_version_reports_layout_2(self):
+        self.assertIn("layout 2", run(["--version"]).stdout)
+
+    def test_the_tree_is_layout_2(self):
+        self.assertTrue((self.root / ".kb" / "base.yml").exists())
+        self.assertTrue((self.root / ".kb" / "pending").is_dir())
+        self.assertTrue((self.root / ".kb" / "work").is_dir())
+        self.assertTrue((self.root / "_raw").is_dir())
+        self.assertEqual(yaml.safe_load(
+            (self.root / ".kb" / "base.yml").read_text())["layout"], 2)
+
+    def test_state_is_always_sharded_never_conditional_on_audience(self):
+        # A private base used to keep a flat state.yaml. One shape, always: the
+        # conditional was a second code path that only the shared case exercised.
+        shards = sorted((self.root / ".kb" / "state").glob("*.yml"))
+        self.assertEqual([p.name for p in shards], ["alice-example-com.yml"])
+
+    def test_agents_md_stays_at_the_root(self):
+        # A harness-recognised filename: moved, the archiver stops reading its own
+        # contract. This is a hard constraint, not a preference.
+        self.assertTrue((self.root / "AGENTS.md").exists())
+        self.assertFalse((self.root / ".kb" / "AGENTS.md").exists())
+
+    def test_layout_1_artifacts_are_absent(self):
+        for gone in ("BASE.yaml", "state.yaml", "_ops", "_archive", "raw", ".base"):
+            self.assertFalse((self.root / gone).exists(), f"{gone} survived")
+
+    def test_cache_is_gitignored(self):
+        self.assertIn(".kb/cache/", (self.root / ".gitignore").read_text())
+
+    def test_nothing_unrendered_survives_in_a_scaffolded_file(self):
+        # A missing substitution is silent otherwise, and an unrendered {{curation}}
+        # in a committed base.yml is a parse error waiting to happen.
+        for p in self.root.rglob("*"):
+            if p.is_file() and ".git/" not in str(p):
+                self.assertNotIn("{{", p.read_text(encoding="utf-8", errors="ignore"),
+                                 f"unrendered placeholder in {p}")
+
+    def test_a_layout_1_tree_is_refused_with_a_pointer_not_a_guess(self):
+        old = self.dir / "old"
+        old.mkdir()
+        (old / "BASE.yaml").write_text("layout: 1\nname: old\nzones: {}\n")
+        r = run(["--base", str(old), "lint"], self.env)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("layout 1", r.stderr.lower())
+        self.assertIn("kb migrate", r.stderr)
+
+    def test_zone_kinds_are_exactly_raw_and_wiki(self):
+        kinds = {z.get("kind") for z in yaml.safe_load(
+            (self.root / ".kb" / "base.yml").read_text())["zones"].values()}
+        self.assertEqual(kinds, {"raw", "wiki"})
+
+    def test_curation_defaults_to_self(self):
+        cfg = yaml.safe_load((self.root / ".kb" / "base.yml").read_text())
+        self.assertEqual(cfg["curation"], "self")
+
+    def test_the_registry_entry_carries_no_methodology(self):
+        # The seam dissolved — kb IS the methodology — so the field had no reader.
+        self.assertNotIn("methodology", self.reg.read_text())
+
+
+class QueryTest(unittest.TestCase):
+    """`--where` / `--without` on every fetch verb.
+
+    Generic over frontmatter on purpose: kb does not need to know a field to filter on
+    it, which is what lets work-tracker own `due:` while `--where due<today+3d` still
+    works. Date arithmetic lives in the tool — an LLM computing "7 days before
+    2026-08-03" gets it wrong silently."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "dana@example.com",
+                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "queries",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        d = _dt.date.today()
+        self.page("projects/cfp.md", type="project", status="next",
+                  due=(d + _dt.timedelta(days=3)).isoformat(), estimate="45m")
+        self.page("projects/old.md", type="project", status="next",
+                  due=(d - _dt.timedelta(days=1)).isoformat())
+        self.page("projects/someday.md", type="project", status="someday")
+        self.page("concepts/bm25.md", type="concept",
+                  expires=(d + _dt.timedelta(days=2)).isoformat())
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args):
+        return run(["--base", str(self.root), *args], self.env)
+
+    def page(self, rel, body="Body text.", **fm):
+        p = self.root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        fm.setdefault("title", p.stem)
+        fm.setdefault("created", _dt.date.today().isoformat())
+        front = "\n".join(f"{k}: {v}" for k, v in fm.items())
+        p.write_text(f"---\n{front}\n---\n{body}\n")
+        return p
+
+    def test_where_equality_and_repeatability(self):
+        r = self.b("find", "--where", "type=project", "--where", "status=next")
+        self.assertIn("projects/cfp.md", r.stdout)
+        self.assertIn("projects/old.md", r.stdout)
+        self.assertNotIn("someday", r.stdout)
+        self.assertNotIn("bm25", r.stdout)
+
+    def test_where_matches_membership_in_a_list_field(self):
+        # `tags` and `aliases` are lists in every base, and both docs/reference.md and
+        # the recall skill tell you to filter on them. Stringified equality compares
+        # against "['client', 'active']" and returns NOTHING with exit 0 — a silent
+        # wrong answer, which for a recall path means reporting a gap that isn't one.
+        self.page("entities/acme.md", type="company", tags="[client, active]",
+                  aliases="[Acme, ACME]")
+        r = self.b("find", "--where", "tags=active")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("entities/acme.md", r.stdout)
+        r = self.b("find", "--where", "aliases=ACME")
+        self.assertIn("entities/acme.md", r.stdout)
+        # A value that is not a member must still miss.
+        r = self.b("find", "--where", "tags=dormant")
+        self.assertNotIn("entities/acme.md", r.stdout)
+        # And a scalar field keeps exact-match semantics — membership must not leak
+        # into substring matching.
+        r = self.b("find", "--where", "type=compan")
+        self.assertNotIn("entities/acme.md", r.stdout)
+
+    def test_without_finds_absence(self):
+        # A query language that cannot ask "is this field missing" is half a language:
+        # "committed but unscheduled" is exactly --without block.
+        r = self.b("find", "--where", "type=project", "--without", "due")
+        self.assertIn("someday", r.stdout)
+        self.assertNotIn("cfp", r.stdout)
+
+    def test_comparisons_and_relative_dates(self):
+        r = self.b("find", "--where", "due<today+7d")
+        self.assertIn("cfp", r.stdout)
+        self.assertIn("old", r.stdout)
+        r = self.b("find", "--where", "due<today")
+        self.assertIn("old", r.stdout)
+        self.assertNotIn("cfp", r.stdout)
+        r = self.b("find", "--where", "expires<today+7d")
+        self.assertIn("bm25", r.stdout)
+
+    def test_relative_weeks_and_negative_offsets(self):
+        r = self.b("find", "--where", "due>today-2w")
+        self.assertIn("old", r.stdout)
+
+    def test_inclusive_comparisons(self):
+        today = _dt.date.today().isoformat()
+        self.page("projects/now.md", type="project", due=today)
+        self.assertIn("now.md", self.b("find", "--where", "due<=today").stdout)
+        self.assertIn("now.md", self.b("find", "--where", "due>=today").stdout)
+        self.assertNotIn("now.md", self.b("find", "--where", "due<today").stdout)
+
+    def test_numbers_compare_as_numbers_not_as_strings(self):
+        # String ordering puts "10" below "3", so a threshold query silently misses the
+        # worst cases — exactly the ones it exists to catch. work-tracker's steward
+        # escalates on `slipped>=3`, and a commitment rescheduled ten times is the one
+        # that most needs raising, so this is a wrong answer with exit 0 rather than an
+        # error. Dates already had their own coercion; plain numbers did not.
+        self.page("projects/ten.md", type="project", slipped=10)
+        self.page("projects/two.md", type="project", slipped=2)
+        out = self.b("find", "--where", "slipped>=3").stdout
+        self.assertIn("ten", out)
+        self.assertNotIn("two", out)
+        # Floats, and the other three operators.
+        self.page("projects/half.md", type="project", weight=0.5)
+        self.assertIn("half", self.b("find", "--where", "weight<1").stdout)
+        self.assertIn("ten", self.b("find", "--where", "slipped>9").stdout)
+        self.assertIn("two", self.b("find", "--where", "slipped<=2").stdout)
+        # A number against a non-numeric value must not crash — it falls back to
+        # string comparison rather than raising.
+        r = self.b("find", "--where", "type>1")
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_dotted_paths_reach_into_nested_frontmatter(self):
+        self.page("concepts/routed.md", type="concept",
+                  metadata="{status: uncertain, method: rule}")
+        r = self.b("find", "--where", "metadata.status=uncertain")
+        self.assertIn("routed", r.stdout)
+
+    def test_every_fetch_verb_takes_the_query(self):
+        for verb in (["find"], ["inbox"], ["pending", "list"], ["search", "cfp"],
+                     ["links", "--orphans"], ["state", "show"]):
+            r = self.b(*verb, "--where", "type=project")
+            self.assertEqual(r.returncode, 0, f"{verb}: {r.stderr}")
+
+    def test_search_narrows_to_the_query(self):
+        # The two verbs answer different questions — `find` a metadata one, `search` a
+        # full-text one — and the filter has to compose with the second, not replace it.
+        self.page("concepts/cfp-notes.md", type="concept", body="cfp thoughts")
+        out = self.b("search", "cfp", "--where", "type=project").stdout
+        self.assertIn("projects/cfp.md", out)
+        self.assertNotIn("cfp-notes", out)
+
+    def test_a_malformed_query_is_refused_not_silently_empty(self):
+        r = self.b("find", "--where", "due<<today")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("--where", r.stderr)
+        r = self.b("find", "--where", "due<today+3q")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("d|w", r.stderr)
+        r = self.b("find", "--where", "nonsense")
+        self.assertNotEqual(r.returncode, 0)
+
+    def test_comparing_a_missing_field_excludes_rather_than_crashes(self):
+        r = self.b("find", "--where", "nosuchfield<today")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("(0 ", r.stdout)
+
+    def test_find_reports_a_count_and_the_fields_asked_about(self):
+        r = self.b("find", "--where", "type=concept")
+        self.assertIn("type=concept", r.stdout)
+        self.assertIn("(1 match)", r.stdout)
+
+
+class PendingTest(unittest.TestCase):
+    """One queue. A queue FILE is only justified when the work item has no artifact of
+    its own; a refusal and a sync conflict are the only two things with nothing to
+    attach to, because nothing was written and nothing was committed."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "dana@example.com",
+                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "queue",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args, who=None):
+        return run(["--base", str(self.root), *args], {**self.env, **(who or {})})
+
+    def git(self, *args):
+        return subprocess.run(["git", *args], cwd=self.root, capture_output=True,
+                              text=True, check=False).stdout
+
+    def log_lines(self, fmt="%s", n="-20"):
+        return self.git("log", n, f"--pretty={fmt}").splitlines()
+
+    def fm(self, p):
+        return yaml.safe_load(p.read_text().split("---")[1])
+
+    def pending(self):
+        return sorted((self.root / ".kb" / "pending").glob("*.md"))
+
+    def pending_rels(self):
+        return [f".kb/pending/{p.name}" for p in self.pending()]
+
+    def captures(self):
+        return [p for p in sorted((self.root / "_raw").glob("*.md"))
+                if "AGENTS" not in p.name]
+
+    def test_a_capture_lands_pending_and_moves_to_raw_on_ingest(self):
+        r = self.b("capture", "--text", "Robin says the venue is booked")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        pend = self.pending()
+        self.assertEqual(len(pend), 1)
+        fm = self.fm(pend[0])
+        self.assertEqual(fm["kind"], "capture")
+        self.assertEqual(fm["waits_on"], "agent")
+        self.assertNotIn("triage", fm, "location is the state")
+        r = self.b("ingest", self.pending_rels()[0])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse(pend[0].exists())
+        moved = self.captures()
+        self.assertEqual(len(moved), 1)
+        self.assertNotIn("kind", self.fm(moved[0]))
+        self.assertNotIn("waits_on", self.fm(moved[0]))
+
+    def test_ingest_leaves_no_uncommitted_deletion(self):
+        # `git mv` stages the deletion and the addition together, but a commit scoped
+        # to only the destination path leaves the source's staged deletion out of the
+        # commit itself — the working tree looks clean, but the pending file is still
+        # in HEAD's tree until something else commits it.
+        self.b("capture", "--text", "must not linger")
+        rel = self.pending_rels()[0]
+        r = self.b("ingest", rel)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.git("status", "--porcelain").strip(), "")
+        tracked = self.git("ls-tree", "-r", "HEAD", "--name-only")
+        self.assertNotIn(rel, tracked, f"{rel} is still in HEAD's tree after ingest")
+
+    def test_raw_is_flat(self):
+        self.b("capture", "--text", "x")
+        self.b("ingest", *self.pending_rels())
+        for p in (self.root / "_raw").rglob("*.md"):
+            self.assertEqual(p.parent.name, "_raw", f"{p} is not flat")
+
+    def test_ingest_preserves_history_across_the_move(self):
+        self.b("capture", "--text", "traceable")
+        self.b("ingest", self.pending_rels()[0])
+        moved = self.captures()[0]
+        # `--follow` takes exactly one pathspec, and it must be the path as git knows
+        # it — the whole point is that it traces back through the rename.
+        log = self.git("log", "--follow", "--pretty=%s", "--",
+                       f"_raw/{moved.name}")
+        self.assertIn("ingest:", log)
+        self.assertIn("capture:", log, "--follow lost the file across the move")
+
+    def test_refusal_and_conflict_are_the_artifactless_kinds(self):
+        self.b("refuse", "--path", "entities/x.md", "--reason", "no grant")
+        kinds = {self.fm(p).get("kind") for p in self.pending()}
+        self.assertEqual(kinds, {"refusal"})
+        self.assertEqual(self.fm(self.pending()[0])["waits_on"], "human")
+
+    def test_pending_add_takes_a_file_or_stdin(self):
+        src = self.dir / "note.md"
+        src.write_text("a longer body from a file\n")
+        r = self.b("pending", "add", "--kind", "capture", "--waits-on", "agent",
+                   "--title", "from a file", "--file", str(src))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        landed = [p for p in self.pending() if "from-a-file" in p.name]
+        self.assertIn("a longer body from a file", landed[0].read_text())
+
+    def test_an_unknown_kind_or_waits_on_is_refused(self):
+        r = self.b("pending", "add", "--kind", "nonsense", "--waits-on", "agent",
+                   "--title", "t", "--body", "b")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("capture", r.stderr)   # the closed set is in the message
+        r = self.b("pending", "add", "--kind", "capture", "--waits-on", "nobody",
+                   "--title", "t", "--body", "b")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("human", r.stderr)
+
+    def test_pending_list_is_a_query_over_the_directory(self):
+        self.b("pending", "add", "--kind", "entity", "--waits-on", "human",
+               "--title", "Acme Corp mentioned", "--body", "no page yet")
+        r = self.b("pending", "list", "--where", "kind=entity")
+        self.assertIn("Acme Corp", r.stdout)
+        r = self.b("pending", "list", "--where", "waits_on=agent")
+        self.assertNotIn("Acme Corp", r.stdout)
+
+    def test_pending_resolve_removes_the_entry_with_a_commit(self):
+        self.b("refuse", "--path", "entities/x.md", "--reason", "no grant")
+        r = self.b("pending", "resolve", self.pending_rels()[0])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.pending(), [])
+        self.assertIn("resolve:", self.log_lines()[0])
+
+    def test_a_failed_capture_keeps_failed_and_stays_put(self):
+        # An error is not a state change of location: the item is still pending.
+        self.b("capture", "--text", "will fail")
+        target = self.pending()[-1]
+        target.write_text(target.read_text().replace(
+            "kind: capture", "kind: capture\nfailed: no route-into grant"))
+        r = self.b("lint")
+        self.assertIn("failed", r.stdout)
+        self.assertTrue(target.exists())
+
+    def test_ingest_refuses_a_non_capture_kind(self):
+        self.b("refuse", "--path", "entities/x.md", "--reason", "no grant")
+        r = self.b("ingest", self.pending_rels()[0])
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("capture", r.stderr)
+
+    def test_inbox_is_the_pending_view_scoped_to_this_principal(self):
+        self.b("capture", "--text", "mine")
+        r = self.b("inbox", who={"AOS_PRINCIPAL_ID": "bob@example.com"})
+        self.assertNotIn("mine", r.stdout)
+        # A count, never a path: the point is to say the queue is not empty for
+        # someone else, not to show what they captured.
+        self.assertIn("belong to other principals", r.stdout)
+        self.assertNotIn(".kb/pending/", r.stdout)
+
+    def test_the_pending_queue_has_no_triage_vocabulary_left(self):
+        self.b("capture", "--text", "a plain thought")
+        self.assertNotIn("triage", self.pending()[0].read_text())
+        self.b("ingest", *self.pending_rels())
+        self.assertNotIn("triage", self.captures()[0].read_text())
+        self.assertNotIn("triage", self.b("lint").stdout)
+
+
+class WriteVerbTest(unittest.TestCase):
+    """Every write is a verb. Agents were hand-writing markdown; `kb set` mutates
+    frontmatter, `kb archive` is a git rm carrying a reason, and `kb capture --corrects`
+    records a link instead of prose the drain has to LLM-match."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "alice@example.com",
+                    "AOS_PRINCIPAL_NAME": "Alice Example"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "writes",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args):
+        return run(["--base", str(self.root), *args], self.env)
+
+    def git(self, *args):
+        return subprocess.run(["git", *args], cwd=self.root, capture_output=True,
+                              text=True, check=False).stdout
+
+    def log_lines(self, fmt="%s", n="-20"):
+        return self.git("log", n, f"--pretty={fmt}").splitlines()
+
+    def fm(self, p):
+        return yaml.safe_load(p.read_text().split("---")[1])
+
+    def page(self, rel, **fm):
+        p = self.root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        fm.setdefault("title", p.stem)
+        fm.setdefault("created", _dt.date.today().isoformat())
+        front = "\n".join(f"{k}: {v}" for k, v in fm.items())
+        p.write_text(f"---\n{front}\n---\nBody.\n")
+        self.b("commit", "--verb", "create", "--path", rel, "--summary", "seed")
+        return p
+
+    def pending_rels(self):
+        return [f".kb/pending/{p.name}"
+                for p in sorted((self.root / ".kb" / "pending").glob("*.md"))]
+
+    def test_set_mutates_frontmatter_in_one_attributed_commit(self):
+        self.page("projects/cfp.md", type="project")
+        before = len(self.log_lines())
+        exp = (_dt.date.today() + _dt.timedelta(days=90)).isoformat()
+        r = self.b("set", "projects/cfp.md", "verified=true", f"expires={exp}")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        fm = self.fm(self.root / "projects/cfp.md")
+        self.assertEqual(fm["verified"], True)
+        self.assertEqual(str(fm["expires"]), exp)
+        self.assertEqual(len(self.log_lines()) - before, 1, "one write, one commit")
+        self.assertIn("set:", self.log_lines()[0])
+        self.assertEqual(self.log_lines("%an")[0], "Alice Example")   # author
+        self.assertEqual(self.log_lines("%cn")[0], "agent:main")      # committer
+
+    def test_set_refuses_a_path_outside_the_base(self):
+        r = self.b("set", "../escape.md", "x=1")
+        self.assertNotEqual(r.returncode, 0)
+
+    def test_set_refuses_a_field_outside_the_schema(self):
+        # Otherwise `kb set` quietly introduces a field lint will then flag. `status:`
+        # is the honest example: it is work-tracker's field, and kb refusing it is the
+        # layering working — the base declares its extensions or nests under metadata:.
+        self.page("projects/cfp.md", type="project")
+        r = self.b("set", "projects/cfp.md", "status=next")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("outside the base schema", r.stderr)
+        cfg = self.root / ".kb" / "base.yml"
+        cfg.write_text(cfg.read_text().replace("extensions: []",
+                                               "extensions: [status]"))
+        r = self.b("set", "projects/cfp.md", "status=next")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.fm(self.root / "projects/cfp.md")["status"], "next")
+
+    def test_archive_validates_every_path_before_removing_any(self):
+        """`.unlink()` raises IsADirectoryError, so a directory in second position used to
+        `git rm` the first path, STAGE it, and then die on the traceback — a partial deletion
+        with no commit and no explanation. Validation belongs in the first pass."""
+        self.page("concepts/keep.md", type="concept")
+        r = self.b("archive", "concepts/keep.md", ".kb", "--reason", "oops")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertTrue((self.root / "concepts" / "keep.md").is_file(),
+                        "a valid path was removed before an invalid one was rejected")
+        self.assertEqual(self.git("status", "--porcelain").strip(), "",
+                         "a deletion was left staged")
+
+    def test_prune_still_works_on_a_base_with_no_grants_table(self):
+        """The grant-aware skip must not turn `expires:` off. `grant_check` requires the
+        subject to be REGISTERED — to hold a row of its own — so on a base with no AGENTS.md
+        nobody is registered and nothing was prunable by anyone, on any base `kb adopt`
+        registered (adopt writes nothing into the tree, so it never seeds a table). An empty
+        table means "no ACL here", not "deny everything" — which is exactly how the lint's own
+        grants audit reads it."""
+        self.page("concepts/gone.md", type="concept",
+                  expires=(_dt.date.today() - _dt.timedelta(days=1)).isoformat())
+        (self.root / "AGENTS.md").unlink()
+        r = self.b("prune")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse((self.root / "concepts" / "gone.md").exists(),
+                         "an expired page was unprunable because the base has no ACL")
+
+    def test_prune_skips_what_the_acting_subject_may_not_write(self):
+        """The archiver owns the weekly prune, but the seeded grants table splits the wiki:
+        `profile/**` is agent:main's, "high-stakes; surface every change to the user". So a
+        zone-blind prune made the archiver's own job manufacture a grants-audit critical
+        against itself, in the same run — and delete a page the table says to surface. Every
+        skill's prose was individually correct; the defect was the intersection."""
+        for zone, name in (("concepts", "mine.md"), ("profile", "theirs.md")):
+            page = self.root / zone / name
+            page.parent.mkdir(parents=True, exist_ok=True)
+            page.write_text("---\ntitle: T\ntype: concept\ncreated: 2026-07-01\n"
+                            "timestamp: 2026-07-01\nverified: false\nexpires: 2026-07-02\n"
+                            "---\nold\n")
+            self.b("commit", "--path", f"{zone}/{name}", "--verb", "create", "--summary", "seed")
+        r = self.b("--agent", "agent:archiver", "prune")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse((self.root / "concepts" / "mine.md").exists(), "granted zone not pruned")
+        self.assertTrue((self.root / "profile" / "theirs.md").exists(),
+                        "pruned a page the acting subject holds no write grant for")
+        self.assertIn("profile/theirs.md", r.stdout, "the skip must be reported, not silent")
+        # and the audit it used to trip is clean for this write
+        r = self.b("lint")
+        self.assertNotIn("agent:archiver wrote profile/theirs.md", r.stdout)
+
+    def test_every_path_taking_write_verb_stays_inside_the_base(self):
+        """A path argument is untrusted input. `set` and `archive` route through _in_base;
+        `verify`, `ingest` and `pending resolve` did not, so each accepted `../` and wrote
+        (or deleted) outside the tree — `verify` flipped a foreign file to verified: true at
+        exit 0. Nothing pinned the guard, which is why three absences shipped green."""
+        outside = self.root.parent / "outside-victim.md"
+        outside.write_text("---\ntitle: V\ntype: concept\ncreated: 2026-07-29\n"
+                           "verified: false\n---\nbody\n")
+        for args in (["verify", "../outside-victim.md"],
+                     ["ingest", "../outside-victim.md"],
+                     ["pending", "resolve", "../outside-victim.md"],
+                     ["set", "../outside-victim.md", "tags=[x]"],
+                     ["archive", "../outside-victim.md", "--reason", "no"]):
+            r = self.b(*args)
+            self.assertNotEqual(r.returncode, 0, f"{args[0]} accepted a path outside the base")
+            self.assertIn("outside the base", r.stderr, f"{args[0]}: wrong error")
+        self.assertIn("verified: false", outside.read_text(), "a foreign file was mutated")
+        self.assertTrue(outside.exists(), "a foreign file was deleted")
+
+    def test_the_tools_own_files_are_never_a_write_target(self):
+        """`archive .kb/base.yml` exited 0 and unmade the base — every later verb then said
+        "not a base". And `pending resolve AGENTS.md` git-rm'd the ACL: every grant flipped to
+        DENIED while `lint` reported Critical (0), because the grants audit skips when there
+        are no grants to audit. The deletion erased its own evidence."""
+        for args in (["archive", ".kb/base.yml", "--reason", "oops"],
+                     ["pending", "resolve", "AGENTS.md"],
+                     ["pending", "resolve", ".kb/base.yml"],
+                     ["set", ".kb/base.yml", "tags=[x]"]):
+            r = self.b(*args)
+            self.assertNotEqual(r.returncode, 0, f"{' '.join(args)} was allowed")
+        self.assertTrue((self.root / ".kb" / "base.yml").is_file(), "the base config was destroyed")
+        self.assertTrue((self.root / "AGENTS.md").is_file(), "the grants table was destroyed")
+        r = self.b("grants", "check", "--subject", "user", "--verb", "write", "--path", "index.md")
+        self.assertIn("GRANTED", r.stdout, "the ACL stopped answering")
+
+    def test_pending_resolve_only_resolves_pending_items(self):
+        """It is the queue's verb, so a wiki page is not its business — and `git rm` on one
+        is a silent deletion dressed as bookkeeping."""
+        self.page("concepts/live.md", type="concept")
+        r = self.b("pending", "resolve", "concepts/live.md")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertTrue((self.root / "concepts" / "live.md").is_file())
+
+    def test_the_free_fields_map_is_called_metadata(self):
+        # One word for "extra fields" across the whole kit. SKILL.md's own schema calls this
+        # `metadata`, so a KB page calling it `meta` made the same concept read as two —
+        # and the KB half is the one with no external vendor to defer to. Flat, not nested:
+        # unlike SKILL.md there is no other party to namespace against.
+        self.page("projects/cfp.md", type="project")
+        r = self.b("set", "projects/cfp.md", "metadata.owner=alice")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.fm(self.root / "projects/cfp.md")["metadata"]["owner"], "alice")
+        # the retired spelling is now an ordinary out-of-schema field, and the error says so
+        r = self.b("set", "projects/cfp.md", "meta.owner=alice")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("metadata", r.stderr)
+
+    def test_archive_is_a_git_rm_plus_a_reason(self):
+        self.page("concepts/dead.md", type="concept")
+        r = self.b("archive", "concepts/dead.md", "--reason", "superseded by bm25")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse((self.root / "concepts/dead.md").exists())
+        self.assertFalse((self.root / "_archive").exists())
+        self.assertIn("superseded by bm25", self.log_lines()[0])
+        self.assertIn("archive",
+                      self.log_lines("%(trailers:key=aos-verb,valueonly)")[0])
+        # The history IS the archive — that is the whole argument for the directory
+        # not existing.
+        self.assertTrue(self.git("log", "--all", "--pretty=%H", "--",
+                                 "concepts/dead.md").strip())
+
+    def test_config_get_set_round_trips(self):
+        r = self.b("config", "set", "state.max_items=30")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("30", self.b("config", "get", "state.max_items").stdout)
+        # principal.* is machine-local; the rest is base-local
+        r = self.b("config", "set", "principal.id=alice@personal.dev")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        pfile = self.home / ".aos" / "kb-principal.yml"
+        self.assertIn("alice@personal.dev", pfile.read_text())
+        self.assertNotIn("principal", (self.root / ".kb" / "base.yml").read_text())
+
+    def test_config_set_on_the_base_makes_one_commit(self):
+        before = len(self.log_lines())
+        self.b("config", "set", "curation=designated")
+        self.assertEqual(len(self.log_lines()) - before, 1)
+        self.assertIn("config:", self.log_lines()[0])
+
+    def test_capture_corrects_records_a_link_not_prose(self):
+        self.b("capture", "--text", "the venue costs 400")
+        first = self.pending_rels()[0]
+        r = self.b("capture", "--text", "the venue costs 450", "--corrects", first)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        corrected = [p for p in (self.root / ".kb" / "pending").glob("*.md")
+                     if "450" in p.read_text()][0]
+        self.assertEqual(self.fm(corrected)["corrects"], first)
+
+    def test_corrects_takes_a_path_and_refuses_a_missing_one(self):
+        # lifecycle.md: "Identity is the file path (no slug field)" — introducing an id
+        # would contradict a standing doctrine.
+        r = self.b("capture", "--text", "x", "--corrects", ".kb/pending/nope.md")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("no such", r.stderr.lower())
+
+    def test_the_new_verbs_are_in_the_closed_trailer_vocabulary(self):
+        # AOS_VERBS is a closed set: a verb missing from it produces an assertion at
+        # commit time rather than a clear error.
+        for verb in ("ingest", "prune", "pending", "set", "config", "migrate"):
+            r = self.b("commit", "--verb", verb, "--path", "index.md",
+                       "--summary", "probe")
+            self.assertNotIn("illegal aos-verb", r.stderr, f"{verb} not in AOS_VERBS")
+
+
+class ExpiryTest(WriteVerbTest):
+    """`expires:` is the ONLY thing kb knows about a page's lifetime.
+
+    expires passed -> `kb prune` deletes it, git is the undo. No expires -> forever.
+    There is no second staleness concept, because nothing would key on one."""
+
+    def test_prune_deletes_what_expired_and_reports_what_went(self):
+        # As agent:archiver, which is the subject the weekly schedule runs and the one the
+        # seeded table grants the synthesis zones. The default agent:main holds no grant on
+        # concepts/**, and prune now honours that — see
+        # test_prune_skips_what_the_acting_subject_may_not_write.
+        self.page("concepts/gone.md", type="concept",
+                  expires=(_dt.date.today() - _dt.timedelta(days=1)).isoformat())
+        r = self.b("--agent", "agent:archiver", "prune")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse((self.root / "concepts/gone.md").exists())
+        self.assertIn("concepts/gone.md", r.stdout)
+        self.assertIn("prune",
+                      self.log_lines("%(trailers:key=aos-verb,valueonly)")[0])
+
+    def test_a_page_with_no_expires_is_never_pruned(self):
+        self.page("concepts/forever.md", type="concept")
+        self.b("prune")
+        self.assertTrue((self.root / "concepts/forever.md").exists())
+
+    def test_a_due_date_in_the_past_never_causes_a_prune(self):
+        # due: is work-tracker's field and a deadline is not an end of life.
+        self.page("projects/call.md", type="project",
+                  due=(_dt.date.today() - _dt.timedelta(days=30)).isoformat())
+        self.b("prune")
+        self.assertTrue((self.root / "projects/call.md").exists())
+
+    def test_review_by_is_not_expires_and_never_prunes(self):
+        # review_by means "ask me again"; expires means "delete it". Opposites.
+        self.page("profile/goal.md", type="note",
+                  review_by=(_dt.date.today() - _dt.timedelta(days=5)).isoformat())
+        self.b("prune")
+        self.assertTrue((self.root / "profile/goal.md").exists())
+        self.b("state", "add", "--note", "revisit the goal",
+               "--review-by", (_dt.date.today() - _dt.timedelta(days=5)).isoformat())
+        r = self.b("state", "check")
+        self.assertIn("review_by", r.stdout + r.stderr)
+
+    def test_raw_is_never_pruned_even_carrying_an_expires(self):
+        self.b("capture", "--text", "trust chain")
+        self.b("ingest", *self.pending_rels())
+        raw = [p for p in (self.root / "_raw").glob("*.md")
+               if "AGENTS" not in p.name][0]
+        raw.write_text(raw.read_text().replace(
+            "type: capture",
+            f"type: capture\nexpires: "
+            f"{(_dt.date.today() - _dt.timedelta(days=1)).isoformat()}"))
+        self.b("prune")
+        self.assertTrue(raw.exists())
+
+    def test_prune_dry_run_changes_nothing(self):
+        self.page("concepts/gone.md", type="concept",
+                  expires=(_dt.date.today() - _dt.timedelta(days=1)).isoformat())
+        r = self.b("--agent", "agent:archiver", "prune", "--dry-run")
+        self.assertIn("concepts/gone.md", r.stdout)
+        self.assertTrue((self.root / "concepts/gone.md").exists())
+
+    def test_an_unparseable_expires_is_reported_and_left_alone(self):
+        self.page("concepts/odd.md", type="concept", expires="soon-ish")
+        r = self.b("prune")
+        self.assertIn("unparseable", r.stdout)
+        self.assertTrue((self.root / "concepts/odd.md").exists())
+
+    def test_growth_stage_is_gone_from_the_schema(self):
+        self.page("concepts/x.md", type="concept", growth_stage="seedling",
+                  created="2020-01-01")
+        out = self.b("lint").stdout
+        self.assertNotIn("stale seedling", out)
+        self.assertIn("outside schema", out)   # it is now an unknown field
+
+
+class CurationTest(unittest.TestCase):
+    """Curation is a mode the grants table already expressed.
+
+    `self` (default): everyone drains only their own, which costs nothing.
+    `designated`: one principal holds the wiki write grants and reads everyone's raw
+    material. Rule of two — a third mode earns a richer field, not before."""
+
+    ALICE = {"AOS_PRINCIPAL_ID": "alice@example.com",
+             "AOS_PRINCIPAL_NAME": "Alice Example"}
+    BOB = {"AOS_PRINCIPAL_ID": "bob@example.com",
+           "AOS_PRINCIPAL_NAME": "Bob Example"}
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home)}
+        self.root = self.dir / "team"
+        r = run(["init", "team", "--path", str(self.root), "--audience", "shared",
+                 "--purpose", "curation", "--templates", str(TEMPLATES), "--default"],
+                {**self.env, **self.ALICE})
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args, who=None):
+        return run(["--base", str(self.root), *args], {**self.env, **(who or {})})
+
+    def cfg(self):
+        return yaml.safe_load((self.root / ".kb" / "base.yml").read_text())
+
+    def test_curation_defaults_to_self_and_scopes_the_queue(self):
+        self.assertEqual(self.cfg()["curation"], "self")
+        self.b("capture", "--text", "mine", who=self.ALICE)
+        self.assertIn("mine", self.b("inbox", who=self.ALICE).stdout)
+        self.assertNotIn("mine", self.b("inbox", who=self.BOB).stdout)
+
+    def test_designated_curation_lets_the_curator_see_everything(self):
+        self.b("config", "set", "curation=designated", who=self.ALICE)
+        self.b("config", "set", "curator=alice@example.com", who=self.ALICE)
+        self.b("capture", "--text", "alice thing", who=self.ALICE)
+        self.b("capture", "--text", "bob thing", who=self.BOB)
+        out = self.b("inbox", who=self.ALICE).stdout
+        self.assertIn("(2 pending items)", out)
+
+    def test_a_non_curator_never_sees_paths_under_designated_curation(self):
+        self.b("config", "set", "curation=designated", who=self.ALICE)
+        self.b("config", "set", "curator=alice@example.com", who=self.ALICE)
+        self.b("capture", "--text", "alice thing", who=self.ALICE)
+        out = self.b("inbox", who=self.BOB).stdout
+        self.assertNotIn(".kb/pending/", out)
+        self.assertIn("belong to other principals", out)
+
+    def test_an_explicit_all_still_works_but_says_so(self):
+        # `--all` stays available for the CI path; it just stops being silent about
+        # reading somebody else's raw material.
+        self.b("capture", "--text", "alice thing", who=self.ALICE)
+        r = self.b("inbox", "--all", who=self.BOB)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("alice-thing", r.stdout)     # the path, which is what inbox lists
+        self.assertIn("(1 pending item)", r.stdout)
+        self.assertIn("--all", r.stderr)           # and it announced the disclosure
+
+    def test_an_llm_routed_write_into_a_shared_base_is_critical(self):
+        # §4.5 layer 2 — the exclusion is a list filter, not a threshold, so the check
+        # is an existence test. Enforcement is by routing METHOD, never by refusing the
+        # verb: a shared base does accept explicit and rule-matched captures.
+        self.b("capture", "--text", "rule matched", who=self.ALICE)
+        cap = next((self.root / ".kb" / "pending").glob("*.md"))
+        cap.write_text(cap.read_text().replace(
+            "kind: capture",
+            "kind: capture\nkb_routing:\n  method: rule\n  status: routed"))
+        self.assertIn("Critical (0)", self.b("lint", who=self.ALICE).stdout)
+        cap.write_text(cap.read_text().replace("method: rule", "method: llm"))
+        self.assertIn("no LLM-routed write may ever land here",
+                      self.b("lint", who=self.ALICE).stdout)
+
+
+class MigrateTest(unittest.TestCase):
+    """A real user has a LAYOUT 1 base on disk. History is the whole point of the
+    store, so every move is a `git mv`.
+
+    The layout-1 tree is built here rather than committed as a second fixture: the
+    migration's inputs belong next to the assertions about them, and a committed
+    layout-1 tree would be a thing the retired-token gate then has to exempt."""
+
+    LAYOUT1 = {
+        "BASE.yaml": (
+            "layout: 1\n"
+            "name: old\n"
+            "audience: private\n"
+            "methodology: karpathy-llm-wiki\n"
+            "principals:\n"
+            "  alice@example.com: user:alice\n"
+            "types: [person, concept, capture, note]\n"
+            "zones:\n"
+            "  raw:      {kind: raw}\n"
+            "  entities: {kind: wiki, subdirs: [people]}\n"
+            "  concepts: {kind: wiki}\n"
+            "  profile:  {kind: wiki}\n"
+            "  _ops:     {kind: machinery}\n"
+            "  _archive: {kind: archive}\n"
+            "state:\n"
+            "  max_items: 20\n"
+            "frontmatter:\n"
+            "  extensions: []\n"),
+        "AGENTS.md": "# AGENTS — old\n\n## Grants\n\n"
+                     "| subject | object | verbs | grantor | granted | via | notes |\n"
+                     "|---|---|---|---|---|---|---|\n"
+                     "| user | `**` | read write grant | — | 2026-01-01 | — | root |\n",
+        "index.md": "# index\n\n- [[entities/people/robin]]\n",
+        "state.yaml": "items:\n- note: a thread\n  since: 2026-01-01\n",
+        ".gitignore": ".base/\n",
+        "raw/AGENTS.md": "# raw/\n",
+        "raw/captures/2026-01-02-ingested.md": (
+            "---\ntitle: already ingested\ntype: capture\ncreated: '2026-01-02'\n"
+            "source: manual\nsource_sha256: abc123\ntriage: done\n"
+            "captured_by: alice@example.com\n---\nan ingested capture\n"),
+        "raw/captures/2026-01-03-still-pending.md": (
+            "---\ntitle: still pending\ntype: capture\ncreated: '2026-01-03'\n"
+            "source: manual\nsource_sha256: def456\ntriage: pending\n"
+            "captured_by: alice@example.com\n---\na pending capture\n"),
+        "entities/people/robin.md": (
+            "---\ntitle: Robin\ntype: person\ncreated: '2026-01-01'\n---\nA person.\n"),
+        "profile/goal.md": (
+            "---\ntitle: Goal\ntype: note\ncreated: '2026-01-01'\n"
+            "review_by: '2026-02-01'\n---\nAsk me again about this.\n"),
+        "_ops/needs-review/2026-01-04-a-refusal.md": (
+            "---\ntitle: refused write — entities/x.md\ncreated: '2026-01-04'\n"
+            "raised_by: agent:main\nstatus: open\n---\nno grant\n"),
+        "_archive/old-page.md": (
+            "---\ntitle: Old Page\ntype: concept\ncreated: '2025-01-01'\n"
+            "---\nSuperseded long ago.\n"),
+        ".base/cache.json": "{}\n",
+    }
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "alice@example.com",
+                    "AOS_PRINCIPAL_NAME": "Alice Example"}
+        self.old = self.dir / "old"
+        for rel, text in self.LAYOUT1.items():
+            p = self.old / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(text)
+        self.git("init", "-q")
+        self.git("add", "-A")
+        self.git("commit", "-qm", "the layout 1 base, as it stood")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def git(self, *args):
+        return subprocess.run(["git", *args], cwd=self.old, capture_output=True,
+                              text=True, check=False, env=git_env()).stdout
+
+    def fm(self, p):
+        return yaml.safe_load(p.read_text().split("---")[1])
+
+    def migrate(self):
+        return run(["migrate", "--base", str(self.old)], self.env)
+
+    def test_migrate_produces_layout_2(self):
+        r = self.migrate()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        cfg = self.old / ".kb" / "base.yml"
+        self.assertTrue(cfg.exists())
+        data = yaml.safe_load(cfg.read_text())
+        self.assertEqual(data["layout"], 2)
+        self.assertEqual(data["curation"], "self")
+        self.assertNotIn("methodology", data)
+        self.assertNotIn("principals", data)
+        self.assertEqual({z.get("kind") for z in data["zones"].values()},
+                         {"raw", "wiki"})
+        for gone in ("BASE.yaml", "state.yaml", "_ops", "_archive", "raw", ".base"):
+            self.assertFalse((self.old / gone).exists(), f"{gone} survived")
+
+    def test_history_survives_every_move(self):
+        self.migrate()
+        moved = [p for p in (self.old / "_raw").glob("*.md")][0]
+        log = self.git("log", "--follow", "--pretty=%s", "--",
+                       f"_raw/{moved.name}")
+        self.assertGreater(len(log.splitlines()), 1,
+                           "--follow lost the file across the move")
+
+    def test_triage_becomes_location(self):
+        self.migrate()
+        pend = list((self.old / ".kb" / "pending").glob("*.md"))
+        names = [p.name for p in pend]
+        self.assertTrue(any("still-pending" in n for n in names),
+                        f"a triage: pending capture belongs in .kb/pending/: {names}")
+        for p in pend:
+            self.assertNotIn("triage", self.fm(p))
+        raw = [p for p in (self.old / "_raw").glob("*.md") if "AGENTS" not in p.name]
+        self.assertTrue(any("ingested" in p.name for p in raw))
+        for p in raw:
+            self.assertNotIn("triage", self.fm(p))
+
+    def test_the_old_review_queue_becomes_pending_entries(self):
+        self.migrate()
+        entries = [p for p in (self.old / ".kb" / "pending").glob("*.md")
+                   if "refusal" in p.read_text() or "refused" in p.read_text()]
+        self.assertTrue(entries, "the _ops/needs-review/ entry was lost")
+        fm = self.fm(entries[0])
+        self.assertEqual(fm["kind"], "refusal")
+        self.assertEqual(fm["waits_on"], "human")
+        self.assertNotIn("status", fm)   # in the directory IS open
+
+    def test_state_becomes_a_principal_shard(self):
+        self.migrate()
+        shards = sorted((self.old / ".kb" / "state").glob("*.yml"))
+        self.assertEqual([p.name for p in shards], ["alice-example-com.yml"])
+        self.assertIn("a thread", shards[0].read_text())
+
+    def test_review_by_is_never_turned_into_expires(self):
+        # The single most dangerous rename in this change: review_by means "ask me
+        # again", expires means "delete it".
+        self.migrate()
+        fm = self.fm(self.old / "profile" / "goal.md")
+        self.assertIn("review_by", fm)
+        self.assertNotIn("expires", fm)
+
+    def test_archive_contents_are_removed_but_reachable_in_history(self):
+        self.migrate()
+        self.assertFalse((self.old / "_archive").exists())
+        log = self.git("log", "--all", "--pretty=%H", "--", "_archive/old-page.md")
+        self.assertTrue(log.strip(), "the archived page left no history behind")
+
+    def test_the_migrated_base_lints_without_layout_complaints(self):
+        """The tool has to accept its own output.
+
+        Scoped to what migration controls: the grants audit fires on this fixture's
+        SEED commit (a hand-built layout 1 tree, committed before any grant row
+        existed) — that is the fixture's history, not a migration defect. What must
+        be absent is every complaint ABOUT THE LAYOUT, and the migrate commit itself
+        must not be one of the audit's unattributed hits."""
+        self.migrate()
+        r = run(["--base", str(self.old), "lint"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        for must_not in ("layout", "triage", "not in ['agent', 'human']",
+                         "not in ['capture'", "is flat", "orphaned state shard",
+                         "no state file", "outside schema", "without frontmatter"):
+            self.assertNotIn(must_not, r.stdout, f"migration left {must_not!r} behind")
+        migrate_sha = self.git("log", "-1", "--pretty=%H").strip()[:8]
+        self.assertNotIn(migrate_sha, r.stdout,
+                         "the migrate commit itself tripped the grants audit — it "
+                         "wrote .kb/** paths no layout 1 grant row could have named")
+
+    def test_migrate_is_idempotent(self):
+        self.migrate()
+        r = self.migrate()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("already layout 2", r.stdout)
+
+    def test_migrate_refuses_a_dirty_worktree(self):
+        (self.old / "scratch.md").write_text("uncommitted\n")
+        r = self.migrate()
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("uncommitted", r.stderr)
+
+    def test_migrate_refuses_a_tree_that_is_not_a_base(self):
+        plain = self.dir / "plain"
+        plain.mkdir()
+        r = run(["migrate", "--base", str(plain)], self.env)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("not a base", r.stderr)
+
+    def test_the_report_names_the_old_command_uninstall(self):
+        r = self.migrate()
+        self.assertIn("uv tool uninstall aos-base", r.stdout)
+
+
+class PackagingTest(unittest.TestCase):
+    """The command is `kb`, because `base<TAB>` is ambiguous against base32/base64/
+    basename on every Linux box. `base == repo` survives as the *concept* — a command
+    needn't be named after its object (`git` acts on repositories)."""
+
+    def test_the_command_is_kb(self):
+        # `--version` also reports the layout; that it reads 2 is LayoutTest's
+        # assertion, since LAYOUT flips in the task that can honour it.
+        r = run(["--version"])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        # The version is read from the manifest rather than pinned here: the number is the
+        # capability's, and three copies of a literal in a test file is three things a bump has
+        # to remember. What this asserts is the COMMAND name and that the two agree.
+        declared = re.search(r"^version: (\S+)",
+                             (REPO / "capabilities/kb/CAPABILITY.md").read_text(),
+                             re.M).group(1)
+        self.assertIn(f"kb {declared}", r.stdout)
+
+    def test_the_old_command_name_is_gone(self):
+        pyproject = (TOOL_DIR / "pyproject.toml").read_text()
+        self.assertIn('name = "aos-kb"', pyproject)
+        self.assertIn('kb = "aos_kb.cli:main"', pyproject)
+        # The old names, spelled defensively: a `sed` sweep of the module name would
+        # otherwise rewrite these assertions into tautologies.
+        old_pkg, old_mod = "aos" + "-base", "aos" + "_base"
+        self.assertNotIn(old_pkg, pyproject)
+        self.assertNotIn(old_mod, pyproject)
+        self.assertFalse((TOOL_DIR / "src" / old_mod).exists())
+
+
+class InstalledScriptSmokeTest(unittest.TestCase):
+    """The one thing CliRunner structurally cannot prove: that `[project.scripts]
+    kb = "aos_kb.cli:main"` actually resolves and runs as an installed console script,
+    crossing a real process boundary. Every other class in this file runs in-process —
+    this is deliberately the sole survivor of the old fully-subprocess suite."""
+
+    def run_installed(self, args, env_extra=None):
+        return subprocess.run(["uv", "run", "--quiet", "--project", str(TOOL_DIR),
+                               "kb", *args],
+                              capture_output=True, text=True,
+                              env=git_env(env_extra))
+
+    def test_the_installed_script_runs_and_reports_its_version(self):
+        r = self.run_installed(["--version"])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        declared = re.search(r"^version: (\S+)",
+                             (REPO / "capabilities/kb/CAPABILITY.md").read_text(),
+                             re.M).group(1)
+        self.assertIn(f"kb {declared} (layout 2)", r.stdout)
+
+    def test_the_installed_script_completes_a_real_verb_end_to_end(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            home = d / "household"
+            (home / ".aos").mkdir(parents=True)
+            root = d / "b"
+            env = {"AOS_REGISTRY": str(d / "kb-registry.yaml"),
+                   "AOS_AGENT": "agent:main", "AOS_HOME": str(home),
+                   "AOS_PRINCIPAL_ID": "dana@example.com",
+                   "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+            r = self.run_installed(
+                ["init", "b", "--path", str(root), "--purpose", "smoke",
+                 "--templates", str(TEMPLATES), "--default"], env)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            r = self.run_installed(["--base", str(root), "lint"], env)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn("Critical (0)", r.stdout)
+
+
+class TemplateSurfaceTest(unittest.TestCase):
+    """The scaffolded tree is the capability's most-read artifact, so its shape is
+    asserted black-box: a real `kb init`, then the files it produced.
+
+    Its own setUp rather than a BaseToolTest subclass — that class is a concrete leaf
+    with ~65 tests of its own, so inheriting it would re-run every one of them under a
+    second name. LayoutTest and QueryTest copy the same twelve lines for the same reason.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "alice@example.com",
+                    "AOS_PRINCIPAL_NAME": "Alice Example"}
+        self.root = self.dir / "b"
+        # --templates is mandatory here: without it `kb init` clones the template repo
+        # and this class would assert against the remote rather than the files in this
+        # checkout — which is exactly the drift it exists to catch.
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "test base",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args):
+        return run(["--base", str(self.root), *args], self.env)
+
+    def test_scaffold_is_layout_2(self):
+        cfg = (self.root / ".kb" / "base.yml").read_text()
+        self.assertIn("layout: 2", cfg)
+        self.assertNotIn("methodology:", cfg)
+        self.assertNotIn("principals:", cfg)
+        self.assertIn("curation: self", cfg)
+        shards = sorted((self.root / ".kb" / "state").glob("*.yml"))
+        self.assertEqual(len(shards), 1, "a solo base has exactly one shard")
+        self.assertTrue((self.root / "_raw").is_dir())
+        self.assertFalse((self.root / "_ops").exists())
+        self.assertFalse((self.root / "_archive").exists())
+        self.assertFalse((self.root / "BASE.yaml").exists())
+        self.assertFalse((self.root / "state.yaml").exists())
+
+    def test_scaffold_has_a_readme_for_the_human(self):
+        readme = self.root / "README.md"
+        self.assertTrue(readme.exists(), "a human opening the base needs a front door")
+        text = readme.read_text()
+        # AGENTS.md is addressed to agents and index.md maps content; this explains the
+        # tree itself, so it must name every top-level thing the human will see.
+        for token in ["_raw/", ".kb/", "AGENTS.md", "index.md", "kb capture"]:
+            self.assertIn(token, text)
+        # It is the base's README, not the template repo's own. A clone source that ships
+        # a README describing ITSELF must never be rendered into a user's base.
+        self.assertNotIn("aos-kb-template", text)
+        self.assertNotIn("{{", text, "placeholders must be substituted")
+
+    def test_every_seeded_grant_matches_a_real_zone(self):
+        # Default posture is deny, so a mis-ported glob produces SILENT REFUSALS rather
+        # than errors — the worst failure mode there is. Pin each row to its zone.
+        # These pass today; they exist so that trimming the grants table (the one ACL)
+        # cannot quietly break it.
+        cases = [
+            ("agent:archiver", "write", "_raw/2026-01-01-note.md", "GRANTED"),
+            ("agent:archiver", "write", "entities/acme.md", "GRANTED"),
+            ("agent:archiver", "write", "concepts/pricing.md", "GRANTED"),
+            ("agent:archiver", "write", "projects/kubecon.md", "GRANTED"),
+            ("agent:archiver", "write", "index.md", "GRANTED"),
+            ("agent:archiver", "write", "profile/north-star.md", "DENIED"),
+            ("agent:main", "route-into", "_raw/2026-01-01-note.md", "GRANTED"),
+            ("agent:main", "write", ".kb/pending/2026-01-01-note.md", "GRANTED"),
+            ("agent:main", "write", ".kb/state/alice-example-com.yml", "GRANTED"),
+            ("agent:main", "write", "profile/north-star.md", "GRANTED"),
+            ("agent:main", "write", "entities/acme.md", "DENIED"),
+        ]
+        for subject, verb, path, expect in cases:
+            with self.subTest(subject=subject, path=path):
+                r = self.b("grants", "check", "--subject", subject,
+                           "--verb", verb, "--path", path)
+                self.assertIn(expect, r.stdout)
+
+
+class WorkTrackerZoneTest(unittest.TestCase):
+    """work-tracker's `actions/` is an ordinary wiki zone, and that is the whole point: a
+    usecase capability builds on zones kb already understands rather than teaching kb a
+    new word. These tests pin the install-time contract, because every one of them fails
+    silently rather than loudly if it is got wrong.
+
+    Its own setUp rather than a BaseToolTest subclass — that class is a concrete leaf with
+    ~65 tests of its own, so inheriting it would re-run every one under a second name.
+    """
+
+    # The eight fields an action page carries beyond the universal schema. `status` and
+    # `project` belong here as much as the six bookkeeping ones do: the tool's schema check
+    # is a closed set, so an undeclared `status` is a lint finding on EVERY action page.
+    EXTENSIONS = "[due, estimate, block, slipped, since, waiting_on, status, project]"
+    TYPES = ("[person, company, product, concept, project, meeting, capture, clipping, "
+             "note, action]")
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "dana@example.com",
+                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "commitments",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def b(self, *args):
+        return run(["--base", str(self.root), *args], self.env)
+
+    # The two grant rows work-tracker's install appends. BOTH are needed, and which
+    # agents they name is not obvious: `wt-capture` is used_by: [main], so the FRONT agent
+    # writes action pages as the user speaks, while the steward writes during the nightly
+    # pass. A steward-only row leaves every interactive capture as an audit critical, and a
+    # main-only row does the same to every nightly maintenance write.
+    # `index.md` is on both rows: kb's seed grants it to agent:archiver alone, but a page is
+    # invisible on the map until the index lists it, so both of these agents rebuild it.
+    GRANT_ROWS = [
+        "| agent:main | `actions/** index.md` | write | user | 2026-07-29 | "
+        "work-tracker@0.1.0 | the live commitment path (`wt-capture`) |",
+        "| agent:steward | `actions/** projects/** index.md` | write | user | 2026-07-29 | "
+        "work-tracker@0.1.0 | nightly maintenance; project links |",
+    ]
+
+    def install(self):
+        """What work-tracker's install actually does to the base, in one place."""
+        for assignment in (f"zones.actions={{kind: wiki}}", f"types={self.TYPES}",
+                           f"frontmatter.extensions={self.EXTENSIONS}"):
+            r = self.b("config", "set", assignment)
+            self.assertEqual(r.returncode, 0, r.stderr)
+        self.grant()
+
+    def grant(self):
+        """Append the grant rows to the base's Grants table.
+
+        There is deliberately no verb for this — a grant row is a user-approved diff, and
+        `kb` refusing to grant itself permissions is the point. So install edits AGENTS.md,
+        and so does this: the table's last row is the `*` catch-all, and rows are inserted
+        before it only because reading order puts specific subjects above the wildcard.
+        """
+        p = self.root / "AGENTS.md"
+        lines = p.read_text(encoding="utf-8").splitlines()
+        star = next(i for i, ln in enumerate(lines) if ln.startswith("| `*`"))
+        lines[star:star] = self.GRANT_ROWS
+        p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        # Committed as `user`, which is what install actually does: adding a grant row is
+        # `user`-only authority by the table's own rule, and the audit exempts `user`
+        # accordingly. Attributing it to an agent would make the very act of granting
+        # permissions an ungranted write.
+        r = run(["--base", str(self.root), "commit", "--verb", "create",
+                 "--path", "AGENTS.md", "--summary", "work-tracker grant rows"],
+                {**self.env, "AOS_AGENT": "user"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def days(self, n):
+        return (_dt.date.today() + _dt.timedelta(days=n)).isoformat()
+
+    def action(self, name, body="Write the KubeCon CFP.", **fm):
+        p = self.root / "actions" / f"{name}.md"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        fm.setdefault("title", name)
+        fm.setdefault("type", "action")
+        fm.setdefault("created", _dt.date.today().isoformat())
+        fm.setdefault("timestamp", f"{_dt.date.today().isoformat()}T10:00")
+        front = "\n".join(f"{k}: {v}" for k, v in fm.items())
+        p.write_text(f"---\n{front}\n---\n{body}\n")
+        return p
+
+    def test_an_undeclared_zone_is_invisible_rather_than_a_finding(self):
+        # The failure mode that makes the install contract load-bearing. Base.md_files()
+        # only walks zones declared in .kb/base.yml, so an actions/ directory nobody
+        # declared is not "wrong" — it does not exist as far as every verb is concerned.
+        # find returns nothing and lint reports nothing, both with exit 0. Declaring the
+        # zone is therefore not tidiness; it is the difference between a tracked
+        # commitment and a file the tool will never look at again.
+        self.action("invisible", status="next")
+        r = self.b("find", "--where", "type=action")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("(0 ", r.stdout)
+        self.assertNotIn("invisible", self.b("lint").stdout)
+
+    def test_an_action_page_lints_clean_with_the_declared_extensions(self):
+        self.install()
+        self.action("write-the-cfp", status="next", due=self.days(5), estimate="45m",
+                    block=f"{self.days(3)}T10:00", slipped=0,
+                    since=_dt.date.today().isoformat(),
+                    project="\"[[projects/booking-deal]]\"")
+        self.b("index", "rebuild")
+        self.b("commit", "--verb", "create", "--path", "actions/write-the-cfp.md",
+               "--summary", "the CFP commitment")
+        r = self.b("lint")
+        # A fully declared action page draws no schema, type or index complaint, and no
+        # grants critical of its own.
+        self.assertNotIn("outside schema", r.stdout)
+        self.assertNotIn("not in base.yml types", r.stdout)
+        self.assertNotIn("index drift", r.stdout)
+        self.assertNotIn("actions/write-the-cfp.md with no matching grant", r.stdout)
+        # And the documented index rebuild is granted, which needs `index.md` on the row.
+        self.assertNotIn("index.md with no matching grant", r.stdout)
+
+    def test_index_rebuild_is_granted_to_both_writing_agents(self):
+        """`index.md` is the grant row's easiest omission and its silent one.
+
+        kb's seed grants `index.md` to `agent:archiver` alone, but `wt-capture` and the
+        steward both run `kb index rebuild` — a page is invisible on the map until the index
+        lists it. Without the grant every rebuild is an audit critical that surfaces days
+        later at the weekly lint, long after the run that caused it.
+        """
+        self.install()
+        for subject in ("agent:main", "agent:steward"):
+            with self.subTest(subject=subject):
+                r = self.b("grants", "check", "--subject", subject,
+                           "--verb", "write", "--path", "index.md")
+                self.assertIn("GRANTED", r.stdout)
+
+    def test_the_only_criticals_left_are_kbs_own_pre_existing_one(self):
+        """Pins a **pre-existing kb defect** so it cannot be mistaken for work-tracker's.
+
+        `kb config set` writes `.kb/base.yml` as the acting agent, and kb's seeded grants
+        table gives `agent:main` no row for it — though `config set` is documented for
+        ordinary use. So any base whose schema was ever edited carries a permanent audit
+        critical, on a fresh untouched base too: verified independently of work-tracker.
+
+        `index.md` used to be in this allowlist and should not have been: that one was
+        work-tracker's own missing grant row, and allowlisting it here hid the gap rather
+        than reporting it. Now the grant rows carry `index.md` and this asserts only the
+        genuinely-kb-side residue — which is what keeps the allowlist honest.
+
+        Fixing the base.yml case means changing kb's seeded template, which is mirrored in
+        the aos-kb-template repo — a push, and therefore a decision, not a drive-by.
+        """
+        self.install()
+        self.b("index", "rebuild")
+        out = self.b("lint").stdout
+        criticals = [ln for ln in out.splitlines() if "grants audit" in ln]
+        self.assertTrue(criticals, "expected the pre-existing critical to still be here")
+        for line in criticals:
+            self.assertIn(".kb/base.yml", line,
+                          f"a critical that is NOT the known kb config gap: {line}")
+
+    def test_an_undeclared_field_is_a_finding(self):
+        self.install()
+        self.action("x", status="next", priority="high")
+        self.assertIn("outside schema", self.b("lint").stdout)
+
+    def test_status_and_project_are_part_of_the_declared_eight(self):
+        # Declaring only the six bookkeeping fields puts a finding on every action page
+        # the capability will ever write, which reads as a broken install rather than a
+        # schema list two words short.
+        self.b("config", "set", "zones.actions={kind: wiki}")
+        self.b("config", "set", f"types={self.TYPES}")
+        self.b("config", "set",
+               "frontmatter.extensions=[due, estimate, block, slipped, since, waiting_on]")
+        self.action("short", status="next", project="\"[[projects/deal]]\"")
+        out = self.b("lint").stdout
+        self.assertIn("outside schema", out)
+        self.assertIn("status", out)
+        self.assertIn("project", out)
+
+    def test_a_completed_action_prunes_only_after_expires_passes(self):
+        self.install()
+        self.action("done", status="done", expires=self.days(1))
+        self.b("prune")
+        self.assertTrue((self.root / "actions/done.md").exists())
+        r = self.b("set", "actions/done.md", f"expires={self.days(-1)}")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.b("prune")
+        self.assertFalse((self.root / "actions/done.md").exists())
+
+    def test_a_due_date_in_the_past_never_prunes_an_open_action(self):
+        # due: is a deadline; expires: is an end of life. Conflating them would delete
+        # exactly the commitments most worth raising, so this is the guard on that.
+        self.install()
+        self.action("overdue", status="next", due=self.days(-30))
+        self.b("prune")
+        self.assertTrue((self.root / "actions/overdue.md").exists())
+
+    def test_the_backstop_query_finds_an_unscheduled_commitment(self):
+        self.install()
+        self.action("needs-a-slot", status="next")
+        self.action("has-a-slot", status="next", block=f"{self.days(1)}T09:00")
+        r = self.b("find", "--where", "status=next", "--without", "block")
+        self.assertIn("needs-a-slot", r.stdout)
+        self.assertNotIn("has-a-slot", r.stdout)
+
+    def test_both_grant_rows_are_needed_not_just_the_steward_one(self):
+        """The install trap. `wt-capture` is used_by: [main], so the front agent writes
+        action pages during an ordinary conversation, and the steward writes during the
+        nightly pass. Granting one and not the other looks like it worked — the write
+        succeeds, the commit lands — and surfaces a week later as a grants-audit critical,
+        which is the worst shape a permission failure can take."""
+        self.install()
+        for subject in ("agent:main", "agent:steward"):
+            with self.subTest(subject=subject):
+                r = self.b("grants", "check", "--subject", subject,
+                           "--verb", "write", "--path", "actions/cfp.md")
+                self.assertIn("GRANTED", r.stdout)
+        # And the steward alone reaches project pages, because linking an action to its
+        # project is maintenance, not capture.
+        self.assertIn("GRANTED", self.b("grants", "check", "--subject", "agent:steward",
+                                        "--verb", "write",
+                                        "--path", "projects/deal.md").stdout)
+
+    def test_an_ungranted_write_is_an_audit_critical_for_either_agent(self):
+        """The counterfactual for the rows above — proof the audit really catches this,
+        rather than the rows being decorative.
+
+        Both subjects are exercised explicitly, and the assertion names the subject it
+        expects. An earlier version of this test relied on the class fixture's default
+        agent, so despite its name it only ever exercised `agent:main` and would have
+        passed unchanged with the steward row deleted — the exact class of vacuous test
+        the review of this branch was looking for.
+        """
+        for assignment in ("zones.actions={kind: wiki}", f"types={self.TYPES}",
+                           f"frontmatter.extensions={self.EXTENSIONS}"):
+            self.b("config", "set", assignment)          # note: no self.grant()
+        for subject in ("agent:main", "agent:steward"):
+            with self.subTest(subject=subject):
+                name = f"ungranted-{subject.split(':')[1]}"
+                self.action(name, status="next")
+                env = {**self.env, "AOS_AGENT": subject}
+                r = run(["--base", str(self.root), "commit", "--verb", "create",
+                         "--path", f"actions/{name}.md",
+                         "--summary", "a write with no row"], env)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                out = self.b("lint").stdout
+                self.assertIn(f"grants audit: {subject} wrote actions/{name}.md", out)
+
+
+class StewardQueryTest(unittest.TestCase):
+    """The five maintenance signals, as the queries the steward actually runs.
+
+    If a query is wrong the steward is wrong, and that is far cheaper to catch here than
+    in a nightly job whose failure mode is an empty report. Every one of these returns
+    exit 0 with no rows when it is subtly wrong, so "it ran fine" proves nothing.
+
+    Its own setUp rather than a WorkTrackerZoneTest subclass. Inheritance was tried and
+    was actively wrong, not merely wasteful: that class owns
+    `test_an_undeclared_zone_is_invisible_rather_than_a_finding`, whose whole premise is a
+    base where the zone was NEVER declared, and this class's setUp declares it. The
+    inherited test failed on the subclass's own fixture. Sharing the twelve lines is the
+    cheaper mistake — the same reason LayoutTest and QueryTest each carry their own.
+    """
+
+    EXTENSIONS = WorkTrackerZoneTest.EXTENSIONS
+    TYPES = WorkTrackerZoneTest.TYPES
+    GRANT_ROWS = WorkTrackerZoneTest.GRANT_ROWS
+
+    # The fixture helpers are the same shape; borrowing the functions without inheriting
+    # the test methods is exactly what is wanted here.
+    tearDown = WorkTrackerZoneTest.tearDown
+    b = WorkTrackerZoneTest.b
+    grant = WorkTrackerZoneTest.grant
+    install = WorkTrackerZoneTest.install
+    days = WorkTrackerZoneTest.days
+    action = WorkTrackerZoneTest.action
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:steward",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "dana@example.com",
+                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "commitments",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.install()
+
+    def test_overdue(self):
+        self.action("late", status="next", due=self.days(-1))
+        self.action("fine", status="next", due=self.days(5))
+        out = self.b("find", "--where", "status=next", "--where", "due<today").stdout
+        self.assertIn("late", out)
+        self.assertNotIn("fine", out)
+
+    def test_about_to_expire(self):
+        self.action("going", status="done", expires=self.days(3))
+        self.action("staying", status="done", expires=self.days(30))
+        out = self.b("find", "--where", "expires<today+7d").stdout
+        self.assertIn("going", out)
+        self.assertNotIn("staying", out)
+
+    def test_stalled_waiting(self):
+        self.action("waited", status="waiting", waiting_on="Robin",
+                    since=self.days(-20))
+        self.action("recent", status="waiting", waiting_on="Sam", since=self.days(-2))
+        out = self.b("find", "--where", "status=waiting",
+                     "--where", "since<today-14d").stdout
+        self.assertIn("waited", out)
+        self.assertNotIn("recent", out)
+
+    def test_block_passed_and_nothing_moved(self):
+        self.action("missed", status="next", block=self.days(-2))
+        self.action("upcoming", status="next", block=self.days(2))
+        out = self.b("find", "--where", "status=next",
+                     "--where", "block<today").stdout
+        self.assertIn("missed", out)
+        self.assertNotIn("upcoming", out)
+
+    def test_someday_gone_cold(self):
+        self.action("cold", status="someday", since=self.days(-100))
+        self.action("warm", status="someday", since=self.days(-10))
+        out = self.b("find", "--where", "status=someday",
+                     "--where", "since<today-90d").stdout
+        self.assertIn("cold", out)
+        self.assertNotIn("warm", out)
+
+    def test_the_backstop_is_empty_on_a_healthy_base(self):
+        # It should normally return nothing. A base where it consistently doesn't has a
+        # broken schedule path, which is worth REPORTING rather than quietly
+        # compensating for — so an empty result here is the assertion, not a weak check.
+        self.action("scheduled", status="next", block=self.days(1))
+        out = self.b("find", "--where", "status=next", "--without", "block").stdout
+        self.assertIn("(0 ", out)
+
+    def test_slipped_escalates_at_the_threshold_including_double_digits(self):
+        # The threshold query, and the reason the tool's numeric comparison had to be
+        # fixed first: under string ordering "10" sorts below "3", so the commitment
+        # rescheduled ten times — the one most worth raising — was the one this query
+        # missed, silently and with exit 0.
+        self.action("slippy", status="next", block=self.days(-1), slipped=2)
+        self.b("set", "actions/slippy.md", "slipped=3")
+        self.action("chronic", status="next", slipped=10)
+        self.action("ok", status="next", slipped=1)
+        out = self.b("find", "--where", "slipped>=3").stdout
+        self.assertIn("slippy", out)
+        self.assertIn("chronic", out)
+        self.assertNotIn("actions/ok.md", out)
+
+    def test_every_steward_query_survives_an_empty_base(self):
+        # The clean-night path. Each query must return "no rows" rather than an error,
+        # because the steward's silence protocol depends on telling those two apart:
+        # silent on a clean night, never silent while something is stuck.
+        queries = [
+            ["--where", "status=next", "--where", "due<today"],
+            ["--where", "expires<today+7d"],
+            ["--where", "status=waiting", "--where", "since<today-14d"],
+            ["--where", "status=next", "--where", "block<today"],
+            ["--where", "status=someday", "--where", "since<today-90d"],
+            ["--where", "status=next", "--without", "block"],
+            ["--where", "slipped>=3"],
+        ]
+        for q in queries:
+            with self.subTest(query=" ".join(q)):
+                r = self.b("find", *q)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertIn("(0 ", r.stdout)
+
+
+class UpdateFlowTest(unittest.TestCase):
+    """The state-change path: find the action, apply the change, hand the outcome to kb.
+
+    Own fixture for the same reason StewardQueryTest has one — see that class's docstring.
+    """
+
+    EXTENSIONS = WorkTrackerZoneTest.EXTENSIONS
+    TYPES = WorkTrackerZoneTest.TYPES
+    GRANT_ROWS = WorkTrackerZoneTest.GRANT_ROWS
+
+    tearDown = WorkTrackerZoneTest.tearDown
+    b = WorkTrackerZoneTest.b
+    grant = WorkTrackerZoneTest.grant
+    install = WorkTrackerZoneTest.install
+    days = WorkTrackerZoneTest.days
+    action = WorkTrackerZoneTest.action
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.home = self.dir / "household"
+        (self.home / ".aos").mkdir(parents=True)
+        self.reg = self.dir / "kb-registry.yaml"
+        self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
+                    "AOS_HOME": str(self.home),
+                    "AOS_PRINCIPAL_ID": "dana@example.com",
+                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
+        self.root = self.dir / "b"
+        r = run(["init", "b", "--path", str(self.root), "--purpose", "commitments",
+                 "--templates", str(TEMPLATES), "--default"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.install()
+
+    def fm(self, p):
+        return yaml.safe_load(p.read_text().split("---")[1])
+
+    def test_completion_sets_done_and_an_expiry(self):
+        # The exit the old list never had: without expires, a completed action lives
+        # forever and the list becomes a graveyard you stop reading.
+        self.action("cfp", status="next", since=self.days(-3))
+        r = self.b("set", "actions/cfp.md", "status=done", f"expires={self.days(90)}",
+                   f"since={_dt.date.today().isoformat()}")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        got = self.fm(self.root / "actions/cfp.md")
+        self.assertEqual(got["status"], "done")
+        self.assertIn("expires", got)
+
+    def test_since_moves_on_any_progress_report(self):
+        # "I started it" is progress with no status change, and it must still reset the
+        # stall clock — otherwise the steward nags about a commitment actively being
+        # worked on, which is exactly how a user learns to ignore it.
+        self.action("contract", status="next", since=self.days(-10))
+        stale = self.b("find", "--where", "status=next",
+                       "--where", "since<today-7d").stdout
+        self.assertIn("contract", stale)
+        self.b("set", "actions/contract.md", f"since={_dt.date.today().isoformat()}")
+        fresh = self.b("find", "--where", "status=next",
+                       "--where", "since<today-7d").stdout
+        self.assertIn("(0 ", fresh)
+
+    def test_the_outcome_lands_as_knowledge_that_outlives_the_action(self):
+        """The step an implementation forgets, and the one that makes pruning safe.
+
+        Note the `kb ingest` in the middle: `kb capture` lands in `.kb/pending/`, and
+        `kb search` only indexes the wiki and raw zones — so without ingest the knowledge
+        is invisible to the very query that is supposed to prove it survived. The plan's
+        version of this test omitted that step and would have asserted the opposite of
+        what it intended.
+        """
+        self.action("acme-call", status="next")
+        r = self.b("capture", "--text", "Acme wants a pilot in Q4")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        pending = sorted((self.root / ".kb" / "pending").glob("*.md"))
+        self.assertEqual(len(pending), 1, "the capture should be queued")
+        r = self.b("ingest", f".kb/pending/{pending[0].name}")
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+        self.b("set", "actions/acme-call.md", "status=done",
+               f"expires={self.days(-1)}")
+        self.b("prune")
+        self.assertFalse((self.root / "actions/acme-call.md").exists(),
+                         "the expired action should be gone")
+        # The knowledge survives the action's deletion — the whole point.
+        self.assertIn("pilot", self.b("search", "pilot").stdout)
+
+    def test_finding_the_open_set_is_a_small_query(self):
+        # Step 1 of the skill: the open set is small enough to match by title, which is
+        # what makes "I did that" resolvable without asking.
+        self.action("cfp", status="next")
+        self.action("contract", status="waiting", waiting_on="Robin")
+        self.action("old", status="done", expires=self.days(30))
+        out = self.b("find", "--where", "type=action", "--where", "status=next").stdout
+        self.assertIn("cfp", out)
+        self.assertNotIn("actions/old.md", out)
+
+    def test_abandonment_is_a_status_not_a_deletion(self):
+        # "forget it, I'm not doing the CFP" — the record of having decided that is worth
+        # keeping, so it expires like anything else rather than vanishing on the spot.
+        self.action("cfp", status="next")
+        self.b("set", "actions/cfp.md", "status=done", f"expires={self.days(30)}")
+        self.b("prune")
+        self.assertTrue((self.root / "actions/cfp.md").exists())
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=1)

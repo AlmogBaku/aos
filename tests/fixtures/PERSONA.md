@@ -12,7 +12,7 @@ data elsewhere.
 | Messaging | `whatsapp:+000000000000` |
 | Email | `dana@example.com` |
 | KBs | `personal-kb` (private, default) · `acme-kb` (shared) |
-| Drain hour | 23:47 (deliberately odd — greppable) |
+| Steward hour | 22:47 (deliberately odd — greppable) |
 
 ## Sentinels
 
@@ -22,8 +22,8 @@ MOD.md nuance survived the agentic transform.
 
 | Sentinel | Lives in | Must surface in |
 |---|---|---|
-| `single 🦜 emoji` | gtd-capture MOD (capture confirm preference) | rendered capture skill |
+| `single 🦜 emoji` | work-tracker MOD (commitment confirm preference) | rendered `wt-capture` skill |
 | `choir` (the distinctive token — distilled prose reworders the phrase) | global MOD sacred_time | any schedule-touching render |
-| `23:47` | gtd-capture MOD drain hour | drainer cron job schedule |
-| `violet-heron` | gtd-capture user-b MOD | user-b render only (divergence proof) |
+| `22:47` | work-tracker MOD `steward_hour` | steward cron job schedule (`47 22 * * *`) |
+| `violet-heron` | work-tracker user-b MOD | user-b render only (divergence proof) |
 | `FAKE-SECRET-VALUE-1` | fixture secret value | harness secret store only — never MOD.md, never skills |

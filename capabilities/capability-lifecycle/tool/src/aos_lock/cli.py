@@ -45,7 +45,13 @@ SKILL_PREFIX_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*-$")
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 SKILL_NAME_MAX = 64
 RESERVED_NAME_WORDS = ("anthropic", "claude")
-ORIGIN_KEY = "x-aos-origin"
+# The provenance stamp lives inside the Agent Skills spec's own extension hatch, because
+# SKILL.md is an EXTERNAL schema and we are a vendor in it — inventing a top-level `x-`
+# key there was us reserving namespace in somebody else's house. `x-*` stays reserved in
+# CAPABILITY.md, which is ours, for THIRD parties.
+ORIGIN_PATH = ("metadata", "aos", "origin")
+ORIGIN_KEY = "metadata.aos.origin"          # display form, for messages
+LEGACY_ORIGIN_KEY = "x-aos-origin"          # stripped from renders; never written
 
 
 def fail(code, msg):
@@ -391,16 +397,27 @@ def aos_owned(entry, root):
     the origin tag. The lockfile is machine-local and gitignored — if it is lost, a gate
     that trusted it alone would refuse every re-install of an already-installed capability,
     turning a recoverable state into a stuck one. Cross-capability conflicts are still
-    caught: both capabilities are in the household, which the source scan reads."""
+    caught: both capabilities are in the household, which the source scan reads.
+
+    The tag is read as structured frontmatter, never as a substring. `ORIGIN_KEY in text`
+    matched the string anywhere in the file — so a skill whose PROSE discussed provenance
+    read as aos-installed, and the gate handed a stranger's name to an install that should
+    have stopped at exit 17. This decision is what stands between a name collision and a
+    silently overwritten skill, so it reads the key or it does not claim the entry."""
     if entry.is_symlink():
         target = os.path.normpath(os.path.join(str(entry.parent), os.readlink(entry)))
         if root and (str(root) + os.sep) in target + os.sep:
             return True
     skill_md = entry / "SKILL.md" if entry.is_dir() else entry
-    try:
-        return ORIGIN_KEY in skill_md.read_text()
-    except (OSError, UnicodeDecodeError):
+    data = frontmatter_soft(skill_md)
+    if data is None:
         return False
+    node = data
+    for key in ORIGIN_PATH:
+        if not isinstance(node, dict) or key not in node:
+            return False
+        node = node[key]
+    return bool(node)
 
 
 def harness_owners(dirs, ours, root=None):
@@ -483,26 +500,47 @@ def cmd_skills(args):
 
 
 def stamp_render(path, name, origin):
-    """Rewrite the render's frontmatter `name` to the installed name and stamp origin."""
-    lines = path.read_text().split("\n")
-    if not lines or lines[0].strip() != "---":
+    """Rewrite the render's frontmatter `name` to the installed name and stamp origin.
+
+    Parses and re-emits the frontmatter rather than editing lines. The stamp lives at
+    `metadata.aos.origin` — inside the Agent Skills spec's own extension hatch, because
+    SKILL.md is somebody else's schema and we are the vendor in it. That makes the write a
+    MERGE: `metadata.<harness>.*` is legitimate sibling data a line-based writer could not
+    see, so appending a key would leave a stale nested one intact and clobber nothing it
+    meant to. Losing comment and key-order fidelity is acceptable here and nowhere else:
+    this runs on a render, which is a generated artifact.
+    """
+    text = path.read_text()
+    if not text.startswith("---\n"):
         fail(12, f"{path}: no YAML frontmatter block")
-    end = next((i for i, l in enumerate(lines[1:], 1) if l.strip() == "---"), None)
-    if end is None:
+    m = re.search(r"^---\s*$", text[4:], flags=re.M)
+    if m is None:
         fail(12, f"{path}: unterminated frontmatter block")
-    head, renamed = [], False
-    for line in lines[1:end]:
-        if line.startswith(f"{ORIGIN_KEY}:"):
-            continue                      # never inherit a stale tag
-        if line.startswith("name:") and not renamed:
-            head.append(f"name: {name}")
-            renamed = True
-        else:
-            head.append(line)
-    if not renamed:
+    end = 4 + m.start()
+    try:
+        data = yaml.safe_load(text[4:end]) or {}
+    except yaml.YAMLError as e:
+        fail(12, f"{path}: frontmatter is not valid YAML: {e}")
+    if not isinstance(data, dict):
+        fail(12, f"{path}: frontmatter must be a YAML mapping")
+    if "name" not in data:
         fail(12, f"{path}: frontmatter has no name: field")
-    head.append(f"{ORIGIN_KEY}: {origin}")
-    path.write_text("\n".join(["---", *head, "---", *lines[end + 1:]]))
+
+    data["name"] = name
+    data.pop(LEGACY_ORIGIN_KEY, None)     # never inherit a stale top-level tag
+    meta = data.get("metadata")
+    if not isinstance(meta, dict):
+        meta = {}
+    aos = meta.get("aos")
+    if not isinstance(aos, dict):
+        aos = {}
+    aos["origin"] = origin                # ours to overwrite; siblings are not
+    meta["aos"] = aos
+    data["metadata"] = meta
+
+    body = text[end + len(m.group(0)):].lstrip("\n")
+    fm = yaml.safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=False)
+    path.write_text(f"---\n{fm}---\n{body}")
 
 
 def cmd_render(args):
@@ -513,6 +551,28 @@ def cmd_render(args):
         fail(14, f"{cap_dir.name}: no declared skill '{args.skill}'")
     src = cap_dir / "skills" / args.skill
     dest = Path(args.out).expanduser() / row["installed_name"]
+    # `--out` must never point inside the package being rendered. Two distinct failures
+    # live here, and a capability that `capability-build` or `capability-import` wrote hits
+    # them on its FIRST upgrade, because it lives in `personal/capabilities/<id>/` — which
+    # is exactly where install and upgrade say to render:
+    #
+    #   1. DATA LOSS, when dest lands on the source itself (the entry skill, whose id
+    #      equals the capability's, so `installed_name == args.skill`). The rmtree below
+    #      runs before the copytree, so the user's hand-written skill and its whole
+    #      reference/ tree are deleted and then the copy dies on what it just removed.
+    #   2. A BRICKED MANIFEST, when dest lands elsewhere under the package's `skills/`
+    #      (any non-entry skill: `skills/drain` renders to `skills/<prefix>drain`). That
+    #      is a second on-disk skill nothing declares, so every later `manifest`, `skills`
+    #      and `render` on the capability fails exit 12 — and the install that created it
+    #      can no longer be upgraded or removed.
+    #
+    # Rejecting the whole package directory covers both, and is what the skills mean by
+    # "render into the household's skills root": somewhere outside the package.
+    src_r, dest_r, pkg_r = src.resolve(), dest.resolve(), cap_dir.resolve()
+    if dest_r == pkg_r or pkg_r in dest_r.parents:
+        fail(1, f"--out points inside the package being rendered ({dest}) — that would "
+                f"{'delete the source' if dest_r == src_r else 'add an undeclared skill the manifest then rejects'}. "
+                f"Render to a destination outside {cap_dir}.")
     if dest.is_symlink():
         # A link where the render belongs is someone else's artifact, not ours to rmtree.
         fail(1, f"{dest} is a symlink — remove it first (renders are real directories)")

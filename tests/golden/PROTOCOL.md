@@ -9,7 +9,7 @@ structurally, snapshotted, and removed.
 Everything the run creates is identifiable and disposable:
 
 - Profiles: `aos-test` (the front agent / install home) and `aos-<agent>` for capability
-  agents (e.g. `aos-drainer`, `aos-archiver`).
+  agents (`aos-archiver` for kb, `aos-steward` for work-tracker).
 - Cron jobs: the `aos:<capability>:<schedule-id>` name prefix (contract rule).
 - KBs: under `tests/.sandbox/kb/` (gitignored) — never a real KB.
 - The household: `tests/.sandbox/aos-home/` — `upstream/` (a clone of this repo),
@@ -30,7 +30,7 @@ Everything the run creates is identifiable and disposable:
    only `model.default` and fails with `Invalid length for parameter modelId`. Copy a
    working profile's `config.yaml` (`model.provider`, `base_url`, and the `terminal`/`file`/
    `skills`/`cronjob` toolsets); `normalize.mjs` skips `config.yaml`, so nothing private
-   reaches the snapshot. Capability agents (`aos-drainer`, `aos-archiver`) need the same.
+   reaches the snapshot. Capability agents (`aos-archiver`, `aos-steward`) need the same.
    Also configure a git identity in the seeded `personal/` repo
    (`git -C <sandbox>/aos-home/personal config user.name/user.email` — the fixture persona
    is Dana Fixture): the persist hook commits as the user, and the agent correctly refuses
@@ -46,19 +46,19 @@ Everything the run creates is identifiable and disposable:
    > in `personal/` at mirrored paths. Your install home (the "front agent") is the
    > `aos-test` profile (`~/.hermes/profiles/aos-test`); create capability agents as
    > `aos-<name>` profiles. Renders land in `personal/` and skills are symlinked per
-   > the contract. Install: kb (gtd-capture comes later, as its own prompt — see the
+   > the contract. Install: kb (work-tracker comes later, as its own prompt — see the
    > Day-N step). The lockfile lives at `aos-home/.aos/installs.lock.yaml`
    > (`aos-lock --home <sandbox>/aos-home`).
 
    The installer gets **no other context** — BOOTSTRAP + the capability-lifecycle
    contract + capability + cheat-sheet + overlay must suffice; that is the test.
-   Bootstrap installs capability-lifecycle (nine skills — the interview engine among
+   Bootstrap installs capability-lifecycle (ten skills — the interview engine among
    them, so there is no separate onboarding install) and kb. The name gate
    (`aos-lock skills … --check`) runs before each install; a fresh `aos-test` profile has
    no skills of its own, so it must come back clean.
 
    **Day-N step** (the seam this exists to prove): a SEPARATE, fresh prompt with no
-   bootstrap context — `hermes -p aos-test -z "install gtd-capture from the aos household
+   bootstrap context — `hermes -p aos-test -z "install work-tracker from the aos household
    at <sandbox>/aos-home"` (default-profile fallback as above) — must trigger the
    materialized `capability-install` skill and complete the install.
 
@@ -83,9 +83,9 @@ Everything the run creates is identifiable and disposable:
    Done this way on 2026-07-25 for the nine `capability-lifecycle` skills, to carry two prose
    fixes found in review (`tests/transcripts/2026-07-25-skill-identity-e2e-hermes.md`).
    **Evolve step (after the snapshot — it mutates install state)**: a fresh prompt —
-   "change gtd-capture's drain schedule to 22:00" — must route through
+   "change work-tracker's steward hour to 22:00" — must route through
    `capability-evolve`: the cron job changes, the change lands in
-   `personal/capabilities/gtd-capture/MOD.md` (auto-committed by the persist hook), and
+   `personal/capabilities/work-tracker/MOD.md` (auto-committed by the persist hook), and
    `aos-lock verify` stays clean. **Note when running via the default-profile fallback:**
    the fallback agent does not carry the materialized skills in context, so the prompt
    must name the skill path explicitly (`~/.hermes/profiles/aos-test/skills/

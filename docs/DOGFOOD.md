@@ -5,7 +5,7 @@ starts on purpose; none runs from CI or from an implementation agent's own initi
 
 - [ ] **Real personal install**: bootstrap per `BOOTSTRAP.md` (capability-lifecycle first — its
       own interview is the global one — then kb) on the live Hermes with the
-      user's own answers (not fixtures) — capability-lifecycle + kb + gtd-capture.
+      user's own answers (not fixtures) — capability-lifecycle + kb + work-tracker.
 - [ ] **`kb adopt` report on the production KB** — report-only; nothing committed, nothing rewritten.
 - [ ] **2-week live routing replay** — hand-labeled real captures vs router decisions;
       misroute rate < 5% (ARCHITECTURE Appendix B #2). Evidence feeds RFC-006.
@@ -21,3 +21,20 @@ starts on purpose; none runs from CI or from an implementation agent's own initi
       real attention window). The skill exists for exactly this session.
 - [ ] **State cap + eviction tuning**: dogfood `state.max_items` (default 20) and the
       42-day staleness window against real attention churn.
+- [ ] **A month of a real two-person base** (RFC-010 Q1's own decision method): per-principal
+      curation, `kb lint` run by hand or by each member's automation, counting what the
+      pending queue actually accumulates and what a human had to fix. If per-principal
+      curation keeps the queue drainable, CI curation is unnecessary rather than deferred.
+- [ ] **`kb config set`'s missing grant row** — decide it rather than carrying it: the fix
+      needs a push to `aos-kb-template`, so it is a decision (see the BUILD-GAPS row). Until
+      then every base whose schema was edited carries one permanent audit critical.
+- [ ] **Commitment tracking against real commitments** — the thing work-tracker exists for,
+      and the only way to find out whether the speech-act split holds outside fixtures: does
+      *"I need to find time to…"* fire reliably, and does *"write the CFP"* stay silent?
+- [ ] **Multi-model skill testing** — the authoring guide's checklist asks for every skill to be
+      tested with **Haiku, Sonnet and Opus**, because "what works perfectly for Opus might need
+      more detail for Haiku". Only a **Sonnet-tier** pass has run (2026-07-29, kb's seven
+      skills, five ordinary tasks — it found four real gaps, all fixed). Haiku is untested, and
+      it is the tier most likely to need the guidance that reads as over-explaining to Opus.
+      The eval sets at `tests/evals/` are the queries; what is missing is a harness that can
+      observe triggering (see their README's "harness could not measure" note).

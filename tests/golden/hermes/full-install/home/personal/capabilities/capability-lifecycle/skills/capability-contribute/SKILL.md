@@ -1,9 +1,18 @@
 ---
 name: capability-contribute
-description: "Evolves a capability's SHIPPED SOURCE — for everyone, not one user. A small tweak lands directly; a change to what the capability owns or does re-runs a scoped version of the capability-build research/design/approval flow. Use for upstream bug reports and change requests about an existing capability ('the drainer should also flag X' as a fix for all users), when capability-evolve routes a source-level ask or a promotion here ('promote this MOD line', 'this should be for everyone'), or when a contribution needs drafting for upstream. Not for personalizing one user's install — that's capability-evolve (the overlay) — and not for something new to build — that's capability-build."
-x-aos-origin: capability-lifecycle@0.3.0
+description: Evolves a capability's SHIPPED SOURCE — for everyone, not one user. A
+  small tweak lands directly; a change to what the capability owns or does re-runs
+  a scoped version of the capability-build research/design/approval flow. Use for
+  upstream bug reports and change requests about an existing capability ('the steward
+  should also flag X' as a fix for all users), when capability-evolve routes a source-level
+  ask or a promotion here ('promote this MOD line', 'this should be for everyone'),
+  or when a contribution needs drafting for upstream. Not for personalizing one user's
+  install — that's capability-evolve (the overlay) — and not for something new to
+  build — that's capability-build.
+metadata:
+  aos:
+    origin: capability-lifecycle@0.3.4
 ---
-
 # capability-contribute
 
 Boundary: this skill edits capability *source* — for everyone who uses the package.
@@ -24,7 +33,7 @@ Classify before acting — see [reference/judgment.md](reference/judgment.md).
 
 ## Intakes
 
-- **A source fix** ("the drainer double-counts") — classify Small/Major below.
+- **A source fix** ("the steward double-counts a slip") — classify Small/Major below.
 - **A promotion** (routed from `capability-evolve` with a MOD statement, or "promote
   this"): extract the *mechanism* — the user's literal nuance text never ships. A
   missing knob becomes a `{{mod: <key>}}` slot at the site the nuance targets **plus**

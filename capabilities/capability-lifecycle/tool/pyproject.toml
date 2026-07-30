@@ -1,6 +1,6 @@
 [project]
 name = "aos-lock"                # kit name is RFC-001's; command below is what matters
-version = "0.1.0"                # tracks the capability-lifecycle capability version
+version = "0.3.4"                # tracks the capability-lifecycle capability version
 description = "Deterministic lifecycle bookkeeping for aos: manifest parse/validate + the tool-owned lockfile (capability-shipped tool, ARCHITECTURE §2.4)"
 requires-python = ">=3.9"
 dependencies = ["pyyaml>=6.0"]

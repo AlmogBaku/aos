@@ -15,7 +15,7 @@ Ask, clustering related questions and skipping what's already answered:
 
 Capture answers plus any nuance beyond the literal answer — that nuance becomes
 personalization content at Build time (the user's own MOD.md and the package's
-interview questions — the split rule lives in the Build stage doc, `reference/build.md`,
+interview questions — the split rule lives in the Build stage doc this skill links,
 listed in the skill's checklist), not something to
 discard and never something to hardcode into the package itself.
 

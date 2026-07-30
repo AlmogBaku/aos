@@ -2,7 +2,8 @@ import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { readFrontmatter } from '../../lib/frontmatter.mjs';
 import {
-  ORIGIN_FRONTMATTER_KEY, MAIN_AGENT, SKILL_NAME_RE, SKILL_NAME_MAX,
+  ORIGIN_FRONTMATTER_KEY, ORIGIN_FRONTMATTER_PATH, LEGACY_ORIGIN_FRONTMATTER_KEY,
+  MAIN_AGENT, SKILL_NAME_RE, SKILL_NAME_MAX,
   RESERVED_NAME_WORDS, REFERENCE_TOC_LINES,
 } from '../../lib/constants.mjs';
 import { agentNames } from './agents.mjs';
@@ -39,11 +40,17 @@ export function checkSkills({ caps, files, report }) {
       // Strict-portable profile: shipped skills carry only spec fields. Harness-
       // specific extension goes in metadata.<harness>.* per the spec's own escape hatch.
       for (const key of Object.keys(data)) {
-        if (key === ORIGIN_FRONTMATTER_KEY) {
-          report('error', 'skill/origin-tag', file, `${ORIGIN_FRONTMATTER_KEY} is an install-time tag — never shipped upstream`);
+        if (key === LEGACY_ORIGIN_FRONTMATTER_KEY) {
+          report('error', 'skill/origin-tag', file, `${LEGACY_ORIGIN_FRONTMATTER_KEY} is retired — the stamp is ${ORIGIN_FRONTMATTER_KEY}, and it is an install-time tag never shipped upstream`);
         } else if (!SKILL_KEYS.includes(key)) {
           report('error', 'skill/unknown-key', file, `"${key}" is not an Agent Skills spec field (allowed: ${SKILL_KEYS.join(', ')})`);
         }
+      }
+      // The stamp moved inside `metadata`, so rejecting the old top-level key is no longer
+      // enough — an upstream skill carrying metadata.aos.origin is the same defect wearing
+      // the new spelling, and a check that only knew the old one would pass it silently.
+      if (readOrigin(data) !== undefined) {
+        report('error', 'skill/origin-tag', file, `${ORIGIN_FRONTMATTER_KEY} is an install-time tag — never shipped upstream`);
       }
       const name = data.name;
       if (typeof name !== 'string' || !name.length || name.length > SKILL_NAME_MAX || !NAME_RE.test(name)) {
@@ -63,6 +70,21 @@ export function checkSkills({ caps, files, report }) {
         report('error', 'skill/description', file, 'description is required, 1–1024 chars');
       } else if (!/\bwhen\b/i.test(desc)) {
         report('warn', 'skill/description-when', file, 'description should say when to use the skill (trigger phrasing)');
+      }
+      // A description is injected into the system prompt to choose among a hundred skills, so
+      // its point of view is load-bearing: the authoring guide calls first/second person a
+      // discovery problem, not a style preference. Every shipped skill already passes, which is
+      // why this is an error rather than a warning — it guards a property we have, instead of
+      // reporting one we lack. The review skill's reference/skill-rubric.md carries the
+      // judgment half of description quality, which no regex can reach.
+      if (typeof desc === 'string') {
+        const pov = desc.match(
+          /\b(?:I can|I will|I help|I'll|helps? you|lets you|allows you|enables you|you can|you should|use this (?:to|when|for))\b/i);
+        if (pov) {
+          report('error', 'skill/description-person', file,
+            `description says "${pov[0]}" — write it in third person ("Records a thought…", `
+            + `not "I can help you…" or "Use this to…"); it is injected into the system prompt`);
+        }
       }
       for (const [field, value] of [['name', name], ['description', desc]]) {
         if (typeof value === 'string' && XML_TAG_RE.test(value)) {
@@ -93,13 +115,29 @@ export function checkSkills({ caps, files, report }) {
 
     checkReferenceDepth(cap, files, report);
 
-    // §2.2: a multi-skill capability scoping everything to main is the degenerate
-    // case the linter questions.
+    // §2.2: a multi-skill capability scoping everything to main is the degenerate case the
+    // linter questions — but only where an alternative EXISTED. A capability with no agents
+    // and no schedules has no role to scope to, so "is that deliberate?" is unanswerable
+    // rather than unanswered, and a warning nobody can act on is one people learn to ignore.
+    // (capability-lifecycle is the case: install/upgrade/remove are all things the user asks
+    // the front agent.) A capability that LATER declares an agent and forgets to scope a
+    // skill to it fires this again, which is the signal worth keeping.
+    const hasRoles = agents.length > 0 || (manifest.schedules ?? []).length > 0;
     const allUsedBy = [...declared.values()].flatMap((s) => s.used_by ?? []);
-    if (declared.size > 1 && allUsedBy.length && allUsedBy.every((u) => u === MAIN_AGENT)) {
+    if (hasRoles && declared.size > 1 && allUsedBy.length && allUsedBy.every((u) => u === MAIN_AGENT)) {
       report('warn', 'skill/all-main', `${cap.rel}/CAPABILITY.md`, 'every skill is scoped to main — is that deliberate? (§2.2)');
     }
   }
+}
+
+// The stamp, read as structured data at whatever depth the spec hatch puts it.
+function readOrigin(data) {
+  let node = data;
+  for (const key of ORIGIN_FRONTMATTER_PATH) {
+    if (node === null || typeof node !== 'object' || !(key in node)) return undefined;
+    node = node[key];
+  }
+  return node;
 }
 
 // Progressive disclosure, per the Agent Skills authoring guide: every reference file hangs
@@ -120,10 +158,28 @@ function checkReferenceDepth(cap, files, report) {
     } catch {
       continue;
     }
-    for (const m of text.matchAll(/]\((?:\.\/)?([a-z0-9._-]+\.md)(?:#[^)]*)?\)/gi)) {
-      if (siblings.has(m[1])) {
+    // Two forms, because authors write both and the truncation is identical: a markdown link
+    // `](deep.md)`, and a backticked path `` `reference/deep.md` `` — which is in fact the
+    // commoner shape in this kit. Matching only the link form left the majority invisible.
+    // The basename is compared, so `reference/x.md` and `./x.md` and `x.md` all resolve to the
+    // same sibling; a file naming ITSELF is not a violation, and neither is a path into a
+    // different skill's reference/ (that is skill/no-cross-path's job).
+    const self = file.slice(dir.length + 1);
+    // Only a path that RESOLVES to a sibling counts. Matching on basename alone made a
+    // legitimate cross-skill reference by installed name (`kb-route/reference/lifecycle.md`)
+    // fire against this skill's own `lifecycle.md` — the case the comment above claims is
+    // safe. So a bare `x.md`, `./x.md` or `reference/x.md` is a sibling reference; anything
+    // carrying a longer prefix is somebody else's file and is `skill/no-cross-path`'s to judge.
+    const NESTED_RE = /]\((?:\.\/)?([A-Za-z0-9._/-]+\.md)(?:[#"'][^)]*)?\)|`(?:\.\/)?([A-Za-z0-9._/-]+\.md)(?:#[A-Za-z0-9._-]+)?`/g;
+    for (const m of text.matchAll(NESTED_RE)) {
+      const ref = m[1] ?? m[2];
+      const parts = ref.split('/');
+      // sibling-shaped: `x.md` or `reference/x.md`, nothing deeper
+      if (parts.length > 2 || (parts.length === 2 && parts[0] !== 'reference')) continue;
+      const target = parts[parts.length - 1];
+      if (target !== self && siblings.has(target)) {
         report('error', 'skill/nested-reference', file,
-          `links to the sibling reference "${m[1]}" — every reference file must hang directly off SKILL.md, or it gets read only in part`);
+          `references the sibling "${target}" — every reference file must hang directly off SKILL.md, or it gets read only in part (name the SKILL instead, and let it link both)`);
       }
     }
     const lines = text.split('\n');

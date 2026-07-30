@@ -1,6 +1,5 @@
-# Large non-text files ride git-LFS (base engine, design §2).
-# Rendered to .gitattributes by `base init`. Extend per base as needed —
-# the linter flags large binaries that dodge these patterns.
+# Large non-text files ride git-LFS. Rendered to .gitattributes by `kb init`.
+# Extend per base as needed — the linter flags large binaries that dodge these patterns.
 *.png filter=lfs diff=lfs merge=lfs -text
 *.jpg filter=lfs diff=lfs merge=lfs -text
 *.jpeg filter=lfs diff=lfs merge=lfs -text

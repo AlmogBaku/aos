@@ -1,6 +1,6 @@
 # No cheat-sheet for your harness?
 
-The contract (`contract.md`) is the aos half and holds everywhere; a cheat-sheet only
+The install contract is the aos half and holds everywhere; a cheat-sheet only
 adds your harness's half. Derive it yourself:
 
 | aos concept | find your harness's |
@@ -18,11 +18,16 @@ adds your harness's half. Derive it yourself:
 2. **[A]** Draft
    `<home>/upstream/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`
    answering §5.2's six sections (Primitive mapping, Materialization guide, Introspection
-   guide, Secrets, Removal, Feature notes — `harness-hermes.md` beside this file is
+   guide, Secrets, Removal, Feature notes — the Hermes sheet the entry skill links is
    the reference shape). Keep it lean: your harness's half only. Write it **on a
    branch** (`git -C <home>/upstream switch -c cheatsheet-<harness>`): a cheat-sheet is
    generic knowledge, not personalization — the clone stays pristine on `main`, and the
-   draft is born contribution-shaped.
+   draft is born contribution-shaped. **The branch may already exist**, because step 5 switches
+   back to `main` when the operation ends and the next operation routes here again: `switch -c`
+   then fails with exit 128. Check first — if the branch is there, `switch` to it (no `-c`) and
+   **read the sheet you already wrote** rather than drafting a second one. A sheet exists as
+   soon as one operation has finished; re-drafting it from scratch is the failure mode this
+   note exists to prevent.
 3. **[D]** Diff gate: show the user the full draft before writing it — then **commit it
    on the branch** (`git -C <home>/upstream add capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<h>.md`
    + commit). Uncommitted, it would follow you back to `main` as an untracked file in a

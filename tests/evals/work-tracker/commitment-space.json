@@ -1,0 +1,25 @@
+[
+  {"query": "i need to find time to write the kubecon CFP, it closes march 3rd", "should_trigger": true},
+  {"query": "i have to call the dentist by friday or i lose the slot", "should_trigger": true},
+  {"query": "remind me to renew the passport before the berlin trip in september", "should_trigger": true},
+  {"query": "put that on my list", "should_trigger": true},
+  {"query": "help me remember to review the acme contract before the call", "should_trigger": true},
+  {"query": "i should learn rust at some point, not now though", "should_trigger": true},
+  {"query": "ugh i keep forgetting — i owe priya the security questionnaire back", "should_trigger": true},
+  {"query": "add: chase the landlord about the boiler", "should_trigger": true},
+
+  {"query": "write the CFP", "should_trigger": false},
+  {"query": "research the postgres upgrade path for us and summarise the tradeoffs", "should_trigger": false},
+  {"query": "email sam the deck", "should_trigger": false},
+  {"query": "draft a reply to robin about the venue", "should_trigger": false},
+  {"query": "robin says the venue is booked for the 14th, both rooms", "should_trigger": false},
+  {"query": "acme's fiscal year ends in march apparently", "should_trigger": false},
+  {"query": "save this for later https://arxiv.org/abs/2109.01652 good writeup on BM25", "should_trigger": false},
+  {"query": "when can i do the CFP? need about two hours", "should_trigger": false},
+  {"query": "block time for that tomorrow morning", "should_trigger": false},
+  {"query": "i did that, the contract review is done", "should_trigger": false},
+  {"query": "still waiting on robin for the venue confirmation", "should_trigger": false},
+  {"query": "whats overdue on my list right now", "should_trigger": false},
+  {"query": "review my backlog and tell me whats gone stale", "should_trigger": false},
+  {"query": "how does my task tracking actually work?", "should_trigger": false}
+]

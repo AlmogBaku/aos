@@ -14,12 +14,12 @@ runtime, where CI cannot reach. If the two ever disagree, the code is the bug.
 
 ## What to name things
 
-- **Skills are action-oriented**: `install`, `evolve`, `drain`, `route`. A skill is a job
+- **Skills are action-oriented**: `install`, `evolve`, `capture`, `route`. A skill is a job
   the agent does.
-- **Agents are role-oriented**: `archiver`, `drainer`, `librarian`. An agent is someone who
+- **Agents are role-oriented**: `archiver`, `steward`, `librarian`. An agent is someone who
   holds a job.
 - **The entry skill is the exception**: it is named after its capability (`kb`,
-  `gtd-capture`), because it is the capability's front door, not one of its jobs.
+  `work-tracker`), because it is the capability's front door, not one of its jobs.
   (`structure/entry-skill`)
 - Never a vague name (`helper`, `utils`, `tools`) and never a bare noun (`documents`,
   `data`). Pick one pattern per capability and hold it.
@@ -48,7 +48,7 @@ Consequences that bite if you forget them:
 - **Cross-skill references in prose use the installed name.** References resolve by name at
   runtime, and the bare id names nothing once installed — say `kb-route`, not `route`.
   (`skills/ref-unqualified`)
-- The `x-aos-origin` tag is added by `aos-lock render` at install and never shipped
+- The `metadata.aos.origin` stamp is added by `aos-lock render` at install and never shipped
   upstream. (`skill/origin-tag`)
 
 ## Uniqueness is a gate, not a convention
@@ -113,8 +113,8 @@ Three ways to reference something, and they cover every case:
 
 | What you need | How to write it |
 |---|---|
-| depth for this skill | a plain relative path — `reference/naming.md`, `scripts/check.py` |
-| another skill, or knowledge it owns | name the skill (`capability-lifecycle`), then its own path (`reference/overlay.md`) — the agent loads the skill, and the path resolves inside it (`skill/no-cross-path`) |
+| depth for this skill | a plain relative path from SKILL.md — `reference/<topic>.md`, `scripts/check.py` |
+| another skill, or knowledge it owns | name the skill (`capability-lifecycle`), then its own path — the agent loads the skill, and the path resolves inside it (`skill/no-cross-path`) |
 | something in the household | write it from a root — `<home>/upstream/capabilities/<id>/…`, `<home>/personal/…` — which does resolve at runtime |
 
 Consequences worth stating, because each one was a real bug:
@@ -130,7 +130,7 @@ Consequences worth stating, because each one was a real bug:
 - **Never a parent-directory reference.** The materialized directory carries the installed
   name, not the source id, so climbing out of the skill folder breaks even when the path
   looks right in the repo. (`skill/no-cross-path`)
-- When you write a path for the *user's* tree — a KB's `_ops/needs-review/`, a draft's
+- When you write a path for the *user's* tree — a KB's `.kb/pending/`, a draft's
   `agents/<name>.agent.yaml` — say once which root it is relative to. Those are data
   locations, not load targets, and an unrooted one is a guess.
 

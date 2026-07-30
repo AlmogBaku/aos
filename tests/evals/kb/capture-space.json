@@ -1,0 +1,23 @@
+[
+  {"query": "robin just told me the venue for the offsite is booked for the 14th, both rooms", "should_trigger": true},
+  {"query": "note this down — acme pushed their pilot to Q4 because their security review slipped", "should_trigger": true},
+  {"query": "save this for later https://arxiv.org/abs/2109.01652 good writeup on instruction tuning, want to come back to it", "should_trigger": true},
+  {"query": "remember that sam prefers async updates over calls, he said standups wreck his mornings", "should_trigger": true},
+  {"query": "quick one before i forget: the new pricing page went live today, 3 tiers not 4", "should_trigger": true},
+  {"query": "meeting notes from the vendor call — they want SOC2 before signing, budget lands in october, main contact is priya in procurement", "should_trigger": true},
+  {"query": "fwiw the postgres upgrade is scheduled for the 2nd, ops owns it not us", "should_trigger": true},
+  {"query": "jot down that the kubecon CFP closes march 3rd", "should_trigger": true},
+
+  {"query": "i need to find time to write that CFP submission this week", "should_trigger": false},
+  {"query": "remind me to call the dentist before friday", "should_trigger": false},
+  {"query": "put that on my list", "should_trigger": false},
+  {"query": "can you write the CFP abstract for me? ~200 words, topic is agent observability", "should_trigger": false},
+  {"query": "what do i know about acme's pilot? i have a call with them in 20min", "should_trigger": false},
+  {"query": "research BM25 vs embedding retrieval and summarise the tradeoffs", "should_trigger": false},
+  {"query": "how does my knowledge base decide which base something goes into?", "should_trigger": false},
+  {"query": "set up a new work base for me, separate from personal", "should_trigger": false},
+  {"query": "import my old obsidian vault at ~/notes into the personal base", "should_trigger": false},
+  {"query": "whats in my pending queue right now", "should_trigger": false},
+  {"query": "file this in the right base: the vendor's SOC2 doc arrived", "should_trigger": false},
+  {"query": "did i ever write anything down about priya?", "should_trigger": false}
+]

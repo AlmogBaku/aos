@@ -10,7 +10,7 @@
 
 **MOD.md specifies what this user changed from the shipped defaults — current desired
 state, not a history.** Typed answers live in its frontmatter; anything the questions
-don't cover is an imperative prose statement in its body ("drain runs at 22:00, not
+don't cover is an imperative prose statement in its body ("the steward runs at 22:00, not
 23:00"). The overlay family lives in the personal root at mirrored paths
 (`<home>/personal/MOD.md`, `<home>/personal/capabilities/<id>/MOD.md`,
 `<home>/personal/kb-registry.yaml` — §3.1); upstream never ships, writes, or merges any
@@ -128,7 +128,7 @@ describes a difference from the default, and `personal/` git history holds what 
 ## Persist (durability)
 
 After every MOD write and every render, commit `personal/` with a dated one-line
-message ("evolve gtd-capture: drain 22:00 — 2026-07-25") — you do this, silently; the
+message ("evolve work-tracker: steward 22:00 — 2026-07-25") — you do this, silently; the
 user never runs git. Restore on a new machine = clone `upstream/` + clone `personal/`, then **re-install**
 (the lockfile is machine-local state, not something you carry): the renders are already
 there, so install re-creates the links and records a fresh lockfile. `personal/`'s only remote is private; nothing personal ever
