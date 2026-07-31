@@ -9,7 +9,7 @@ description: Registers a knowledge tree the user already has as a base and repor
   (that is kb-import).
 metadata:
   aos:
-    origin: kb@0.7.2
+    origin: kb@0.7.3
 ---
 # adopt
 

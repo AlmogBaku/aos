@@ -10,7 +10,7 @@ description: Decides which of the user's knowledge bases a piece of content shou
   an excuse to ask the user 'work or personal?' mid-capture.
 metadata:
   aos:
-    origin: kb@0.7.2
+    origin: kb@0.7.3
 ---
 # route
 
@@ -23,7 +23,7 @@ here — a wrong-but-cheap landing in a *private* base is corrected by the archi
 pass, and a synchronous question is not.
 
 **Start by reading the registry directly**: `$AOS_REGISTRY`, else
-`<home>/personal/kb-registry.yaml`. Each entry under `kbs:` carries the `name`, `audience`,
+`<HOME>/aos/tests/.sandbox/aos-home/personal/kb-registry.yaml`. Each entry under `kbs:` carries the `name`, `audience`,
 `purpose`, `tag` and `routing` you need below. There is no verb that lists bases, so reading
 the YAML is the intended method rather than a workaround.
 

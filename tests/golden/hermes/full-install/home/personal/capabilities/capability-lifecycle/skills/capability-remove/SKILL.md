@@ -8,7 +8,7 @@ description: Removes an installed aos capability exactly, walking its lockfile e
   is capability-evolve — and not to retire something upstream, which is capability-contribute.
 metadata:
   aos:
-    origin: capability-lifecycle@0.3.5
+    origin: capability-lifecycle@0.3.6
 ---
 # capability-remove
 

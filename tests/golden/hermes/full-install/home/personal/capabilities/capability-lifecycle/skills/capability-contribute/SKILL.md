@@ -11,7 +11,7 @@ description: Evolves a capability's SHIPPED SOURCE — for everyone, not one use
   build — that's capability-build.
 metadata:
   aos:
-    origin: capability-lifecycle@0.3.5
+    origin: capability-lifecycle@0.3.6
 ---
 # capability-contribute
 

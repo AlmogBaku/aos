@@ -1,7 +1,7 @@
 # Naming and skill identity
 
 Binds anyone authoring or installing a capability. The lint code after each rule is what
-enforces it in the kit's CI (`node tools/lint/aos-lint.mjs`); this file is the same rules at
+enforces it in the kit's CI (`aos_lint.cli`, the kit's Python linter); this file is the same rules at
 runtime, where CI cannot reach. If the two ever disagree, the code is the bug.
 
 ## Contents

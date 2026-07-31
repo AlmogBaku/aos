@@ -8,7 +8,7 @@ description: Estimates a commitment, links it to its project, and blocks time fo
   a reminder, and do NOT use to change what the user committed to — that is wt-update.
 metadata:
   aos:
-    origin: work-tracker@0.1.0
+    origin: work-tracker@0.1.2
 ---
 # schedule
 
@@ -41,7 +41,7 @@ acting outward as the user; blocking time on their own calendar is not.
 
 ## 3. Take the slot and write it
 
-`wt-capture` hands you the page path. Reached directly (*"find me two hours for the CFP"*),
+wt-capture hands you the page path. Reached directly (*"find me two hours for the CFP"*),
 find it first rather than guessing at the slug — the open set is small:
 
 ```

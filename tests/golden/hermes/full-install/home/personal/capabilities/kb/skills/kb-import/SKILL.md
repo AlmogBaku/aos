@@ -8,7 +8,7 @@ description: Bulk-imports another knowledge base's content into a base — inter
   a single document — that is an ordinary capture.
 metadata:
   aos:
-    origin: kb@0.7.2
+    origin: kb@0.7.3
 ---
 # import — bulk knowledge import, with the user
 

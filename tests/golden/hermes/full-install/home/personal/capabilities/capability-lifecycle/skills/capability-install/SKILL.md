@@ -11,7 +11,7 @@ description: 'Installs an aos capability into this harness: reads its briefing, 
   to capability-onboard.'
 metadata:
   aos:
-    origin: capability-lifecycle@0.3.5
+    origin: capability-lifecycle@0.3.6
 ---
 # capability-install
 

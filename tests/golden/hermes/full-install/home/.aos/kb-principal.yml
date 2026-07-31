@@ -1,6 +1,6 @@
 # The humans this machine writes as. First match wins, so a bare `*` belongs
 # last. Machine-local and gitignored: `kb` writes it on the first verb call
 # and kb's ONBOARDING.md fixes what detection got wrong.
-- id: dana@example.com
+- id: anakin@anakin.local
   bases:
   - '*'

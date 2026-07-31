@@ -21,13 +21,13 @@ cheat-sheet.
 - Installed once at capability install → the `kb` command on PATH; the lockfile records it
   and removal uninstalls it. `uv` itself is a one-line install.
 - Cron: the wrapper **must anchor the registry** — export
-  `AOS_REGISTRY=<home>/personal/kb-registry.yaml`, or pass `--registry`. A bare `kb sync`
+  `AOS_REGISTRY=<HOME>/aos/tests/.sandbox/aos-home/personal/kb-registry.yaml`, or pass `--registry`. A bare `kb sync`
   with no resolvable registry exits 0 having synced nothing, which is the silent failure.
 - Surfacing: optionally compose a notifier around the exec call
   (`… || <harness-notify "kb sync needs attention">`). The file bus — `.kb/pending/`, git
   history, exit codes — is the portable interface either way.
 - Env: `AOS_REGISTRY` · `AOS_AGENT` (the acting subject, committer of every write) ·
-  `AOS_PRINCIPAL_ID` (overrides `<home>/.aos/kb-principal.yml` for one call).
+  `AOS_PRINCIPAL_ID` (overrides `<HOME>/aos/tests/.sandbox/aos-home/.aos/kb-principal.yml` for one call).
 - **Both archiver jobs must export `AOS_AGENT=agent:archiver`.** It defaults to
   `agent:main`, which is *denied* write on the wiki zones, so the job appears to succeed
   while every page it commits becomes a grants-audit critical in the next weekly lint.

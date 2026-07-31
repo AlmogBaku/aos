@@ -43,7 +43,7 @@ holds together. That gap is where most of this kit's recorded defects have lived
 read-only, so it costs you nothing but the reading.
 
 Then run the kit linter **against the personal root** —
-`node <home>/upstream/tools/lint/aos-lint.mjs --root <home>/personal` (without
+`uv run --project <home>/upstream/tools/aos_lint python -m aos_lint.cli --root <home>/personal` (without
 `--root` it lints the kit and reports green on a package it never opened) — the new
 package must add zero errors — and show the user the full file tree plus a one-line summary of each new file.
 

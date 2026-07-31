@@ -11,7 +11,7 @@ description: The aos capability lifecycle's front door. Use when the user asks t
   already matches the ask; this is the map, not the work.
 metadata:
   aos:
-    origin: capability-lifecycle@0.3.5
+    origin: capability-lifecycle@0.3.6
 ---
 # capability-lifecycle — the map
 

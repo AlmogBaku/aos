@@ -10,7 +10,7 @@ description: Records a thought, note, link or fact the user fired off, verbatim,
   is kb-recall).
 metadata:
   aos:
-    origin: kb@0.7.2
+    origin: kb@0.7.3
 ---
 # capture
 

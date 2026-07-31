@@ -31,6 +31,16 @@ Everything the run creates is identifiable and disposable:
    working profile's `config.yaml` (`model.provider`, `base_url`, and the `terminal`/`file`/
    `skills`/`cronjob` toolsets); the normalizer skips `config.yaml`, so nothing private
    reaches the snapshot. Capability agents (`aos-archiver`, `aos-steward`) need the same.
+
+   **Copy the credential env too, not just `config.yaml`.** A freshly-created profile writes
+   its own `.env`, which SHADOWS the root's — and the root's is where the provider credentials
+   live (`AWS_PROFILE`/`AWS_REGION` for bedrock, plus `SSL_CERT_FILE`/`REQUESTS_CA_BUNDLE`).
+   Without them Hermes blocks forever on `auth.lock` resolving credentials it cannot see:
+   **zero output, zero CPU, `futex_do_wait`, nothing in any log.** That reads exactly like a
+   provider outage and is not one — it cost three abandoned runs on 2026-08-01 before
+   `ps -o wchan` named the lock. Copy the lines, then smoke-test with
+   `hermes -p aos-test -z "Reply with exactly: READY"` before spending a real install on it.
+
    Also configure a git identity in the seeded `personal/` repo
    (`git -C <sandbox>/aos-home/personal config user.name/user.email` — the fixture persona
    is Dana Fixture): the persist hook commits as the user, and the agent correctly refuses

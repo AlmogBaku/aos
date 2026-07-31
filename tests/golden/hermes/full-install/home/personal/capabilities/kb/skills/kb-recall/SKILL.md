@@ -8,7 +8,7 @@ description: Answers a question from what is already stored in the user's knowle
   itself works (that is kb).
 metadata:
   aos:
-    origin: kb@0.7.2
+    origin: kb@0.7.3
 ---
 # recall
 
@@ -18,7 +18,7 @@ asking agent.
 
 1. **Pick bases.** An explicit mention wins ("in my work base"). Otherwise route the question
    yourself against the registry — read it directly at `$AOS_REGISTRY`, else
-   `<home>/personal/kb-registry.yaml`, since no verb lists bases — where each entry's
+   `<HOME>/aos/tests/.sandbox/aos-home/personal/kb-registry.yaml`, since no verb lists bases — where each entry's
    `purpose` is the rubric. Candidates are cheap; read deeply only in the top-ranked base or
    two, and pass `--base <name>` on every command so you know which one answered.
 2. **Find candidates with two engines, combined freely.**
