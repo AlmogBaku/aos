@@ -8,10 +8,10 @@ description: "Removes an installed aos capability exactly, walking its lockfile 
 Not in context yet? Load the `capability-lifecycle` skill first — the map, the
 contract, and the Experience rules.
 
-1. **[D]** `aos-lock show <id>` → the entry: artifacts and links (including the
+1. `aos-lock show <id>` → the entry: artifacts and links (including the
    capability's tool binary, recorded as an artifact), `schedules_owned`, config keys,
    env variable names, scripts.
-2. **[D]** Scope: removing the capability entirely, or *from one harness* while it
+2. Scope: removing the capability entirely, or *from one harness* while it
    stays installed elsewhere? **Per-harness removal**: run step 4 for that harness only
    and skip its render deletion (the render is shared — it stays), then re-`record` the
    reduced set (start from `aos-lock show`, drop that harness's links/artifacts/jobs,
@@ -21,10 +21,10 @@ contract, and the Experience rules.
    `schedules_owned` is a flat id list with no harness dimension (§5.5), so identify
    *this* harness's jobs by introspecting the harness, not by reading the lockfile.
    **Whole removal** continues below.
-3. **[D]** Dependents check: another entry in `aos-lock list` whose manifest
+3. Dependents check: another entry in `aos-lock list` whose manifest
    `depends.capabilities` names this one → say so; stop unless the user insists (then
    remove dependents first).
-4. **[A]** Un-write per the cheat-sheet's Removal section (load
+4. Un-write per the cheat-sheet's Removal section (load
    the `capability-lifecycle` skill's `reference/harness-<harness-runtime>.md` now), in its
    stated order — typically: jobs →
    skill symlinks (delete the links; then delete **only** `personal/capabilities/<id>/skills/`
@@ -42,5 +42,5 @@ contract, and the Experience rules.
    to be worth asking about rather than guessing.
 5. Tell the user their MOD.md stays: "your answers survive — in your personal repo,
    reinstalling brings it back personalized."
-6. **[D]** Verify: re-introspect until no `metadata.aos.origin`, `aos:` names, marker
+6. Verify: re-introspect until no `metadata.aos.origin`, `aos:` names, marker
    blocks, or links into `personal/` remain; `aos-lock remove <id>`; friendly close.

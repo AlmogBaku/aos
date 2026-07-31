@@ -2,9 +2,8 @@
 
 You are a harness agent setting up aos for your user. There is no installer binary — **you
 are the installer** (ARCHITECTURE §5.1). This file is deliberately small: it gets exactly
-one capability into your harness — `capability-lifecycle` — and that capability's nine skills
-carry everything else. Steps are **[D]** (mechanical — do it precisely, verify, record) or
-**[A]** (judgment — think, then show your work).
+one capability into your harness — `capability-lifecycle` — and that capability's 10 installed skills
+carry everything else.
 
 ## The experience
 
@@ -20,7 +19,7 @@ forever theirs in their own private repo; nothing lands without a visible diff*.
 questions if they have any, then proceed — the diff gate is the safety net, not repeated
 consent prompts.
 
-## 0. [D] Prerequisites
+## 0. Prerequisites
 
 - `git --version` — missing → friendly stop with an install pointer (you likely couldn't
   have cloned without it).
@@ -29,7 +28,7 @@ consent prompts.
   with the user's OK, verify; if they decline, stop honestly — the lockfile discipline
   cannot be prose.
 
-## 1. [D] The household
+## 1. The household
 
 aos lives in one directory — **the household**, `~/aos/` by default (a plain directory,
 itself never a git repo; the user may name another location — every path below shifts
@@ -61,7 +60,7 @@ private remote; only `.aos/` is machine-local.
    any time). Everything personal (MOD files, rendered skills, private capabilities)
    will live and be auto-committed here.
 
-## 2. [D] Install the capability-lifecycle capability (inline — the only one)
+## 2. Install the capability-lifecycle capability (inline — the only one)
 
 1. Read
    `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/contract.md`
@@ -75,14 +74,14 @@ private remote; only `.aos/` is machine-local.
    `harness-nanoclaw.md` · Nanobot → `harness-nanobot.md`; Claude Code and OpenCode
    have no sheet yet). None for your harness → follow the entry skill's
    `reference/no-cheatsheet.md` — do not stop.
-4. **Name gate**, then STAGE the nine skills per the contract (mechanical — they have no
+4. **Name gate**, then STAGE the ten skills per the contract (mechanical — they have no
    `{{mod}}` slots):
    `aos-lock --home ~/aos skills ~/aos/upstream/capabilities/capability-lifecycle --check
    --harness-skills <each skills dir your harness reads, per the cheat-sheet>` — exit 17
    means one of the names is already taken in this harness; stop and report it rather than
    renaming anything. Then `aos-lock render ~/aos/upstream/capabilities/capability-lifecycle
    <skill-id> --out ~/aos/personal/capabilities/capability-lifecycle/skills` for each of the
-   nine, plan the symlinks (each render's own directory name) into your front agent's skills
+   ten, plan the symlinks (each render's own directory name) into your front agent's skills
    dir → **GATE** (show the user the plan) → **EXECUTE** (commit the render in `personal/`,
    create the links) →
    `aos-lock record capability-lifecycle --version <manifest version> --source-root upstream

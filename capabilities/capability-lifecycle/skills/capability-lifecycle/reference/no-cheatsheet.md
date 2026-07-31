@@ -13,9 +13,9 @@ adds your harness's half. Derive it yourself:
 | secret | native store (env file, vault, keychain) |
 | introspection | how to enumerate all of the above |
 
-1. **[A]** Introspect your harness: config layout, skills dirs, scheduler, secret store,
+1. Introspect your harness: config layout, skills dirs, scheduler, secret store,
    agent primitive — read its docs and CLI help, list what already exists.
-2. **[A]** Draft
+2. Draft
    `<home>/upstream/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`
    answering §5.2's six sections (Primitive mapping, Materialization guide, Introspection
    guide, Secrets, Removal, Feature notes — the Hermes sheet the entry skill links is
@@ -28,7 +28,7 @@ adds your harness's half. Derive it yourself:
    **read the sheet you already wrote** rather than drafting a second one. A sheet exists as
    soon as one operation has finished; re-drafting it from scratch is the failure mode this
    note exists to prevent.
-3. **[D]** Diff gate: show the user the full draft before writing it — then **commit it
+3. Diff gate: show the user the full draft before writing it — then **commit it
    on the branch** (`git -C <home>/upstream add capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<h>.md`
    + commit). Uncommitted, it would follow you back to `main` as an untracked file in a
    clone that must hold nothing but upstream's own content — and it would fail the

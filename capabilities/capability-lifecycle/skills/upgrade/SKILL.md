@@ -12,8 +12,8 @@ working tree.**
 The current install is a drift source, never a merge input; the review gate is a git
 diff in the user's own repo.
 
-1. **[D]** Scope: the named capability, else every entry in `aos-lock list`.
-2. **[D]** Kit-wide: pull `<home>/upstream` from the canonical remote (`git pull
+1. Scope: the named capability, else every entry in `aos-lock list`.
+2. Kit-wide: pull `<home>/upstream` from the canonical remote (`git pull
    upstream main` when an `upstream` remote exists, else `git pull`) — it cannot touch
    `personal/`, a different repo. On a non-`main` branch (a contributor dogfooding a
    change, or a self-drafted cheat-sheet branch): skip the pull, say so, name the
@@ -26,8 +26,8 @@ diff in the user's own repo.
    pull --ff-only` (or the harness's plugin update), then re-`record` so the hashes match.
    Offline or a dirty clone → say so and continue; a stale reference is never a blocker.
 3. Per capability needing work:
-   a. **[D]** `aos-lock verify <id>` — two classes, two responses. *Artifact drift*
-      (a render file's hash changed = the user's hand-edit) → **[A]** fold each into
+   a. `aos-lock verify <id>` — two classes, two responses. *Artifact drift*
+      (a render file's hash changed = the user's hand-edit) → fold each into
       MOD.md first per the `capability-lifecycle` skill's `reference/overlay.md` (edit the
       statement that covers it — never
       append a contradicting one) ("you changed X — keeping it").
@@ -37,12 +37,12 @@ diff in the user's own repo.
       is gone (that is a broken install, not an upgrade). A
       fold that reaches beyond the `{{mod}}` slots is mechanism-shaped — note it for
       the promotion judgment (overlay.md, Promote and retire), end of conversation.
-   b. **[D]** Name gate: `aos-lock --home <home> skills <dir> --check --harness-skills
+   b. Name gate: `aos-lock --home <home> skills <dir> --check --harness-skills
       <each skills dir this harness reads>`. Upstream may have renamed or added a skill, so the installed
       names can differ from the recorded links — a rename means link the new name and drop
       the old one in step d. Exit 17 → stop and report; never rename locally. This
       capability's own links are exempt, so a plain re-render is always clean.
-   c. **[A]** **First, before `--force` touches anything**: `git -C <home>/personal status
+   c. **First, before `--force` touches anything**: `git -C <home>/personal status
       --porcelain -- capabilities/<id>`. `--force` re-render is `rmtree` then `copytree`, so a
       pre-existing **untracked** file of the user's under that directory is gone with no commit
       to recover it from — and `aos-lock verify` cannot warn you, because it is add-blind (an
@@ -55,7 +55,7 @@ diff in the user's own repo.
       whose installed name changed leaves its old render directory behind: delete it in the
       same commit, so the diff shows the rename as one move. Then STAGE any native-plan
       changes per the cheat-sheet (load it now if not in context).
-   d. **[D]** GATE: stage this capability, then diff it — `git -C <home>/personal add
+   d. GATE: stage this capability, then diff it — `git -C <home>/personal add
       -A -- capabilities/<id>` then `git -C <home>/personal diff --staged --
       capabilities/<id>` — the old render vs the new, per file, **including files the
       re-render added** (a bare `git diff` hides them) — plus the native plan. Approve
@@ -67,18 +67,18 @@ diff in the user's own repo.
       unrelated work elsewhere in `personal/`. (The untracked-file check is step c's, because
       by this point `--force` has already run — a warning here would name a file that no
       longer exists.)
-   e. **[D]** **Re-install the capability's own tool if it ships one**, before recording:
+   e. **Re-install the capability's own tool if it ships one**, before recording:
       `uv tool install --force --from <dir>/tool <package>`. Nothing else in this flow updates
       a binary, and `uv` will otherwise serve whatever it has cached — so an upgrade that
       re-renders every skill can leave the executable those skills call several versions
       behind, with the prose describing behaviour the binary does not have. `--force` is what
       makes it re-resolve; the version in the tool's `pyproject.toml` tracks the capability's,
       so a bumped capability is a bumped package.
-   f. **[D]** EXECUTE the native plan (links usually survive re-render untouched —
+   f. EXECUTE the native plan (links usually survive re-render untouched —
       verify, don't assume); `aos-lock record <id>` with the full updated set (start
       from `aos-lock show` — `record` replaces the entry wholesale, never call it with
       a partial list; keep `--source-root` and `--link` records).
-   g. **[A]** Retirement pass (overlay.md, Promote and retire): fresh upstream now
+   g. Retirement pass (overlay.md, Promote and retire): fresh upstream now
       covers a MOD statement — a new interview question over its subject, or the
       behavior baked in → offer to retire it (diff-shown; written only through
       `capability-evolve`).
