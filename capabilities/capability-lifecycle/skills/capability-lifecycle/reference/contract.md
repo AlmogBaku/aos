@@ -106,8 +106,6 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   Materialization guide says how; without the mount, stop and say so (never fall back to
   copying: one canonical render, everywhere).
 
-## The persist hook · schedules · context blocks · secrets
-
 - **A `depends.host` feature is a *harness capability*, answered by the cheat-sheet's
   Feature notes table — never by probing the user's live configuration.** ✓ means this
   harness can express the feature; a platform the user has not paired yet is a setup note
@@ -115,6 +113,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   cannot do it at all (or there is no sheet and your own reading of the harness says so).
   Getting this backwards fails an install that would have worked, which is worse than the
   degraded-mode path the vocabulary exists to enable.
+
+## The persist hook · schedules · context blocks · secrets
+
 - **The persist hook**: after every MOD write (interview, evolve, retirement,
   drift-fold) and every render, commit `personal/` with a dated one-line message —
   you, not the user; silently. The `personal/` git history is the primary safety net;
