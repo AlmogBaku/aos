@@ -11,6 +11,7 @@ Run: uv run tests/tool/test_cap.py
 """
 import json
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -850,6 +851,43 @@ class SkillNameTest(unittest.TestCase):
         cap = self.cap("democap", ["democap"])
         r = run(["render", str(cap), "ghost", "--out", str(Path(self.tmp.name) / "r")])
         self.assertEqual(r.returncode, 14)
+
+
+class ToolIdentityTest(unittest.TestCase):
+    """The command name and the version pair. Both drifted silently once: the rename left
+    `pyproject.toml` at 0.3.4 while CAPABILITY.md said 0.3.5, and nothing failed — there was
+    no --version verb and no gate on the pair. Mirrors test_kb.py's equivalent."""
+
+    def test_the_command_is_aos_cap(self):
+        r = run(["--version"])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        # Read from the manifest, not pinned: the number is the capability's, and a literal
+        # here is one more thing a bump has to remember.
+        declared = re.search(r"^version: (\S+)",
+                             (REPO / "capabilities/capability-lifecycle/CAPABILITY.md").read_text(),
+                             re.M).group(1)
+        self.assertIn(f"aos-cap {declared}", r.stdout)
+
+    def test_pyproject_version_tracks_the_capability(self):
+        """The comment in pyproject says it tracks the capability version. Nothing enforced
+        that, so it silently fell a patch behind during the rename."""
+        declared = re.search(r"^version: (\S+)",
+                             (REPO / "capabilities/capability-lifecycle/CAPABILITY.md").read_text(),
+                             re.M).group(1)
+        pyproject = (TOOL_DIR / "pyproject.toml").read_text()
+        # re.M, because assertRegex does not apply it and `^` would only match the
+        # string start — which is `[project]`, not the version line.
+        self.assertTrue(re.search(rf'^version = "{re.escape(declared)}"', pyproject, re.M),
+                        f"pyproject version does not track the capability's {declared}")
+
+    def test_the_old_command_name_is_gone(self):
+        pyproject = (TOOL_DIR / "pyproject.toml").read_text()
+        self.assertIn('name = "aos-cap"', pyproject)
+        self.assertIn('aos-cap = "aos_cap.cli:main"', pyproject)
+        # Spelled defensively: a sed sweep of the module name would rewrite a naive check
+        # into passing against itself.
+        self.assertNotIn("aos" + "-lock", pyproject)
+        self.assertNotIn("aos" + "_lock", pyproject)
 
 
 if __name__ == "__main__":

@@ -29,7 +29,10 @@ from .commands.lockfile import app as lockfile_app
 app = typer.Typer(rich_markup_mode=None, add_completion=False,
                   help="Deterministic lifecycle bookkeeping for aos capabilities: the "
                        "manifest, the installed skill names, the render, and the "
-                       "lockfile. See `--help` per verb.")
+                       "lockfile. See `--help` per verb. "
+                       "NOTE: --home is global, so it goes BEFORE the verb "
+                       "(`aos-cap --home ~/aos record …`, never `aos-cap record --home …`) "
+                       "— the same shape the `kb` tool's --base has.")
 
 app.add_typer(inspect_app)
 app.add_typer(render_app)
