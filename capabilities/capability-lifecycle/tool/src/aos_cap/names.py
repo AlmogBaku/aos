@@ -1,0 +1,188 @@
+"""Skill identity (§2.5) and the collision gate.
+
+A skill id is capability-local; the name it INSTALLS under is `<prefix><id>`, and that
+computed name is the shipped identity — single-owner across the whole harness, which is
+why the Agent Skills limits are checked against it and never against the id. Everything
+here is a pure function of files on disk: the four sources a name can already be claimed
+by (this capability itself, another household capability, a lockfile link, a skill
+already in the harness) each get their own reader, and `skill_collisions()` joins them."""
+
+import os
+from pathlib import Path
+from typing import Iterable, Optional
+
+import yaml
+
+from .constants import (
+    LOCK_REL, ORIGIN_PATH, RESERVED_NAME_WORDS, SKILL_NAME_MAX, SKILL_NAME_RE,
+)
+from .errors import Exit, fail
+from .frontmatter import frontmatter_soft
+from .household import HasHome, find_home_soft
+
+
+def effective_prefix(manifest: dict, cap_id: str) -> str:
+    """§2.2: declared prefix, else the capability id. Absent/empty means default."""
+    declared = manifest.get("skill_prefix")
+    if isinstance(declared, str) and declared.strip():
+        return declared
+    return f"{cap_id}-"
+
+
+def installed_name(cap_id: str, prefix: str, skill_id: str) -> str:
+    """The name the skill ships under. Entry skill verbatim; never double-prefixed."""
+    if skill_id == cap_id or skill_id.startswith(prefix):
+        return skill_id
+    return f"{prefix}{skill_id}"
+
+
+def name_errors(name: str, what: str) -> list[str]:
+    errs = []
+    if len(name) > SKILL_NAME_MAX:
+        errs.append(f"{what} '{name}' is {len(name)} chars (max {SKILL_NAME_MAX})")
+    if not SKILL_NAME_RE.match(name):
+        errs.append(f"{what} '{name}' must be [a-z0-9-], no leading/trailing/double hyphens")
+    for word in RESERVED_NAME_WORDS:
+        if word in name:
+            errs.append(f"{what} '{name}' contains the reserved word '{word}'")
+    return errs
+
+
+def capability_skill_names(cap_dir: Path) -> set[str]:
+    """Installed names a capability would claim — declared entries plus any on-disk
+    skill dir (an undeclared dir is a lint error, but it would still land if installed)."""
+    data = frontmatter_soft(cap_dir / "CAPABILITY.md")
+    if data is None:
+        return set()
+    prefix = effective_prefix(data, cap_dir.name)
+    ids = {e.get("id") for e in (data.get("skills") or []) if isinstance(e, dict)}
+    skills_dir = cap_dir / "skills"
+    if skills_dir.is_dir():
+        ids |= {d.name for d in skills_dir.iterdir() if (d / "SKILL.md").is_file()}
+    return {installed_name(cap_dir.name, prefix, i) for i in ids if isinstance(i, str) and i}
+
+
+def household_owners(root: Path, exclude_cap: str) -> dict[str, str]:
+    owners: dict[str, str] = {}
+    for label in ("upstream", "personal"):
+        caps_dir = root / label / "capabilities"
+        if not caps_dir.is_dir():
+            continue
+        for cap in sorted(caps_dir.iterdir()):
+            if cap.name == exclude_cap or not (cap / "CAPABILITY.md").is_file():
+                continue
+            for name in capability_skill_names(cap):
+                owners.setdefault(name, f"capability '{cap.name}' in {label}/")
+    return owners
+
+
+def lock_link_names(root: Path, capability: Optional[str]) -> dict[str, str]:
+    """Skill-link basenames the lockfile attributes to one capability."""
+    path = root / LOCK_REL
+    if not path.is_file():
+        return {}
+    try:
+        data = yaml.safe_load(path.read_text()) or {}
+    except yaml.YAMLError:
+        return {}
+    out: dict[str, str] = {}
+    for cap, entry in (data.get("installs") or {}).items():
+        for link in (entry.get("links") or {}):
+            # Only skill links participate — a linked script's basename is not a skill name.
+            if "skills" not in Path(link).parts[:-1]:
+                continue
+            # .stem, not .name: a harness that installs skills as flat `<name>.md` files
+            # (Nanobot) records a link whose basename carries the extension, and it has to
+            # compare equal to a computed installed name at all three sites.
+            out.setdefault(Path(link).stem, cap)
+    return {name: cap for name, cap in out.items() if capability is None or cap == capability}
+
+
+def aos_owned(entry: Path, root: Optional[Path]) -> bool:
+    """Is this harness entry something aos materialized? Provenance answers it without the
+    lockfile: a render is a symlink into the household, and every rendered SKILL.md carries
+    the origin tag. The lockfile is machine-local and gitignored — if it is lost, a gate
+    that trusted it alone would refuse every re-install of an already-installed capability,
+    turning a recoverable state into a stuck one. Cross-capability conflicts are still
+    caught: both capabilities are in the household, which the source scan reads.
+
+    The tag is read as structured frontmatter, never as a substring. `ORIGIN_KEY in text`
+    matched the string anywhere in the file — so a skill whose PROSE discussed provenance
+    read as aos-installed, and the gate handed a stranger's name to an install that should
+    have stopped at exit 17. This decision is what stands between a name collision and a
+    silently overwritten skill, so it reads the key or it does not claim the entry."""
+    if entry.is_symlink():
+        target = os.path.normpath(os.path.join(str(entry.parent), os.readlink(entry)))
+        if root and (str(root) + os.sep) in target + os.sep:
+            return True
+    skill_md = entry / "SKILL.md" if entry.is_dir() else entry
+    data = frontmatter_soft(skill_md)
+    if data is None:
+        return False
+    node = data
+    for key in ORIGIN_PATH:
+        if not isinstance(node, dict) or key not in node:
+            return False
+        node = node[key]
+    return bool(node)
+
+
+def harness_owners(dirs: Iterable[str], ours: set[str],
+                   root: Optional[Path] = None) -> dict[str, str]:
+    owners: dict[str, str] = {}
+    for d in dirs:
+        p = Path(d).expanduser()
+        if not p.is_dir():
+            fail(Exit.GENERIC, f"--harness-skills: not a directory: {d}")
+        for child in sorted(p.iterdir()):
+            if child.is_dir():
+                name = child.name
+            elif child.suffix == ".md" and child.stem.upper() != "README":
+                name = child.stem   # Nanobot's flat skills/<name>.md form
+            else:
+                continue
+            if Path(name).stem in ours:
+                continue        # our own link, per the lockfile
+            if aos_owned(child, root):
+                continue        # ...or per its provenance, when the lockfile cannot say
+            owners.setdefault(name, f"skill already in the harness at {child}")
+    return owners
+
+
+def skill_collisions(opts: HasHome, harness_skills: list[str], cap_id: str,
+                     rows: list[dict], cap_dir: Optional[Path] = None,
+                     ) -> tuple[list[str], list[str]]:
+    """(collisions, sources consulted). The caller reports the sources: a source that was
+    skipped must never be indistinguishable from a source that came back empty."""
+    taken: dict[str, str] = {}
+    ours: set[str] = set()
+    sources: list[str] = []
+    root = find_home_soft(opts, cap_dir)
+    if root:
+        ours = {Path(n).stem for n in lock_link_names(root, cap_id)}
+        taken.update(household_owners(root, cap_id))
+        for name, cap in lock_link_names(root, None).items():
+            if cap != cap_id:
+                taken.setdefault(name, f"installed capability '{cap}' (lockfile link)")
+        sources.append(f"household {root} (capabilities + lockfile links)")
+    else:
+        sources.append("NO HOUSEHOLD RESOLVED — other capabilities and the lockfile were "
+                       "NOT checked (pass --home)")
+    for name, where in harness_owners(harness_skills, ours, root).items():
+        taken.setdefault(name, where)
+    sources.append(f"{len(harness_skills)} harness skills dir(s)"
+                   if harness_skills else
+                   "NO --harness-skills GIVEN — skills already in the harness were NOT checked")
+
+    out: list[str] = []
+    seen: dict[str, str] = {}
+    for r in rows:
+        name = r["installed_name"]
+        if name in seen:
+            out.append(f"COLLISION {name}: computed by both '{seen[name]}' and '{r['id']}' "
+                       f"in {cap_id} itself")
+        seen[name] = r["id"]
+        if name in taken:
+            out.append(f"COLLISION {name} (from {cap_id}:{r['id']}) is already claimed by "
+                       f"{taken[name]}")
+    return out, sources

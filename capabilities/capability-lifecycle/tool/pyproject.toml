@@ -1,9 +1,13 @@
 [project]
 name = "aos-cap"                # kit name is RFC-001's; command below is what matters
-version = "0.3.4"                # tracks the capability-lifecycle capability version
+version = "0.3.5"                # tracks the capability-lifecycle capability version
 description = "Deterministic lifecycle bookkeeping for aos: manifest parse/validate + the tool-owned lockfile (capability-shipped tool, ARCHITECTURE §2.4)"
-requires-python = ">=3.9"
-dependencies = ["pyyaml>=6.0"]
+# >=3.10, not >=3.9: typer's command-registration inspects `Annotated[...]` type hints
+# at runtime, which rules out the `from __future__ import annotations` route, and the
+# bare `X | None` unions this package uses are PEP 604 — 3.10+. uv manages its own
+# interpreter for `uv tool install`/`uvx`, so the floor costs an installing user nothing.
+requires-python = ">=3.10"
+dependencies = ["pyyaml>=6.0", "typer>=0.15"]
 
 [project.scripts]
 aos-cap = "aos_cap.cli:main"

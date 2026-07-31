@@ -5,7 +5,8 @@ export const STATE_DIR = `.${KIT_NAME}/`; // machine-local state, gitignored (AR
 // The install-time provenance stamp, never shipped upstream. It lives inside SKILL.md's own
 // `metadata` extension hatch, because that schema is EXTERNAL and we are a vendor in it —
 // a top-level `x-aos-origin` was us reserving namespace in somebody else's house. `x-*` stays
-// reserved in CAPABILITY.md, which is ours, for THIRD parties. Mirrored in aos_cap/cli.py.
+// reserved in CAPABILITY.md, which is ours, for THIRD parties. Mirrored in
+// aos_cap/constants.py.
 export const ORIGIN_FRONTMATTER_PATH = ['metadata', KIT_NAME, 'origin'];
 export const ORIGIN_FRONTMATTER_KEY = ORIGIN_FRONTMATTER_PATH.join('.'); // display form
 export const LEGACY_ORIGIN_FRONTMATTER_KEY = `x-${KIT_NAME}-origin`; // retired; must not ship
