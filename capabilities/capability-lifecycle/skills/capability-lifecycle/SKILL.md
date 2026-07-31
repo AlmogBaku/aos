@@ -20,7 +20,7 @@ promote/retire, persist): `reference/overlay.md`. Naming, installed skill names,
 uniqueness gate: `reference/naming.md` — read it before authoring or installing anything
 that ships a skill.
 
-| Ask | Skill |
+| Ask | Where it goes |
 |---|---|
 | "install <capability>" · a capability offered for install | `capability-install` |
 | "update" / "upgrade" (kit-wide or one capability) | `capability-upgrade` |

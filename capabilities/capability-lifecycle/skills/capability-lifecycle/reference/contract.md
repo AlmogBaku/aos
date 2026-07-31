@@ -11,6 +11,8 @@
 
 Binds every lifecycle operation, on every harness, with or without a cheat-sheet.
 
+## The household, and where everything lives
+
 - **The household is the ground truth of where things live** (§3.1): `<home>` (default
   `~/aos`) contains `upstream/` (the kit clone — pristine, never anything personal, not
   even untracked files), `personal/` (the user's one private git repo: MOD files at
@@ -26,6 +28,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   holds a `CAPABILITY.md`** — `personal/capabilities/<id>/` exists for every capability the
   user has answers for (it is the mirrored overlay path), so treating a MOD-only directory
   as a second source would report a shadow on every ordinary install.
+
+## The diff gate · MOD.md authorship · contribution approval
+
 - **The diff gate is never optional.** Nothing lands in the harness until the user has
   seen the full diff of what you are about to write and approved it (§5.4). The three
   phases are explicit: **STAGE** (render the personalized artifacts into `personal/`'s
@@ -57,6 +62,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   comment, +1, push, fork, or create a branch on a remote — for upstream or any repo
   the user doesn't own — without the user's explicit approval or request. No exceptions. Offers are cheap; writes that
   leave the machine are the user's alone to authorize.
+
+## The lockfile, and what gets recorded
+
 - **The lockfile is `aos-lock`'s file.** Everything you materialize is recorded — **one
   entry per capability, covering every harness it is installed into** (`record` replaces
   the entry wholesale, so a second-harness install must re-record the *combined* set:
@@ -72,6 +80,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   no artifact. If a crash lands between EXECUTE and `record`, everything written
   carries provenance anyway — re-introspect for the tags and record or remove what you
   find.
+
+## Installed skill names, renders, and symlinks
+
 - **A skill's installed name is computed, and it is single-owner.** `aos-lock skills <cap-dir>`
   gives you the name each skill ships under (`<skill_prefix><id>`; the entry skill keeps the
   capability id). **Gate before you materialize**:
@@ -94,6 +105,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   harnesses resolve links only if `<home>/personal` is mounted read-only — the cheat-sheet's
   Materialization guide says how; without the mount, stop and say so (never fall back to
   copying: one canonical render, everywhere).
+
+## The persist hook · schedules · context blocks · secrets
+
 - **A `depends.host` feature is a *harness capability*, answered by the cheat-sheet's
   Feature notes table — never by probing the user's live configuration.** ✓ means this
   harness can express the feature; a platform the user has not paired yet is a setup note
@@ -130,6 +144,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 - **Secrets**: values go to the harness's store, never into files or chat — and never
   into `personal/` (it may be pushed to a private remote); `MOD.md` and configs carry
   references only — `{store: <name>, key: <key>}`.
+
+## Removal, and how references resolve
+
 - **Removal** walks the lockfile entry backwards; `MOD.md` is never deleted (§3.3), and
   render deletions in `personal/` happen via a commit (revertible). Verify by
   re-running introspection until no aos provenance (`metadata.aos.origin`, `aos:` names,

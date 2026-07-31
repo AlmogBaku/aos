@@ -69,4 +69,8 @@ the overlay doctrine, and the Experience rules. Then:
     link on PATH). **`record` replaces the entry
     wholesale**: on a second-harness install, start from `aos-lock show <id>` and pass the
     combined set (both harnesses' links), never just this harness's.
-12. Celebrate specifically: what, where, which schedules, degraded modes in effect.
+12. `aos-lock verify <id>` — exit 13 means what you just recorded does not match what is
+    on disk (a link that is a copy, a missed render, a hash taken before the transform).
+    Fix it now: you still know what you wrote, and the next person to find out would be
+    `capability-upgrade`, months from now.
+13. Celebrate specifically: what, where, which schedules, degraded modes in effect.

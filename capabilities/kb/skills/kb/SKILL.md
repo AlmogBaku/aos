@@ -87,7 +87,7 @@ construction.
 
 ## Which skill
 
-| Job | Skill |
+| Job | Where it goes |
 |---|---|
 | The user just said something worth keeping | `kb-capture` |
 | Pick the destination base for a write in hand | `kb-route` |

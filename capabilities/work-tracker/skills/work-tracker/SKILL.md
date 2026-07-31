@@ -36,7 +36,7 @@ plus `expires` is what stops the list becoming a graveyard.
 
 ## Which skill for which job
 
-| The user | Skill |
+| The user | Where it goes |
 |---|---|
 | commits to something (*"I have to…"*, *"put that on my list"*) | `wt-capture` |
 | wants time for something (*"when can I do this?"*) | `wt-schedule` |

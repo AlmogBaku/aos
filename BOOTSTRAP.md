@@ -58,7 +58,16 @@ private remote; only `.aos/` is machine-local.
    safe, because nothing personal ever enters this clone. `gh` missing or
    unauthenticated → say so in a clause and move on; it blocks nothing here.
 3. Create the personal root: `git init ~/aos/personal`, seed the mirrored shape
-   (`capabilities/` directory). Offer — don't push — a private remote for backup/sync
+   (`capabilities/` directory).
+   Then check the commit identity: `git -C ~/aos/personal config user.email`. Empty, and
+   no global one either (`git config --global user.email`) → **ask the user** for the name
+   and email to commit as, and set them — globally if they're happy with that, otherwise on
+   this repo. Never invent one: a synthesized address credits a real stranger, and every
+   render and MOD write from here on is a commit. A *global* identity is also the one kb's
+   tool ends up falling back to for the human principal of every base write — it resolves
+   `$AOS_PRINCIPAL_ID`, then `~/aos/.aos/kb-principal.yml`, then that base repo's own git
+   identity — and with none of the three it synthesizes a weak `<user>@<host>.local`
+   without ever asking. Offer — don't push — a private remote for backup/sync
    (`gh repo create aos-personal --private` when `gh` is available; skippable, add one
    any time). Everything personal (MOD files, rendered skills, private capabilities)
    will live and be auto-committed here.
