@@ -2,12 +2,12 @@
 
 **Small** (apply directly — note *where* each one lives):
 - "The steward's cron should run at 22:30, not 23:00" — a personalization answer
-  (`steward_hour`): update it through the `capability-onboard` skill, then sync the live cron to
+  (`steward_hour`): update it through the capability-onboard skill, then sync the live cron to
   match. The schedule's existence didn't change, only its answer.
 - "Capture entries should keep the raw timestamp" — a wording/format tweak inside an
   existing skill's reference doc. work-tracker is upstream-shipped, so this is NOT a
   silent source edit: personalizable → the overlay; otherwise draft the change on a
-  branch and offer the contribution (the mechanics the `capability-contribute` skill
+  branch and offer the contribution (the mechanics the capability-contribute skill
   links; local divergence only if the user knowingly accepts it). For a capability the user authored, the same
   tweak is a direct `personal/` edit.
 - "Turn off the Friday digest" — a personalization answer changing: onboarding

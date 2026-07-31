@@ -49,8 +49,8 @@ vocabulary. Inside one user's harness, agents are cooperating processes; across 
 boundary, enforcement is the gate's job. On a **shared** base, agent writes land as
 proposals in the queue and never directly.
 
-**Nothing in the tool is a wall.** `grant_check` has three call sites: this table's own
-lookup verb, and the weekly audit. Neither reads nor writes consult it, so `kb search` and
+**Nothing in the tool is a wall.** `grant_check` is consulted in exactly two places: this
+table's own lookup verb (`kb grants`), and the weekly audit. Neither reads nor writes consult it, so `kb search` and
 `kb find` return what is on disk and `kb capture` writes what you hand it, whatever the table
 says. Treat every row as a statement of what you are *permitted* to do, honoured by your own
 discipline — not as something that will stop you.

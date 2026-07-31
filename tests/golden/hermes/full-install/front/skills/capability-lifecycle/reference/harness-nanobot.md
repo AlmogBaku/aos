@@ -11,9 +11,8 @@
 
 
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
-Nanobot (obot-platform/nanobot, the MCP-host agent runtime). The aos half of the install
-contract — provenance, lockfile, markers, secret references, degraded-mode meanings,
-removal discipline — is the `capability-lifecycle` entry skill's install contract; this sheet is only the Nanobot half.
+Nanobot (obot-platform/nanobot, the MCP-host agent runtime). The aos half is the
+`capability-lifecycle` entry skill's install contract; this sheet is only the Nanobot half.
 
 > [!WARNING]
 > Research-drafted: no aos e2e install has run on this harness yet (ARCHITECTURE §5.3).
@@ -37,7 +36,7 @@ The workspace is the first `--config` path (`nanobot run ./my-config/`; default
 |---|---|---|
 | agent | agent definition — `agents/<id>.md` (YAML frontmatter + markdown body = instructions) or an `agents:` entry in `nanobot.yaml` | id = filename sans `.md`; markdown agents override same-named YAML agents. Fields: `name`, `model`, `mcpServers`, `tools`, `agents` (sub-agent delegation), `skills`, `tasks` |
 | front agent (`main`) | `agents/main.md` — the auto entrypoint | else `publish.entrypoint`; >1 agent with neither is an error |
-| skill | Agent Skills folder: `skills/<name>/SKILL.md` (dir form; overrides flat `skills/<name>.md`) — a **symlink** to the pinned render in `<home>/personal` | link at `skills/<installed-name>`; per-agent scoping (`used_by`) via each agent's `skills:` list. Frontmatter `name` must match the dir name (`^[a-z0-9-]+`, 1–64) — which it does: `aos-lock render` writes the installed name into both, so the render Nanobot reads needs no adjustment |
+| skill | Agent Skills folder: `skills/<name>/SKILL.md` (dir form; overrides flat `skills/<name>.md`) — a **symlink** to the pinned render in `<home>/personal` | link at `skills/<installed-name>`; per-agent scoping (`used_by`) via each agent's `skills:` list |
 | schedule | DB-backed scheduled task — created at runtime via the `createScheduledTask` tool, never via config files | 5-field cron, timezone-aware; only daily/weekly/monthly/one-time shapes (dom+dow combined is rejected). Firing starts a **new** chat thread with the stored prompt, so prompts must be self-contained. Referenced by `task:///` URI — record it in the lockfile |
 | context block | the agent's md body (its `instructions`) | **no auto-loaded context file exists (no CLAUDE.md/AGENTS.md equivalent) — do not invent one.** Append inside aos markers in `agents/<id>.md` |
 | secret | `env:` map in `nanobot.yaml` (mark `sensitive: true`); values in `nanobot.env` | `${VAR}` interpolation anywhere in config; see Secrets |
@@ -50,17 +49,15 @@ deprecated `mcp-servers.yaml|json` (don't add one; only one variant is allowed).
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle` entry skill's install contract). Config edits take
-effect on the next `nanobot run` — restart after materializing.
+Config edits take effect on the next `nanobot run` — restart after materializing.
 
 1. **Agents.** Create `agents/<id>.md`: frontmatter `name:` + fields, `purpose` + persona
    → the markdown body. `workspace: shared` ⇒ no new agent; wire into `main.md`. Sub-agent
    delegation is first-class: list child ids under the parent's `agents:`.
-2. **Skills**: `aos-lock skills <cap-dir>` gives the installed name; the render lives once
+2. **Skills**: `aos-cap skills <cap-dir>` gives the installed name; the render lives once
    at `<home>/personal/capabilities/<capability>/skills/<installed-name>/` (contract);
    symlink it as `skills/<installed-name>` and record the link
-   (`aos-lock record … --link`). Nanobot requires frontmatter `name:` to match the dir, and
-   `aos-lock render` already made both the installed name — nothing to adjust. Then attach
+   (`aos-cap record … --link`). Then attach
    to each `used_by` agent via its `skills:` list. For the name gate, pass `skills/` to
    `--harness-skills`: it catches both `<name>/` dirs and the flat `<name>.md` form.
 3. **Tools.** Capability-shipped or external tools land under `mcpServers:` in
@@ -88,8 +85,6 @@ runtime tools or files.
 - Runtime tools: `listScheduledTasks` (schedules), `searchSkills`.
 - Web chat UI on `:8080`; flags `--debug`, `--trace`.
 - Filesystem: `nanobot.yaml`, `agents/`, `skills/`, `workflows/`, `nanobot.env`.
-- aos artifacts: `.aos/installs.lock.yaml`, `metadata.aos.origin` frontmatter, `aos:` task
-  names, `<!-- aos:… -->` markers.
 
 ## Secrets
 
@@ -131,7 +126,7 @@ There is no uninstall command — drive everything from the lockfile entry, in o
 | `email` | ✗ | roadmap ⇒ degraded mode |
 | `secrets-store` | ⚠ partial | `env:` + `sensitive:` redaction, no vault — treat as env-file-grade |
 
-Degraded-mode wiring (meanings in the `capability-lifecycle` entry skill's install contract): `manual` ⇒ the invocable skill lands in
+Degraded-mode wiring: `manual` ⇒ the invocable skill lands in
 `skills/` attached to the agent that would have owned the task; `inline` ⇒
 `updateScheduledTask` appends (inside markers) to an existing aos-owned task's prompt.
 

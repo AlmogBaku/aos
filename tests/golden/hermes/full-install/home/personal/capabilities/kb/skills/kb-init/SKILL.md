@@ -9,7 +9,7 @@ description: 'Creates a new knowledge base: interviews the user for purpose, zon
   kb-import.'
 metadata:
   aos:
-    origin: kb@0.7.0
+    origin: kb@0.7.2
 ---
 # init
 
@@ -70,11 +70,16 @@ but leaves the tree uncommitted, which lint reports as a finding — so follow o
 Three jobs, and init is not finished until all three exist. The harness cheat-sheet gives the
 exact cron syntax for this harness; what does not vary is *what* to schedule:
 
-| id | when | runs | as |
-|---|---|---|---|
-| `nightly-promote` | `30 23 * * *` | the archiver agent, prompt `agents/archiver/promote.md` | agent job |
-| `weekly-maintain` | `0 7 * * 6` | the archiver agent, prompt `agents/archiver/lint.md` | agent job |
-| `sync` | `*/5 * * * *` | `kb sync --all` | **exec job — no model wakes up** |
+| id | when | runs | as | environment |
+|---|---|---|---|---|
+| `nightly-promote` | `30 23 * * *` | the archiver agent, prompt `agents/archiver/promote.md` | agent job | `AOS_AGENT=agent:archiver` |
+| `weekly-maintain` | `0 7 * * 6` | the archiver agent, prompt `agents/archiver/lint.md` | agent job | `AOS_AGENT=agent:archiver` |
+| `sync` | `*/5 * * * *` | `kb sync --all` | **exec job — no model wakes up** | `AOS_AGENT=agent:archiver`, `AOS_REGISTRY=<home>/personal/kb-registry.yaml`, `AOS_HOME=<home>` |
+
+**The environment column is not optional, and it is the column people drop.** A cheat-sheet
+puts it in the job's own env, a wrapper script, or an `export` before the command — whichever
+your harness supports; what matters is that the job carries it. Every one of these fails
+*quietly*: the job runs, the work happens, and the damage surfaces days later.
 
 Three things silently break if you skip them, and each fails quietly rather than loudly:
 

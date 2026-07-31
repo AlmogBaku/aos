@@ -11,7 +11,7 @@ description: Evolves a capability's SHIPPED SOURCE — for everyone, not one use
   build — that's capability-build.
 metadata:
   aos:
-    origin: capability-lifecycle@0.3.4
+    origin: capability-lifecycle@0.3.5
 ---
 # capability-contribute
 
@@ -20,7 +20,7 @@ Whose package decides where that is: the user's own capabilities live in
 `<home>/personal/capabilities/<id>/` (theirs — edit directly); upstream-shipped ones
 live in `<home>/upstream/capabilities/<id>/` and are **never silently edited** — changes
 to them are contributions, drafted on a branch. Changing how an installed capability
-behaves *for this user* is `capability-evolve` — the overlay,
+behaves *for this user* is capability-evolve — the overlay,
 not the source.
 
 **Hard invariant: you never open a PR, file an issue, +1, push, fork, or create a
@@ -34,7 +34,7 @@ Classify before acting — see [reference/judgment.md](reference/judgment.md).
 ## Intakes
 
 - **A source fix** ("the steward double-counts a slip") — classify Small/Major below.
-- **A promotion** (routed from `capability-evolve` with a MOD statement, or "promote
+- **A promotion** (routed from capability-evolve with a MOD statement, or "promote
   this"): extract the *mechanism* — the user's literal nuance text never ships. A
   missing knob becomes a `{{mod: <key>}}` slot at the site the nuance targets **plus**
   the matching `ONBOARDING.md` question **plus** a `MOD.example.md` placeholder
@@ -58,7 +58,7 @@ calibrate against, not a checklist to satisfy mechanically.
 ## Then
 
 - **Small**: apply where the feedback actually lives, and make it take effect now —
-  a personalization answer changes through the `capability-onboard` skill (the only MOD.md
+  a personalization answer changes through the capability-onboard skill (the only MOD.md
   writer), then the live render is synced to match (the §3.3 round-trip: overlay and
   install stay consistent, MOD.md stays the source of truth);
   a package-level tweak: **whose package is it?** The user's own
@@ -69,7 +69,7 @@ calibrate against, not a checklist to satisfy mechanically.
   user accepts the divergence knowingly, as a MOD statement that retires
   when the PR lands). Either way: tell the user what changed and where — transparent,
   not silent, but no approval gate for their own package.
-- **Major**: interrupt like `capability-build`'s detector does, then run the
+- **Major**: interrupt like capability-build's detector does, then run the
   scaled-down procedure in [reference/procedure.md](reference/procedure.md).
 
 ## Authority

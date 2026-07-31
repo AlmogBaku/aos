@@ -85,7 +85,7 @@ tests nothing.
 
 ## Calibration: what this rubric catches that a density metric does not
 
-Scored four skills (`capability-install`, `capability-evolve`, `kb-route`, `kb-import`) with this
+Scored four skills (`capability-install`, `capability-evolve`, `kb-route`, `kb-import`) with this <!-- aos-lint-allow: historical -->
 rubric, and separately with the external scorer it was reverse-engineered from. Rankings agreed;
 the rubric scored 4–8 points lower on each, which is the right direction for a floor.
 
