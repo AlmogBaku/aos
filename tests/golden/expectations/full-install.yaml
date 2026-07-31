@@ -128,8 +128,12 @@ schedules:
 
 sentinels:
   - {text: "🦜", in: "front:skills/wt-capture/SKILL.md"}
-  # the MARS mode boundary is the ONE block aos writes to the front agent's identity file
+  # the two blocks aos writes to the front agent's identity file, and only these two: the
+  # MARS mode boundary, and the vocabulary no harness owns. `forbid_texts` below asserts the
+  # retired identity block stays absent — `.includes` on `:identity`, which `:concepts`
+  # does not contain, so the two assertions do not fight.
   - {text: "aos:capability-lifecycle:mode-boundary", in: "front:SOUL.md"}
+  - {text: "aos:capability-lifecycle:concepts", in: "front:SOUL.md"}
   # the sync wrapper must pin the household's registry — a bare `kb sync` silently no-ops.
   # Its home is the HARNESS ROOT scripts dir (`~/.hermes/scripts/`), which is where the
   # cheat-sheet's Materialization guide sends `--script` files and the only place Hermes
