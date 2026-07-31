@@ -151,7 +151,7 @@ cannot validate behaviour, so a verb that is really an option, a required flag o
 flag deleted from the tool all ship green. The failure lands on the agent that followed the
 instruction.
 
-The kit ships `tools/check-kb-commands.mjs`, but it is **hardcoded to kb and work-tracker** — run
+The kit ships the `aos_lint.gates.kb_commands` gate, but it is **hardcoded to kb and work-tracker** — run
 it only when one of those is your target. On anything else it exits 0 without opening the
 capability under review, which reads as a pass and is not one. Otherwise extract the invocations
 yourself and diff them against `--help`. And note what no such script can see: a command can

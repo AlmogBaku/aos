@@ -1,5 +1,10 @@
 """Skill and agent identity (§2.5) and the collision gate.
 
+The single implementation of what a skill installs as. The kit's linter imports
+`effective_prefix`, `installed_name`, `name_errors`, `capability_skill_names`,
+`capability_agent_names` and `declared_agent_ids` from here; it used to recompute all six in
+`tools/lib/skill-names.mjs`, which claimed "the two must agree" with nothing testing it.
+
 A skill id is capability-local; the name it INSTALLS under is `<prefix><id>`, and that
 computed name is the shipped identity — single-owner across the whole harness, which is
 why the Agent Skills limits are checked against it and never against the id. Everything

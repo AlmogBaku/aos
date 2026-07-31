@@ -94,7 +94,7 @@ Two things CI enforces that bite people:
 
 - **Version bumps.** If a PR touches a capability's files, its `CAPABILITY.md` `version`
   must bump — upgrades key off it. Check locally with
-  `node tools/lint/aos-lint.mjs --base origin/main`.
+  `uv run --project tools/aos_lint python -m aos_lint.cli --base origin/main`.
 - **Golden snapshots.** If your change alters what an install materializes, re-render
   the snapshots under `tests/golden/hermes/` (the diff is the review artifact) — and the
   e2e is a **real install** into a disposable Hermes profile, never a simulation

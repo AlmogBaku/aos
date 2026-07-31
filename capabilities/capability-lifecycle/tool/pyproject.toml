@@ -1,6 +1,6 @@
 [project]
 name = "aos-cap"                # kit name is RFC-001's; command below is what matters
-version = "0.3.5"                # tracks the capability-lifecycle capability version
+version = "0.3.6"                # tracks the capability-lifecycle capability version
 description = "Deterministic lifecycle bookkeeping for aos: manifest parse/validate + the tool-owned lockfile (capability-shipped tool, ARCHITECTURE §2.4)"
 # >=3.10, not >=3.9: typer's command-registration inspects `Annotated[...]` type hints
 # at runtime, which rules out the `from __future__ import annotations` route, and the

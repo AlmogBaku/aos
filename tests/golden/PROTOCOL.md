@@ -29,7 +29,7 @@ Everything the run creates is identifiable and disposable:
 2. `hermes profile create aos-test`, then give it a working provider — a fresh profile has
    only `model.default` and fails with `Invalid length for parameter modelId`. Copy a
    working profile's `config.yaml` (`model.provider`, `base_url`, and the `terminal`/`file`/
-   `skills`/`cronjob` toolsets); `normalize.mjs` skips `config.yaml`, so nothing private
+   `skills`/`cronjob` toolsets); the normalizer skips `config.yaml`, so nothing private
    reaches the snapshot. Capability agents (`aos-archiver`, `aos-steward`) need the same.
    Also configure a git identity in the seeded `personal/` repo
    (`git -C <sandbox>/aos-home/personal config user.name/user.email` — the fixture persona
@@ -62,10 +62,10 @@ Everything the run creates is identifiable and disposable:
    at <sandbox>/aos-home"` (default-profile fallback as above) — must trigger the
    materialized `capability-install` skill and complete the install.
 
-4. **Check**: `node tests/golden/check.mjs --live` runs the structural checks against the
+4. **Check**: `uv run --project tools/aos_lint python -m aos_lint.golden.check --live` runs the structural checks against the
    materialized tree (expectations in `tests/golden/expectations/*.yaml`), plus the
    canary check against the pre-state snapshot.
-5. **Snapshot**: `node tests/golden/normalize.mjs <paths>` → commit under
+5. **Snapshot**: `uv run --project tools/aos_lint python -m aos_lint.golden.normalize <paths>` → commit under
    `tests/golden/hermes/<cap>/`. The commit diff is the reviewable render (RFC-002).
    Save the run transcript to `tests/transcripts/`.
 
@@ -73,7 +73,7 @@ Everything the run creates is identifiable and disposable:
    re-rendered into the snapshot with `aos-cap render` rather than costing a whole live run —
    the render is a pure function of source + version for those skills. Two conditions, both
    non-negotiable: prove it first by rendering an *untouched* skill and confirming byte
-   identity with the committed snapshot, and pipe the output through `normalize.mjs` (skipping
+   identity with the committed snapshot, and pipe the output through the normalizer (skipping
    it leaves un-normalized values that the next real run silently flips back). Record which
    files came in that way, here or in the transcript. `check.mjs` asserts the snapshot equals
    what the normalizer produces, which catches the second mistake but not the first. Anything

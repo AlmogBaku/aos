@@ -12,11 +12,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # version-bump check diffs against the base
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
+      # uv is the only prerequisite: the whole toolchain (tier-0 tools, tier-1 lint, tier-2
+      # goldens) is Python, so there is no Node setup and no npm ci.
       - uses: astral-sh/setup-uv@v5
-      - run: npm ci --no-audit --no-fund
       - name: tier-0 capability tool tests + example-base fixture
         run: |
           uv run --quiet tests/tool/test_kb.py
@@ -35,14 +33,14 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="--base origin/${{ github.base_ref }}"
           fi
-          node tools/lint/aos-lint.mjs $BASE
+          uv run --quiet --project tools/aos_lint python -m aos_lint.cli $BASE
       - name: lint selftest
-        run: node tools/lint/selftest/run.mjs
+        run: uv run --quiet --project tools/aos_lint python -m aos_lint.selftest
       - name: retired-token gate
-        run: node tools/check-retired.mjs
+        run: uv run --quiet --project tools/aos_lint python -m aos_lint.gates.retired
       - name: coverage gate
-        run: node tools/check-coverage.mjs
+        run: uv run --quiet --project tools/aos_lint python -m aos_lint.gates.coverage
       - name: kb documented-command check
-        run: node tools/check-kb-commands.mjs
+        run: uv run --quiet --project tools/aos_lint python -m aos_lint.gates.kb_commands
       - name: golden structural checks
-        run: node tests/golden/check.mjs
+        run: uv run --quiet --project tools/aos_lint python -m aos_lint.golden.check

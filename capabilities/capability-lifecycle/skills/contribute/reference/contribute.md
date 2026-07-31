@@ -46,7 +46,8 @@ PRs need an accepted issue first. Show the draft; file only on explicit yes.
    `MOD.example.md` ships invented placeholders. When in doubt, redact.
 5. **Gate** (run from `<home>/upstream`): `bash tools/check.sh` green; bump the
    capability's `CAPABILITY.md` `version` and confirm with
-   `node tools/lint/aos-lint.mjs --base <canonical-remote>/main` — on a fork,
+   `uv run --project tools/aos_lint python -m aos_lint.cli --base <canonical-remote>/main`
+   — on a fork,
    `origin/main` is the fork's stale default and compares against the wrong base.
    Install output changed → the goldens note in CONTRIBUTING applies (a real
    re-render, never simulated).

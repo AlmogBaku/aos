@@ -1,19 +1,22 @@
 """Vocabulary the rest of the tool reads: the manifest key/value sets, the two regexes
 that recognise a version and a cron line, the Agent Skills name limits, and where the
-provenance stamp lives. Extracted verbatim, comments included — nothing outside this
-package reads these Python literals (tools/lib/constants.mjs and
-tools/lint/checks/manifest.mjs are the kit-side mirror, and they only ever match
-CLI-invocation strings in prose)."""
+provenance stamp lives.
+
+This is now the SINGLE definition, not a copy: the kit-side lint (`tools/aos_lint`) imports
+these names from here rather than restating them. It used to keep its own copies in
+`tools/lib/constants.mjs` under a comment saying the two "must agree", with nothing testing
+the agreement — so a schema the installer and the linter disagreed about was undetectable.
+Changing a value here therefore changes what CI enforces, which is the point."""
 
 import re
 from pathlib import Path
 
-VERSION = "0.3.5"                       # tracks the capability-lifecycle version
+VERSION = "0.3.6"                       # tracks the capability-lifecycle version
 LOCK_REL = Path(".aos") / "installs.lock.yaml"
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 CRON5 = re.compile(r"^\S+\s+\S+\s+\S+\s+\S+\s+\S+$")
 
-# Mirrors tools/lib/constants.mjs + tools/lint/checks/manifest.mjs (the kit-side gate).
+# The kit-side lint imports these (aos_lint.constants re-exports them) — one definition.
 MANIFEST_KEYS = {"id", "version", "tags", "summary", "depends", "schedules", "skills", "kb",
                  "skill_prefix"}
 CAPABILITY_TAGS = {"infra", "usecase"}

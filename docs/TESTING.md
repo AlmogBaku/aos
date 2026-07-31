@@ -28,14 +28,18 @@ build here). Requires `uv`; skipped locally with a warning if absent, always on 
 
     bash tools/check.sh
 
-Runs `tools/lint/aos-lint.mjs` (89 checks in 15 code families over the §2/§3/§5 contracts — the
+The whole toolchain is Python, in the `tools/aos_lint` package — **`uv` is the only
+prerequisite**, and every invocation below is prefixed with
+`uv run --quiet --project tools/aos_lint python -m`.
+
+Runs `aos_lint.cli` (89 checks in 15 code families over the §2/§3/§5 contracts — the
 schema/contract linter, useful any time you're authoring a capability, not just for
-testing), the lint selftest (`tools/lint/selftest/run.mjs` — every contract code must fire
+testing), the lint selftest (`aos_lint.selftest` — every contract code must fire
 on a planted-violation fixture, and a code that fires without being listed is also a
 failure), and three gates the linter structurally cannot cover, because it validates schema
 and these check *content*:
 
-- **`tools/check-retired.mjs`** — repo-wide: no retired vocabulary survives, no artifact
+- **`aos_lint.gates.retired`** — repo-wide: no retired vocabulary survives, no artifact
   invokes the old command name, and every shipped skill description carries its trigger
   clause, a negative clause naming a **sibling** skill, and third person. Exemptions are
   deliberately narrow and each states its reason in the file: a short prefix allowlist for
@@ -43,16 +47,16 @@ and these check *content*:
   snapshots, LAYOUT 1 fixtures), a per-file-and-per-token list for source that must NAME the
   old world in order to migrate it, and a `<!-- retired-ok: <tokens> -->` marker that exempts
   **only the tokens it names** — never the rest of the file.
-- **`tools/check-coverage.mjs`** — every CLI verb is documented (parsed from the tool's own
+- **`aos_lint.gates.coverage`** — every CLI verb is documented (parsed from the tool's own
   `--help`, so the list cannot drift), and every count quoted in prose is the count the
   tools report.
-- **`tools/check-kb-commands.mjs`** — every documented `kb <verb> --flag`, in the
+- **`aos_lint.gates.kb_commands`** — every documented `kb <verb> --flag`, in the
   capabilities *and* `docs/`, exists in the tool. Two careful human passes over the same
   prose still shipped nine commands that failed on invocation; that is the class this closes.
 
 Then the golden structural checker. CI runs the same on every push/PR.
 
-**Outside `check.sh` on purpose:** `node tools/check-template-drift.mjs` compares the shipped
+**Outside `check.sh` on purpose:** `aos_lint.gates.template_drift` compares the shipped
 init templates against the `aos-kb-template` repo `kb init` clones. It needs the network and
 reports offline as a *skip* — a gate that fails on a plane is a gate people learn to skip — so
 run it by hand after touching `templates/`.
@@ -60,17 +64,18 @@ run it by hand after touching `templates/`.
 ## Tier 2 — golden render (the e2e)
 
 **No simulated harness.** The e2e is a real install into a disposable Hermes profile
-namespace — see [`tests/golden/PROTOCOL.md`](../tests/golden/PROTOCOL.md). The checker,
-normalizer, and prestate script are test-only and live under `tests/golden/` alongside
-the fixtures and snapshots they operate on:
+namespace — see [`tests/golden/PROTOCOL.md`](../tests/golden/PROTOCOL.md). The checker and
+normalizer are test-only code and live in `aos_lint.golden`; the data they operate on — the
+protocol, the expectations, `prestate.sh`, and the snapshots — stays under `tests/golden/`:
 
+    LINT="uv run --quiet --project tools/aos_lint python -m"
     bash tests/golden/prestate.sh tests/.sandbox/prestate-before.txt
     hermes profile create aos-test
     # tell the agent to install (PROTOCOL.md carries the exact prompt)
-    node tests/golden/check.mjs --live full-install
+    $LINT aos_lint.golden.check --live full-install
     bash tests/golden/prestate.sh tests/.sandbox/prestate-after.txt
     diff tests/.sandbox/prestate-before.txt tests/.sandbox/prestate-after.txt  # canaries
-    node tests/golden/normalize.mjs ~/.hermes/profiles/aos-test tests/golden/hermes/full-install/front
+    $LINT aos_lint.golden.normalize ~/.hermes/profiles/aos-test tests/golden/hermes/full-install/front
     # … then removal per the cheat-sheet, and prestate must match again
 
 After the install e2e, the behavioral e2e ([`tests/golden/BEHAVIOR.md`](../tests/golden/BEHAVIOR.md) —
@@ -80,7 +85,7 @@ sync-conflict with zero agent invocations, removal) runs against the same namesp
 each step has an observable expected outcome.
 
 Committed snapshots under `tests/golden/hermes/` are re-checked deterministically in CI
-(`node tests/golden/check.mjs`); the snapshot commit diff is the reviewable render.
+(`aos_lint.golden.check`); the snapshot commit diff is the reviewable render.
 Equivalence judging for re-renders: [`tests/golden/RUBRIC.md`](../tests/golden/RUBRIC.md).
 
 ## Scenario runs (tier-3-flavored, non-blocking)
