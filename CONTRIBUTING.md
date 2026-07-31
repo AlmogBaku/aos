@@ -22,10 +22,11 @@ If you use aos, you are already set up to contribute — that's the point of the
 household layout
 ([spec §3.1](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#31-the-overlay-the-personal-root-mirrored-paths)):
 
-- `~/aos/upstream` is both your install source and your working copy — pristine,
-  contributor-shaped from bootstrap (origin = your fork, upstream = canonical), and it
+- `~/aos/upstream` is both your install source and your working copy — pristine, and it
   contains **nothing personal, ever** — so any branch you cut from it is clean by
-  construction.
+  construction. Bootstrap leaves `origin` = canonical; forking is one command
+  (`gh repo fork --remote`) whenever you want the contributor shape, and your agent only
+  ever offers it — a fork is a public write to your account.
 - `~/aos/personal` is your private repo — answers, tweaks, rendered skills, private
   capabilities — auto-committed by your agent, restorable by cloning it. It never
   enters a PR and never touches any public remote.
