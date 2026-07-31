@@ -39,7 +39,8 @@ Manifest quick facts: CAPABILITY.md frontmatter is strict-typed (`aos-cap manife
 errors name the field and rule); the fields are `id · version · tags · summary · depends · schedules · skills · skill_prefix · kb`, `x-*`
 reserved for extensions; the prose below the frontmatter is the installer's
 briefing, never runtime context. A skill's id is capability-local — the name it installs
-under is `aos-cap skills <dir>`'s answer, and it is single-owner across the whole harness
+under is `aos-cap skills <dir>`'s answer, and it is single-owner across the whole harness;
+an agent's works the same way, from the same prefix, via `aos-cap agents <dir>`
 (`reference/naming.md`).
 
 ## Experience

@@ -51,10 +51,30 @@ Consequences that bite if you forget them:
 - The `metadata.aos.origin` stamp is added by `aos-cap render` at install and never shipped
   upstream. (`skill/origin-tag`)
 
+### Agents are computed the same way
+
+An agent id is capability-local too, and harnesses keep agents in a flat per-harness
+namespace exactly like skills — `~/.hermes/profiles/<name>/`, `~/.claude/agents/<name>.md`.
+So the identity that ships is `<skill_prefix><agent-id>`, by the same three lines above, and
+`aos-cap agents <cap-dir>` prints the mapping. It is the only sanctioned way to compute an
+agent's installed name. `archiver` in `kb` ships as `kb-archiver`; `steward` in
+`work-tracker` ships as `wt-steward`. The single-owner rule is the same rule, and so is
+**never rename at install time** — the name belongs to the package.
+
+**Why agents reuse `skill_prefix` and there is no `agent_prefix`.** §2.2's rule of two: a
+manifest field exists only once **two** in-repo capabilities need it machine-read. Today
+neither `kb` nor `work-tracker` wants its agents under a different prefix than its skills —
+one prefix per capability is what both namespaces want — so a second field would be a
+schema addition with one hypothetical user. What would justify one: two capabilities that
+genuinely need divergent prefixes (say a harness that caps agent names shorter than skill
+names, forcing an abbreviation on one side only). Until then the reused field is the
+answer, and adding `agent_prefix` reflexively skips the conversation it should have had.
+
 ## Uniqueness is a gate, not a convention
 
-Harnesses keep **one flat skill namespace**. Two skills with one name is a silent override,
-so a skill name is single-owner — the same rule schedules have (§5.5).
+Harnesses keep **one flat skill namespace**, and a second flat one for agents. Two skills —
+or two agents — with one name is a silent override, so both names are single-owner: the same
+rule schedules have (§5.5).
 
 - In the kit, two capabilities computing the same installed name is an error.
   (`skills/installed-collision`)
@@ -73,6 +93,16 @@ so a skill name is single-owner — the same rule schedules have (§5.5).
   and says so in capitals when one could not be reached (no household resolved, no
   `--harness-skills` given). "Clean" against two of three sources is not clean — pass
   `--home` and the harness's skills dirs.
+- **Agents get their own gate, same exit code**: `aos-cap --home <home> agents <cap-dir>
+  --check` — run it alongside the skills gate for any capability that ships `agents/`. It
+  checks **two** of the three sources: the household's other capabilities and the lockfile's
+  recorded links. The third — the agents *already in the harness* — is deferred, because
+  enumerating them is a different command per harness (`hermes profile list`,
+  `ls ~/.claude/agents/`, `openclaw agents list`, `ncl groups list`, `ls agents/`) and no
+  shipped capability collides there yet. The report says
+  `NO --harness-agents SUPPORTED YET` in as many words, so glance at what the harness
+  already has before you create an agent. A capability with no `agents/` directory is clean
+  and exits 0 — that is the common case, not an error.
 
 ## Agent Skills conformance
 

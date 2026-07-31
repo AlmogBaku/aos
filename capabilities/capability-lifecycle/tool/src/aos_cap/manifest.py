@@ -1,7 +1,8 @@
 """CAPABILITY.md validation (§2.2) — the one place that decides whether a package is
 well-formed. Every check appends to one `errs` list and the whole list is printed
 before exit 12, because an installer fixing a manifest wants every problem at once,
-not the first one. `skill_rows()` is the shape both `skills` and `render` need."""
+not the first one. `skill_rows()` is the shape both `skills` and `render` need, and
+`agent_rows()` is its twin for the `agents` verb."""
 
 import sys
 from pathlib import Path
@@ -124,6 +125,15 @@ def validated_manifest(cap_dir: Path) -> dict:
         errs.append(f"skill_prefix must be a string (got {prefix_declared!r})")
     prefix = effective_prefix(data, cap_dir.name)
 
+    # Agents ship under a computed name too (`<prefix><agent-id>`, the same prefix), into a
+    # flat per-harness namespace — so the same Agent Skills limits are as fatal there as for
+    # a skill. Nothing checked this: an `archiver` under a long prefix, or a `claude-router`
+    # agent, validated clean and then landed as a name the harness cannot carry.
+    for agent_id in sorted(declared_agent_ids(cap_dir)):
+        for e in name_errors(installed_name(cap_dir.name, prefix, agent_id),
+                             f"agents[{agent_id}]: installed name"):
+            errs.append(e)
+
     declared = set()
     for entry in data.get("skills") or []:
         if not isinstance(entry, dict):
@@ -189,3 +199,16 @@ def skill_rows(cap_dir: Path) -> tuple[dict, list[dict]]:
              "used_by": list(e.get("used_by") or [])}
             for e in (data.get("skills") or [])]
     return data, rows
+
+
+def agent_rows(cap_dir: Path) -> tuple[dict, list[dict]]:
+    """(manifest, [{id, installed_name}]) — the agent twin of `skill_rows`.
+
+    Agents are declared by their `agents/*.agent.yaml` files, not by a manifest list (no
+    `agents:` key exists — rule of two), so the ids come from disk. A capability with no
+    `agents/` directory gets an empty list, which is the common case and not an error."""
+    cap_dir = Path(cap_dir).resolve()
+    data = validated_manifest(cap_dir)
+    prefix = effective_prefix(data, cap_dir.name)
+    return data, [{"id": a, "installed_name": installed_name(cap_dir.name, prefix, a)}
+                  for a in sorted(declared_agent_ids(cap_dir))]

@@ -868,6 +868,129 @@ class SkillNameTest(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
 
 
+class AgentNameTest(unittest.TestCase):
+    """`agents` — the agent half of §2.5 identity, and its collision gate.
+
+    Same hazard as skills, one directory over: harnesses keep agents in a flat per-harness
+    namespace (`~/.hermes/profiles/<name>/`, `~/.claude/agents/<name>.md`), so two
+    capabilities shipping `archiver` silently override each other. The gate is deliberately
+    two of three sources — enumerating the harness's existing agents needs a listing command
+    per cheat-sheet — and the report has to SAY which source it skipped, which is what
+    `test_agent_check_names_the_source_it_could_not_check` pins."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.home = Path(self.tmp.name) / "home"
+        (self.home / ".aos").mkdir(parents=True)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def cap(self, cap_id, skills, **kw):
+        return write_cap(self.home, cap_id, skills, **kw)
+
+    def write_lock(self, installs):
+        (self.home / ".aos" / "installs.lock.yaml").write_text(
+            "version: 1\ninstalls:\n" + "".join(
+                f"  {cap}:\n    version: 1.0.0\n    links:\n" + "".join(
+                    f"      {k}: {v}\n" for k, v in entry["links"].items())
+                for cap, entry in installs.items()))
+
+    def agents(self, cap, *extra):
+        return run(["--home", str(self.home), "agents", str(cap), *extra])
+
+    def names(self, cap, *extra):
+        r = self.agents(cap, *extra)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return {line.split("\t")[0]: line.split("\t")[1]
+                for line in r.stdout.strip().split("\n") if "\t" in line}
+
+    # -- the algorithm -----------------------------------------------------
+    def test_agent_installed_name_takes_the_capability_prefix(self):
+        cap = self.cap("kbc", ["kbc"], prefix="kb-", agents=["archiver"])
+        self.assertEqual(self.names(cap), {"archiver": "kb-archiver"})
+
+    def test_agent_prefix_defaults_to_the_capability_id(self):
+        cap = self.cap("democap", ["democap"], agents=["archiver"])
+        self.assertEqual(self.names(cap)["archiver"], "democap-archiver")
+
+    def test_a_capability_with_no_agents_is_clean(self):
+        """The common case — most capabilities ship none — and it must not be an error."""
+        cap = self.cap("democap", ["democap"])
+        r = self.agents(cap)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout.strip(), "")
+
+    def test_agent_json_reports_the_mapping(self):
+        cap = self.cap("kbc", ["kbc"], prefix="kb-", agents=["archiver", "router"])
+        r = self.agents(cap, "--json")
+        data = json.loads(r.stdout)
+        self.assertEqual(data["capability"], "kbc")
+        self.assertEqual(data["skill_prefix"], "kb-")
+        self.assertEqual([(a["id"], a["installed_name"]) for a in data["agents"]],
+                         [("archiver", "kb-archiver"), ("router", "kb-router")])
+
+    # -- the gate says yes -------------------------------------------------
+    def test_agent_check_clean_reports_unclaimed(self):
+        cap = self.cap("kbc", ["kbc"], prefix="kb-", agents=["archiver"])
+        r = self.agents(cap, "--check")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("clean: 1 agent name unclaimed", r.stdout)
+
+    def test_agent_check_names_the_source_it_could_not_check(self):
+        """PIN: the gate covers two of three sources on purpose — `--harness-agents` would
+        need a new enumeration command in each of the five cheat-sheets for a source no
+        shipped capability collides on. What is NOT optional is saying so: `names.py`'s own
+        rule is that a skipped source must never be indistinguishable from an empty one."""
+        cap = self.cap("kbc", ["kbc"], prefix="kb-", agents=["archiver"])
+        r = self.agents(cap, "--check")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("NO --harness-agents SUPPORTED YET", r.stdout)
+        self.assertIn("household", r.stdout)
+
+    # -- the gate says no (exit 17) ----------------------------------------
+    def test_agent_collision_with_another_household_capability(self):
+        self.cap("othercap", ["othercap"], prefix="kb-", agents=["archiver"],
+                 root="personal")
+        cap = self.cap("kbc", ["kbc"], prefix="kb-", agents=["archiver"])
+        r = self.agents(cap, "--check")
+        self.assertEqual(r.returncode, 17, r.stdout + r.stderr)
+        self.assertIn("kb-archiver", r.stderr)
+        self.assertIn("othercap", r.stderr)
+
+    def test_agent_collision_with_a_lockfile_link(self):
+        harness = self.home / "harness" / "skills"
+        harness.mkdir(parents=True)
+        self.write_lock({"othercap": {"links": {
+            str(harness / "kb-archiver"): "/elsewhere/skills/kb-archiver"}}})
+        cap = self.cap("kbc", ["kbc"], prefix="kb-", agents=["archiver"])
+        r = self.agents(cap, "--check")
+        self.assertEqual(r.returncode, 17, r.stdout + r.stderr)
+        self.assertIn("othercap", r.stderr)
+
+    def test_agent_collision_inside_one_capability(self):
+        """Two agent ids, one computed name: `archiver` prefixes to `kb-archiver`, and
+        `kb-archiver` is never double-prefixed — so the pair collides with itself."""
+        cap = self.cap("kbc", ["kbc"], prefix="kb-", agents=["archiver", "kb-archiver"])
+        r = self.agents(cap, "--check")
+        self.assertEqual(r.returncode, 17, r.stdout + r.stderr)
+        self.assertIn("itself", r.stderr)
+
+    # -- name validation, against the INSTALLED name -----------------------
+    def test_over_long_agent_installed_name_rejected(self):
+        long_id = "a" + "-very" * 14          # fits alone, too long once prefixed
+        cap = self.cap("democap", ["democap"], agents=[long_id])
+        r = self.agents(cap)
+        self.assertEqual(r.returncode, 12, r.stdout + r.stderr)
+        self.assertIn("max 64", r.stderr)
+
+    def test_reserved_word_in_agent_installed_name_rejected(self):
+        cap = self.cap("democap", ["democap"], agents=["claude-router"])
+        r = self.agents(cap)
+        self.assertEqual(r.returncode, 12, r.stdout + r.stderr)
+        self.assertIn("reserved", r.stderr)
+
+
 class RenderTest(unittest.TestCase):
     """`render` — the one verb that materializes a skill. Mirrors `commands/render.py`:
     the copy, the frontmatter stamp, and the guards on `--out`."""

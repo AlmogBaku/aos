@@ -21,12 +21,13 @@ Rows tagged **PIN** are regression pins for real bugs that shipped. Their one-li
 is the point of the row — a rewrite that drops one re-opens the bug, and a rewrite that
 keeps the assertion but loses the reason invites a later reader to "simplify" it away.
 
-## The surface: 11 verbs + `--version`
+## The surface: 12 verbs + `--version`
 
 | verb | promises | exits |
 |---|---|---|
 | `manifest <dir>` | parse + validate a `CAPABILITY.md` (§2.2), emit it as JSON on stdout | 0, 12 |
 | `skills <dir>` | every skill's **installed** name (`<prefix><id>`, entry skill verbatim); `--json` adds the prefix; `--check` **is** the collision gate and names the sources it consulted | 0, 12, 15, 17, 1 |
+| `agents <dir>` | every agent's **installed** name (`<skill_prefix><agent-id>`, from `agents/*.agent.yaml`); `--json` adds the prefix; `--check` is the same single-owner gate over the agent namespace, against **two** of three sources — and names the third it cannot reach | 0, 12, 15, 17 |
 | `render <dir> <skill> --out` | copy `skills/<id>/` to `<out>/<installed-name>/`, rewrite `name`, stamp `metadata.aos.origin`, resolve the `{{skill:}}`/`{{agent:}}` name slots; mechanical + idempotent | 0, 1, 12, 14, 18 |
 | `home` | print the resolved household root | 0, 15 |
 | `init` | create an empty `<home>/.aos/installs.lock.yaml`; the one verb that may find no `.aos/` | 0, 1, 15 |
@@ -105,6 +106,40 @@ Happy path: one `id\tinstalled_name\tused_by` row per declared skill; `--check` 
 ### bad input — 1
 
 - [ ] test_bad_harness_skills_arg_is_a_generic_error — 1; `--harness-skills` pointing at a non-directory
+
+## `agents` — the agent namespace and its gate — 11
+
+Happy path: one `id\tinstalled_name` row per `agents/*.agent.yaml`; `--check` adds
+`clean: N agent names unclaimed` plus a `checked:` line per source — including the one it
+cannot reach. Skills had a full identity mechanism and agents had none, while
+`agents/archiver.agent.yaml` claimed the bare name `archiver` in the user's harness; the
+test-only convention of hand-prefixing `tests/golden/PROTOCOL.md`'s profiles
+(`aos-archiver`, `aos-steward`) was the evidence the contract was missing rather than unused.
+The gate shares `_household_claims` + `_name_collisions` with the skills gate, so the two
+cannot drift on what "already claimed" means.
+
+### the naming algorithm — 4
+
+- [ ] test_agent_installed_name_takes_the_capability_prefix — 0; `archiver` under `kb-` → `kb-archiver`, the same computation skills get and the same reason (one flat per-harness namespace)
+- [ ] test_agent_prefix_defaults_to_the_capability_id — 0; no `skill_prefix` → `<id>-`, and no `agent_prefix` field exists: §2.2's rule of two, and no in-repo capability wants divergent prefixes
+- [ ] test_a_capability_with_no_agents_is_clean — 0; most capabilities ship none, so an absent `agents/` prints nothing and exits 0 — never an error
+- [ ] test_agent_json_reports_the_mapping — 0; `--json` carries the capability, the prefix, and ordered `id`→`installed_name`
+
+### the gate says yes — 2
+
+- [ ] test_agent_check_clean_reports_unclaimed — 0; the clean report counts the names it cleared
+- [ ] test_agent_check_names_the_source_it_could_not_check — **PIN**; 0; `--harness-agents` enumeration is deferred (a different listing command in each of the five cheat-sheets, for a source no shipped capability collides on) — so the report must say `NO --harness-agents SUPPORTED YET` in as many words. `names.py`'s own rule: a skipped source must never be indistinguishable from an empty one
+
+### exit 17 — 3
+
+- [ ] test_agent_collision_with_another_household_capability — 17; another capability's agent already claims the name, and the report names the owner
+- [ ] test_agent_collision_with_a_lockfile_link — 17; a recorded link attributes the name to another install — the second of the two sources this gate reads
+- [ ] test_agent_collision_inside_one_capability — 17; `archiver` + `kb-archiver` under `kb-` compute one name ("...in itself"), the agent mirror of the skills case
+
+### name validation, against the INSTALLED name — 2
+
+- [ ] test_over_long_agent_installed_name_rejected — 12; an agent name too long is as fatal as a skill's — the harness writes it as a directory or a filename
+- [ ] test_reserved_word_in_agent_installed_name_rejected — 12; `claude`/`anthropic` are reserved in the agent namespace too. `validated_manifest` checked skill names against `name_errors()` and nothing checked agents
 
 ## `render` — 13 · name slots — 18
 

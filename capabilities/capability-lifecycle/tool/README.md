@@ -12,13 +12,14 @@ uvx --from <home>/upstream/capabilities/capability-lifecycle/tool aos-cap --help
 ```
 
 Verbs: `manifest <dir>` · `skills <dir> [--check] [--harness-skills DIR]× [--json]` ·
+`agents <dir> [--check] [--json]` ·
 `render <dir> <skill-id> --out DIR [--force]` · `init` ·
 `record <cap> --version … --source-root upstream|personal|<org> --artifact …× --link …× --job …× --config-key …× --env-line …× --script …×` ·
 `rehash <cap>` (refresh recorded hashes in place) · `verify [<cap>]` · `show <cap>` ·
 `list` · `remove <cap>`. Household discovery: `--home` > `$AOS_HOME` > cwd-upward search
 for `.aos/`. Exit codes: 0 ok · 1 generic (init over an existing lockfile) · 12 manifest
 invalid · 13 drift · 14 no such entry · 15 no home · 16 artifact missing / not a symlink ·
-17 skill-name collision · 18 unresolvable `{{skill:}}`/`{{agent:}}` slot.
+17 skill- or agent-name collision · 18 unresolvable `{{skill:}}`/`{{agent:}}` slot.
 
 ## Skill names (§2.5)
 
@@ -44,6 +45,25 @@ The first two sources need a household. It resolves from `--home`, `$AOS_HOME`, 
 up from the capability directory (which is inside one) — but **read the `checked:` lines the
 clean report prints**: a source it could not reach is named in capitals. "Clean" against two
 of three sources is not clean, so pass `--home` and the harness's skills dirs explicitly.
+
+## Agent names — the same identity, one directory over
+
+Harnesses keep agents in a flat per-harness namespace too (`~/.hermes/profiles/<name>/`,
+`~/.claude/agents/<name>.md`), so two capabilities shipping `archiver` silently override each
+other. `agents <dir>` prints each `agents/*.agent.yaml`'s **installed name**, computed by the
+identical three lines above from the capability's `skill_prefix` — `archiver` in `kb` ships as
+`kb-archiver`. There is no `agent_prefix` field: §2.2's rule of two, and no in-repo capability
+wants divergent prefixes.
+
+`--check` is the same single-owner gate under the same exit **17** — one code for one hazard,
+whichever namespace it lands in — with the same never-rename-at-install-time rule. It reads
+**two** of the three sources: the household's other capabilities and the lockfile's recorded
+links. Enumerating the agents *already in the harness* is deferred, because it is a different
+command per harness (`hermes profile list`, `ls ~/.claude/agents/`, `openclaw agents list`,
+`ncl groups list`, `ls agents/`) for a source no shipped capability collides on today — and the
+report says `NO --harness-agents SUPPORTED YET` in as many words rather than letting a skipped
+source read as an empty one. A capability with no `agents/` directory prints nothing and exits
+0; that is the common case, not an error.
 
 `render` is the mechanical half of materialization: it copies `skills/<id>/` whole (with
 `reference/`, `templates/`, `scripts/`) to `<out>/<installed-name>/`, rewrites the render's

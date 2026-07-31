@@ -1,11 +1,18 @@
-"""Skill identity (§2.5) and the collision gate.
+"""Skill and agent identity (§2.5) and the collision gate.
 
 A skill id is capability-local; the name it INSTALLS under is `<prefix><id>`, and that
 computed name is the shipped identity — single-owner across the whole harness, which is
 why the Agent Skills limits are checked against it and never against the id. Everything
 here is a pure function of files on disk: the four sources a name can already be claimed
 by (this capability itself, another household capability, a lockfile link, a skill
-already in the harness) each get their own reader, and `skill_collisions()` joins them."""
+already in the harness) each get their own reader, and `skill_collisions()` joins them.
+
+An AGENT name is the same hazard in a different directory: harnesses keep agents in a
+flat per-harness namespace too (`~/.hermes/profiles/<name>/`, `~/.claude/agents/<name>.md`),
+so two capabilities shipping `archiver` silently override each other. `agent_collisions()`
+is the twin gate — same computation, same exit code, and it shares the join with the skill
+gate (`_household_claims` + `_name_collisions`) so the two can never drift on what
+"already claimed" means."""
 
 import os
 from pathlib import Path
@@ -152,7 +159,15 @@ def resolve_capability(cap_id: str, cap_dir: Path) -> tuple[Optional[Path], Opti
     return found[0], frontmatter_soft(found[0] / "CAPABILITY.md"), len(found) > 1
 
 
-def household_owners(root: Path, exclude_cap: str) -> dict[str, str]:
+def household_owners(root: Path, exclude_cap: str, namer=capability_skill_names,
+                     ) -> dict[str, str]:
+    """Every name the household's OTHER capabilities claim → who claims it.
+
+    `namer` is which namespace to read: `capability_skill_names` (the default, and the
+    skill gate's) or `capability_agent_names`. Parameterized rather than copied so the
+    two gates cannot drift on what counts as a household claim — the exclude rule, the
+    two roots, and "a directory is a package only if it holds a CAPABILITY.md" are one
+    implementation."""
     owners: dict[str, str] = {}
     for label in ("upstream", "personal"):
         caps_dir = root / label / "capabilities"
@@ -161,7 +176,7 @@ def household_owners(root: Path, exclude_cap: str) -> dict[str, str]:
         for cap in sorted(caps_dir.iterdir()):
             if cap.name == exclude_cap or not (cap / "CAPABILITY.md").is_file():
                 continue
-            for name in capability_skill_names(cap):
+            for name in namer(cap):
                 owners.setdefault(name, f"capability '{cap.name}' in {label}/")
     return owners
 
@@ -239,31 +254,34 @@ def harness_owners(dirs: Iterable[str], ours: set[str],
     return owners
 
 
-def skill_collisions(opts: HasHome, harness_skills: list[str], cap_id: str,
-                     rows: list[dict], cap_dir: Optional[Path] = None,
-                     ) -> tuple[list[str], list[str]]:
-    """(collisions, sources consulted). The caller reports the sources: a source that was
-    skipped must never be indistinguishable from a source that came back empty."""
+def _household_claims(opts: HasHome, cap_id: str, cap_dir: Optional[Path], namer,
+                      ) -> tuple[Optional[Path], dict[str, str], set[str], str]:
+    """The two free sources — the household's other capabilities and the lockfile's
+    recorded links — as (root, taken, ours, source label).
+
+    Shared by both gates, and it returns the source LABEL rather than printing anything:
+    a source that was skipped must never be indistinguishable from a source that came
+    back empty, so the label says `NO HOUSEHOLD RESOLVED` in as many words."""
     taken: dict[str, str] = {}
     ours: set[str] = set()
-    sources: list[str] = []
     root = find_home_soft(opts, cap_dir)
     if root:
         ours = {Path(n).stem for n in lock_link_names(root, cap_id)}
-        taken.update(household_owners(root, cap_id))
+        taken.update(household_owners(root, cap_id, namer))
         for name, cap in lock_link_names(root, None).items():
             if cap != cap_id:
                 taken.setdefault(name, f"installed capability '{cap}' (lockfile link)")
-        sources.append(f"household {root} (capabilities + lockfile links)")
-    else:
-        sources.append("NO HOUSEHOLD RESOLVED — other capabilities and the lockfile were "
-                       "NOT checked (pass --home)")
-    for name, where in harness_owners(harness_skills, ours, root).items():
-        taken.setdefault(name, where)
-    sources.append(f"{len(harness_skills)} harness skills dir(s)"
-                   if harness_skills else
-                   "NO --harness-skills GIVEN — skills already in the harness were NOT checked")
+        return root, taken, ours, f"household {root} (capabilities + lockfile links)"
+    return None, taken, ours, ("NO HOUSEHOLD RESOLVED — other capabilities and the "
+                               "lockfile were NOT checked (pass --home)")
 
+
+def _name_collisions(taken: dict[str, str], cap_id: str, rows: list[dict]) -> list[str]:
+    """Every computed name in `rows` against `taken`, plus rows against each other.
+
+    Namespace-agnostic on purpose: a skill name and an agent name collide the same way
+    (one flat per-harness namespace, silent override), so the join, the message shape and
+    the exit code are one implementation for both."""
     out: list[str] = []
     seen: dict[str, str] = {}
     for r in rows:
@@ -275,4 +293,38 @@ def skill_collisions(opts: HasHome, harness_skills: list[str], cap_id: str,
         if name in taken:
             out.append(f"COLLISION {name} (from {cap_id}:{r['id']}) is already claimed by "
                        f"{taken[name]}")
-    return out, sources
+    return out
+
+
+def skill_collisions(opts: HasHome, harness_skills: list[str], cap_id: str,
+                     rows: list[dict], cap_dir: Optional[Path] = None,
+                     ) -> tuple[list[str], list[str]]:
+    """(collisions, sources consulted). The caller reports the sources: a source that was
+    skipped must never be indistinguishable from a source that came back empty."""
+    root, taken, ours, household_source = _household_claims(
+        opts, cap_id, cap_dir, capability_skill_names)
+    sources = [household_source]
+    for name, where in harness_owners(harness_skills, ours, root).items():
+        taken.setdefault(name, where)
+    sources.append(f"{len(harness_skills)} harness skills dir(s)"
+                   if harness_skills else
+                   "NO --harness-skills GIVEN — skills already in the harness were NOT checked")
+    return _name_collisions(taken, cap_id, rows), sources
+
+
+def agent_collisions(opts: HasHome, cap_id: str, rows: list[dict],
+                     cap_dir: Optional[Path] = None) -> tuple[list[str], list[str]]:
+    """The agent twin of `skill_collisions` — two of three sources, and it says so.
+
+    Enumerating the agents ALREADY in the harness is deferred: it needs a per-harness
+    listing command (`hermes profile list`, `ls ~/.claude/agents/`, `openclaw agents list`,
+    `ncl groups list`, `ls agents/`) in all five cheat-sheets, for a source no shipped
+    capability collides on today. Deferred is not silent — the third source is named in
+    capitals in the report, the same discipline `skill_collisions` holds for a household it
+    could not resolve."""
+    _root, taken, _ours, household_source = _household_claims(
+        opts, cap_id, cap_dir, capability_agent_names)
+    sources = [household_source,
+               "NO --harness-agents SUPPORTED YET — agents already in the harness were "
+               "NOT checked"]
+    return _name_collisions(taken, cap_id, rows), sources

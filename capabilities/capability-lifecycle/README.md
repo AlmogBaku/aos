@@ -32,7 +32,8 @@ Installed skill names are computed, not authored: the ids above are capability-l
 `skill_prefix: capability-` makes them `capability-install`, `capability-onboard`,
 `capability-build`, and so on. One flat skill namespace per harness means a name is
 single-owner, so `aos-cap skills --check` gates every install against the household, the
-lockfile, and the skills your harness already has. See
+lockfile, and the skills your harness already has. Agents are computed from the same prefix
+(`aos-cap agents`) and gated the same way, against the household and the lockfile. See
 `skills/capability-lifecycle/reference/naming.md`.
 
 For generic skill craft — drafting, description-trigger tuning, eval loops — this

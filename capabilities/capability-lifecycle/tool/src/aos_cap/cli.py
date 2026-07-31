@@ -6,6 +6,7 @@ lockfile — only the last group is lockfile bookkeeping:
 
   manifest  parse + validate a CAPABILITY.md -> JSON on stdout
   skills    compute each skill's INSTALLED name; --check IS the collision gate
+  agents    the same, for the agents it ships — one flat namespace, one exit code
   render    copy one skill to its installed name, resolving its name slots
             (mechanical, idempotent)
   home      print the resolved household root
@@ -15,7 +16,7 @@ lockfile — only the last group is lockfile bookkeeping:
 The lockfile is THIS TOOL'S file: agents call verbs, never edit the YAML.
 Exit codes: 0 ok · 1 generic (e.g. init over an existing lockfile) · 12 manifest
 invalid · 13 drift · 14 no such entry · 15 no home · 16 artifact missing ·
-17 skill-name collision · 18 unresolvable {{skill:}}/{{agent:}} slot.
+17 skill-or-agent-name collision · 18 unresolvable {{skill:}}/{{agent:}} slot.
 """
 
 from typing import Optional
@@ -29,8 +30,8 @@ from .commands.lockfile import app as lockfile_app
 
 app = typer.Typer(rich_markup_mode=None, add_completion=False,
                   help="Deterministic lifecycle bookkeeping for aos capabilities: the "
-                       "manifest, the installed skill names, the render, and the "
-                       "lockfile. See `--help` per verb. "
+                       "manifest, the installed skill and agent names, the render, and "
+                       "the lockfile. See `--help` per verb. "
                        "NOTE: --home is global, so it goes BEFORE the verb "
                        "(`aos-cap --home ~/aos record …`, never `aos-cap record --home …`) "
                        "— the same shape the `kb` tool's --base has.")

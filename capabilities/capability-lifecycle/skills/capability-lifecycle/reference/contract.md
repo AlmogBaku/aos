@@ -93,6 +93,11 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   Stop and report it; **never rename at install time** — the name belongs to the package, so
   the fix is upstream (`capability-contribute`) or in the user's own package. Full rules:
   the naming rules the `capability-lifecycle` entry skill links.
+- **An agent's name is computed and single-owner too.** Harnesses keep a flat agent namespace
+  as well, so `aos-cap --home <home> agents <cap-dir> --check` gates any capability that
+  ships `agents/` — same `<skill_prefix><agent-id>` computation, same exit 17, same
+  never-rename-here rule. It reads two of three sources and names the third (agents already
+  in the harness — no enumeration yet) in capitals.
 - **Skills materialize as pinned renders + symlinks, never copies.** `aos-cap render
   <cap-dir> <id> --out personal/capabilities/<capability>/skills` does the mechanical half:
   the whole folder travels (`reference/`, `scripts/`, `templates/` — scripts are executed,

@@ -34,6 +34,11 @@ the overlay doctrine, and the Experience rules. Then:
    taken and by whom; a collision is fixed in the package (`capability-contribute`, or the
    user's own source), never by renaming here. Clean → the printed installed names are
    what every later step uses (the `capability-lifecycle` skill's `reference/naming.md`).
+   In the same breath, if the capability ships `agents/`:
+   `aos-cap --home <home> agents <dir> --check` — agents land in a flat per-harness
+   namespace too, so the same exit 17 and the same rule (fix the package, never rename
+   here). It checks two of three sources; the third — agents already in the harness — has
+   no enumeration yet and says so in capitals, so glance at what the harness already has.
 6. Interview, iff the capability ships ONBOARDING.md — run it per the
    `capability-lifecycle` skill's `reference/overlay.md` (batched, typed validation, secrets → store per the
    cheat-sheet's Secrets section) → write `<home>/personal/capabilities/<id>/MOD.md`.

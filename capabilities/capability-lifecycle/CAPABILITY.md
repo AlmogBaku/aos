@@ -143,7 +143,11 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
   capabilities shipping one name is a silent override. `aos-cap skills --check` is the
   gate — against every capability in the household, the lockfile's recorded links, and the
   skills the harness already has. A collision is fixed by renaming in the package, never
-  at install time.
+  at install time. **An agent name is single-owner for the same reason** — agents land in a
+  flat per-harness namespace too (`~/.hermes/profiles/<name>/`, `~/.claude/agents/<name>.md`),
+  so `archiver` ships as `kb-archiver` and `aos-cap agents --check` gates it under the same
+  exit 17, against the household and the lockfile (harness enumeration is deferred, and the
+  report says so).
 - The ten skills are the runtime face of ARCHITECTURE §5–§6 and §9 plus
   design/install-flow.md §2–§4; the entry skill carries the shared depth (`reference/`)
   and the Experience rules every lifecycle interaction obeys.

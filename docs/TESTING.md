@@ -7,7 +7,7 @@ How a capability proves it works (implements RFC-002).
 `bash tools/check.sh` first runs the capability tool suites — kb's `kb`
 (`uv run tests/tool/test_kb.py`) and capability-lifecycle's `aos-cap`
 (`uv run tests/tool/test_cap.py`). Both invoke their tool's `cli:app` in-process via
-typer's `CliRunner` (fast: kb's ~210 tests run in ~30s, aos-cap's ~83 in ~1s), asserting
+typer's `CliRunner` (fast: kb's ~210 tests run in ~30s, aos-cap's ~110 in ~1s), asserting
 on the same stdout/stderr/exit-code surface a real invocation produces — the report text
 is still the contract, not tool internals. A `Result` adapter gives every assertion the
 `.returncode`/`.stdout`/`.stderr` shape a subprocess result has, so the invocation layer

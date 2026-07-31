@@ -41,7 +41,11 @@ diff in the user's own repo.
       <each skills dir this harness reads>`. Upstream may have renamed or added a skill, so the installed
       names can differ from the recorded links — a rename means link the new name and drop
       the old one in step d. Exit 17 → stop and report; never rename locally. This
-      capability's own links are exempt, so a plain re-render is always clean.
+      capability's own links are exempt, so a plain re-render is always clean. If it ships
+      `agents/`, gate those too in the same breath: `aos-cap --home <home> agents <dir>
+      --check` — same flat namespace, same exit 17, same never-rename-locally. It checks
+      two of three sources and names the third (agents already in the harness — no
+      enumeration yet) in capitals.
    c. **First, before `--force` touches anything**: `git -C <home>/personal status
       --porcelain -- capabilities/<id>`. `--force` re-render is `rmtree` then `copytree`, so a
       pre-existing **untracked** file of the user's under that directory is gone with no commit

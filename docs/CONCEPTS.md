@@ -353,7 +353,7 @@ is. When building reveals the spec is wrong, the spec gets fixed — the
 | **distribution / instance** | `upstream/` (and future org roots) ship capabilities; `personal/` is *your* instance of them |
 | **capability** | An installable directory of skills/agents/tools/crons/patches |
 | **entry skill** | `skills/<id>/` — the capability's runtime face and map |
-| **installed name** | The name a skill ships under: `<skill_prefix><id>`, computed by `aos-cap skills`, unique across the harness |
+| **installed name** | The name a skill ships under: `<skill_prefix><id>`, computed by `aos-cap skills`, unique across the harness. An agent's is computed the same way, from the same prefix, by `aos-cap agents` |
 | **overlay** | Your `MOD.md` files + `kb-registry.yaml`; user-owned, never shipped |
 | **base** | One KB instance == one git repo, registered in `kb-registry.yaml` |
 | **materialize** | The installer writing a capability's artifacts into your harness |
