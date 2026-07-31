@@ -22,8 +22,8 @@ expect, what you'll be asked, and what ends up where.
 
 Paste into your agent:
 
-> Fork and clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream (a plain clone
-> works too), read ~/aos/upstream/BOOTSTRAP.md, then set me up.
+> Clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream, read
+> ~/aos/upstream/BOOTSTRAP.md, then set me up.
 
 ## What happens next
 
@@ -31,9 +31,10 @@ Paste into your agent:
    about to happen, and the two promises (your answers stay yours; nothing lands without
    a visible diff) — and takes questions.
 2. **Prerequisites + the household.** git and `uv` verified (offered for install if
-   missing); the kit clone lands at `~/aos/upstream` (forked by default — you're one
-   branch from contributing; a plain clone works too), and `~/aos/personal` is created
-   as your own private repo (a private remote is offered, never required).
+   missing); the kit clone lands at `~/aos/upstream` (a plain clone — you're one branch
+   from contributing, and if you want a fork later your agent offers the one command),
+   and `~/aos/personal` is created as your own private repo (a private remote is
+   offered, never required).
 3. **The lifecycle capability installs itself.** One inline install puts the whole
    lifecycle — install, upgrade, remove, onboard, import, build, contribute, evolve — plus
    the `aos-lock` tool into your harness. From here on, "install X" is a skill, and the lockfile

@@ -7,8 +7,8 @@ carry everything else.
 
 ## The experience
 
-You are already in the clone (the paste-block forked-and-cloned it — silent, harmless; a
-plain clone is fine too). **Before any check or write, welcome your user**, in the voice
+You are already in the clone (the paste-block cloned it — silent, harmless).
+**Before any check or write, welcome your user**, in the voice
 defined by the `capability-lifecycle` entry skill's `## Experience` section
 (`capabilities/capability-lifecycle/skills/capability-lifecycle/SKILL.md` — read it now;
 it binds every step below and every lifecycle interaction after): warm + expert, concept
@@ -50,10 +50,13 @@ private remote; only `.aos/` is machine-local.
    If the paste-block landed it elsewhere (e.g. `~/aos` directly — the pre-household
    shape), stage the move: `mv ~/aos ~/aos-kit && mkdir ~/aos && mv ~/aos-kit
    ~/aos/upstream` (a directory can't be moved inside itself in one step).
-2. Check remotes: the fork shape is `origin` = the user's fork, `upstream` = canonical.
-   A plain clone (origin = canonical) is fine — note once that forking later is one
-   command (`gh repo fork --remote`) and move on. **Forks are public** — which is safe,
-   because nothing personal ever enters this clone.
+2. Check remotes: the normal shape is `origin` = canonical, and that's all this install
+   needs. Mention once that if they ever want to contribute, forking is one command
+   (`gh repo fork --remote`, which renames canonical to `upstream`) — an *offer* they
+   take or ignore, never something you run: a fork is a public write to their account,
+   and the contract gates it behind their explicit yes. **Forks are public** — which is
+   safe, because nothing personal ever enters this clone. `gh` missing or
+   unauthenticated → say so in a clause and move on; it blocks nothing here.
 3. Create the personal root: `git init ~/aos/personal`, seed the mirrored shape
    (`capabilities/` directory). Offer — don't push — a private remote for backup/sync
    (`gh repo create aos-personal --private` when `gh` is available; skippable, add one

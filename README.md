@@ -48,8 +48,8 @@ Planned next, in [build order](https://github.com/AlmogBaku/aos/blob/spec/ARCHIT
 
 Paste into your agent:
 
-> Fork and clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream (a plain clone
-> works too), read ~/aos/upstream/BOOTSTRAP.md, then set me up.
+> Clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream, read
+> ~/aos/upstream/BOOTSTRAP.md, then set me up.
 
 That's the whole funnel — there is no installer binary. Your harness's own agent performs
 the install: it interviews you (identity, timezone, sacred time, red lines), writes your
@@ -66,8 +66,9 @@ every artifact in a lockfile so removal is exact. Everything lands in one direct
 └── .aos/        ← machine-local: the install lockfile
 ```
 
-The fork is the default because every user is one branch away from being a contributor
-(`upstream/` is your dev checkout too); it's never a gate.
+`upstream/` is also your dev checkout — every user is one branch away from being a
+contributor, and forking when you want to is one command (`gh repo fork --remote`).
+Never a gate, and never something your agent does without asking.
 
 > [!IMPORTANT]
 > Nothing lands in your harness without your approval: the installer shows the full diff
