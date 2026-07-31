@@ -6,7 +6,7 @@ prose, never this file's Python set literals)."""
 
 import re
 
-VERSION = "0.7.1"
+VERSION = "0.7.2"
 LAYOUT = 2
 # `kb init`'s default template source — a plain, read-only, unauthenticated clone;
 # --template overrides it, --templates (local dir) skips the network step entirely.
