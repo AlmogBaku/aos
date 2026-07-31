@@ -15,7 +15,7 @@ the overlay doctrine, and the Experience rules. Then:
    (never silently prefer). Then `aos-cap manifest <dir>` → validated JSON. Validation
    failure → show the tool's error, offer fix-or-report; never improvise a parse.
 2. `aos-cap show <id>`: installed at this version → say so, stop; older →
-   hand to `capability-upgrade`.
+   hand to {{skill: upgrade}}.
 3. Dependencies: each `depends.capabilities` missing from `aos-cap list` →
    announce briefly ("work-tracker needs kb — setting that up first"), install it first,
    its interview included.
@@ -31,7 +31,7 @@ the overlay doctrine, and the Experience rules. Then:
    harness reads, per the cheat-sheet's Primitive mapping>`. Read its `checked:` lines —
    a source it could not reach is named in capitals, and "clean" against two of three
    sources is not clean. Exit 17 → stop and report which name is
-   taken and by whom; a collision is fixed in the package (`capability-contribute`, or the
+   taken and by whom; a collision is fixed in the package ({{skill: contribute}}, or the
    user's own source), never by renaming here. Clean → the printed installed names are
    what every later step uses (the `capability-lifecycle` skill's `reference/naming.md`).
    In the same breath, if the capability ships `agents/`:
@@ -77,5 +77,5 @@ the overlay doctrine, and the Experience rules. Then:
 12. `aos-cap verify <id>` — exit 13 means what you just recorded does not match what is
     on disk (a link that is a copy, a missed render, a hash taken before the transform).
     Fix it now: you still know what you wrote, and the next person to find out would be
-    `capability-upgrade`, months from now.
+    {{skill: upgrade}}, months from now.
 13. Celebrate specifically: what, where, which schedules, degraded modes in effect.

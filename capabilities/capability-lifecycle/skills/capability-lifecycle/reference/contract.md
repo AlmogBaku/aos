@@ -55,7 +55,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   before the gate. Where the harness has a native plan/read-only mode (cheat-sheet
   Primitive mapping, `plan mode` row), STAGE runs inside it and the GATE approval is
   the exit.
-- **You never write** any `MOD.md` except through `capability-evolve` or an interview,
+- **You never write** any `MOD.md` except through {{skill: evolve}} or an interview,
   and you never edit shipped capability files in any source root — personalization
   lives only in `personal/` (the MOD files and the pinned renders).
 - **You never contribute without approval.** You never open a PR, file an issue,
@@ -91,7 +91,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   — exit 17 means the name is already claimed by another capability in the household, by a
   lockfile-recorded link, or by a skill the harness already has (aos-installed or not).
   Stop and report it; **never rename at install time** — the name belongs to the package, so
-  the fix is upstream (`capability-contribute`) or in the user's own package. Full rules:
+  the fix is upstream ({{skill: contribute}}) or in the user's own package. Full rules:
   the naming rules the `capability-lifecycle` entry skill links.
 - **An agent's name is computed and single-owner too.** Harnesses keep a flat agent namespace
   as well, so `aos-cap --home <home> agents <cap-dir> --check` gates any capability that

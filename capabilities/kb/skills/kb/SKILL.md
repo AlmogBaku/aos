@@ -89,12 +89,12 @@ construction.
 
 | Job | Where it goes |
 |---|---|
-| The user just said something worth keeping | `kb-capture` |
-| Pick the destination base for a write in hand | `kb-route` |
-| Answer "what do I know about X?" | `kb-recall` |
-| Create a new base | `kb-init` |
-| Register a tree that already exists | `kb-adopt` |
-| Bulk-migrate another KB's content | `kb-import` |
+| The user just said something worth keeping | {{skill: capture}} |
+| Pick the destination base for a write in hand | {{skill: route}} |
+| Answer "what do I know about X?" | {{skill: recall}} |
+| Create a new base | {{skill: init}} |
+| Register a tree that already exists | {{skill: adopt}} |
+| Bulk-migrate another KB's content | {{skill: import}} |
 
 **The scheduled passes are not skills, and that is why they are not in this table.** They are
 *agent prompts* — `agents/archiver/promote.md` (the nightly promote) and

@@ -54,7 +54,7 @@ Original skills × MOD.md → the pinned render in
 
 ## Capture and fold (the overlay's write side)
 
-When the user changes an installed capability — deliberately (via `capability-evolve`)
+When the user changes an installed capability — deliberately (via {{skill: evolve}})
 or by hand-editing (found by `aos-cap verify`) — the change is captured into MOD.md
 *before* anything else depends on it. **Read the file first and place the change where
 it belongs**: an ONBOARDING question covers it → update that frontmatter answer; a prose
@@ -114,7 +114,7 @@ you ever do on your own — every upstream write, down to a signal issue or a +1
 only on the user's explicit yes.
 
 **Promotion extracts mechanism.** The literal nuance text never ships: route to
-the `capability-contribute` skill, which drafts the generic form —
+the {{skill: contribute}} skill, which drafts the generic form —
 a `{{mod:}}` slot + ONBOARDING question for a knob, a plain fix, or a scrubbed package —
 and carries the contribution mechanics. A statement awaiting an upstream PR may carry the URL inline
 ("…— promoting: <url>"), which is removed when the PR lands or is dropped.
@@ -122,7 +122,7 @@ and carries the contribution mechanics. A statement awaiting an upstream PR may 
 **Retirement closes the loop.** When an upgrade lands the upstream version that covers a
 statement (a new interview question over the same subject, or the behavior baked in),
 offer to retire it: shown as a diff, user-confirmed, written only through
-`capability-evolve`. A retired statement is deleted, not annotated — it no longer
+{{skill: evolve}}. A retired statement is deleted, not annotated — it no longer
 describes a difference from the default, and `personal/` git history holds what it said.
 
 ## Persist (durability)

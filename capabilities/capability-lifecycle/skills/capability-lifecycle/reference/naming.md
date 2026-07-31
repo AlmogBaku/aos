@@ -45,9 +45,17 @@ Consequences that bite if you forget them:
 - **The render directory and the symlink both use the installed name**, and so does the
   render's frontmatter `name`. One identity, every harness — no per-harness rewriting.
   `aos-cap render` does this; do not hand-copy a skill.
-- **Cross-skill references in prose use the installed name.** References resolve by name at
-  runtime, and the bare id names nothing once installed — say `kb-route`, not `route`.
-  (`skills/ref-unqualified`)
+- **Cross-skill references in prose are authored as slots, never as names.** A reference
+  resolves by name at runtime, and that name is computed — so write a slot and let the render
+  compute it: `\{{skill: route}}` for a sibling skill, `\{{skill: kb/route}}` for another
+  capability's, `\{{agent: archiver}}` for an agent. `aos-cap render` substitutes the
+  computed installed name in every `*.md` it renders, so the shipped prose names the skill
+  exactly as the harness knows it and the source cannot go stale. Neither a bare id nor a hardcoded installed name is a reference:
+  the first names nothing once installed (`skills/ref-unqualified`), the second silently
+  rots the moment a `skill_prefix` changes (`skills/ref-hardcoded`). A slot naming no
+  declared skill or agent is a dangling reference — the render fails at exit 18 and CI at
+  `skills/ref-dangling`. A leading backslash makes a slot a literal example, unsubstituted
+  and unvalidated, which is how the examples in this rule survive being rendered.
 - The `metadata.aos.origin` stamp is added by `aos-cap render` at install and never shipped
   upstream. (`skill/origin-tag`)
 
@@ -57,8 +65,9 @@ An agent id is capability-local too, and harnesses keep agents in a flat per-har
 namespace exactly like skills — `~/.hermes/profiles/<name>/`, `~/.claude/agents/<name>.md`.
 So the identity that ships is `<skill_prefix><agent-id>`, by the same three lines above, and
 `aos-cap agents <cap-dir>` prints the mapping. It is the only sanctioned way to compute an
-agent's installed name. `archiver` in `kb` ships as `kb-archiver`; `steward` in
-`work-tracker` ships as `wt-steward`. The single-owner rule is the same rule, and so is
+agent's installed name. An `archiver` agent in a capability whose `skill_prefix` is `kb-`
+installs under that prefix, exactly as a skill would — and in prose you name it
+`\{{agent: archiver}}`, never the computed result. The single-owner rule is the same rule, and so is
 **never rename at install time** — the name belongs to the package.
 
 **Why agents reuse `skill_prefix` and there is no `agent_prefix`.** §2.2's rule of two: a
@@ -85,8 +94,8 @@ rule schedules have (§5.5).
   records for other capabilities, and the skills the harness already has — including ones
   aos never installed. Exit 17 means a collision; the report names the owner.
 - **Never resolve a collision by renaming at install time.** The name is part of the
-  package: fix it upstream (`capability-contribute`), or in the user's own capability
-  (`capability-evolve` → the source, not the overlay). Renaming locally would make the
+  package: fix it upstream ({{skill: contribute}}), or in the user's own capability
+  ({{skill: evolve}} → the source, not the overlay). Renaming locally would make the
   user's harness disagree with everyone else's.
 - Links this capability already owns are exempt, so re-installing and upgrading are clean.
 - **Read the `checked:` lines it prints.** A clean result names every source it consulted,

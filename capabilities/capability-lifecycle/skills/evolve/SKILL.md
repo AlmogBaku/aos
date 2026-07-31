@@ -24,7 +24,7 @@ appended record (the `capability-lifecycle` skill's `reference/overlay.md`).
    - the change restores the shipped default → delete the entry; MOD only states
      differences;
    - nothing covers the subject yet → add one imperative statement;
-   - actually an upstream bug or explicitly for *everyone* → the `capability-contribute`
+   - actually an upstream bug or explicitly for *everyone* → the {{skill: contribute}}
      skill owns it: it changes the shipped source (building mode, approval-gated). Say so
      and hand over — nothing lands in MOD.
 3. Write the MOD.md change **first** (the `capability-lifecycle` skill's
@@ -35,7 +35,7 @@ appended record (the `capability-lifecycle` skill's `reference/overlay.md`).
    edit verbs where they exist), through the STAGE→GATE→EXECUTE phases.
 4. `aos-cap rehash <id>` — refresh the recorded hashes in place so `verify`
    stays clean; the persist hook commits `personal/` (dated message). From now on
-   `capability-upgrade` re-applies this change on every upgrade. (New artifacts, jobs,
+   {{skill: upgrade}} re-applies this change on every upgrade. (New artifacts, jobs,
    or keys → a full `aos-cap record` with the complete set from `aos-cap show`.)
 5. Confirm: "recorded in your MOD.md — survives every upgrade."
 6. Promotion check — **signal-gated, never reflexive** (the judgment, tests,
@@ -44,7 +44,7 @@ appended record (the `capability-lifecycle` skill's `reference/overlay.md`).
    An offer fires only on: objectively-broken workaround · forced mechanism override
    (the change fought the template beyond its `{{mod}}` slots) · the user asked.
    At most one one-liner offer, at the conversation's end, once per statement ever;
-   a "no" is recorded and never re-asked. Yes → hand to `capability-contribute`
+   a "no" is recorded and never re-asked. Yes → hand to {{skill: contribute}}
    with the statement. **Never open a PR or file an issue yourself — every upstream
    write needs the user's explicit yes (contract).**
 

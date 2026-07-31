@@ -60,7 +60,7 @@ user asks otherwise.
 | context block | `~/.claude/CLAUDE.md` (user scope) or `<project>/CLAUDE.md`; `AGENTS.md` is read as an equivalent | auto-loaded every session — this is real push-context, so the MARS mode boundary lands here properly. Append inside aos markers only |
 | tool on PATH | an ordinary executable | `uv tool install` puts it on PATH like anywhere else; no harness registration needed. Bash is always available |
 | secret | environment, or `env` in `~/.claude/settings.json` | see Secrets — there is no dedicated secret store, which constrains what may be installed |
-| plan mode | **native** (Shift+Tab, or the harness starts in it) | read-only until the user approves. This satisfies `capability-build`'s read-only gate for real rather than by prose |
+| plan mode | **native** (Shift+Tab, or the harness starts in it) | read-only until the user approves. This satisfies {{skill: build}}'s read-only gate for real rather than by prose |
 | slash command | `~/.claude/commands/<name>.md` | not an aos primitive. Do not materialize skills as commands: a command is user-invoked by name and is absent from the skill registry, so a skill written as a command never triggers on its own |
 
 Files Claude Code consumes — anything else you write is inert: `CLAUDE.md`/`AGENTS.md`,
@@ -98,7 +98,7 @@ session, and `/context` shows what is loaded now.
 5. **Context blocks** inside the marker pair, appended to `~/.claude/CLAUDE.md` (or
    `AGENTS.md` if that is what the user keeps). Blank line before, trailing newline after —
    an identity file ending mid-marker corrupts the next capability's append.
-6. **Onboarding** last, through `capability-onboard`, so the interview's answers reach
+6. **Onboarding** last, through {{skill: onboard}}, so the interview's answers reach
    `MOD.md` before anything reads them.
 
 Order matters for one reason worth stating: the diff gate. Claude Code shows every write for
@@ -175,7 +175,7 @@ fresh session no longer lists them.
   someone confirms the mechanism. Check the running build, say what you found in the install
   summary, and fix-and-PR this line either way. Never imply the scoping held when you did not
   test it.
-- **Plan mode is native and worth using.** `capability-build`'s read-only gate is enforced
+- **Plan mode is native and worth using.** {{skill: build}}'s read-only gate is enforced
   by the harness here, not by prose — the strongest form of that gate across all sheets.
 - **The diff gate is native too.** Every write is shown for approval, so the contract's
   STAGE→GATE→EXECUTE maps onto the harness's own behaviour instead of being simulated.

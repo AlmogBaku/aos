@@ -37,7 +37,7 @@ kb --base commitments find --where status=next --without block
 
 It catches anything whose immediate scheduling failed — no calendar, a sub-agent that died,
 an async capture at 3am. **It should normally return nothing.** A base where it consistently
-doesn't has a broken `wt-schedule` path, and that is worth *reporting* rather than quietly
+doesn't has a broken {{skill: schedule}} path, and that is worth *reporting* rather than quietly
 compensating for every night. Fixing the symptom here hides the defect forever.
 
 ## Whether to bother the user

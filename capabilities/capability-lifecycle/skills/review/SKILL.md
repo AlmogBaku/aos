@@ -6,7 +6,7 @@ description: "Reviews a capability as architecture and then as prose — traces 
 # capability-review
 
 Not in context yet? Load the `capability-lifecycle` skill first — the map, the contract, and
-the naming rules. **Read-only** counterpart to `capability-build`: writes nothing, reports
+the naming rules. **Read-only** counterpart to {{skill: build}}: writes nothing, reports
 everything for a human to act on.
 
 **A capability is software.** Its components are skills, agents, tools, crons and overlays; its

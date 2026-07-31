@@ -14,7 +14,7 @@ that question routes every request into the list.
 
 | The commitment is | status: | plus | then |
 |---|---|---|---|
-| real work of the user's | `next` | — | hand off to `wt-schedule` |
+| real work of the user's | `next` | — | hand off to {{skill: schedule}} |
 | someone else's to answer | `waiting` | `waiting_on:` | nothing more |
 | a deadline, not hours | `next` | `due:` | a reminder, no block |
 | not now, maybe never | `someday` | — | nothing more |
@@ -74,11 +74,11 @@ for a later pass to guess at.
 
 ## Hand off
 
-Needs real hours → invoke `wt-schedule`, in a sub-agent where the harness has them and inline
+Needs real hours → invoke {{skill: schedule}}, in a sub-agent where the harness has them and inline
 otherwise. Say which you did, because *"blocked 14:00–16:00 tomorrow"* and *"filed, no
 calendar here"* are different promises and the user is entitled to know which one they got.
 
-The user should experience one act, not two. `wt-schedule` comes back with the time; you
+The user should experience one act, not two. {{skill: schedule}} comes back with the time; you
 confirm once, with the time in it.
 
 **How the confirmation reads is the user's call**: {{mod: action_format}}. Some people want the

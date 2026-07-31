@@ -85,7 +85,7 @@ diff in the user's own repo.
    g. Retirement pass (overlay.md, Promote and retire): fresh upstream now
       covers a MOD statement — a new interview question over its subject, or the
       behavior baked in → offer to retire it (diff-shown; written only through
-      `capability-evolve`).
+      {{skill: evolve}}).
 4. **Absorbed capabilities.** A lockfile entry whose capability no longer exists upstream
    was folded into another one (0.3.0 absorbed `onboarding`, `importer`, and
    `capability-builder` into `capability-lifecycle`). Say what happened, then: unlink that

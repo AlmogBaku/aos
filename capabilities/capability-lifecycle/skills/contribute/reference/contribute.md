@@ -51,7 +51,7 @@ PRs need an accepted issue first. Show the draft; file only on explicit yes.
    Install output changed → the goldens note in CONTRIBUTING applies (a real
    re-render, never simulated).
 6. **Dogfood**: with the branch checked out, run a per-capability upgrade — the
-   version bump makes `capability-upgrade` see the work; the user now runs the
+   version bump makes {{skill: upgrade}} see the work; the user now runs the
    change for real. Post-merge caution: if review altered files after dogfooding,
    re-bump (or force a re-render) so the upgrader re-fires.
 7. **The PR**: draft the body — what/why in upstream's vocabulary, the referenced
