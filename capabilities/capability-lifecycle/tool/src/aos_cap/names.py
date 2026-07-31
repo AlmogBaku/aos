@@ -265,6 +265,19 @@ def _household_claims(opts: HasHome, cap_id: str, cap_dir: Optional[Path], namer
     taken: dict[str, str] = {}
     ours: set[str] = set()
     root = find_home_soft(opts, cap_dir)
+    if root and not any((root / label / "capabilities").is_dir()
+                        for label in ("upstream", "personal")):
+        # A resolved root with NEITHER capability directory is not a household, and saying
+        # so is the point: `find_home_soft` accepts any ancestor holding a `.aos/`, and
+        # `~/.aos/` exists on every machine that has ever installed aos — so linting a bare
+        # kit clone printed "checked: household /home/you" after consulting a household with
+        # zero capabilities in it. A clean-looking gate that checked nothing is the exact
+        # failure the label discipline above exists to prevent. `_household_of` anchors on
+        # the same evidence, for the same reason.
+        return None, taken, ours, (
+            f"{root} HOLDS A .aos/ BUT NO upstream/ OR personal/ capabilities — not a "
+            f"household, so other capabilities and the lockfile were NOT checked "
+            f"(pass --home to name the real one)")
     if root:
         ours = {Path(n).stem for n in lock_link_names(root, cap_id)}
         taken.update(household_owners(root, cap_id, namer))

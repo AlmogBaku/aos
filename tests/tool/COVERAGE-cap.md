@@ -100,7 +100,8 @@ Happy path: one `id\tinstalled_name\tused_by` row per declared skill; `--check` 
 - [ ] test_reinstall_over_our_own_flat_form_link_is_clean — 0; Nanobot's flat form records a link whose basename carries `.md`, and it still has to match our own exemption (`.stem`, not `.name`)
 - [ ] test_lost_lockfile_does_not_block_reinstall — **PIN**; 0; `.aos/` is machine-local and gitignored. A gate that trusted it alone saw our own installed skills as strangers and refused **every** re-install — turning a recoverable state into a stuck one. Provenance answers when the lockfile cannot
 - [ ] test_a_stranger_still_blocks_when_the_lockfile_is_lost — **PIN**; 17; the other half of that fallback: provenance exempts our renders, not every name in the directory
-- [ ] test_clean_report_names_the_sources_it_could_not_check — **PIN**; 0; a skipped source must never be indistinguishable from an empty one, so the report says `NO HOUSEHOLD RESOLVED` / `NO --harness-skills GIVEN` in as many words
+- [ ] test_clean_report_names_the_sources_it_could_not_check
+- [ ] test_a_dot_aos_without_capability_roots_is_not_a_household — PIN: `find_home_soft` accepts any ancestor with a `.aos/`, and `~/.aos/` exists on every machine that has installed aos, so linting a bare kit clone claimed it checked a household holding zero capabilities — **PIN**; 0; a skipped source must never be indistinguishable from an empty one, so the report says `NO HOUSEHOLD RESOLVED` / `NO --harness-skills GIVEN` in as many words
 - [ ] test_clean_report_names_the_sources_it_did_check — 0; and names the household + the harness dir count when it did
 
 ### bad input — 1

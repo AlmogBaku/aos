@@ -852,6 +852,24 @@ class SkillNameTest(unittest.TestCase):
         self.assertIn("NO HOUSEHOLD RESOLVED", r.stdout)
         self.assertIn("NO --harness-skills GIVEN", r.stdout)
 
+    def test_a_dot_aos_without_capability_roots_is_not_a_household(self):
+        """PIN: `find_home_soft` accepts any ancestor holding a `.aos/`, and `~/.aos/`
+        exists on every machine that has ever installed aos. So linting a bare kit clone
+        printed "checked: household /home/you" after consulting a household with zero
+        capabilities in it — a clean-looking gate that checked nothing. The report must
+        say the source was skipped, which is the same discipline as the test above."""
+        # The real shape: a `.aos/` at some ancestor (here `bare/`), and the capability
+        # sitting in a plain clone BELOW it — `bare/clone/capabilities/<id>`, not
+        # `bare/{upstream,personal}/capabilities/<id>`. That is a kit checkout on a machine
+        # whose home already has a household, which is every contributor's machine.
+        bare = Path(self.tmp.name) / "bare"
+        (bare / ".aos").mkdir(parents=True)
+        cap = write_cap(bare, "lonecap", ["lonecap"], root="clone")
+        r = run(["skills", str(cap), "--check"])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("NOT checked", r.stdout)
+        self.assertNotIn(f"checked: household {bare} (", r.stdout)
+
     def test_clean_report_names_the_sources_it_did_check(self):
         harness = self.home / "harness" / "skills"
         harness.mkdir(parents=True)
