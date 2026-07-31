@@ -62,6 +62,29 @@ skills:
 SKILL_MD = "---\nname: {name}\ndescription: {name}. Use when testing {name}.\n---\nbody\n"
 
 
+def write_cap(home, cap_id, skills, prefix=None, root="upstream", version="1.0.0"):
+    """Write a fixture capability under <home>/<root>/capabilities/ and return its dir.
+
+    Module-level, taking `home` as a parameter, rather than a method on a shared base
+    class: the test classes here are deliberately concrete leaves (CLAUDE.md's note that
+    `BaseToolTest` is a leaf, not a base), and three byte-identical copies of this is a
+    worse answer than one function they each call.
+    """
+    cap = home / root / "capabilities" / cap_id
+    (cap / "skills").mkdir(parents=True)
+    entries = "".join(f"  - id: {s}\n    used_by: [main]\n" for s in skills)
+    cap.joinpath("CAPABILITY.md").write_text(
+        f"---\nid: {cap_id}\nversion: {version}\ntags: [usecase]\n"
+        f"summary: Fixture capability {cap_id}.\n"
+        + (f"skill_prefix: {prefix}\n" if prefix is not None else "")
+        + f"skills:\n{entries}---\n# {cap_id}\n")
+    cap.joinpath("README.md").write_text(f"# {cap_id}\n")
+    for s in skills:
+        (cap / "skills" / s).mkdir()
+        (cap / "skills" / s / "SKILL.md").write_text(SKILL_MD.format(name=s))
+    return cap
+
+
 class Result:
     """Adapts typer's CliRunner Result to the subprocess.CompletedProcess-shaped surface
     (.returncode/.stdout/.stderr) the assertions in this file are written against — the
@@ -480,20 +503,8 @@ class HouseholdTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def cap(self, cap_id, skills, prefix=None, root="upstream", version="1.0.0"):
-        cap = self.home / root / "capabilities" / cap_id
-        (cap / "skills").mkdir(parents=True)
-        entries = "".join(f"  - id: {s}\n    used_by: [main]\n" for s in skills)
-        cap.joinpath("CAPABILITY.md").write_text(
-            f"---\nid: {cap_id}\nversion: {version}\ntags: [usecase]\n"
-            f"summary: Fixture capability {cap_id}.\n"
-            + (f"skill_prefix: {prefix}\n" if prefix is not None else "")
-            + f"skills:\n{entries}---\n# {cap_id}\n")
-        cap.joinpath("README.md").write_text(f"# {cap_id}\n")
-        for s in skills:
-            (cap / "skills" / s).mkdir()
-            (cap / "skills" / s / "SKILL.md").write_text(SKILL_MD.format(name=s))
-        return cap
+    def cap(self, cap_id, skills, **kw):
+        return write_cap(self.home, cap_id, skills, **kw)
 
     def seed_lockfile(self):
         r = run(["--home", str(self.home), "init"])
@@ -576,21 +587,8 @@ class SkillNameTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def cap(self, cap_id, skills, prefix=None, root="upstream", version="1.0.0"):
-        """Write a capability and return its directory."""
-        cap = self.home / root / "capabilities" / cap_id
-        (cap / "skills").mkdir(parents=True)
-        entries = "".join(f"  - id: {s}\n    used_by: [main]\n" for s in skills)
-        cap.joinpath("CAPABILITY.md").write_text(
-            f"---\nid: {cap_id}\nversion: {version}\ntags: [usecase]\n"
-            f"summary: Fixture capability {cap_id}.\n"
-            + (f"skill_prefix: {prefix}\n" if prefix is not None else "")
-            + f"skills:\n{entries}---\n# {cap_id}\n")
-        cap.joinpath("README.md").write_text(f"# {cap_id}\n")
-        for s in skills:
-            (cap / "skills" / s).mkdir()
-            (cap / "skills" / s / "SKILL.md").write_text(SKILL_MD.format(name=s))
-        return cap
+    def cap(self, cap_id, skills, **kw):
+        return write_cap(self.home, cap_id, skills, **kw)
 
     def write_lock(self, installs):
         (self.home / ".aos" / "installs.lock.yaml").write_text(
@@ -862,20 +860,8 @@ class RenderTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def cap(self, cap_id, skills, prefix=None, root="upstream", version="1.0.0"):
-        cap = self.home / root / "capabilities" / cap_id
-        (cap / "skills").mkdir(parents=True)
-        entries = "".join(f"  - id: {s}\n    used_by: [main]\n" for s in skills)
-        cap.joinpath("CAPABILITY.md").write_text(
-            f"---\nid: {cap_id}\nversion: {version}\ntags: [usecase]\n"
-            f"summary: Fixture capability {cap_id}.\n"
-            + (f"skill_prefix: {prefix}\n" if prefix is not None else "")
-            + f"skills:\n{entries}---\n# {cap_id}\n")
-        cap.joinpath("README.md").write_text(f"# {cap_id}\n")
-        for s in skills:
-            (cap / "skills" / s).mkdir()
-            (cap / "skills" / s / "SKILL.md").write_text(SKILL_MD.format(name=s))
-        return cap
+    def cap(self, cap_id, skills, **kw):
+        return write_cap(self.home, cap_id, skills, **kw)
 
     def origin(self, skill_md):
         """The provenance stamp, read as YAML. Deliberately not a substring check: the
