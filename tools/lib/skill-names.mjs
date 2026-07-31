@@ -2,7 +2,7 @@
 // harness ever sees, and the one that must be globally unique. Authors write short,
 // capability-local ids; this computes what they become.
 //
-// Mirrored in capabilities/capability-lifecycle/tool/src/aos_lock/cli.py — the runtime
+// Mirrored in capabilities/capability-lifecycle/tool/src/aos_cap/cli.py — the runtime
 // half, which agents call at install time. The two must agree; the goldens are the tie-break.
 import { readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';

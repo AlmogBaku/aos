@@ -67,10 +67,10 @@ already fit the class; never hardcode provider names.
    `pnpm run chat scout "hi"` (cold start 30–60 s). v1: ask the main agent to register the
    chat as a group. `purpose` + persona content → v2 `instructions.prepend.md` (then
    `ncl groups restart --id <id>`) · v1 `groups/<f>/CLAUDE.md`.
-2. **Skills**: `aos-lock skills <cap-dir>` gives the installed name; the render lives once
+2. **Skills**: `aos-cap skills <cap-dir>` gives the installed name; the render lives once
    at `<home>/personal/capabilities/<capability>/skills/<installed-name>/` (contract);
    symlink it as `.claude/skills/<installed-name>` and record the link
-   (`aos-lock record … --link`). Verify the group's `<home>/personal` ro mount first
+   (`aos-cap record … --link`). Verify the group's `<home>/personal` ro mount first
    (Primitive mapping). Never copy. Scope per `used_by` via the v2 group config `skills`
    field; v2 skills that leave artifacts ship a sibling `REMOVE.md` (no v1 `REMOVE.md`
    convention found — unverified). Channel plumbing comes from registry slash-skills (`/add-telegram`, …) —

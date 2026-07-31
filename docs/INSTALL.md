@@ -14,7 +14,7 @@ expect, what you'll be asked, and what ends up where.
   cheat-sheet, and show it to you before anything lands —
   [contributing that sheet](../CONTRIBUTING.md) is how the next person skips the step.
 - **git** — the kit is a clone, and upgrades are `git pull`.
-- **[`uv`](https://docs.astral.sh/uv/) (required)** — it carries the `aos-lock`
+- **[`uv`](https://docs.astral.sh/uv/) (required)** — it carries the `aos-cap`
   bookkeeping tool that owns the install record; your agent offers the official
   installer if it's missing.
 
@@ -37,7 +37,7 @@ Paste into your agent:
    offered, never required).
 3. **The lifecycle capability installs itself.** One inline install puts the whole
    lifecycle — install, upgrade, remove, onboard, import, build, contribute, evolve — plus
-   the `aos-lock` tool into your harness. From here on, "install X" is a skill, and the lockfile
+   the `aos-cap` tool into your harness. From here on, "install X" is a skill, and the lockfile
    (`~/aos/.aos/installs.lock.yaml`, the record of everything materialized) is written by
    the tool, never by hand. Two things ride along:
    - **One block on your own agent.** aos adds a single marked passage to your front

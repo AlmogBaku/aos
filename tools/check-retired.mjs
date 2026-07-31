@@ -128,7 +128,7 @@ const VERBS = 'init|adopt|capture|inbox|state|search|links|lint|grants|index|syn
 const BASE_CMD = new RegExp(`(?<![\\w.-])base\\s+(?:${VERBS})\\b`, 'g');
 
 // The line that installs kb's tool must name the new package. Scoped to lines installing from
-// a kb tool path rather than every `uv tool install`, because aos-lock's own install line is
+// a kb tool path rather than every `uv tool install`, because aos-cap's own install line is
 // legitimate and identical in shape. The bare `aos-base` token catches the package rename; this
 // catches a kb install line that names some OTHER package, or none.
 const KB_INSTALL_LINE = /uv tool install --from[^\n]*kb\/tool[^\n]*/g;

@@ -11,7 +11,7 @@ fi
 # (template/example/tool drift breaks the build here, before anything else runs)
 if command -v uv >/dev/null 2>&1; then
   uv run --quiet tests/tool/test_kb.py
-  uv run --quiet tests/tool/test_lock.py
+  uv run --quiet tests/tool/test_cap.py
   # AOS_PRINCIPAL_ID is pinned because this lints a SHIPPED FIXTURE, and "who is calling"
   # is not a property of that fixture. Without it the tool synthesizes an identity from the
   # host — and on a CI runner that is `runner@runnervm….local`, whose `.local` suffix is

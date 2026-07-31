@@ -54,10 +54,10 @@ Config edits take effect on the next `nanobot run` — restart after materializi
 1. **Agents.** Create `agents/<id>.md`: frontmatter `name:` + fields, `purpose` + persona
    → the markdown body. `workspace: shared` ⇒ no new agent; wire into `main.md`. Sub-agent
    delegation is first-class: list child ids under the parent's `agents:`.
-2. **Skills**: `aos-lock skills <cap-dir>` gives the installed name; the render lives once
+2. **Skills**: `aos-cap skills <cap-dir>` gives the installed name; the render lives once
    at `<home>/personal/capabilities/<capability>/skills/<installed-name>/` (contract);
    symlink it as `skills/<installed-name>` and record the link
-   (`aos-lock record … --link`). Then attach
+   (`aos-cap record … --link`). Then attach
    to each `used_by` agent via its `skills:` list. For the name gate, pass `skills/` to
    `--harness-skills`: it catches both `<name>/` dirs and the flat `<name>.md` form.
 3. **Tools.** Capability-shipped or external tools land under `mcpServers:` in

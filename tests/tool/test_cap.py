@@ -3,11 +3,11 @@
 # requires-python = ">=3.9"
 # dependencies = ["pyyaml>=6.0"]
 # ///
-"""Tier-0 tests for the capability-lifecycle `aos-lock` tool.
+"""Tier-0 tests for the capability-lifecycle `aos-cap` tool.
 
 Black-box subprocess invocation against a throwaway household — stdout text and exit
 codes are the contract; no imports of tool internals.
-Run: uv run tests/tool/test_lock.py
+Run: uv run tests/tool/test_cap.py
 """
 import json
 import os
@@ -39,7 +39,7 @@ def run(args, env_extra=None, cwd=None):
     env.pop("AOS_HOME", None)
     env.update(env_extra or {})
     return subprocess.run(["uv", "run", "--quiet", "--project", str(TOOL_DIR),
-                           "aos-lock", *args],
+                           "aos-cap", *args],
                           capture_output=True, text=True, env=env, cwd=cwd)
 
 
@@ -667,7 +667,7 @@ class SkillNameTest(unittest.TestCase):
         self.assertEqual(r.returncode, 17, f"expected a collision, got:\n{r.stdout}{r.stderr}")
 
     def test_relative_capability_dir_works(self):
-        """`aos-lock skills .` from inside the capability — the contract's commands are
+        """`aos-cap skills .` from inside the capability — the contract's commands are
         written with <cap-dir> paths, so a relative one must not break the id check."""
         cap = self.cap("democap", ["democap", "sort"])
         r = run(["--home", str(self.home), "skills", "."], cwd=str(cap))

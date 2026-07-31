@@ -5,7 +5,7 @@
 #   home   = <repo>/tests/.sandbox/aos-home  (the household: upstream/ + personal/ + .aos/)
 # Every skill path below is an INSTALLED name (§2.5): `<skill_prefix><id>`, with the entry
 # skill keeping the capability id. capability-lifecycle declares `capability-`, work-tracker
-# declares `wt-`, kb takes the default `kb-`. `aos-lock skills <cap-dir>` is the authority.
+# declares `wt-`, kb takes the default `kb-`. `aos-cap skills <cap-dir>` is the authority.
 agents: [archiver, steward]
 
 expect_files:

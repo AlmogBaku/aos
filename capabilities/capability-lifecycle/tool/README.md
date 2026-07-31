@@ -1,14 +1,14 @@
-# aos-lock
+# aos-cap
 
 Deterministic lifecycle bookkeeping (ARCHITECTURE §2.4 capability tool): CAPABILITY.md
 parse/validate and the lockfile. **The lockfile is this tool's file — agents call verbs,
 never read or write the YAML directly.**
 
 ```
-uv tool install --from <home>/upstream/capabilities/capability-lifecycle/tool aos-lock
-# removal:  uv tool uninstall aos-lock
+uv tool install --from <home>/upstream/capabilities/capability-lifecycle/tool aos-cap
+# removal:  uv tool uninstall aos-cap
 # zero-install one-off:
-uvx --from <home>/upstream/capabilities/capability-lifecycle/tool aos-lock --help
+uvx --from <home>/upstream/capabilities/capability-lifecycle/tool aos-cap --help
 ```
 
 Verbs: `manifest <dir>` · `skills <dir> [--check] [--harness-skills DIR]× [--json]` ·
@@ -56,5 +56,5 @@ household root shipped the capability), `artifacts` (path → sha256 — the pin
 files and native artifacts), `links` (harness symlink path → target, read from the link
 itself; `verify` flags MISSING/RELINKED/DANGLING links), `schedules_owned` (job ids),
 `config_keys`, `env_lines` (variable *names*, never values), `scripts`. Tests:
-`uv run tests/tool/test_lock.py` (black-box subprocess; stdout + exit codes are the
+`uv run tests/tool/test_cap.py` (black-box subprocess; stdout + exit codes are the
 contract).

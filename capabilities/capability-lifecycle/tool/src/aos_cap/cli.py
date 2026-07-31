@@ -1,10 +1,14 @@
-"""aos-lock — deterministic lifecycle bookkeeping (ARCHITECTURE §2.4 capability tool).
+"""aos-cap — the deterministic half of a capability's lifecycle (ARCHITECTURE §2.4).
 
-Three jobs, no judgment:
+No judgment anywhere: files, stdout and exit codes are the whole interface. Four
+areas of work, which is why the tool is named for the capability and not for the
+lockfile — only the last group is lockfile bookkeeping:
+
   manifest  parse + validate a CAPABILITY.md -> JSON on stdout
-  skills    compute each skill's INSTALLED name; --check gates name collisions
-  render    copy one skill to its installed name (deterministic, idempotent)
-  init/record/verify/show/list/remove  own the lockfile
+  skills    compute each skill's INSTALLED name; --check IS the collision gate
+  render    copy one skill to its installed name (mechanical, idempotent)
+  home      print the resolved household root
+  init/record/rehash/verify/show/list/remove  own the lockfile
   (<home>/.aos/installs.lock.yaml — the aos household root, e.g. ~/aos)
 
 The lockfile is THIS TOOL'S file: agents call verbs, never edit the YAML.
@@ -55,7 +59,7 @@ LEGACY_ORIGIN_KEY = "x-aos-origin"          # stripped from renders; never writt
 
 
 def fail(code, msg):
-    print(f"aos-lock: {msg}", file=sys.stderr)
+    print(f"aos-cap: {msg}", file=sys.stderr)
     sys.exit(code)
 
 
@@ -123,7 +127,7 @@ def frontmatter(path):
 
 
 def validated_manifest(cap_dir):
-    # resolve() so a relative invocation (`aos-lock skills .`) still has a directory name
+    # resolve() so a relative invocation (`aos-cap skills .`) still has a directory name
     # to compare `id` against — the contract's commands are written with <cap-dir> paths.
     cap_dir = Path(cap_dir).resolve()
     mf = cap_dir / "CAPABILITY.md"
@@ -273,7 +277,7 @@ def validated_manifest(cap_dir):
 
     if errs:
         for e in errs:
-            print(f"aos-lock: manifest: {e}", file=sys.stderr)
+            print(f"aos-cap: manifest: {e}", file=sys.stderr)
         sys.exit(12)
     return data
 
@@ -591,7 +595,7 @@ def cmd_render(args):
 def load_lock(root):
     path = root / LOCK_REL
     if not path.is_file():
-        fail(15, f"no lockfile at {path} (run: aos-lock init)")
+        fail(15, f"no lockfile at {path} (run: aos-cap init)")
     data = yaml.safe_load(path.read_text()) or {}
     data.setdefault("version", 1)
     data.setdefault("installs", {})
@@ -676,7 +680,7 @@ def cmd_rehash(args):
             dropped.append(path)
     if dropped and not kept:
         fail(16, f"{args.capability}: every recorded artifact is gone — that is a broken "
-                 f"install, not a rehash. Re-install, or `aos-lock remove` the entry.")
+                 f"install, not a rehash. Re-install, or `aos-cap remove` the entry.")
     entry["artifacts"] = kept
     save_lock(root, lock)
     for path in dropped:
@@ -754,7 +758,7 @@ def cmd_remove(args):
 
 def main():
     p = argparse.ArgumentParser(
-        prog="aos-lock",
+        prog="aos-cap",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--home", help="household root, e.g. ~/aos (else $AOS_HOME, else cwd-upward .aos/ search)")

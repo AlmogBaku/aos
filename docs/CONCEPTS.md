@@ -306,7 +306,7 @@ cheat-sheet at the steps that need it. Four mechanisms keep it honest:
 - **The diff gate.** Every write is shown to you in full before it lands. Never
   optional.
 - **The lockfile.** Everything materialized is recorded in `.aos/installs.lock.yaml`
-  (paths, hashes, links, owned schedule ids) — written and verified by the `aos-lock` tool,
+  (paths, hashes, links, owned schedule ids) — written and verified by the `aos-cap` tool,
   never by the model. Removal walks it backwards; no record, no artifact. And your
   `MOD.md` *states what you changed*: upgrades re-apply it to fresh upstream, and the evolve skill
   writes your changes into it so they survive.
@@ -353,7 +353,7 @@ is. When building reveals the spec is wrong, the spec gets fixed — the
 | **distribution / instance** | `upstream/` (and future org roots) ship capabilities; `personal/` is *your* instance of them |
 | **capability** | An installable directory of skills/agents/tools/crons/patches |
 | **entry skill** | `skills/<id>/` — the capability's runtime face and map |
-| **installed name** | The name a skill ships under: `<skill_prefix><id>`, computed by `aos-lock skills`, unique across the harness |
+| **installed name** | The name a skill ships under: `<skill_prefix><id>`, computed by `aos-cap skills`, unique across the harness |
 | **overlay** | Your `MOD.md` files + `kb-registry.yaml`; user-owned, never shipped |
 | **base** | One KB instance == one git repo, registered in `kb-registry.yaml` |
 | **materialize** | The installer writing a capability's artifacts into your harness |

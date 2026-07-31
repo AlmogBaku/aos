@@ -56,11 +56,11 @@ agent's default doesn't already fit the class; never hardcode provider names.
    `openclaw agents set-identity --agent <id> --from-identity`; `workspace: shared` → skip
    creation, wire into `main`. Channel routing if the capability needs it:
    `--bind <channel[:account]>`.
-2. **Skills.** `aos-lock skills <cap-dir>` gives the installed name; the render lives once
+2. **Skills.** `aos-cap skills <cap-dir>` gives the installed name; the render lives once
    at `<home>/personal/capabilities/<capability>/skills/<installed-name>/` (contract);
    symlink it into the owning agent's `<workspace>/skills/<installed-name>` per `used_by`
    (`~/.openclaw/skills/` only for genuinely every-agent skills), record each link
-   (`aos-lock record … --link`). OpenClaw takes skill identity from frontmatter, not the
+   (`aos-cap record … --link`). OpenClaw takes skill identity from frontmatter, not the
    folder; `description` is required. Enumerate existing names for
    the name gate with `openclaw skills list --json`, or pass each root dir below to
    `--harness-skills`. `{baseDir}` resolves skill-local files. Do not route aos skills through

@@ -65,10 +65,10 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 
 ## The lockfile, and what gets recorded
 
-- **The lockfile is `aos-lock`'s file.** Everything you materialize is recorded — **one
+- **The lockfile is `aos-cap`'s file.** Everything you materialize is recorded — **one
   entry per capability, covering every harness it is installed into** (`record` replaces
   the entry wholesale, so a second-harness install must re-record the *combined* set:
-  start from `aos-lock show <id>` and add to it, never call `record` with a partial
+  start from `aos-cap show <id>` and add to it, never call `record` with a partial
   list). An entry carries: version, source root, render-file paths + sha256,
   harness symlinks (`--link` — the tool reads each link's target itself), job ids under
   `schedules_owned`, config keys, `.env` variable names, scripts; a capability's
@@ -76,24 +76,24 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   (`readlink -f $(command -v <tool>)`): `uv tool install` puts a *link* on PATH, and a symlink
   passed as `--artifact` is refused at exit 16 by design (that flag hashes files; links are
   `--link`'s job). Recording the resolved binary is what lets `verify` notice a stale tool. You
-  call verbs (`aos-lock --help`), you never read or write the YAML. No lockfile record,
+  call verbs (`aos-cap --help`), you never read or write the YAML. No lockfile record,
   no artifact. If a crash lands between EXECUTE and `record`, everything written
   carries provenance anyway — re-introspect for the tags and record or remove what you
   find.
 
 ## Installed skill names, renders, and symlinks
 
-- **A skill's installed name is computed, and it is single-owner.** `aos-lock skills <cap-dir>`
+- **A skill's installed name is computed, and it is single-owner.** `aos-cap skills <cap-dir>`
   gives you the name each skill ships under (`<skill_prefix><id>`; the entry skill keeps the
   capability id). **Gate before you materialize**:
-  `aos-lock --home <home> skills <cap-dir> --check --harness-skills <each skills dir this
+  `aos-cap --home <home> skills <cap-dir> --check --harness-skills <each skills dir this
   harness reads>`
   — exit 17 means the name is already claimed by another capability in the household, by a
   lockfile-recorded link, or by a skill the harness already has (aos-installed or not).
   Stop and report it; **never rename at install time** — the name belongs to the package, so
   the fix is upstream (`capability-contribute`) or in the user's own package. Full rules:
   the naming rules the `capability-lifecycle` entry skill links.
-- **Skills materialize as pinned renders + symlinks, never copies.** `aos-lock render
+- **Skills materialize as pinned renders + symlinks, never copies.** `aos-cap render
   <cap-dir> <id> --out personal/capabilities/<capability>/skills` does the mechanical half:
   the whole folder travels (`reference/`, `scripts/`, `templates/` — scripts are executed,
   never loaded as context), the render lands under the **installed name**, its frontmatter
@@ -162,7 +162,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   household path into renders (same pass as `{{mod}}`), and scheduled commands get
   `--home`/`AOS_HOME` baked the same way. The lifecycle capability's own skills are
   render-stable (no `{{mod}}` slots) and keep the placeholder — resolve it at use time
-  with `aos-lock --home <path> home` (or bare `aos-lock home` from inside the
+  with `aos-cap --home <path> home` (or bare `aos-cap home` from inside the
   household; exit 15 when there is none), never by guessing `~/aos`.
 - Harness-owned files (e.g. Hermes `config.yaml`, `cron/jobs.json`) are touched only
   through the harness's own CLI, per the cheat-sheet.

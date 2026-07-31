@@ -23,7 +23,7 @@ consent prompts.
 
 - `git --version` — missing → friendly stop with an install pointer (you likely couldn't
   have cloned without it).
-- `uv --version` — **required**: it carries the `aos-lock` bookkeeping tool. Missing →
+- `uv --version` — **required**: it carries the `aos-cap` bookkeeping tool. Missing →
   offer the official installer (`curl -LsSf https://astral.sh/uv/install.sh | sh`), run it
   with the user's OK, verify; if they decline, stop honestly — the lockfile discipline
   cannot be prose.
@@ -32,14 +32,14 @@ consent prompts.
 
 aos lives in one directory — **the household**, `~/aos/` by default (a plain directory,
 itself never a git repo; the user may name another location — every path below shifts
-with it, and `aos-lock --home` pins it). Two members, plus machine state:
+with it, and `aos-cap --home` pins it). Two members, plus machine state:
 
 ```
 ~/aos/
 ├── upstream/    # this clone — the kit, pristine; NOTHING personal ever lands here
 ├── personal/    # the user's ONE private repo: answers, tweaks, private capabilities
 ├── vendor/      # third-party skills aos references, not ships (created on demand)
-└── .aos/        # machine-local state (lockfile) — created by aos-lock init
+└── .aos/        # machine-local state (lockfile) — created by aos-cap init
 ```
 
 Vocabulary for the user, if they ask: `upstream/` (and future org roots) are
@@ -78,8 +78,8 @@ private remote; only `.aos/` is machine-local.
    `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/contract.md`
    **in full** — it is the install contract binding this step and every install after.
 2. Read `capabilities/capability-lifecycle/CAPABILITY.md` (the briefing), then:
-   `uv tool install --from ~/aos/upstream/capabilities/capability-lifecycle/tool aos-lock`
-   and `aos-lock --home ~/aos init`.
+   `uv tool install --from ~/aos/upstream/capabilities/capability-lifecycle/tool aos-cap`
+   and `aos-cap --home ~/aos init`.
 3. Load your cheat-sheet: `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`,
    where the **harness runtime** is the program hosting you (OpenClaw →
    `…/reference/harness-openclaw.md` · Hermes → `harness-hermes.md` · NanoClaw →
@@ -88,15 +88,15 @@ private remote; only `.aos/` is machine-local.
    `reference/no-cheatsheet.md` — do not stop.
 4. **Name gate**, then STAGE the ten skills per the contract (mechanical — they have no
    `{{mod}}` slots):
-   `aos-lock --home ~/aos skills ~/aos/upstream/capabilities/capability-lifecycle --check
+   `aos-cap --home ~/aos skills ~/aos/upstream/capabilities/capability-lifecycle --check
    --harness-skills <each skills dir your harness reads, per the cheat-sheet>` — exit 17
    means one of the names is already taken in this harness; stop and report it rather than
-   renaming anything. Then `aos-lock render ~/aos/upstream/capabilities/capability-lifecycle
+   renaming anything. Then `aos-cap render ~/aos/upstream/capabilities/capability-lifecycle
    <skill-id> --out ~/aos/personal/capabilities/capability-lifecycle/skills` for each of the
    ten, plan the symlinks (each render's own directory name) into your front agent's skills
    dir → **GATE** (show the user the plan) → **EXECUTE** (commit the render in `personal/`,
    create the links) →
-   `aos-lock record capability-lifecycle --version <manifest version> --source-root upstream
+   `aos-cap record capability-lifecycle --version <manifest version> --source-root upstream
    --artifact <render-file>… --link <symlink>…` — render files go to `--artifact` (hashed),
    symlinks to `--link` (a symlink passed as `--artifact` fails: exit 16).
 5. Then the briefing's remaining items: the **mode-boundary context block** on your identity file,

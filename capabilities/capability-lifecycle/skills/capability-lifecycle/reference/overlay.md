@@ -55,13 +55,13 @@ Original skills × MOD.md → the pinned render in
 ## Capture and fold (the overlay's write side)
 
 When the user changes an installed capability — deliberately (via `capability-evolve`)
-or by hand-editing (found by `aos-lock verify`) — the change is captured into MOD.md
+or by hand-editing (found by `aos-cap verify`) — the change is captured into MOD.md
 *before* anything else depends on it. **Read the file first and place the change where
 it belongs**: an ONBOARDING question covers it → update that frontmatter answer; a prose
 statement already covers the subject → rewrite that statement; the change restores the
 shipped default → remove the entry; nothing covers it yet → add one statement. Never
 append a line that contradicts one already there. Then hashes are refreshed
-(`aos-lock rehash`) so `verify` stays clean, and the persist hook commits. A fold is
+(`aos-cap rehash`) so `verify` stays clean, and the persist hook commits. A fold is
 shown to the user like any other write: "you changed X — keeping it." A fold whose edit
 reaches *beyond* the `{{mod}}` slots (mechanism-shaped, not a value) is also the moment
 the promotion judgment below fires.

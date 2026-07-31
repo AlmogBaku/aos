@@ -76,7 +76,7 @@ session, and `/context` shows what is loaded now.
 1. **The tool first**, if the capability ships one: `uv tool install --from
    <home>/upstream/capabilities/<id>/tool <package>`. Verify `uv --version` before wiring
    anything that assumes it.
-2. **Skills.** `aos-lock skills <cap-dir>` gives each installed name; `aos-lock render`
+2. **Skills.** `aos-cap skills <cap-dir>` gives each installed name; `aos-cap render`
    writes the render once to
    `<home>/personal/capabilities/<id>/skills/<installed-name>/`, then symlink it to
    `~/.claude/skills/<installed-name>`. Symlink, never copy — a copy silently stops tracking
@@ -108,7 +108,7 @@ one-line edits stops reading by the fourth.
 
 ## Introspection guide
 
-- **What is installed:** `aos-lock list` / `aos-lock show <id>` is the authority, as always.
+- **What is installed:** `aos-cap list` / `aos-cap show <id>` is the authority, as always.
   The harness side is `ls -la ~/.claude/skills/` — the symlink targets tell you which
   renders are ours at a glance, and a *regular directory* where a symlink belongs is the
   drift `verify` cares about most.
@@ -144,7 +144,7 @@ Consequences, and they are hard limits rather than preferences:
 
 ## Removal
 
-Walk `aos-lock show <id>` backwards; nothing here is inferred from the filesystem.
+Walk `aos-cap show <id>` backwards; nothing here is inferred from the filesystem.
 
 1. Delete the symlinks under `~/.claude/skills/` that the lockfile records — the links only,
    never the render they point at, until step 3.
@@ -156,7 +156,7 @@ Walk `aos-lock show <id>` backwards; nothing here is inferred from the filesyste
    `durable: true`) may already be gone — that is not drift, but say so rather than reporting a
    deletion that did not happen.
 6. **Last, once nothing else needs to read it**: drop the pinned render under
-   `<home>/personal/capabilities/<id>/` and then the lockfile entry (`aos-lock remove <id>`).
+   `<home>/personal/capabilities/<id>/` and then the lockfile entry (`aos-cap remove <id>`).
    The entry is the list every earlier step walks, so removing it first strands whatever has
    not been undone yet — the job ids especially, which exist nowhere else.
 

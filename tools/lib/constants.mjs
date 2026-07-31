@@ -5,7 +5,7 @@ export const STATE_DIR = `.${KIT_NAME}/`; // machine-local state, gitignored (AR
 // The install-time provenance stamp, never shipped upstream. It lives inside SKILL.md's own
 // `metadata` extension hatch, because that schema is EXTERNAL and we are a vendor in it —
 // a top-level `x-aos-origin` was us reserving namespace in somebody else's house. `x-*` stays
-// reserved in CAPABILITY.md, which is ours, for THIRD parties. Mirrored in aos_lock/cli.py.
+// reserved in CAPABILITY.md, which is ours, for THIRD parties. Mirrored in aos_cap/cli.py.
 export const ORIGIN_FRONTMATTER_PATH = ['metadata', KIT_NAME, 'origin'];
 export const ORIGIN_FRONTMATTER_KEY = ORIGIN_FRONTMATTER_PATH.join('.'); // display form
 export const LEGACY_ORIGIN_FRONTMATTER_KEY = `x-${KIT_NAME}-origin`; // retired; must not ship
@@ -47,7 +47,7 @@ export const MAIN_AGENT = 'main'; // §2.2: `main` = the front agent
 // ARCHITECTURE §2.5 — skill identity. `skill_prefix` is capability-declared (else the
 // capability id); the *installed* name it produces is the shipped identity and carries the
 // Agent Skills spec's limits (agentskills.io/specification, and the authoring guide's
-// reserved-word rule). Mirrored in aos-lock's cli.py.
+// reserved-word rule). Mirrored in aos-cap's cli.py.
 export const SKILL_PREFIX_RE = /^[a-z0-9]+(-[a-z0-9]+)*-$/;
 export const SKILL_NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 export const SKILL_NAME_MAX = 64;

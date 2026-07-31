@@ -93,7 +93,7 @@ if (!claim) {
 // Suite sizes, if the doc quotes them. `unittest` prints "Ran N tests" to stderr.
 if (uvAvailable()) {
   for (const [suite, label] of [['tests/tool/test_kb.py', 'test_kb.py'],
-    ['tests/tool/test_lock.py', 'test_lock.py']]) {
+    ['tests/tool/test_cap.py', 'test_cap.py']]) {
     // Only if the doc quotes a size. It does not today, so this whole block is dormant —
     // deliberately, because a suite size in prose is a number that rots weekly and the count
     // is already visible in every test run. It stays wired so that quoting one is safe.
@@ -111,10 +111,10 @@ if (uvAvailable()) {
   }
 }
 
-// The installed-skill count, wherever prose states one. `aos-lock skills` is the authority,
+// The installed-skill count, wherever prose states one. `aos-cap skills` is the authority,
 // and the same number appears in README support tables and the golden expectations.
 // Scoped to the `skills:` block. A bare `/^\s+- id:/` also matched `schedules[]` and
-// `kb.zones[]` entries, so it reported 26 where `aos-lock skills` — the authority this claim
+// `kb.zones[]` entries, so it reported 26 where `aos-cap skills` — the authority this claim
 // is about — reports 22. Nothing quotes the number today, which is exactly when a wrong check
 // is cheapest to fix.
 const skillCount = listCapabilities(REPO_ROOT).reduce((n, cap) => {

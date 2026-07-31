@@ -10,7 +10,7 @@ symlinks to, your private capabilities — and `vendor/` for third-party skills 
 capability references rather than copies. The `capability-evolve` skill writes your MOD,
 `capability-upgrade` re-applies it on every upgrade (review = a git diff in your own repo).
 Bookkeeping — manifest parsing, the lockfile, every sha256 and link, and every skill's
-installed name — belongs to the bundled [`aos-lock` tool](tool/): judgment stays with the
+installed name — belongs to the bundled [`aos-cap` tool](tool/): judgment stays with the
 agent, names and hashes never do.
 
 | Piece | What it is |
@@ -26,12 +26,12 @@ agent, names and hashes never do.
 | `skills/evolve/` | change how an installed capability behaves *for you*, recorded so it survives upgrades; promotes upstream when generally useful (signal-gated, offer-only) |
 | `skills/review/` | review a capability as architecture then as prose: trace the flows and decision points, map units against the resources powering them, diagram it, stress the tree, then check that every documented command exists and every artifact has a reader. Read-only |
 | `skills/capability-lifecycle/reference/harness-<runtime>.md` | the per-harness cheat-sheets (hermes · nanoclaw v1+v2 · openclaw · nanobot · claude-code) — reference files of the skill that reads them, so they travel with the render |
-| `tool/` | `aos-lock` — deterministic manifest, installed-name, and lockfile verbs |
+| `tool/` | `aos-cap` — deterministic manifest, installed-name, and lockfile verbs |
 
 Installed skill names are computed, not authored: the ids above are capability-local, and
 `skill_prefix: capability-` makes them `capability-install`, `capability-onboard`,
 `capability-build`, and so on. One flat skill namespace per harness means a name is
-single-owner, so `aos-lock skills --check` gates every install against the household, the
+single-owner, so `aos-cap skills --check` gates every install against the household, the
 lockfile, and the skills your harness already has. See
 `skills/capability-lifecycle/reference/naming.md`.
 

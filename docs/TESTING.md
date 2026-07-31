@@ -5,8 +5,8 @@ How a capability proves it works (implements RFC-002).
 ## Tier 0 — capability tool tests (blocking)
 
 `bash tools/check.sh` first runs the capability tool suites — kb's `kb`
-(`uv run tests/tool/test_kb.py`) and capability-lifecycle's `aos-lock`
-(`uv run tests/tool/test_lock.py`). `test_kb.py` invokes `aos_kb.cli:app` in-process via
+(`uv run tests/tool/test_kb.py`) and capability-lifecycle's `aos-cap`
+(`uv run tests/tool/test_cap.py`). `test_kb.py` invokes `aos_kb.cli:app` in-process via
 typer's `CliRunner` (fast: the whole suite runs in ~20s), asserting on the same
 stdout/stderr/exit-code surface a real invocation produces — the report text is still the
 contract, not tool internals. A `Result` adapter gives every assertion the

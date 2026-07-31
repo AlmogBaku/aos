@@ -36,7 +36,7 @@ installed name = the id, if it is the capability id           (the entry skill)
                  prefix + id, otherwise
 ```
 
-`aos-lock skills <cap-dir>` prints the mapping; it is the only sanctioned way to compute
+`aos-cap skills <cap-dir>` prints the mapping; it is the only sanctioned way to compute
 it. Write bare ids — an id that already carries its prefix is an error, not a shortcut
 (`skills/prefix-redundant`), and a malformed `skill_prefix` is too (`skills/prefix-format`).
 
@@ -44,11 +44,11 @@ Consequences that bite if you forget them:
 
 - **The render directory and the symlink both use the installed name**, and so does the
   render's frontmatter `name`. One identity, every harness — no per-harness rewriting.
-  `aos-lock render` does this; do not hand-copy a skill.
+  `aos-cap render` does this; do not hand-copy a skill.
 - **Cross-skill references in prose use the installed name.** References resolve by name at
   runtime, and the bare id names nothing once installed — say `kb-route`, not `route`.
   (`skills/ref-unqualified`)
-- The `metadata.aos.origin` stamp is added by `aos-lock render` at install and never shipped
+- The `metadata.aos.origin` stamp is added by `aos-cap render` at install and never shipped
   upstream. (`skill/origin-tag`)
 
 ## Uniqueness is a gate, not a convention
@@ -58,7 +58,7 @@ so a skill name is single-owner — the same rule schedules have (§5.5).
 
 - In the kit, two capabilities computing the same installed name is an error.
   (`skills/installed-collision`)
-- At install, `aos-lock --home <home> skills <cap-dir> --check --harness-skills <dir>…` is
+- At install, `aos-cap --home <home> skills <cap-dir> --check --harness-skills <dir>…` is
   the gate. On a harness that installs skills as flat `<name>.md` files (Nanobot), pass the
   same directory — the gate reads both forms. It
   checks three places: every capability in the household, the skill links the lockfile

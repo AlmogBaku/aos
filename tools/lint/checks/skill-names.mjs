@@ -66,7 +66,7 @@ export function checkSkillNames({ caps, files, root, depRoots = [], report }) {
 // Cross-skill references resolve by name at runtime (crosspath.mjs bans relative paths),
 // and the name a harness knows is the installed one. A bare sibling id in shipped prose
 // points at nothing once installed. Scoped to "`<id>` skill" / "the `<id>` skill" so it
-// never fires on a tool verb — `kb capture`, `kb import survey`, `aos-lock init`.
+// never fires on a tool verb — `kb capture`, `kb import survey`, `aos-cap init`.
 function checkQualifiedRefs(caps, files, root, report) {
   for (const cap of caps) {
     const manifest = readFrontmatter(join(cap.dir, 'CAPABILITY.md')).data ?? {};
@@ -79,7 +79,7 @@ function checkQualifiedRefs(caps, files, root, report) {
     const ids = [...bare.keys()].join('|');
     const patterns = [
       // "the `capture` skill" — prose. The adjacent "skill" is what keeps this off tool
-      // verbs (`kb capture`, `kb import survey`, `aos-lock init`).
+      // verbs (`kb capture`, `kb import survey`, `aos-cap init`).
       new RegExp(`\`(${ids})\`\\s+skill\\b`, 'g'),
       // A routing-table cell that is nothing but the id — the mechanics map in every entry
       // skill. Tool verbs in a cell carry their command (`kb capture`), so they don't match.

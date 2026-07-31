@@ -6,7 +6,7 @@ description: "The aos capability lifecycle's front door. Use when the user asks 
 # capability-lifecycle — the map
 
 Capabilities are self-describing prompts; **you are the installer**. Judgment is yours;
-bookkeeping is `aos-lock`'s (`aos-lock --help` — the lockfile is its file, never edit
+bookkeeping is `aos-cap`'s (`aos-cap --help` — the lockfile is its file, never edit
 the YAML). Everything lives in the household `<home>` (default `~/aos`): `upstream/`
 the pristine kit clone, `personal/` the user's private repo (their MOD files, the
 pinned renders harnesses symlink to, their private capabilities), `.aos/` machine
@@ -32,14 +32,14 @@ that ships a skill.
 | "change how <capability> behaves for me" | `capability-evolve` |
 | "promote my tweak" / "this should be for everyone" | `capability-evolve` classifies, then hands to `capability-contribute` |
 | "review/audit <capability>" · before contributing · "something looks wrong here" | `capability-review` — read-only, architecture first |
-| "what's installed?" | `aos-lock list` |
+| "what's installed?" | `aos-cap list` |
 | your harness's mapping | `reference/harness-<harness-runtime>.md` — an aid, not a gate: loaded per operation, never standing context; none → `reference/no-cheatsheet.md` |
 
-Manifest quick facts: CAPABILITY.md frontmatter is strict-typed (`aos-lock manifest <dir>` parses and validates it — its
+Manifest quick facts: CAPABILITY.md frontmatter is strict-typed (`aos-cap manifest <dir>` parses and validates it — its
 errors name the field and rule); the fields are `id · version · tags · summary · depends · schedules · skills · skill_prefix · kb`, `x-*`
 reserved for extensions; the prose below the frontmatter is the installer's
 briefing, never runtime context. A skill's id is capability-local — the name it installs
-under is `aos-lock skills <dir>`'s answer, and it is single-owner across the whole harness
+under is `aos-cap skills <dir>`'s answer, and it is single-owner across the whole harness
 (`reference/naming.md`).
 
 ## Experience

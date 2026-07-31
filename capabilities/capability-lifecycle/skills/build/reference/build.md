@@ -26,7 +26,7 @@ every skill action-oriented and bare (the prefix is applied at install), and pla
 knowledge where it will still resolve once installed — only the skill's own folder travels,
 so depth goes in its `reference/`, another skill's knowledge is reached by naming that
 skill, and anything in the household is written from a root. Run the uniqueness gate as the **first** thing after
-`CAPABILITY.md` and before any skill directory: `aos-lock --home <home> skills <package-dir>
+`CAPABILITY.md` and before any skill directory: `aos-cap --home <home> skills <package-dir>
 --check --harness-skills <the harness's skills dir(s)>`. The verb reads the manifest, so it
 cannot run against an empty directory — writing the manifest first is the ordering, and it is
 still before anything a collision would waste. Exit 17 means the name is taken; rename in the
