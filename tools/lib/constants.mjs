@@ -57,6 +57,17 @@ export const RESERVED_NAME_WORDS = ['anthropic', 'claude'];
 // must still reveal the full scope of what is in there.
 export const REFERENCE_TOC_LINES = 100;
 
+// §2.5 — installed names are COMPUTED, so shipped prose carries a slot, never a literal.
+// Mirrored as SKILL_SLOT/AGENT_SLOT in aos_cap/slots.py; if the two disagree, the tool is
+// the bug. The `(?<!\\)` guard is why an escaped example survives: capability-lifecycle
+// documents the syntax it is rendered by, so lint must skip what render skips.
+export const SKILL_SLOT_RE = /(?<!\\)\{\{skill:\s*([a-z0-9-]+)(?:\/([a-z0-9-]+))?\s*\}\}/g;
+export const AGENT_SLOT_RE = /(?<!\\)\{\{agent:\s*([a-z0-9-]+)(?:\/([a-z0-9-]+))?\s*\}\}/g;
+// Migration prose legitimately names retired skills (`capability-installer`,
+// `capability-builder`) that resolve to nothing by design. A path allowlist would rot; a
+// marker on the line keeps the intent local and greppable.
+export const HISTORICAL_NAME_MARKER = '<!-- aos-lint-allow: historical -->';
+
 // ARCHITECTURE §2.3 — neutral agent spec
 export const AGENT_KEYS = ['name', 'purpose', 'model_class', 'tools', 'workspace', 'context_files'];
 export const AGENT_REQUIRED_KEYS = ['name', 'purpose', 'model_class'];

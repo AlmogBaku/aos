@@ -4,7 +4,9 @@ import { readFrontmatter } from '../../lib/frontmatter.mjs';
 import { listCapabilities } from '../../lib/repo.mjs';
 import {
   effectivePrefix, installedName, isPrefixWellFormed, nameProblems, capabilitySkillNames,
+  capabilityAgentNames,
 } from '../../lib/skill-names.mjs';
+import { SKILL_SLOT_RE, AGENT_SLOT_RE, HISTORICAL_NAME_MARKER } from '../../lib/constants.mjs';
 
 // The only cross-capability check in the suite. Skills land in one flat namespace per
 // harness, so two capabilities computing the same installed name is a silent override —
@@ -61,6 +63,108 @@ export function checkSkillNames({ caps, files, root, depRoots = [], report }) {
   }
 
   checkQualifiedRefs(caps, files, root, report);
+  checkAuthoredNames(caps, files, root, report);
+}
+
+// The mirror image of checkQualifiedRefs, and the defect that motivated both. That one
+// catches a BARE sibling id in shipped prose; this one catches the computed installed name
+// written LITERALLY — the case that let `skill_prefix: capability-` → `lc-` rename 80+
+// references with green CI, because a literal is only wrong relative to a prefix nothing
+// re-derived. Deliberately lint's job and not a runtime gate's: a hardcoded name and a
+// dangling slot are both mechanically decidable, and CI is where the author is. (Informal
+// prose — "hand it to the archiver" — is the non-mechanical half, and belongs to
+// capability-review §6a.)
+function checkAuthoredNames(caps, files, root, report) {
+  // Every installed name in the repo, and who owns it — so a literal naming ANOTHER
+  // capability's skill gets told the qualified slot (`{{skill: <cap>/<id>}}`) rather than
+  // the local one.
+  const owners = new Map();     // installed name -> { capId, id, kind }
+  for (const cap of caps) {
+    for (const [name, id] of capabilitySkillNames(cap)) {
+      // installedName() returns the id unchanged when id === cap.id, so an entry-skill name
+      // is not prefix-fragile: `kb` stays `kb` under any prefix, and demanding a slot for it
+      // would be noise. Only names the prefix actually rewrites can rot.
+      if (name !== id) owners.set(name, { capId: cap.id, id, kind: 'skill' });
+    }
+    for (const [name, id] of capabilityAgentNames(cap)) {
+      if (name !== id) owners.set(name, { capId: cap.id, id, kind: 'agent' });
+    }
+  }
+
+  // What a slot may resolve to, per capability: declared skills (the manifest is the source,
+  // as in slots.py — an undeclared on-disk skill is its own error and must not make a slot
+  // resolvable) and declared agents.
+  const declared = new Map();
+  for (const cap of caps) {
+    declared.set(cap.id, {
+      skill: new Set(readFrontmatter(join(cap.dir, 'CAPABILITY.md')).data?.skills
+        ?.map((s) => s?.id).filter((i) => typeof i === 'string' && i) ?? []),
+      agent: new Set(capabilityAgentNames(cap).values()),
+    });
+  }
+
+  const literalRe = owners.size
+    ? new RegExp(`\`(${[...owners.keys()].sort((a, b) => b.length - a.length).join('|')})\``, 'g')
+    : null;
+
+  for (const cap of caps) {
+    // RENDERED prose only. CAPABILITY.md is the installer's briefing — read from the clone,
+    // never rendered — so it keeps literal names; same for docs/, README.md, BOOTSTRAP.md and
+    // AGENTS.md, which describe the kit rather than ship into a harness. cap.rel also keeps
+    // the golden snapshots' rendered copies (which correctly hold literals) out.
+    const scope = `${cap.rel}/skills/`;
+    for (const file of files.filter((f) => f.startsWith(scope) && f.endsWith('.md'))) {
+      let text;
+      try {
+        text = readFileSync(join(root, file), 'utf8');
+      } catch {
+        continue;
+      }
+      const lines = text.split('\n');
+      for (let i = 0; i < lines.length; i += 1) {
+        const line = lines[i];
+        const where = `${file}:${i + 1}`;
+        // Migration prose names retired skills on purpose; the marker keeps that intent on
+        // the line rather than in a path allowlist that would rot.
+        if (line.includes(HISTORICAL_NAME_MARKER)) continue;
+
+        if (literalRe) {
+          for (const m of new Set([...line.matchAll(literalRe)].map((x) => x[1]))) {
+            const owner = owners.get(m);
+            const slot = owner.capId === cap.id
+              ? `{{${owner.kind}: ${owner.id}}}`
+              : `{{${owner.kind}: ${owner.capId}/${owner.id}}}`;
+            report('error', 'skills/ref-hardcoded', where,
+              `"\`${m}\`" is a computed installed name written as a literal — use ${slot} `
+              + `so a ${owner.capId} prefix change cannot invalidate it (§2.5)`);
+          }
+        }
+
+        // The escaped form (`\{{skill: <id>}}`) is invisible here for the same reason it is
+        // invisible to render: the shared regexes carry the `(?<!\\)` guard. A doc that
+        // teaches the syntax must not be a lint failure.
+        for (const [re, kind, code] of [
+          [SKILL_SLOT_RE, 'skill', 'skills/ref-dangling'],
+          [AGENT_SLOT_RE, 'agent', 'agents/ref-dangling'],
+        ]) {
+          for (const m of line.matchAll(re)) {
+            const [first, second] = [m[1], m[2]];
+            const targetCap = second === undefined ? cap.id : first;
+            const targetId = second === undefined ? first : second;
+            const known = declared.get(targetCap);
+            if (!known) {
+              report('error', code, where,
+                `${m[0]} names capability "${targetCap}", which is not in this tree`);
+            } else if (!known[kind].has(targetId)) {
+              report('error', code, where,
+                `${m[0]} names no ${kind} declared by "${targetCap}" — it declares `
+                + `${[...known[kind]].sort().join(', ') || 'none'}`);
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 // Cross-skill references resolve by name at runtime (crosspath.mjs bans relative paths),

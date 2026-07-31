@@ -28,7 +28,7 @@ build here). Requires `uv`; skipped locally with a warning if absent, always on 
 
     bash tools/check.sh
 
-Runs `tools/lint/aos-lint.mjs` (86 checks in 14 code families over the §2/§3/§5 contracts — the
+Runs `tools/lint/aos-lint.mjs` (89 checks in 15 code families over the §2/§3/§5 contracts — the
 schema/contract linter, useful any time you're authoring a capability, not just for
 testing), the lint selftest (`tools/lint/selftest/run.mjs` — every contract code must fire
 on a planted-violation fixture, and a code that fires without being listed is also a

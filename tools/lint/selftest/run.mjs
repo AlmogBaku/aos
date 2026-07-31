@@ -2,6 +2,8 @@
 // Selftest: every lint check must fire at least once on the planted-violation
 // fixture. Guards against checks silently rotting into no-ops.
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { walkRepo, listCapabilities } from '../../lib/repo.mjs';
 import { checkManifests } from '../checks/manifest.mjs';
 import { checkSkills } from '../checks/skills.mjs';
@@ -30,6 +32,9 @@ const EXPECTED = [
   // §2.5 skill identity: the installed name is what ships, so it carries the limits
   'skills/prefix-format', 'skills/prefix-redundant', 'skills/installed-name',
   'skills/installed-collision', 'skills/ref-unqualified',
+  // ...and its mirror: the computed name written literally, plus a slot that resolves to
+  // nothing. Both are what a prefix rename silently invalidated with green CI.
+  'skills/ref-hardcoded', 'skills/ref-dangling', 'agents/ref-dangling',
   // Agent Skills authoring conformance
   'skill/reserved-word', 'skill/xml-tags', 'skill/nested-reference', 'skill/reference-toc',
   'skill/description-person',
@@ -87,6 +92,36 @@ for (const quiet of ['name-cap', 'half-cap']) {
     console.error(`selftest FAILED — skill/all-main fired on ${quiet}, which declares no agent `
       + 'and no schedule: there was no role to scope to, so the question is unanswerable '
       + 'rather than unanswered');
+    process.exit(1);
+  }
+}
+
+// The slot checks must fire on a dangling slot and stay SILENT on an escaped one. Pinned by
+// line, because the codes firing at all proves nothing: the same fixture line carries both
+// forms, so a check that ignored the `(?<!\\)` guard would light the codes up identically
+// while failing every doc that TEACHES the syntax — starting with reference/naming.md. The
+// line is located by content rather than numbered, so editing the fixture cannot quietly
+// aim this assertion at a blank line.
+const REFER_REL = 'capabilities/name-cap/skills/refer/SKILL.md';
+const referLines = readFileSync(join(ROOT, REFER_REL), 'utf8').split('\n');
+const escapedLine = referLines.findIndex((l) => l.includes('escaped example')) + 1;
+if (!escapedLine) {
+  console.error(`selftest FAILED — ${REFER_REL} no longer carries the escaped-slot line the `
+    + 'negative assertion is about');
+  process.exit(1);
+}
+const slotFindings = findings.filter((f) => f.code.endsWith('/ref-dangling'));
+const onEscaped = slotFindings.filter((f) => f.file === `${REFER_REL}:${escapedLine}`);
+if (onEscaped.length) {
+  console.error(`selftest FAILED — ${onEscaped.length} ref-dangling finding(s) on ${REFER_REL}:`
+    + `${escapedLine}, the escaped-slot line: \\{{skill: …}} is invisible to render, so it must `
+    + `be invisible to lint too\n  ${onEscaped.map((f) => f.message).join('\n  ')}`);
+  process.exit(1);
+}
+for (const [code, want] of [['skills/ref-dangling', '{{skill: kapture}}'],
+  ['agents/ref-dangling', '{{agent: ghost}}']]) {
+  if (!slotFindings.some((f) => f.code === code && f.message.includes(want))) {
+    console.error(`selftest FAILED — ${code} did not fire on the unescaped ${want}`);
     process.exit(1);
   }
 }

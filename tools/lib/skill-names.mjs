@@ -4,8 +4,9 @@
 //
 // Mirrored in capabilities/capability-lifecycle/tool/src/aos_cap/names.py — the runtime
 // half, which agents call at install time. The two must agree; the goldens are the tie-break.
-import { readdirSync, existsSync } from 'node:fs';
+import { readdirSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { parse } from 'yaml';
 import { SKILL_PREFIX_RE, SKILL_NAME_RE, SKILL_NAME_MAX, RESERVED_NAME_WORDS } from './constants.mjs';
 import { readFrontmatter } from './frontmatter.mjs';
 
@@ -47,6 +48,31 @@ export function capabilitySkillNames(cap) {
     for (const name of readdirSync(skillsDir)) {
       if (existsSync(join(skillsDir, name, 'SKILL.md'))) ids.add(name);
     }
+  }
+  return new Map([...ids].map((id) => [installedName(cap.id, prefix, id), id]));
+}
+
+// The agent twin of `capabilitySkillNames`, mirroring aos_cap/names.py's
+// `capability_agent_names`. Agents land in a flat per-harness namespace exactly like skills,
+// so they reuse the capability's `skill_prefix` — no second manifest field (§2.2's rule of
+// two). Soft on a malformed spec, falling back to the filename stem, for the same reason the
+// tool's version is: a name computation must never raise.
+export function capabilityAgentNames(cap) {
+  const manifest = readFrontmatter(join(cap.dir, 'CAPABILITY.md')).data ?? {};
+  const prefix = effectivePrefix(manifest, cap.id);
+  const dir = join(cap.dir, 'agents');
+  if (!existsSync(dir)) return new Map();
+  const ids = new Set();
+  for (const file of readdirSync(dir)) {
+    if (!file.endsWith('.agent.yaml')) continue;
+    let name;
+    try {
+      name = parse(readFileSync(join(dir, file), 'utf8'))?.name;
+    } catch {
+      name = null;
+    }
+    if (typeof name !== 'string' || !name.trim()) name = file.replace('.agent.yaml', '');
+    ids.add(name);
   }
   return new Map([...ids].map((id) => [installedName(cap.id, prefix, id), id]));
 }
