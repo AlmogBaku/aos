@@ -6,15 +6,21 @@ How a capability proves it works (implements RFC-002).
 
 `bash tools/check.sh` first runs the capability tool suites — kb's `kb`
 (`uv run tests/tool/test_kb.py`) and capability-lifecycle's `aos-cap`
-(`uv run tests/tool/test_cap.py`). `test_kb.py` invokes `aos_kb.cli:app` in-process via
-typer's `CliRunner` (fast: the whole suite runs in ~20s), asserting on the same
-stdout/stderr/exit-code surface a real invocation produces — the report text is still the
-contract, not tool internals. A `Result` adapter gives every assertion the
+(`uv run tests/tool/test_cap.py`). Both invoke their tool's `cli:app` in-process via
+typer's `CliRunner` (fast: kb's ~210 tests run in ~30s, aos-cap's ~83 in ~1s), asserting
+on the same stdout/stderr/exit-code surface a real invocation produces — the report text
+is still the contract, not tool internals. A `Result` adapter gives every assertion the
 `.returncode`/`.stdout`/`.stderr` shape a subprocess result has, so the invocation layer
-can change without touching test bodies. One class, `InstalledScriptSmokeTest`, stays a
-real subprocess: CliRunner never leaves the process, so it can't prove `[project.scripts]
-kb = ...` actually resolves as an installed console script — that's the one thing this
-class exists to check. It then lints the shipped example base (`tests/fixtures/example-base/`
+can change without touching test bodies. Each suite keeps exactly one real-subprocess
+class (`InstalledScriptSmokeTest` / `InstalledScriptTest`): CliRunner never leaves the
+process, so it can't prove `[project.scripts]` actually resolves as an installed console
+script — that's the one thing those classes exist to check. `test_cap.py` additionally
+needs a `chdir` helper, because a few of its behaviours (the cwd-upward `.aos/` search, a
+relative `--artifact`, a relative capability dir) are genuine functions of the process
+cwd, which an in-process runner inherits rather than isolates. What that suite must cover
+— every verb, every failure mode, and the bug behind each regression pin — is indexed in
+`tests/tool/COVERAGE-cap.md`, which is diffable against the file's `def test_*` names.
+Tier 0 then lints the shipped example base (`tests/fixtures/example-base/`
 must pass `kb lint` with zero criticals/findings — template/example/tool drift breaks the
 build here). Requires `uv`; skipped locally with a warning if absent, always on in CI.
 
