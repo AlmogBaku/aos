@@ -72,9 +72,10 @@ plain directory, not itself a repo):
 
 The words worth keeping: `upstream/` (and any future org root) is a **distribution**;
 `personal/` is **your instance**, which travels between machines via its own private
-remote; only `.aos/` is machine-local. The split is what lets your daily install double as
-your dev checkout — a branch cut from `upstream/` is clean by construction
-([CONTRIBUTING](../CONTRIBUTING.md)).
+remote; only `.aos/` is machine-local. The split is what lets one clone serve both jobs:
+`upstream/` is the aos source your install reads from *and* the clone you'd edit to
+contribute, so a branch cut from it is clean by construction — change it only for what
+belongs to everybody ([CONTRIBUTING](../CONTRIBUTING.md)).
 
 **Renders are pinned, and harnesses link to them.** Installing doesn't copy a skill into
 your harness. Filling a skill's `{{mod}}` slots with your answers is a judgment call, not a

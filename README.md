@@ -66,9 +66,11 @@ every artifact in a lockfile so removal is exact. Everything lands in one direct
 └── .aos/        ← machine-local: the install lockfile
 ```
 
-`upstream/` is also your dev checkout — every user is one branch away from being a
-contributor, and forking when you want to is one command (`gh repo fork --remote`).
-Never a gate, and never something your agent does without asking.
+`upstream/` is the aos source: your install reads from it, and it's the same clone you'd
+edit to contribute — so every user is one branch from being a contributor. Change it only
+for what belongs to everybody (anything just for you is a `MOD.md` line in `personal/`);
+forking, when you need somewhere to push, is one command (`gh repo fork --remote`). Never
+a gate, and never something your agent does without asking.
 
 > [!IMPORTANT]
 > Nothing lands in your harness without your approval: the installer shows the full diff

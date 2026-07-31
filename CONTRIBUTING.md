@@ -16,20 +16,27 @@ reveals the spec is wrong, the spec gets fixed — every such mismatch gets a ro
 [docs/BUILD-GAPS.md](docs/BUILD-GAPS.md), artifact-side fixes land in the same `main`
 commit, spec-side fixes land on `spec`.
 
-## One way of working: your daily install is your dev checkout
+## One way of working: you contribute from the clone you installed from
 
 If you use aos, you are already set up to contribute — that's the point of the
 household layout
-([spec §3.1](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#31-the-overlay-the-personal-root-mirrored-paths)):
+([spec §3.1](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#31-the-overlay-the-personal-root-mirrored-paths)).
+Two roots, two jobs:
 
-- `~/aos/upstream` is both your install source and your working copy — pristine, and it
-  contains **nothing personal, ever** — so any branch you cut from it is clean by
-  construction. Bootstrap leaves `origin` = canonical; forking is one command
-  (`gh repo fork --remote`) whenever you want the contributor shape, and your agent only
-  ever offers it — a fork is a public write to your account.
-- `~/aos/personal` is your private repo — answers, tweaks, rendered skills, private
-  capabilities — auto-committed by your agent, restorable by cloning it. It never
-  enters a PR and never touches any public remote.
+- `~/aos/upstream` is **the aos source** — the clone your install reads from, and the
+  same one you edit to contribute. It stays pristine and holds **nothing personal,
+  ever**, so any branch you cut from it is clean by construction. Bootstrap leaves
+  `origin` = canonical; forking is one command (`gh repo fork --remote`) whenever you
+  need somewhere to push, and your agent only ever *offers* it — a fork is a public
+  write to your account.
+- `~/aos/personal` is **the rendered result** — your answers, every skill rendered
+  against them, your own private capabilities — auto-committed by your agent and
+  restorable by cloning it. It never enters a PR and never touches a public remote.
+- **Edit `upstream/` only for changes that belong to everybody.** Something only *you*
+  want is a MOD line in `personal/`, not a commit here — the funnel below is the test.
+  When it genuinely is general: branch, commit, PR. Never leave the change sitting
+  uncommitted in the clone; a dirty `upstream/` is what the upgrader's pull and the
+  contribution preflight both trip over.
 - **PRs always.** Branch from canonical `main`, push to a PR-capable remote (your
   fork; canonical if you have push rights), PR + green CI. Self-merge where the
   merge policy allows is still a PR; `main` and `spec` are branch-protected —
