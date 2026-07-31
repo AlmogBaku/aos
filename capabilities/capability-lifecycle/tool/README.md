@@ -18,7 +18,7 @@ Verbs: `manifest <dir>` · `skills <dir> [--check] [--harness-skills DIR]× [--j
 `list` · `remove <cap>`. Household discovery: `--home` > `$AOS_HOME` > cwd-upward search
 for `.aos/`. Exit codes: 0 ok · 1 generic (init over an existing lockfile) · 12 manifest
 invalid · 13 drift · 14 no such entry · 15 no home · 16 artifact missing / not a symlink ·
-17 skill-name collision.
+17 skill-name collision · 18 unresolvable `{{skill:}}`/`{{agent:}}` slot.
 
 ## Skill names (§2.5)
 
@@ -50,6 +50,28 @@ of three sources is not clean, so pass `--home` and the harness's skills dirs ex
 frontmatter `name` to the installed name, and stamps `metadata.aos.origin: <cap>@<version>`. It
 leaves `{{mod: …}}` slots alone — filling those is the agent's job, afterwards. Re-running
 with `--force` is byte-identical; without it, a non-empty destination is an error.
+
+## Name slots — `{{skill:}}` and `{{agent:}}`
+
+Installed names are computed, so shipped prose must never hardcode one: a `skill_prefix`
+change would silently invalidate every reference. `render` substitutes, in every `*.md`
+under the render:
+
+| slot | becomes |
+|---|---|
+| `{{skill: <id>}}` | this capability's skill, at its installed name |
+| `{{agent: <id>}}` | this capability's agent — same prefix; agents share one flat namespace with skills |
+| `{{skill: <cap>/<id>}}` · `{{agent: <cap>/<id>}}` | another capability's, at *its* prefix |
+
+A leading backslash makes the slot a literal example: `\{{skill: <id>}}` renders as
+`{{skill: <id>}}`, neither substituted nor validated (the same escape works for
+`{{mod:}}`) — needed because this capability documents the syntax it is itself rendered by.
+
+A slot naming no declared skill/agent, an unresolvable capability, or one that exists in
+**both** household roots is exit **18**: every error is printed and the render is removed,
+so a half-substituted skill can never look complete to the next step. Cross-capability ids
+resolve `personal/` first then `upstream/` — a shadowed id is reported, never preferred.
+`{{mod: …}}` slots are untouched by all of this: the agentic transform owns them.
 
 Lockfile entry fields (written only by `record`): `version`, `source_root` (which
 household root shipped the capability), `artifacts` (path → sha256 — the pinned-render

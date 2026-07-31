@@ -6,7 +6,8 @@ lockfile — only the last group is lockfile bookkeeping:
 
   manifest  parse + validate a CAPABILITY.md -> JSON on stdout
   skills    compute each skill's INSTALLED name; --check IS the collision gate
-  render    copy one skill to its installed name (mechanical, idempotent)
+  render    copy one skill to its installed name, resolving its name slots
+            (mechanical, idempotent)
   home      print the resolved household root
   init/record/rehash/verify/show/list/remove  own the lockfile
   (<home>/.aos/installs.lock.yaml — the aos household root, e.g. ~/aos)
@@ -14,7 +15,7 @@ lockfile — only the last group is lockfile bookkeeping:
 The lockfile is THIS TOOL'S file: agents call verbs, never edit the YAML.
 Exit codes: 0 ok · 1 generic (e.g. init over an existing lockfile) · 12 manifest
 invalid · 13 drift · 14 no such entry · 15 no home · 16 artifact missing ·
-17 skill-name collision.
+17 skill-name collision · 18 unresolvable {{skill:}}/{{agent:}} slot.
 """
 
 from typing import Optional

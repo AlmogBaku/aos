@@ -10,11 +10,12 @@ grep -o '    def test_\w*' tests/tool/test_cap.py | sed 's/.*def //' | sort > /t
 comm -23 /tmp/want.txt /tmp/have.txt        # must print nothing
 ```
 
-Rows are the pre-rewrite suite's **81** tests: 40 happy-path (exit 0 only) and 41 that pin
-a non-zero exit. Per code: **1** generic → 8 · **12** manifest invalid → 10 · **13** drift
-→ 3 · **14** no such entry → 3 · **15** no home → 4 · **16** artifact missing → 4 ·
-**17** name collision → 9. One section at the end holds the rows the rewrite *added*
-(the console-script smoke tests), so the file stays a complete index of the suite.
+Rows began as the pre-rewrite suite's **81** tests: 40 happy-path (exit 0 only) and 41 that
+pin a non-zero exit. Per code: **1** generic → 8 · **12** manifest invalid → 10 · **13**
+drift → 3 · **14** no such entry → 3 · **15** no home → 4 · **16** artifact missing → 4 ·
+**17** name collision → 9. Sections added since carry their own counts — the console-script
+smoke tests the rewrite added, and the **18** name-slot family — so the file stays a
+complete index of the suite.
 
 Rows tagged **PIN** are regression pins for real bugs that shipped. Their one-line "why"
 is the point of the row — a rewrite that drops one re-opens the bug, and a rewrite that
@@ -26,7 +27,7 @@ keeps the assertion but loses the reason invites a later reader to "simplify" it
 |---|---|---|
 | `manifest <dir>` | parse + validate a `CAPABILITY.md` (§2.2), emit it as JSON on stdout | 0, 12 |
 | `skills <dir>` | every skill's **installed** name (`<prefix><id>`, entry skill verbatim); `--json` adds the prefix; `--check` **is** the collision gate and names the sources it consulted | 0, 12, 15, 17, 1 |
-| `render <dir> <skill> --out` | copy `skills/<id>/` to `<out>/<installed-name>/`, rewrite `name`, stamp `metadata.aos.origin`; mechanical + idempotent | 0, 1, 12, 14 |
+| `render <dir> <skill> --out` | copy `skills/<id>/` to `<out>/<installed-name>/`, rewrite `name`, stamp `metadata.aos.origin`, resolve the `{{skill:}}`/`{{agent:}}` name slots; mechanical + idempotent | 0, 1, 12, 14, 18 |
 | `home` | print the resolved household root | 0, 15 |
 | `init` | create an empty `<home>/.aos/installs.lock.yaml`; the one verb that may find no `.aos/` | 0, 1, 15 |
 | `record <cap> --version` | write one capability's entry: artifact sha256s, link targets, source root, jobs, config keys, env-var names, scripts | 0, 15, 16 |
@@ -40,13 +41,14 @@ keeps the assertion but loses the reason invites a later reader to "simplify" it
 Global, and it goes **before** the verb: `--home` (else `$AOS_HOME`, else a cwd-upward
 `.aos/` search — and for `skills --check`, also a search upward from the capability dir).
 
-## `manifest` — 9
+## `manifest` — 10
 
 Happy path: a valid package prints its frontmatter as JSON with `id` and `version` intact.
 
 - [ ] test_manifest_valid_prints_json — 0; JSON on stdout, `id` + `version` round-trip
 - [ ] test_manifest_x_fields_allowed — 0; `x-*` is the third-party namespace in **our** schema
 - [ ] test_manifest_accepts_all_shipped_capabilities — 0; drift guard: the tool must accept every in-repo `CAPABILITY.md` the tier-1 lint accepts
+- [ ] test_depends_resolves_across_the_two_household_roots — **PIN**; 0; the check was `cap_dir.parent / dep`, the sibling root only, so a `personal/` capability depending on an `upstream/` one failed validation on a **correct** declaration. One resolver (`names.resolve_capability`) now serves this and slot resolution, so the two cannot disagree about where a capability lives
 - [ ] test_manifest_unknown_key_rejected — 12; rule of two: an undeclared key is an error, and the message names it
 - [ ] test_manifest_bad_version_rejected — 12; version must be MAJOR.MINOR.PATCH
 - [ ] test_manifest_undeclared_skill_dir_rejected — 12; an on-disk `skills/<id>/SKILL.md` nobody declared would still install
@@ -104,7 +106,7 @@ Happy path: one `id\tinstalled_name\tused_by` row per declared skill; `--check` 
 
 - [ ] test_bad_harness_skills_arg_is_a_generic_error — 1; `--harness-skills` pointing at a non-directory
 
-## `render` — 13
+## `render` — 13 · name slots — 18
 
 Happy path: `skills/<id>/` lands at `<out>/<installed-name>/`, `name:` rewritten to the
 installed name, `metadata.aos.origin` stamped `<cap>@<version>`, bundled `reference/`
@@ -123,6 +125,41 @@ carried, `{{mod: …}}` slots untouched.
 - [ ] test_render_of_a_non_entry_skill_into_the_package_is_refused_too — **PIN**; 1; the second half of the same defect, which a narrower `dest == src` guard misses: `skills/sort` → `skills/democap-sort` destroys nothing but plants an on-disk skill nothing declares, so every later `manifest`/`skills`/`render` exits 12 and the install can no longer be upgraded or removed
 - [ ] test_render_to_the_package_root_is_refused — **PIN**; 1; the mildest case (litter beside `CAPABILITY.md`), kept so the rule stays statable in one clause: `--out` lives outside the package
 - [ ] test_render_unknown_skill_errors — 14; an undeclared skill id
+
+## name slots — `{{skill:}}` / `{{agent:}}` at render — 18
+
+The defect this section exists for: an installed name is **computed**
+(`<skill_prefix><id>`), so prose that hardcodes one silently points at nothing the moment
+the prefix changes. Two probes proved nothing caught it — renaming a `skill_prefix` and
+corrupting a hardcoded name both left the lint at **0 errors**. Prose carries a slot, and
+an unresolvable one is exit **18**.
+
+### resolution — 7
+
+- [ ] test_slot_resolves_an_own_capability_skill — 0; `{{skill: route}}` → `kb-route`, and no `{{skill:` survives
+- [ ] test_agent_slot_takes_the_same_prefix_as_skills — 0; agents land in the same flat namespace, so they reuse the capability's `skill_prefix` — no second manifest field (§2.2's rule of two)
+- [ ] test_cross_capability_slot_resolves_within_upstream — 0; `{{skill: kbc/capture}}` at the *target's* prefix, not the referrer's
+- [ ] test_cross_capability_slot_resolves_from_personal_into_upstream — **PIN**; 0; the two-root case. The lookup was `cap_dir.parent` — the SIBLING root only — so a capability in `personal/` naming one in `upstream/` failed on a **correct** reference. That is every capability `capability-build` writes
+- [ ] test_entry_skill_slot_is_never_double_prefixed — 0; `{{skill: <cap-id>}}` keeps the bare id, the same rule `installed_name` already holds
+- [ ] test_slots_in_reference_files_are_resolved_too — 0; depth lives in a sibling `reference/`, so substituting only SKILL.md would miss most prose that names a skill
+- [ ] test_mod_slots_still_survive_the_slot_pass — 0; the two halves of replacement are different by design: `{{mod:}}` is left intact by contract, a dangling name slot is a hard failure
+
+### the escape guard — 4
+
+- [ ] test_escaped_skill_slot_renders_as_a_literal — **PIN**; 0; `capability-lifecycle` documents the very syntax it is rendered by, so without an escape, installing it corrupts its own naming reference. An unescaped slot in the same file still resolves — the guard is per-slot, not a per-file mode
+- [ ] test_escaped_agent_slot_renders_as_a_literal — 0
+- [ ] test_escaped_mod_slot_renders_as_a_literal — 0; one escape rule for **every** slot type, so the rule is one sentence an author can hold
+- [ ] test_an_escaped_slot_naming_nothing_is_not_an_error — 0; the point of an example is that it names a placeholder — validating escaped slots would make every documented sample dangling
+
+### exit 18 — 7
+
+- [ ] test_unknown_skill_id_in_a_slot_exits_18 — 18; names the slot **and** what is declared
+- [ ] test_unknown_agent_id_in_a_slot_exits_18 — 18
+- [ ] test_unknown_capability_in_a_slot_exits_18 — 18
+- [ ] test_a_shadowed_capability_in_a_slot_exits_18_naming_both_roots — 18; the install contract says a personal package shadowing an upstream id is reported loudly, never silently preferred — a slot that quietly took `personal/` would resolve against a package the installer never mentioned
+- [ ] test_a_mod_only_personal_directory_is_not_a_shadow — 0; the contract's own caveat: `personal/capabilities/<id>/` is the mirrored **overlay** path and exists for every onboarded capability. Only a dir holding a `CAPABILITY.md` is a package, or a shadow fires on every ordinary install
+- [ ] test_a_bare_clone_resolves_siblings_not_a_household_above_it — 0; the household is derived by ANCHORING (the ancestor whose `upstream/`/`personal/` the package is inside), never by finding a marker: `.aos/` sits at `~/` on any machine that has ever installed aos, so a marker search would make a bare kit clone resolve references into the user's real `personal/`
+- [ ] test_a_failed_slot_pass_leaves_no_partial_render — 18; the copy already landed when the pass runs, and a half-substituted skill reads as complete to the next step (the diff gate, the symlink) — so the failure is total
 
 ## the lockfile — `init record rehash verify show list remove` — 21
 

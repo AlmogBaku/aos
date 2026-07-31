@@ -62,6 +62,96 @@ def capability_skill_names(cap_dir: Path) -> set[str]:
     return {installed_name(cap_dir.name, prefix, i) for i in ids if isinstance(i, str) and i}
 
 
+def declared_agent_ids(cap_dir: Path) -> set[str]:
+    """Every agent this capability ships: each `agents/*.agent.yaml`'s `name:`, falling
+    back to the filename stem when the spec is unreadable or unnamed. Soft by design —
+    the same reason `frontmatter_soft` exists: a malformed spec must not raise out of a
+    name computation. `main` is NOT included: it is the harness's shared agent, not a
+    capability's, and the callers that need it add it themselves."""
+    out: set[str] = set()
+    agents_dir = Path(cap_dir) / "agents"
+    if not agents_dir.is_dir():
+        return out
+    for spec in sorted(agents_dir.glob("*.agent.yaml")):
+        try:
+            name = (yaml.safe_load(spec.read_text()) or {}).get("name")
+        except (yaml.YAMLError, OSError):
+            name = None
+        if not isinstance(name, str) or not name.strip():
+            name = spec.name.replace(".agent.yaml", "")
+        out.add(name)
+    return out
+
+
+def capability_agent_names(cap_dir: Path) -> set[str]:
+    """The agent twin of `capability_skill_names`. Agents land in a flat per-harness
+    namespace exactly like skills, so they take the capability's declared `skill_prefix`
+    — no second manifest field, because §2.2's rule of two says a field exists only once
+    two capabilities need it machine-read, and one prefix per capability is what both
+    namespaces want anyway."""
+    data = frontmatter_soft(Path(cap_dir) / "CAPABILITY.md")
+    if data is None:
+        return set()
+    prefix = effective_prefix(data, Path(cap_dir).name)
+    return {installed_name(Path(cap_dir).name, prefix, a) for a in declared_agent_ids(cap_dir)}
+
+
+def _household_of(cap_dir: Path) -> Optional[Path]:
+    """The `<home>/` a capability directory sits inside, or None.
+
+    Deliberately NOT `find_home_soft`: that one answers "which household is this
+    invocation about", so it consults `--home`, `$AOS_HOME` and the cwd first — all of
+    which can name a DIFFERENT household than the package being read. This one answers
+    "where does this directory live", which has exactly one honest source: the path
+    itself. A household package lives at `<home>/{upstream,personal}/capabilities/<id>`,
+    so the home is the ancestor whose `upstream/` or `personal/` the package is INSIDE.
+
+    Anchored that way rather than by looking for a marker, and deliberately not `.aos/`:
+    `.aos/` is machine-local and exists at `~/` on any machine that has ever installed aos,
+    so a marker search would let a real household anywhere above an unrelated kit clone
+    claim it — and cross-capability references in `~/work/aos` would start resolving into
+    `~/personal`. A package that is in no household gets None, and `resolve_capability`
+    falls back to the sibling directory for it.
+    """
+    cap_dir = Path(cap_dir).resolve()
+    for cand in cap_dir.parents:
+        for label in ("upstream", "personal"):
+            root = cand / label
+            if root.is_dir() and root in cap_dir.parents:
+                return cand
+    return None
+
+
+def resolve_capability(cap_id: str, cap_dir: Path) -> tuple[Optional[Path], Optional[dict], bool]:
+    """Resolve a capability id to (dir, manifest, shadowed) — personal/ first, then
+    upstream/, per the install contract. NOT `cap_dir.parent`: a capability in personal/
+    referencing one in upstream/ is the normal case for anything capability-build wrote,
+    and a sibling-only lookup fails it on a correct reference.
+
+    `shadowed` is True when the id exists in BOTH roots. The contract says that is
+    reported loudly, never silently preferred — so callers must not just take personal/.
+
+    The sibling directory is consulted only as a LAST resort, for a package that is in no
+    household at all: a bare kit clone (this repo's own flat `capabilities/`), a fixture
+    tree. That is a real invocation — `aos-cap manifest capabilities/kb` — and it has no
+    upstream/personal to resolve against.
+    """
+    found: list[Path] = []
+    root = _household_of(cap_dir)
+    if root:
+        for label in ("personal", "upstream"):
+            cand = root / label / "capabilities" / cap_id
+            if (cand / "CAPABILITY.md").is_file():
+                found.append(cand)
+    if not found:
+        sibling = Path(cap_dir).resolve().parent / cap_id
+        if (sibling / "CAPABILITY.md").is_file():
+            found.append(sibling)
+    if not found:
+        return None, None, False
+    return found[0], frontmatter_soft(found[0] / "CAPABILITY.md"), len(found) > 1
+
+
 def household_owners(root: Path, exclude_cap: str) -> dict[str, str]:
     owners: dict[str, str] = {}
     for label in ("upstream", "personal"):

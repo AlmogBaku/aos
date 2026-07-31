@@ -6,8 +6,6 @@ not the first one. `skill_rows()` is the shape both `skills` and `render` need."
 import sys
 from pathlib import Path
 
-import yaml
-
 from .constants import (
     CAPABILITY_TAGS, CRON5, DEGRADED, HOST_FEATURES, HOST_LEVELS, KB_KEYS,
     MANIFEST_KEYS, SCHEDULE_KEYS, SEMVER, SKILL_ENTRY_KEYS, SKILL_NAME_RE,
@@ -15,7 +13,9 @@ from .constants import (
 )
 from .errors import Exit, fail
 from .frontmatter import frontmatter
-from .names import effective_prefix, installed_name, name_errors
+from .names import (
+    declared_agent_ids, effective_prefix, installed_name, name_errors, resolve_capability,
+)
 
 
 def validated_manifest(cap_dir: Path) -> dict:
@@ -57,16 +57,21 @@ def validated_manifest(cap_dir: Path) -> dict:
         if level not in HOST_LEVELS:
             errs.append(f"depends.host.{feat}: level '{level}' not in {sorted(HOST_LEVELS)}")
 
-    agent_names = {"main"}
-    for spec in (cap_dir / "agents").glob("*.agent.yaml"):
-        try:
-            name = (yaml.safe_load(spec.read_text()) or {}).get("name")
-        except yaml.YAMLError:
-            name = None
-        agent_names.add(name or spec.name.replace(".agent.yaml", ""))
+    # `main` is the harness's shared agent, which every capability may name; the rest are
+    # this package's own. One scan, in names.py, serves both this check and slot resolution
+    # — two readers of `agents/*.agent.yaml` could disagree about what an agent is called.
+    agent_names = {"main"} | declared_agent_ids(cap_dir)
+    # Two-root resolution (the install contract): personal/ first, then upstream/. The
+    # old sibling-only lookup failed a CORRECT declaration for every capability
+    # `capability-build` writes — those live in personal/ and depend on kb in upstream/.
     for dep in (depends.get("capabilities") or []):
-        if not (cap_dir.parent / str(dep) / "CAPABILITY.md").is_file():
-            errs.append(f"depends.capabilities: '{dep}' has no capabilities/{dep}/CAPABILITY.md")
+        dep_dir, _, shadowed = resolve_capability(str(dep), cap_dir)
+        if dep_dir is None:
+            errs.append(f"depends.capabilities: '{dep}' has no capabilities/{dep}/CAPABILITY.md "
+                        f"in personal/ or upstream/")
+        elif shadowed:
+            errs.append(f"depends.capabilities: '{dep}' exists in BOTH personal/ and upstream/ "
+                        f"— resolve the shadow before installing (never silently preferred)")
     if not (cap_dir / "README.md").is_file():
         errs.append("README.md is required")
     if (cap_dir / "ONBOARDING.md").is_file() and not (cap_dir / "MOD.example.md").is_file():

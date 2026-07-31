@@ -1,10 +1,12 @@
 """`render` — the one verb that materializes a skill: copy `skills/<id>/` to
-`<out>/<installed-name>/` and stamp the render's frontmatter. Mechanical and idempotent;
+`<out>/<installed-name>/`, stamp the render's frontmatter, and resolve the
+`{{skill:}}`/`{{agent:}}` name slots its prose carries. Mechanical and idempotent;
 the only judgment anywhere near it is the caller's choice of `--out`, which is exactly
 why most of this module is the guard that rejects a destination inside the package."""
 
 import re
 import shutil
+import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -14,6 +16,7 @@ import yaml
 from ..constants import LEGACY_ORIGIN_KEY
 from ..errors import Exit, fail
 from ..manifest import skill_rows
+from ..slots import resolve_tree
 
 app = typer.Typer()
 
@@ -62,7 +65,8 @@ def stamp_render(path: Path, name: str, origin: str) -> None:
     path.write_text(f"---\n{fm}---\n{body}")
 
 
-@app.command("render", help="copy one skill to its installed name (idempotent)")
+@app.command("render", help="copy one skill to its installed name, resolving its "
+                            "{{skill:}}/{{agent:}} name slots (idempotent)")
 def cmd_render(
     dir: Annotated[str, typer.Argument(help="capability directory")],
     skill: Annotated[str, typer.Argument(help="capability-local skill id")],
@@ -114,4 +118,19 @@ def cmd_render(
     shutil.copytree(src, dest)
     stamp_render(dest / "SKILL.md", row["installed_name"],
                  f"{cap_dir.name}@{data.get('version')}")
+    # Computed names, applied to prose (§2.5). A `{{mod:}}` slot survives — the agentic
+    # transform owns it — but a `{{skill:}}`/`{{agent:}}` slot naming nothing is a dangling
+    # reference the render must not ship: silent pass-through is exactly what let a
+    # `skill_prefix` rename invalidate a hundred references with green CI.
+    errors = resolve_tree(dest, cap_dir, data)
+    if errors:
+        # The render already landed. Leaving it would be a half-substituted skill that
+        # reads as complete to the next step — remove it, so the failure is total.
+        shutil.rmtree(dest, ignore_errors=True)
+        for e in errors:
+            print(f"aos-cap: render: {e}", file=sys.stderr)
+        fail(Exit.SLOT_UNRESOLVABLE,
+             f"{cap_dir.name}:{skill}: {len(errors)} unresolvable name slot(s) — the render "
+             f"was removed. Fix the slot in the package (a skill/agent id it names must be "
+             f"declared; a cross-capability slot needs `<cap>/<id>`).")
     print(f"rendered {cap_dir.name}:{skill} -> {dest}")

@@ -62,26 +62,37 @@ skills:
 SKILL_MD = "---\nname: {name}\ndescription: {name}. Use when testing {name}.\n---\nbody\n"
 
 
-def write_cap(home, cap_id, skills, prefix=None, root="upstream", version="1.0.0"):
+def write_cap(home, cap_id, skills, prefix=None, root="upstream", version="1.0.0",
+              agents=(), depends=()):
     """Write a fixture capability under <home>/<root>/capabilities/ and return its dir.
 
     Module-level, taking `home` as a parameter, rather than a method on a shared base
     class: the test classes here are deliberately concrete leaves (CLAUDE.md's note that
     `BaseToolTest` is a leaf, not a base), and three byte-identical copies of this is a
     worse answer than one function they each call.
+
+    `agents` writes an `agents/<name>.agent.yaml` per id — extended here rather than in a
+    second builder, since an agent is one more thing the same package declares and a
+    parallel `write_cap_with_agents` would drift from this one on the next manifest field.
     """
     cap = home / root / "capabilities" / cap_id
     (cap / "skills").mkdir(parents=True)
     entries = "".join(f"  - id: {s}\n    used_by: [main]\n" for s in skills)
+    dep = (f"depends:\n  capabilities: [{', '.join(depends)}]\n" if depends else "")
     cap.joinpath("CAPABILITY.md").write_text(
         f"---\nid: {cap_id}\nversion: {version}\ntags: [usecase]\n"
         f"summary: Fixture capability {cap_id}.\n"
+        + dep
         + (f"skill_prefix: {prefix}\n" if prefix is not None else "")
         + f"skills:\n{entries}---\n# {cap_id}\n")
     cap.joinpath("README.md").write_text(f"# {cap_id}\n")
     for s in skills:
         (cap / "skills" / s).mkdir()
         (cap / "skills" / s / "SKILL.md").write_text(SKILL_MD.format(name=s))
+    for a in agents:
+        (cap / "agents").mkdir(exist_ok=True)
+        (cap / "agents" / f"{a}.agent.yaml").write_text(
+            f"name: {a}\npurpose: Fixture agent {a}.\nmodel_class: balanced\n")
     return cap
 
 
@@ -184,6 +195,16 @@ class ManifestTest(unittest.TestCase):
             if (cap / "CAPABILITY.md").is_file():
                 r = self.manifest(str(cap))
                 self.assertEqual(r.returncode, 0, f"{cap.name}: {r.stderr}")
+
+    def test_depends_resolves_across_the_two_household_roots(self):
+        """PIN: the check was `cap_dir.parent / dep` — the SIBLING directory only — so a
+        capability in `personal/` declaring a dependency on one in `upstream/` failed
+        validation on a CORRECT declaration. That is every capability `capability-build`
+        writes. Resolution is personal/ first, then upstream/, per the install contract."""
+        write_cap(self.home, "kbc", ["kbc"], root="upstream")
+        mine = write_cap(self.home, "mine", ["mine"], root="personal", depends=["kbc"])
+        r = self.manifest(str(mine))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 
     # -- exit 12 -----------------------------------------------------------
     def test_manifest_unknown_key_rejected(self):
@@ -1015,6 +1036,228 @@ class RenderTest(unittest.TestCase):
         cap = self.cap("democap", ["democap"])
         r = self.render(cap, "ghost")
         self.assertEqual(r.returncode, 14)
+
+
+class SlotTest(unittest.TestCase):
+    """`{{skill:}}` / `{{agent:}}` slot resolution at render — mirrors `aos_cap.slots`.
+
+    The defect this class exists for: an installed name is COMPUTED (`<skill_prefix><id>`),
+    so prose that hardcodes one silently points at nothing the moment the prefix changes.
+    Two probes proved nothing caught it — renaming a `skill_prefix` and corrupting a
+    hardcoded name both left CI green. A slot fails loudly instead: exit 18."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.home = Path(self.tmp.name) / "home"
+        (self.home / ".aos").mkdir(parents=True)
+        self.out = Path(self.tmp.name) / "renders"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def cap(self, cap_id, skills, **kw):
+        return write_cap(self.home, cap_id, skills, **kw)
+
+    def body(self, cap, skill, text):
+        """Replace the skill body, keeping the frontmatter the render stamps."""
+        path = cap / "skills" / skill / "SKILL.md"
+        path.write_text(SKILL_MD.format(name=skill).replace("body\n", text))
+        return path
+
+    def render(self, cap, skill, *extra, out=None):
+        return run(["render", str(cap), skill, "--out", str(out or self.out), *extra])
+
+    def rendered(self, name, rel="SKILL.md"):
+        return (self.out / name / rel).read_text()
+
+    # -- resolution --------------------------------------------------------
+    def test_slot_resolves_an_own_capability_skill(self):
+        cap = self.cap("kbc", ["kbc", "route"], prefix="kb-")
+        self.body(cap, "kbc", "Hand off to {{skill: route}} when routing.\n")
+        r = self.render(cap, "kbc")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        text = self.rendered("kbc")
+        self.assertIn("kb-route", text)
+        self.assertNotIn("{{skill:", text)
+
+    def test_agent_slot_takes_the_same_prefix_as_skills(self):
+        # No second manifest field: §2.2's rule of two, and one prefix per capability is
+        # what both flat namespaces want anyway.
+        cap = self.cap("kbc", ["kbc"], prefix="kb-", agents=["keeper"])
+        self.body(cap, "kbc", "Delegate to {{agent: keeper}}.\n")
+        r = self.render(cap, "kbc")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("kb-keeper", self.rendered("kbc"))
+
+    def test_cross_capability_slot_resolves_within_upstream(self):
+        self.cap("kbc", ["kbc", "capture"], prefix="kb-", root="upstream")
+        cap = self.cap("wt", ["wt"], root="upstream")
+        self.body(cap, "wt", "Capture with {{skill: kbc/capture}}.\n")
+        r = self.render(cap, "wt")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("kb-capture", self.rendered("wt"))
+
+    def test_cross_capability_slot_resolves_from_personal_into_upstream(self):
+        """PIN: the two-root case. The lookup used to be `cap_dir.parent` — the SIBLING
+        directory only — so a capability in `personal/` naming one in `upstream/` failed on
+        a CORRECT reference. That is every capability `capability-build` writes: they live
+        in personal/ and depend on kb in upstream/."""
+        self.cap("kbc", ["kbc", "capture"], prefix="kb-", root="upstream")
+        cap = self.cap("mine", ["mine"], root="personal")
+        self.body(cap, "mine", "Capture with {{skill: kbc/capture}}.\n")
+        r = self.render(cap, "mine")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("kb-capture", self.rendered("mine"))
+
+    def test_entry_skill_slot_is_never_double_prefixed(self):
+        cap = self.cap("kbc", ["kbc"], prefix="kb-")
+        self.body(cap, "kbc", "See {{skill: kbc}} for the map.\n")
+        r = self.render(cap, "kbc")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        text = self.rendered("kbc")
+        self.assertIn("See kbc for the map.", text)
+        self.assertNotIn("kb-kbc", text)
+
+    def test_slots_in_reference_files_are_resolved_too(self):
+        # Depth lives in a sibling `reference/`, so most prose that names a skill is there
+        # rather than in SKILL.md — substituting only the entry file would miss the bulk.
+        cap = self.cap("kbc", ["kbc", "route"], prefix="kb-")
+        ref = cap / "skills" / "kbc" / "reference"
+        ref.mkdir()
+        (ref / "deep.md").write_text("Routing is {{skill: route}}'s job.\n")
+        r = self.render(cap, "kbc")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("kb-route", self.rendered("kbc", "reference/deep.md"))
+
+    def test_mod_slots_still_survive_the_slot_pass(self):
+        """The two halves of replacement are deliberately different: a `{{mod:}}` slot is
+        left intact by contract (the agentic transform fills it), while a name slot that
+        resolves to nothing is a hard failure."""
+        cap = self.cap("kbc", ["kbc", "route"], prefix="kb-")
+        self.body(cap, "kbc", "Confirm with {{mod: confirm_style}} then {{skill: route}}.\n")
+        r = self.render(cap, "kbc")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        text = self.rendered("kbc")
+        self.assertIn("{{mod: confirm_style}}", text)
+        self.assertIn("kb-route", text)
+
+    # -- the escape guard --------------------------------------------------
+    def test_escaped_skill_slot_renders_as_a_literal(self):
+        """PIN: capability-lifecycle documents the very syntax it is rendered by, so
+        without an escape, installing it corrupts its own naming reference. The escaped
+        form is neither substituted nor validated; an unescaped one in the same file
+        still resolves, so the guard is a per-slot decision, not a per-file mode."""
+        cap = self.cap("kbc", ["kbc", "route"], prefix="kb-")
+        self.body(cap, "kbc", "Write \\{{skill: route}}; it becomes {{skill: route}}.\n")
+        r = self.render(cap, "kbc")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.rendered("kbc").splitlines()[-1],
+                         "Write {{skill: route}}; it becomes kb-route.")
+
+    def test_escaped_agent_slot_renders_as_a_literal(self):
+        cap = self.cap("kbc", ["kbc"], prefix="kb-", agents=["keeper"])
+        self.body(cap, "kbc", "Write \\{{agent: keeper}} to show the syntax.\n")
+        r = self.render(cap, "kbc")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("{{agent: keeper}}", self.rendered("kbc"))
+        self.assertNotIn("kb-keeper", self.rendered("kbc"))
+
+    def test_escaped_mod_slot_renders_as_a_literal(self):
+        # One escape rule for every slot type, so an author holds one sentence: a
+        # backslash before any {{...}} slot makes it a literal example.
+        cap = self.cap("kbc", ["kbc"], prefix="kb-")
+        self.body(cap, "kbc", "Write \\{{mod: confirm_style}} in prose.\n")
+        r = self.render(cap, "kbc")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("Write {{mod: confirm_style}} in prose.", self.rendered("kbc"))
+
+    def test_an_escaped_slot_naming_nothing_is_not_an_error(self):
+        """The point of an example is that it names a placeholder. Validating escaped
+        slots would make every documented sample a dangling reference."""
+        cap = self.cap("kbc", ["kbc"], prefix="kb-")
+        self.body(cap, "kbc", "e.g. \\{{skill: <id>}} or \\{{agent: ghostagent}} "
+                              "or \\{{skill: ghostcap/ghost}}.\n")
+        r = self.render(cap, "kbc")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("{{skill: ghostcap/ghost}}", self.rendered("kbc"))
+
+    # -- exit 18 -----------------------------------------------------------
+    def test_unknown_skill_id_in_a_slot_exits_18(self):
+        cap = self.cap("kbc", ["kbc", "route"], prefix="kb-")
+        self.body(cap, "kbc", "Hand off to {{skill: ghost}}.\n")
+        r = self.render(cap, "kbc")
+        self.assertEqual(r.returncode, 18, r.stdout + r.stderr)
+        self.assertIn("ghost", r.stderr)
+        self.assertIn("route", r.stderr)      # and says what IS declared
+
+    def test_unknown_agent_id_in_a_slot_exits_18(self):
+        cap = self.cap("kbc", ["kbc"], prefix="kb-", agents=["keeper"])
+        self.body(cap, "kbc", "Delegate to {{agent: ghostagent}}.\n")
+        r = self.render(cap, "kbc")
+        self.assertEqual(r.returncode, 18, r.stdout + r.stderr)
+        self.assertIn("ghostagent", r.stderr)
+
+    def test_unknown_capability_in_a_slot_exits_18(self):
+        cap = self.cap("kbc", ["kbc"], prefix="kb-")
+        self.body(cap, "kbc", "Capture with {{skill: ghostcap/capture}}.\n")
+        r = self.render(cap, "kbc")
+        self.assertEqual(r.returncode, 18, r.stdout + r.stderr)
+        self.assertIn("ghostcap", r.stderr)
+
+    def test_a_shadowed_capability_in_a_slot_exits_18_naming_both_roots(self):
+        """The install contract: a personal package shadowing an upstream id is reported
+        loudly, never silently preferred. A slot that quietly took personal/ would resolve
+        against a package the installer never mentioned."""
+        self.cap("kbc", ["kbc", "capture"], prefix="kb-", root="upstream")
+        self.cap("kbc", ["kbc", "capture"], prefix="mine-", root="personal")
+        cap = self.cap("wt", ["wt"], root="upstream")
+        self.body(cap, "wt", "Capture with {{skill: kbc/capture}}.\n")
+        r = self.render(cap, "wt")
+        self.assertEqual(r.returncode, 18, r.stdout + r.stderr)
+        self.assertIn("personal/", r.stderr)
+        self.assertIn("upstream/", r.stderr)
+
+    def test_a_mod_only_personal_directory_is_not_a_shadow(self):
+        """The contract's own caveat: `personal/capabilities/<id>/` exists for every
+        capability the user has answers for — it is the mirrored overlay path. Only a
+        directory holding a CAPABILITY.md is a package, or a shadow would be reported on
+        every ordinary install."""
+        self.cap("kbc", ["kbc", "capture"], prefix="kb-", root="upstream")
+        overlay = self.home / "personal" / "capabilities" / "kbc"
+        overlay.mkdir(parents=True)
+        (overlay / "MOD.md").write_text("---\nonboarded_version: 1.0.0\n---\nanswers\n")
+        cap = self.cap("wt", ["wt"], root="upstream")
+        self.body(cap, "wt", "Capture with {{skill: kbc/capture}}.\n")
+        r = self.render(cap, "wt")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("kb-capture", self.rendered("wt"))
+
+    def test_a_bare_clone_resolves_siblings_not_a_household_above_it(self):
+        """`.aos/` is machine-local and sits at `~/` on any machine that has ever installed
+        aos, so recognising a household by a marker above the package would make a bare kit
+        clone (this repo's own flat `capabilities/`) resolve references into the user's real
+        `personal/`. The clone resolves against its siblings instead."""
+        self.cap("kbc", ["kbc", "capture"], prefix="decoy-", root="personal")
+        # `root="clone"` is neither household root, so the package is in no household —
+        # exactly the shape of `<repo>/capabilities/<id>` in a bare kit checkout.
+        self.cap("kbc", ["kbc", "capture"], prefix="kb-", root="clone")
+        wt = self.cap("wt", ["wt"], root="clone")
+        self.body(wt, "wt", "Capture with {{skill: kbc/capture}}.\n")
+        r = self.render(wt, "wt")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        text = self.rendered("wt")
+        self.assertIn("kb-capture", text)          # the sibling's prefix
+        self.assertNotIn("decoy-", text)           # never the household's
+
+    def test_a_failed_slot_pass_leaves_no_partial_render(self):
+        """The copy already landed when the slot pass runs. A half-substituted skill reads
+        as complete to the next step (the diff gate, the symlink), so the failure has to be
+        total — the directory goes away."""
+        cap = self.cap("kbc", ["kbc", "route"], prefix="kb-")
+        self.body(cap, "kbc", "Good: {{skill: route}}. Bad: {{skill: ghost}}.\n")
+        r = self.render(cap, "kbc")
+        self.assertEqual(r.returncode, 18, r.stdout + r.stderr)
+        self.assertFalse((self.out / "kbc").exists(), "a partial render survived")
 
 
 class ToolIdentityTest(unittest.TestCase):

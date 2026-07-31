@@ -20,6 +20,7 @@ class Exit(IntEnum):
     NO_HOME = 15
     ARTIFACT_MISSING = 16
     NAME_COLLISION = 17
+    SLOT_UNRESOLVABLE = 18
 
 
 def fail(code: Exit, msg: str) -> NoReturn:
