@@ -11,10 +11,9 @@
 
 
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
-Claude Code (Anthropic's CLI/desktop/IDE coding agent). The aos half of the install contract
-— provenance, lockfile, markers, secret references, degraded-mode meanings, removal
-discipline — is the `capability-lifecycle` entry skill's install contract; this sheet
-is only the Claude Code half.
+Claude Code (Anthropic's CLI/desktop/IDE coding agent). The aos half is the
+`capability-lifecycle` entry skill's install contract; this sheet is only the Claude Code
+half.
 
 > [!WARNING]
 > Research-drafted: no aos e2e install has run on this harness yet (ARCHITECTURE §5.3).
@@ -54,7 +53,7 @@ user asks otherwise.
 
 | aos concept | Claude Code primitive | Where / how |
 |---|---|---|
-| skill | Agent Skills folder: `skills/<name>/SKILL.md` — a **symlink** to the pinned render in `<home>/personal` | link at `~/.claude/skills/<installed-name>`. The folder name and frontmatter `name` must agree, which they do: `aos-lock render` writes the installed name into both (contract), so the render needs no adjustment |
+| skill | Agent Skills folder: `skills/<name>/SKILL.md` — a **symlink** to the pinned render in `<home>/personal` | link at `~/.claude/skills/<installed-name>`; `<project>/.claude/skills/` is the project-scope root (same namespace — see Feature notes) |
 | agent | subagent definition: `~/.claude/agents/<name>.md` (frontmatter `name`, `description`, optional `tools`, `model` + markdown body = its prompt) | the dir may not exist yet — create it. Invoked by description-match or by name. `tools:` restricts tools (confirmed); whether skills can be scoped per-agent is **unverified** — see Feature notes before relying on `used_by` |
 | front agent (`main`) | the main conversation — not a file you create | it has no definition file to write; give it skills and context blocks instead |
 | schedule | `CronCreate` tool — 5-field cron, local timezone, **`durable: true` or it dies with the session** | record the returned job id in the lockfile; `CronDelete` on removal. Recurring jobs auto-expire after 7 days and fire only while the REPL is idle — see Rule zero. A contract needing an unattended guarantee degrades to `manual` instead |
@@ -71,9 +70,8 @@ Files Claude Code consumes — anything else you write is inert: `CLAUDE.md`/`AG
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle`
-entry skill's install contract). Nothing here needs a restart — Claude Code picks up
-skills and context files on the next session, and `/context` shows what is loaded now.
+Nothing here needs a restart — Claude Code picks up skills and context files on the next
+session, and `/context` shows what is loaded now.
 
 1. **The tool first**, if the capability ships one: `uv tool install --from
    <home>/upstream/capabilities/<id>/tool <package>`. Verify `uv --version` before wiring

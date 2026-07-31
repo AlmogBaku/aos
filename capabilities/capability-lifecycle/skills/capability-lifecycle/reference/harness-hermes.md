@@ -11,9 +11,8 @@
 
 
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
-Hermes. The aos half of the install contract — provenance, lockfile, markers, secret
-references, degraded-mode meanings, removal discipline — is the `capability-lifecycle` entry skill's install contract; this sheet
-is only the Hermes half.
+Hermes. The aos half is the `capability-lifecycle` entry skill's install contract; this
+sheet is only the Hermes half.
 
 **Rule zero: never hand-edit `config.yaml` or `cron/jobs.json`.** Both are
 machine-rewritten (comments don't survive; jobs.json holds live scheduler state). Every
@@ -42,8 +41,6 @@ Files Hermes consumes — anything else you write is inert: `SOUL.md`,
 the profile's default doesn't already fit the class; never hardcode provider names.
 
 ## Materialization guide
-
-Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle` entry skill's install contract).
 
 1. **Agents → profiles.** `hermes profile create <name>`; then inside the profile:
    `purpose` + persona content → `SOUL.md` (replace the seeded default, never leave it
@@ -92,8 +89,6 @@ Work top-down from `CAPABILITY.md`, under the install contract (the `capability-
 - `hermes config show` / `config get <dotted.key>`; `hermes doctor`.
 - Filesystem: `~/.hermes/skills/`, `profiles/*/`, `cron/jobs.json`,
   `channel_directory.json`.
-- aos artifacts: `.aos/installs.lock.yaml`, `metadata.aos.origin` frontmatter, `aos:` job-name
-  prefixes, `<!-- aos:… -->` markers.
 
 ## Secrets
 
@@ -134,8 +129,8 @@ Drive everything from the lockfile entry, in order:
 | `email` | ⚠ via skill | same as calendar |
 | `secrets-store` | ✓ | `.env` (+ optional `hermes secrets`) |
 
-Degraded-mode wiring (meanings in the `capability-lifecycle` entry skill's install contract): `manual` ⇒ the invocable skill lands in
-the same profile the job would have owned; `inline` ⇒ append via `hermes cron edit`.
+Degraded-mode wiring: `manual` ⇒ the invocable skill lands in the same profile the job
+would have owned; `inline` ⇒ append via `hermes cron edit`.
 
 Safety rails to route through: the `personal/` git history first (renders and MOD files —
 revert = rollback), then Hermes-native: `hermes backup --quick` (pre-install),
