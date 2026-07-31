@@ -54,7 +54,7 @@ Consequences that bite if you forget them:
   the first names nothing once installed (`skills/ref-unqualified`), the second silently
   rots the moment a `skill_prefix` changes (`skills/ref-hardcoded`). A slot naming no
   declared skill or agent is a dangling reference — the render fails at exit 18 and CI at
-  `skills/ref-dangling`. A leading backslash makes a slot a literal example, unsubstituted
+  `skills/ref-dangling` (`agents/ref-dangling` for an agent slot). A leading backslash makes a slot a literal example, unsubstituted
   and unvalidated, which is how the examples in this rule survive being rendered.
 - The `metadata.aos.origin` stamp is added by `aos-cap render` at install and never shipped
   upstream. (`skill/origin-tag`)

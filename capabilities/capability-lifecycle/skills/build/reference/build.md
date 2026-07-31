@@ -30,7 +30,9 @@ skill, and anything in the household is written from a root. Run the uniqueness 
 --check --harness-skills <the harness's skills dir(s)>`. The verb reads the manifest, so it
 cannot run against an empty directory — writing the manifest first is the ordering, and it is
 still before anything a collision would waste. Exit 17 means the name is taken; rename in the
-package, never at install time.
+package, never at install time. References to other skills or agents are written as slots
+(`\{{skill: <id>}}`, `\{{agent: <id>}}`), never as computed names — the forms and the escape are
+in the same file.
 For the skill's own craft — drafting, description triggering, evals — use the
 `skill-creator` skill if it is installed; the aos rules above still win on names.
 

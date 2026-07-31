@@ -18,7 +18,9 @@ approval. The full rules:
 `reference/contract.md`. The overlay doctrine (interviews, transform, capture,
 promote/retire, persist): `reference/overlay.md`. Naming, installed skill names, and the
 uniqueness gate: `reference/naming.md` — read it before authoring or installing anything
-that ships a skill.
+that ships a skill. Names are **computed, never authored**: write `\{{skill: <id>}}` and
+`\{{agent: <id>}}` in prose and `aos-cap render` substitutes the installed name. A
+backslash-escaped slot stays literal, which is how this sentence survives its own render.
 
 | Ask | Where it goes |
 |---|---|

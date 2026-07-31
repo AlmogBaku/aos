@@ -16,7 +16,8 @@ appended record (the `capability-lifecycle` skill's `reference/overlay.md`).
    desired change in one line.
 2. **Read the current MOD.md first**, then classify (if the change adds or moves a
    skill's files, `capability-lifecycle`'s `reference/naming.md` binds the names and where
-   references may point):
+   references may point — a reference to another skill or agent is written as a slot,
+   `\{{skill: <id>}}`, never as a computed name):
    - an ONBOARDING question covers it → update that typed answer in the frontmatter;
    - a prose statement already covers the subject → rewrite that statement (never add a
      second one that contradicts it — "office hours: none" replaces "office hours

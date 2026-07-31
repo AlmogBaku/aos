@@ -157,6 +157,14 @@ capability under review, which reads as a pass and is not one. Otherwise extract
 yourself and diff them against `--help`. And note what no such script can see: a command can
 exist with exactly the documented flags and still be unable to do what the prose claims.
 
+**Every skill and agent the prose names must exist too.** The linter takes the mechanical half —
+slots and hardcoded names (`skills/ref-dangling`, `agents/ref-dangling`,
+`skills/ref-hardcoded`) — so what is left for you is the *informal* reference: a rendered skill
+that says "hand it to the archiver", or "the capture skill files it", where no such installed
+name exists. Resolve each against `aos-cap skills` and `aos-cap agents`. A reference naming
+nothing sends the agent hunting and fails silently — the model improvises something plausible
+instead of stopping.
+
 **b. Every artifact created must name its reader.** The rule the kit already states: *a queue
 file is only justified when the work item has no artifact of its own*. Generalised — if
 nothing reads what you write, delete the writer, not the reader. This is the single most

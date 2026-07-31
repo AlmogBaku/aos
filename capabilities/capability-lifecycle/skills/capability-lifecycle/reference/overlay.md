@@ -46,6 +46,13 @@ Original skills × MOD.md → the pinned render in
   the relevant instructions; leave unfilled slots intact; never edit shipped files.
 - Bake `<home>/…` placeholders to the absolute household path (and `--home`/`AOS_HOME`
   into scheduled commands).
+- **Resolve the skill and agent names the user's own words carry.** The deterministic half
+  is already done — `aos-cap render` substituted every `\{{skill: …}}` / `\{{agent: …}}` slot
+  the *package* ships. What is left is prose the user wrote: "use the route skill for that",
+  "let the archiver skip short notes" names a real skill or agent with **no slot to match**,
+  so no regex can find it. Resolve each to its installed name
+  (`aos-cap skills`/`aos-cap agents`) as you weave — silently, like any other change; it
+  shows in the diff.
 - Upgrade is the same transform with fresh upstream, written into `personal/`'s working
   tree: the current install is a drift *source*, never a merge input — and the review
   gate is a *staged, capability-scoped* diff — `git add -A -- capabilities/<id>` then
