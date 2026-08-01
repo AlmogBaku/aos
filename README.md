@@ -92,59 +92,33 @@ a gate, and never something your agent does without asking.
 
 New here? The human-facing walkthrough is [docs/INSTALL.md](docs/INSTALL.md).
 
-## What it feels like
-
-```text
-You    ▸ capture: renew the passport before the Berlin trip
-Agent  ▸ 🦜                          # your MOD.md picked that confirmation — instant, no questions
-
-You    ▸ I need to find time to write the CFP before Friday
-Agent  ▸ filed, and blocked 09:00-11:00 Thursday — outside your sacred hours.
-         Sound right?                # the same exchange, not at midnight
-
-23:00  ▸ the steward walks the backlog: the CFP block still stands, one
-         commitment has slipped three times and is worth re-deciding — it asks
-23:30  ▸ kb's archiver promotes what is actually knowledge into wiki pages
-         (skeptical by default — most captures aren't)
-
-You    ▸ what's on my plate for the Berlin trip?
-Agent  ▸ a query, not a list file — with links into your KB, and "not in the KB"
-         when it doesn't know, instead of inventing an answer
-```
-
-Capture is dumb and fast; judgment runs on schedules; recall cites its sources and admits
-gaps. Day-to-day details: [docs/USAGE.md](docs/USAGE.md).
-
 ## How it works
 
 ![aos architecture: use-case capabilities compose on infra capabilities (knowledge base, capability lifecycle), which break down into skills; the user-owned MOD.md overlay sits beside them; both live in the household — upstream/, personal/, vendor/, .aos/ — and the harness LLM turns capability × MOD.md × cheat-sheet into a pinned render symlinked into your harness](docs/diagram.svg)
 
-Seven commitments make the loop work (plain-words tour in [docs/CONCEPTS.md](docs/CONCEPTS.md)):
+The whole system is four ideas. Plain-words tour: [docs/CONCEPTS.md](docs/CONCEPTS.md).
 
-- **Protocol, not runtime.** A capability is a directory of skills, agent specs, schedules,
-  and templates your harness's LLM installs — `install`/`update`/`remove` are conversations,
-  never a program.
-- **Your personalization is untouchable.** Interviews write `MOD.md` files that upstream
-  never ships or merges; a `git pull` can't eat your nuances — by construction. They live
-  in your own repo beside every rendered skill, so an upgrade is a git diff you review and
-  a rollback is `git revert`.
-- **One render, linked — never copied.** Applying your answers to a skill is judgment, so
-  the result is written once into `personal/`, committed, and symlinked into your harness.
-  One canonical copy means "what's installed" has exactly one answer.
-- **The adapter is knowledge, not code.** Supporting a harness means writing a
-  [cheat-sheet](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md) that teaches its own LLM the mapping —
-  six sections, zero glue code. And it's an aid, not a gate: with no cheat-sheet,
-  BOOTSTRAP has the agent derive the mapping itself.
-- **Every capability has one face.** An entry skill named after the capability is the
-  runtime map; depth stays one `reference/` hop away.
-- **A name is single-owner, and never hand-written.** Harnesses keep one flat namespace for
-  skills and another for agents, so the name each installs under is computed
-  (`<skill_prefix><id>`) and gated against everything already there — your other
-  capabilities, the lockfile, and skills aos never installed. Shipped prose says
-  `{{skill: <id>}}` rather than the computed result, so renaming a prefix can't leave a
-  hundred references pointing at nothing.
-- **Deterministic where it counts.** Real machinery (like kb's `kb` tool) is standalone,
-  judgment-free software: files and exit codes, no LLM inside.
+**1 · A capability is a directory, not a program.** Skills, agent specs, schedules,
+templates. Installing one is a conversation your agent has with you — there is nothing to
+run, and no daemon left behind afterwards.
+
+**2 · Your answers live apart from the kit, so upgrades can't eat them.** The interview
+writes them to a file in *your* repo. Upstream never ships that file and never merges it, so
+`git pull` cannot touch it. An upgrade re-applies your answers to the new version and shows
+you the diff first; undoing one is `git revert`.
+
+**3 · Adding support for a harness means writing a document, not code.** Six sections that
+teach that harness's own LLM how aos concepts map onto its primitives — no adapter, no glue,
+no plugin. Without one, your agent works the mapping out itself.
+
+**4 · Anything that must be exact is exact.** Names, hashes and file layout are computed by
+a small judgment-free tool — no LLM inside, just files and exit codes. Everything requiring
+taste stays with the agent, and every write is shown to you before it lands.
+
+One consequence worth stating, because it shapes daily use: **capture is fast and judgment
+is scheduled.** Filing a thought never blocks on a question; the passes that need thinking
+run on crons, where waiting is free. When you ask what it knows, it cites sources — and says
+"not in the KB" instead of inventing an answer.
 
 ## Repo layout
 
