@@ -1,6 +1,6 @@
 ---
 id: work-tracker
-version: 0.1.1
+version: 0.1.2
 tags: [usecase]
 summary: Commitments the user must keep themselves — captured as they speak, scheduled immediately, maintained nightly, and completed with an exit.
 depends:

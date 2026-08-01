@@ -1,12 +1,12 @@
 """Vocabulary the rest of the tool reads: verb names, frontmatter field sets, and the
 one regex that recognises a wikilink. Extracted verbatim, comments included — moving
-this module changes nothing any sibling tool sees (tools/lint/checks/skill-names.mjs
-and tools/lib/constants.mjs only ever match CLI-invocation strings like `kb capture` in
+this module changes nothing any sibling tool sees (the kit's linter only ever matches
+CLI-invocation strings like `kb capture` in
 prose, never this file's Python set literals)."""
 
 import re
 
-VERSION = "0.7.1"
+VERSION = "0.7.3"
 LAYOUT = 2
 # `kb init`'s default template source — a plain, read-only, unauthenticated clone;
 # --template overrides it, --templates (local dir) skips the network step entirely.

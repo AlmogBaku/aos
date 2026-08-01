@@ -36,7 +36,7 @@ Built and passing the [three CI tiers](docs/TESTING.md) today:
 |---|---|---|
 | [**kb**](capabilities/kb/) | infra | Multi-base knowledge infrastructure: registry, rules-first routing, the base engine (immutable `_raw/` + current-truth wiki), and the deterministic [`kb` tool](capabilities/kb/tool/) |
 | [**work-tracker**](capabilities/work-tracker/) | usecase | Commitments only you can keep: filed as you speak, time blocked in the same exchange, a nightly steward keeping the backlog honest, and an exit when they are done |
-| [**capability-lifecycle**](capabilities/capability-lifecycle/) | infra | The whole life of a capability, as skills in your harness: install · upgrade · remove · onboard (the interview engine → your `MOD.md`) · import (wrap what you already built) · build (a chat request that's really a use case → intake → design → approval) · contribute · evolve. Owns the household and its pinned renders, the [`aos-lock`](capabilities/capability-lifecycle/tool/) tool (lockfile + computed skill names), the per-harness cheat-sheets, and Anthropic's [`skill-creator`](https://github.com/anthropics/skills) by reference |
+| [**capability-lifecycle**](capabilities/capability-lifecycle/) | infra | The whole life of a capability, as skills in your harness: install · upgrade · remove · onboard (the interview engine → your `MOD.md`) · import (wrap what you already built) · build (a chat request that's really a use case → intake → design → approval) · contribute · evolve. Owns the household and its pinned renders, the [`aos-cap`](capabilities/capability-lifecycle/tool/) tool (lockfile + computed skill and agent names), the per-harness cheat-sheets, and Anthropic's [`skill-creator`](https://github.com/anthropics/skills) by reference |
 
 Planned next, in [build order](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#7-reference-capabilities--build-order) — each step proves one new seam:
 **ptt-mode** (voice) ·
@@ -48,8 +48,8 @@ Planned next, in [build order](https://github.com/AlmogBaku/aos/blob/spec/ARCHIT
 
 Paste into your agent:
 
-> Fork and clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream (a plain clone
-> works too), read ~/aos/upstream/BOOTSTRAP.md, then set me up.
+> Clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream, read
+> ~/aos/upstream/BOOTSTRAP.md, then set me up.
 
 That's the whole funnel — there is no installer binary. Your harness's own agent performs
 the install: it interviews you (identity, timezone, sacred time, red lines), writes your
@@ -66,8 +66,11 @@ every artifact in a lockfile so removal is exact. Everything lands in one direct
 └── .aos/        ← machine-local: the install lockfile
 ```
 
-The fork is the default because every user is one branch away from being a contributor
-(`upstream/` is your dev checkout too); it's never a gate.
+`upstream/` is the aos source: your install reads from it, and it's the same clone you'd
+edit to contribute — so every user is one branch from being a contributor. Change it only
+for what belongs to everybody (anything just for you is a `MOD.md` line in `personal/`);
+forking, when you need somewhere to push, is one command (`gh repo fork --remote`). Never
+a gate, and never something your agent does without asking.
 
 > [!IMPORTANT]
 > Nothing lands in your harness without your approval: the installer shows the full diff
@@ -130,9 +133,12 @@ Seven commitments make the loop work (plain-words tour in [docs/CONCEPTS.md](doc
   BOOTSTRAP has the agent derive the mapping itself.
 - **Every capability has one face.** An entry skill named after the capability is the
   runtime map; depth stays one `reference/` hop away.
-- **A skill's name is single-owner.** Harnesses keep one flat skill namespace, so the name a
-  skill installs under is computed (`<skill_prefix><id>`) and gated against everything
-  already there — your other capabilities, the lockfile, and skills aos never installed.
+- **A name is single-owner, and never hand-written.** Harnesses keep one flat namespace for
+  skills and another for agents, so the name each installs under is computed
+  (`<skill_prefix><id>`) and gated against everything already there — your other
+  capabilities, the lockfile, and skills aos never installed. Shipped prose says
+  `{{skill: <id>}}` rather than the computed result, so renaming a prefix can't leave a
+  hundred references pointing at nothing.
 - **Deterministic where it counts.** Real machinery (like kb's `kb` tool) is standalone,
   judgment-free software: files and exit codes, no LLM inside.
 

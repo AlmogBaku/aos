@@ -11,10 +11,9 @@
 
 
 Knowledge for the harness LLM installing, introspecting, or removing aos capabilities on
-Claude Code (Anthropic's CLI/desktop/IDE coding agent). The aos half of the install contract
-— provenance, lockfile, markers, secret references, degraded-mode meanings, removal
-discipline — is the `capability-lifecycle` entry skill's install contract; this sheet
-is only the Claude Code half.
+Claude Code (Anthropic's CLI/desktop/IDE coding agent). The aos half is the
+`capability-lifecycle` entry skill's install contract; this sheet is only the Claude Code
+half.
 
 > [!WARNING]
 > Research-drafted: no aos e2e install has run on this harness yet (ARCHITECTURE §5.3).
@@ -54,14 +53,14 @@ user asks otherwise.
 
 | aos concept | Claude Code primitive | Where / how |
 |---|---|---|
-| skill | Agent Skills folder: `skills/<name>/SKILL.md` — a **symlink** to the pinned render in `<home>/personal` | link at `~/.claude/skills/<installed-name>`. The folder name and frontmatter `name` must agree, which they do: `aos-lock render` writes the installed name into both (contract), so the render needs no adjustment |
+| skill | Agent Skills folder: `skills/<name>/SKILL.md` — a **symlink** to the pinned render in `<home>/personal` | link at `~/.claude/skills/<installed-name>`; `<project>/.claude/skills/` is the project-scope root (same namespace — see Feature notes) |
 | agent | subagent definition: `~/.claude/agents/<name>.md` (frontmatter `name`, `description`, optional `tools`, `model` + markdown body = its prompt) | the dir may not exist yet — create it. Invoked by description-match or by name. `tools:` restricts tools (confirmed); whether skills can be scoped per-agent is **unverified** — see Feature notes before relying on `used_by` |
 | front agent (`main`) | the main conversation — not a file you create | it has no definition file to write; give it skills and context blocks instead |
 | schedule | `CronCreate` tool — 5-field cron, local timezone, **`durable: true` or it dies with the session** | record the returned job id in the lockfile; `CronDelete` on removal. Recurring jobs auto-expire after 7 days and fire only while the REPL is idle — see Rule zero. A contract needing an unattended guarantee degrades to `manual` instead |
 | context block | `~/.claude/CLAUDE.md` (user scope) or `<project>/CLAUDE.md`; `AGENTS.md` is read as an equivalent | auto-loaded every session — this is real push-context, so the MARS mode boundary lands here properly. Append inside aos markers only |
 | tool on PATH | an ordinary executable | `uv tool install` puts it on PATH like anywhere else; no harness registration needed. Bash is always available |
 | secret | environment, or `env` in `~/.claude/settings.json` | see Secrets — there is no dedicated secret store, which constrains what may be installed |
-| plan mode | **native** (Shift+Tab, or the harness starts in it) | read-only until the user approves. This satisfies `capability-build`'s read-only gate for real rather than by prose |
+| plan mode | **native** (Shift+Tab, or the harness starts in it) | read-only until the user approves. This satisfies {{skill: build}}'s read-only gate for real rather than by prose |
 | slash command | `~/.claude/commands/<name>.md` | not an aos primitive. Do not materialize skills as commands: a command is user-invoked by name and is absent from the skill registry, so a skill written as a command never triggers on its own |
 
 Files Claude Code consumes — anything else you write is inert: `CLAUDE.md`/`AGENTS.md`,
@@ -71,14 +70,13 @@ Files Claude Code consumes — anything else you write is inert: `CLAUDE.md`/`AG
 
 ## Materialization guide
 
-Work top-down from `CAPABILITY.md`, under the install contract (the `capability-lifecycle`
-entry skill's install contract). Nothing here needs a restart — Claude Code picks up
-skills and context files on the next session, and `/context` shows what is loaded now.
+Nothing here needs a restart — Claude Code picks up skills and context files on the next
+session, and `/context` shows what is loaded now.
 
 1. **The tool first**, if the capability ships one: `uv tool install --from
    <home>/upstream/capabilities/<id>/tool <package>`. Verify `uv --version` before wiring
    anything that assumes it.
-2. **Skills.** `aos-lock skills <cap-dir>` gives each installed name; `aos-lock render`
+2. **Skills.** `aos-cap skills <cap-dir>` gives each installed name; `aos-cap render`
    writes the render once to
    `<home>/personal/capabilities/<id>/skills/<installed-name>/`, then symlink it to
    `~/.claude/skills/<installed-name>`. Symlink, never copy — a copy silently stops tracking
@@ -100,7 +98,7 @@ skills and context files on the next session, and `/context` shows what is loade
 5. **Context blocks** inside the marker pair, appended to `~/.claude/CLAUDE.md` (or
    `AGENTS.md` if that is what the user keeps). Blank line before, trailing newline after —
    an identity file ending mid-marker corrupts the next capability's append.
-6. **Onboarding** last, through `capability-onboard`, so the interview's answers reach
+6. **Onboarding** last, through {{skill: onboard}}, so the interview's answers reach
    `MOD.md` before anything reads them.
 
 Order matters for one reason worth stating: the diff gate. Claude Code shows every write for
@@ -110,7 +108,7 @@ one-line edits stops reading by the fourth.
 
 ## Introspection guide
 
-- **What is installed:** `aos-lock list` / `aos-lock show <id>` is the authority, as always.
+- **What is installed:** `aos-cap list` / `aos-cap show <id>` is the authority, as always.
   The harness side is `ls -la ~/.claude/skills/` — the symlink targets tell you which
   renders are ours at a glance, and a *regular directory* where a symlink belongs is the
   drift `verify` cares about most.
@@ -146,7 +144,7 @@ Consequences, and they are hard limits rather than preferences:
 
 ## Removal
 
-Walk `aos-lock show <id>` backwards; nothing here is inferred from the filesystem.
+Walk `aos-cap show <id>` backwards; nothing here is inferred from the filesystem.
 
 1. Delete the symlinks under `~/.claude/skills/` that the lockfile records — the links only,
    never the render they point at, until step 3.
@@ -158,7 +156,7 @@ Walk `aos-lock show <id>` backwards; nothing here is inferred from the filesyste
    `durable: true`) may already be gone — that is not drift, but say so rather than reporting a
    deletion that did not happen.
 6. **Last, once nothing else needs to read it**: drop the pinned render under
-   `<home>/personal/capabilities/<id>/` and then the lockfile entry (`aos-lock remove <id>`).
+   `<home>/personal/capabilities/<id>/` and then the lockfile entry (`aos-cap remove <id>`).
    The entry is the list every earlier step walks, so removing it first strands whatever has
    not been undone yet — the job ids especially, which exist nowhere else.
 
@@ -177,7 +175,7 @@ fresh session no longer lists them.
   someone confirms the mechanism. Check the running build, say what you found in the install
   summary, and fix-and-PR this line either way. Never imply the scoping held when you did not
   test it.
-- **Plan mode is native and worth using.** `capability-build`'s read-only gate is enforced
+- **Plan mode is native and worth using.** {{skill: build}}'s read-only gate is enforced
   by the harness here, not by prose — the strongest form of that gate across all sheets.
 - **The diff gate is native too.** Every write is shown for approval, so the contract's
   STAGE→GATE→EXECUTE maps onto the harness's own behaviour instead of being simulated.

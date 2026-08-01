@@ -24,7 +24,7 @@ add/create/make. See [reference/trigger-patterns.md](reference/trigger-patterns.
 for worked examples.
 
 Feedback on a capability that's already installed is a different signal — that's
-`capability-contribute`, not this flow.
+{{skill: contribute}}, not this flow.
 
 ## If the user agrees: the procedure
 
@@ -52,5 +52,5 @@ between each**:
   every write toward upstream (the contribute question's yes starts a flow whose PR
   still opens only on explicit confirm; never any PR/issue/push without it), and
   anything touching the live harness (out of scope for this skill: Build only ever
-  writes into `<home>/personal/capabilities/<id>/`, same as `capability-import`; installing
+  writes into `<home>/personal/capabilities/<id>/`, same as {{skill: import}}; installing
   what gets built is the separate, already-specified install flow).

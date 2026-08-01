@@ -1,8 +1,8 @@
 ---
 id: capability-lifecycle
-version: 0.3.4
+version: 0.3.6
 tags: [infra]
-summary: The capability lifecycle as one capability — install, upgrade, remove, onboard, import, build, contribute, evolve, and review as skills for the front agent; the MOD.md overlay with its promote/retire exit side; the household layout with pinned renders and symlink installs; the per-harness cheat-sheets; and the aos-lock tool that owns the lockfile and computes every skill's installed name.
+summary: The capability lifecycle as one capability — install, upgrade, remove, onboard, import, build, contribute, evolve, and review as skills for the front agent; the MOD.md overlay with its promote/retire exit side; the household layout with pinned renders and symlink installs; the per-harness cheat-sheets; and the aos-cap tool that owns the lockfile and computes every skill's installed name.
 skill_prefix: capability-
 skills:
   - id: capability-lifecycle
@@ -38,15 +38,15 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
 
 ## What you materialize
 
-1. **The `aos-lock` tool first**:
-   `uv tool install --from <home>/upstream/capabilities/capability-lifecycle/tool aos-lock`
-   (`uv` is a hard bootstrap prerequisite). Then `aos-lock --home <home> init` creates
+1. **The `aos-cap` tool first**:
+   `uv tool install --from <home>/upstream/capabilities/capability-lifecycle/tool aos-cap`
+   (`uv` is a hard bootstrap prerequisite). Then `aos-cap --home <home> init` creates
    the lockfile — the tool's file from this moment on; you call verbs, you never edit
    the YAML.
 2. **All ten skills to the front agent** (`used_by: [main]` throughout), per your
    cheat-sheet (the entry skill's `reference/harness-<harness-runtime>.md`; none for your
    harness → its `reference/no-cheatsheet.md`). The skills are
-   `{{mod}}`-slot-free, so the render is purely mechanical — `aos-lock render` does it,
+   `{{mod}}`-slot-free, so the render is purely mechanical — `aos-cap render` does it,
    one skill at a time, into `personal/capabilities/capability-lifecycle/skills/…`
    (committed), plus symlinks into the front agent's skills dir. Read
    `reference/contract.md` in full before this step (household resolution, installed
@@ -59,8 +59,8 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
    `MOD.md` every other capability's transform reads. This is why the ten skills being
    slot-free matters: the inline install is mechanical, and personalization arrives
    immediately afterwards, from the same capability.
-4. **One context block** on the front agent's identity file (on Hermes: `SOUL.md`), inside
-   its marker pair per `reference/contract.md`:
+4. **Two context blocks** on the front agent's identity file (on Hermes: `SOUL.md`), each
+   inside its own marker pair per `reference/contract.md`:
    - `aos:capability-lifecycle:mode-boundary@<ver>` — the MARS building-mode boundary
      (ARCHITECTURE §9), materialized verbatim:
 
@@ -78,15 +78,24 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
      only when the model thinks to), but a harness with a native cron tool will satisfy a
      schedule-shaped ask the shortest way and never consult it — so the boundary must be
      push-context, always present. Found the hard way in the first live e2e.
+   - `aos:capability-lifecycle:concepts@<ver>` — the vocabulary no harness owns,
+     materialized verbatim (with `<home>` baked to the real household path):
 
-     **And that is the only block.** Do not distil the user's identity facts — timezone,
-     working hours, sacred time, red lines — into the front agent's file. Every harness in
-     scope already owns user context (Hermes: `memories/USER.md`, maintained by its own
-     always-active memory), so writing them again would be a second source of truth for
+     > aos installs *capabilities* — directories of skills you materialize, not programs
+     > you run. They live in the household (`<home>`): `upstream/` the kit, `personal/`
+     > the user's renders and their `MOD.md` answers. install / upgrade / remove are
+     > conversations, never a program — the `capability-lifecycle` skill is the map.
+
+     **And those are the only two blocks.** The line between them and everything else is
+     ownership: aos's own vocabulary (what a capability is, where the household lives) has
+     no other source, so it must be push-context. The user's identity facts — timezone,
+     working hours, sacred time, red lines — are the opposite: every harness in scope
+     already owns user context (Hermes: `memories/USER.md`, maintained by its own
+     always-active memory), so distilling them here would be a second source of truth for
      facts we do not own, in an agent aos did not create, that nothing in the kit reads.
      `MOD.md` stays the authoritative store, read at render time. Agents aos *creates* are
-     the opposite case: their identity file is written whole, by us, because they have no
-     other source.
+     a third case: their identity file is written whole, by us, so the concept text goes in
+     inline rather than inside markers — there is no foreign text to protect.
 5. **`skill-creator`, by reference — never copied in.** Anthropic's skill-authoring
    skill (`github.com/anthropics/skills`, Apache-2.0) is what `capability-build` and
    `capability-contribute` lean on for generic skill craft. Install it the way the
@@ -127,14 +136,18 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
   BOOTSTRAP installs this capability for everyone.
 - **Skill ids are action-oriented and short** (`install`, `evolve`, `contribute`); agents
   are role-oriented (`archiver`, `steward`). The id is capability-local — the name that
-  ships is `<skill_prefix><id>`, computed by `aos-lock skills`. That is why the id here is
+  ships is `<skill_prefix><id>`, computed by `aos-cap skills`. That is why the id here is
   `install` and not the old `capability-installer`: the prefix carries that meaning now, so
   the id must not repeat it. Full rules in the naming reference this capability ships.
 - **A skill name is single-owner.** Harnesses keep one flat skill namespace, so two
-  capabilities shipping one name is a silent override. `aos-lock skills --check` is the
+  capabilities shipping one name is a silent override. `aos-cap skills --check` is the
   gate — against every capability in the household, the lockfile's recorded links, and the
   skills the harness already has. A collision is fixed by renaming in the package, never
-  at install time.
+  at install time. **An agent name is single-owner for the same reason** — agents land in a
+  flat per-harness namespace too (`~/.hermes/profiles/<name>/`, `~/.claude/agents/<name>.md`),
+  so `archiver` ships as `kb-archiver` and `aos-cap agents --check` gates it under the same
+  exit 17, against the household and the lockfile (harness enumeration is deferred, and the
+  report says so).
 - The ten skills are the runtime face of ARCHITECTURE §5–§6 and §9 plus
   design/install-flow.md §2–§4; the entry skill carries the shared depth (`reference/`)
   and the Experience rules every lifecycle interaction obeys.
@@ -148,7 +161,7 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
   render — never copies.
 - The cheat-sheets live here because these skills are their only consumer; each is lean —
   the harness half only — and points back at `reference/contract.md` for the aos half.
-- `aos-lock` is deterministic bookkeeping only (§2.4): manifest parse/validate, installed
+- `aos-cap` is deterministic bookkeeping only (§2.4): manifest parse/validate, installed
   names and the collision gate, the mechanical render, and the lockfile verbs. Judgment
   stays with you; hashes and names never do.
 
@@ -190,7 +203,7 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
 A household installed before 0.3.0 has four lockfile entries where there is now one
 (`capability-lifecycle`, `onboarding`, `importer`, `capability-builder`) and skills under
 the old names. `capability-upgrade` walks it: unlink the absorbed capabilities' skill
-links, `aos-lock remove <capability>` each absorbed entry, then render and record the
+links, `aos-cap remove <capability>` each absorbed entry, then render and record the
 merged one. The old `aos:capability-builder@…` marker is replaced by the single
 mode-boundary block above; `aos:onboarding@…` — the distilled identity block — is
 **removed outright, not renamed** (item 4: the harness owns user context). This is a
@@ -198,9 +211,9 @@ documented walk, not an automated migration — no released users exist yet.
 
 ## Removal
 
-`aos-lock show capability-lifecycle` → delete the ten skill symlinks and the
+`aos-cap show capability-lifecycle` → delete the ten skill symlinks and the
 `skill-creator` link, then the render dirs in `personal/` via a commit → remove the
 `aos:capability-lifecycle:*` context blocks → `<home>/vendor/anthropic-skills` if nothing
-else uses it → `uv tool uninstall aos-lock` → the lockfile entry is the last thing
+else uses it → `uv tool uninstall aos-cap` → the lockfile entry is the last thing
 standing. Removing this capability last, after every other capability is removed, is the
 only safe order — the other removals need its skills and its tool.

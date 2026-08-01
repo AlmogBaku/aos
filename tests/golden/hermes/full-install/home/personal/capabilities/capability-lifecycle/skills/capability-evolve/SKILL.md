@@ -9,7 +9,7 @@ description: Changes how an installed aos capability behaves for THIS user and r
   — and not to install, upgrade or remove, which are their own skills.
 metadata:
   aos:
-    origin: capability-lifecycle@0.3.4
+    origin: capability-lifecycle@0.3.6
 ---
 # capability-evolve
 
@@ -20,11 +20,12 @@ step routes what isn't yours. **Default fate of every change: the user's MOD, si
 MOD states current desired state, so every write is an *edit in place*, never an
 appended record (the `capability-lifecycle` skill's `reference/overlay.md`).
 
-1. **[A]** Identify the capability and artifacts (`aos-lock show <id>`); restate the
+1. Identify the capability and artifacts (`aos-cap show <id>`); restate the
    desired change in one line.
-2. **[A]** **Read the current MOD.md first**, then classify (if the change adds or moves a
+2. **Read the current MOD.md first**, then classify (if the change adds or moves a
    skill's files, `capability-lifecycle`'s `reference/naming.md` binds the names and where
-   references may point):
+   references may point — a reference to another skill or agent is written as a slot,
+   `{{skill: <id>}}`, never as a computed name):
    - an ONBOARDING question covers it → update that typed answer in the frontmatter;
    - a prose statement already covers the subject → rewrite that statement (never add a
      second one that contradicts it — "office hours: none" replaces "office hours
@@ -32,27 +33,27 @@ appended record (the `capability-lifecycle` skill's `reference/overlay.md`).
    - the change restores the shipped default → delete the entry; MOD only states
      differences;
    - nothing covers the subject yet → add one imperative statement;
-   - actually an upstream bug or explicitly for *everyone* → the `capability-contribute`
+   - actually an upstream bug or explicitly for *everyone* → the capability-contribute
      skill owns it: it changes the shipped source (building mode, approval-gated). Say so
      and hand over — nothing lands in MOD.
-3. **[A]** Write the MOD.md change **first** (the `capability-lifecycle` skill's
+3. Write the MOD.md change **first** (the `capability-lifecycle` skill's
    `reference/overlay.md`, Capture and fold —
    the MOD statement lands before anything depends on it), then apply to the pinned render in `personal/capabilities/<id>/` (and any native
    artifacts per the cheat-sheet — the `capability-lifecycle` skill's
    `reference/harness-<harness-runtime>.md`, load it now; native
    edit verbs where they exist), through the STAGE→GATE→EXECUTE phases.
-4. **[D]** `aos-lock rehash <id>` — refresh the recorded hashes in place so `verify`
+4. `aos-cap rehash <id>` — refresh the recorded hashes in place so `verify`
    stays clean; the persist hook commits `personal/` (dated message). From now on
-   `capability-upgrade` re-applies this change on every upgrade. (New artifacts, jobs,
-   or keys → a full `aos-lock record` with the complete set from `aos-lock show`.)
+   capability-upgrade re-applies this change on every upgrade. (New artifacts, jobs,
+   or keys → a full `aos-cap record` with the complete set from `aos-cap show`.)
 5. Confirm: "recorded in your MOD.md — survives every upgrade."
-6. **[A]** Promotion check — **signal-gated, never reflexive** (the judgment, tests,
+6. Promotion check — **signal-gated, never reflexive** (the judgment, tests,
    threshold ladder, and etiquette live in the `capability-lifecycle` skill's
    `reference/overlay.md`, Promote and retire).
    An offer fires only on: objectively-broken workaround · forced mechanism override
    (the change fought the template beyond its `{{mod}}` slots) · the user asked.
    At most one one-liner offer, at the conversation's end, once per statement ever;
-   a "no" is recorded and never re-asked. Yes → hand to `capability-contribute`
+   a "no" is recorded and never re-asked. Yes → hand to capability-contribute
    with the statement. **Never open a PR or file an issue yourself — every upstream
    write needs the user's explicit yes (contract).**
 

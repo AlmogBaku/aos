@@ -25,7 +25,7 @@ Then the half a feature list leaves out. **A capability is software**, so design
   carries no information. Drawing is how you find out whether the flow above is actually
   understood.
 
-The `capability-review` skill checks exactly these afterwards, so writing them now is not
+The capability-review skill checks exactly these afterwards, so writing them now is not
 ceremony — it is the difference between review verifying a design and review having to
 reverse-engineer one.
 

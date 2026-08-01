@@ -1,24 +1,25 @@
-# aos-lock
+# aos-cap
 
 Deterministic lifecycle bookkeeping (ARCHITECTURE §2.4 capability tool): CAPABILITY.md
 parse/validate and the lockfile. **The lockfile is this tool's file — agents call verbs,
 never read or write the YAML directly.**
 
 ```
-uv tool install --from <home>/upstream/capabilities/capability-lifecycle/tool aos-lock
-# removal:  uv tool uninstall aos-lock
+uv tool install --from <home>/upstream/capabilities/capability-lifecycle/tool aos-cap
+# removal:  uv tool uninstall aos-cap
 # zero-install one-off:
-uvx --from <home>/upstream/capabilities/capability-lifecycle/tool aos-lock --help
+uvx --from <home>/upstream/capabilities/capability-lifecycle/tool aos-cap --help
 ```
 
 Verbs: `manifest <dir>` · `skills <dir> [--check] [--harness-skills DIR]× [--json]` ·
+`agents <dir> [--check] [--json]` ·
 `render <dir> <skill-id> --out DIR [--force]` · `init` ·
 `record <cap> --version … --source-root upstream|personal|<org> --artifact …× --link …× --job …× --config-key …× --env-line …× --script …×` ·
 `rehash <cap>` (refresh recorded hashes in place) · `verify [<cap>]` · `show <cap>` ·
 `list` · `remove <cap>`. Household discovery: `--home` > `$AOS_HOME` > cwd-upward search
 for `.aos/`. Exit codes: 0 ok · 1 generic (init over an existing lockfile) · 12 manifest
 invalid · 13 drift · 14 no such entry · 15 no home · 16 artifact missing / not a symlink ·
-17 skill-name collision.
+17 skill- or agent-name collision · 18 unresolvable `{{skill:}}`/`{{agent:}}` slot.
 
 ## Skill names (§2.5)
 
@@ -45,16 +46,57 @@ up from the capability directory (which is inside one) — but **read the `check
 clean report prints**: a source it could not reach is named in capitals. "Clean" against two
 of three sources is not clean, so pass `--home` and the harness's skills dirs explicitly.
 
+## Agent names — the same identity, one directory over
+
+Harnesses keep agents in a flat per-harness namespace too (`~/.hermes/profiles/<name>/`,
+`~/.claude/agents/<name>.md`), so two capabilities shipping `archiver` silently override each
+other. `agents <dir>` prints each `agents/*.agent.yaml`'s **installed name**, computed by the
+identical three lines above from the capability's `skill_prefix` — `archiver` in `kb` ships as
+`kb-archiver`. There is no `agent_prefix` field: §2.2's rule of two, and no in-repo capability
+wants divergent prefixes.
+
+`--check` is the same single-owner gate under the same exit **17** — one code for one hazard,
+whichever namespace it lands in — with the same never-rename-at-install-time rule. It reads
+**two** of the three sources: the household's other capabilities and the lockfile's recorded
+links. Enumerating the agents *already in the harness* is deferred, because it is a different
+command per harness (`hermes profile list`, `ls ~/.claude/agents/`, `openclaw agents list`,
+`ncl groups list`, `ls agents/`) for a source no shipped capability collides on today — and the
+report says `NO --harness-agents SUPPORTED YET` in as many words rather than letting a skipped
+source read as an empty one. A capability with no `agents/` directory prints nothing and exits
+0; that is the common case, not an error.
+
 `render` is the mechanical half of materialization: it copies `skills/<id>/` whole (with
 `reference/`, `templates/`, `scripts/`) to `<out>/<installed-name>/`, rewrites the render's
 frontmatter `name` to the installed name, and stamps `metadata.aos.origin: <cap>@<version>`. It
 leaves `{{mod: …}}` slots alone — filling those is the agent's job, afterwards. Re-running
 with `--force` is byte-identical; without it, a non-empty destination is an error.
 
+## Name slots — `{{skill:}}` and `{{agent:}}`
+
+Installed names are computed, so shipped prose must never hardcode one: a `skill_prefix`
+change would silently invalidate every reference. `render` substitutes, in every `*.md`
+under the render:
+
+| slot | becomes |
+|---|---|
+| `{{skill: <id>}}` | this capability's skill, at its installed name |
+| `{{agent: <id>}}` | this capability's agent — same prefix; agents share one flat namespace with skills |
+| `{{skill: <cap>/<id>}}` · `{{agent: <cap>/<id>}}` | another capability's, at *its* prefix |
+
+A leading backslash makes the slot a literal example: `\{{skill: <id>}}` renders as
+`{{skill: <id>}}`, neither substituted nor validated (the same escape works for
+`{{mod:}}`) — needed because this capability documents the syntax it is itself rendered by.
+
+A slot naming no declared skill/agent, an unresolvable capability, or one that exists in
+**both** household roots is exit **18**: every error is printed and the render is removed,
+so a half-substituted skill can never look complete to the next step. Cross-capability ids
+resolve `personal/` first then `upstream/` — a shadowed id is reported, never preferred.
+`{{mod: …}}` slots are untouched by all of this: the agentic transform owns them.
+
 Lockfile entry fields (written only by `record`): `version`, `source_root` (which
 household root shipped the capability), `artifacts` (path → sha256 — the pinned-render
 files and native artifacts), `links` (harness symlink path → target, read from the link
 itself; `verify` flags MISSING/RELINKED/DANGLING links), `schedules_owned` (job ids),
 `config_keys`, `env_lines` (variable *names*, never values), `scripts`. Tests:
-`uv run tests/tool/test_lock.py` (black-box subprocess; stdout + exit codes are the
+`uv run tests/tool/test_cap.py` (black-box subprocess; stdout + exit codes are the
 contract).

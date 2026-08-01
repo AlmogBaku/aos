@@ -20,7 +20,7 @@ The open set is small, so match by title against what the user said. Add
 Genuinely ambiguous between two actions → ask which. Guessing here writes the wrong page and
 the user finds out later, if ever, which is worse than one short question.
 
-Nothing matches → this is probably a new commitment. Hand to `wt-capture` rather than
+Nothing matches → this is probably a new commitment. Hand to {{skill: capture}} rather than
 inventing a page here.
 
 ## 2. Apply it
@@ -65,7 +65,7 @@ kb --base <the user's knowledge base> capture --text "Acme wants a pilot in Q4" 
 resolves by walking up from the working directory, and you are working inside the commitments
 base — so the knowledge lands in the base it was supposed to outlive, at exit 0, with a
 cheerful confirmation naming a file in the wrong tree. Name the knowledge base explicitly
-(`kb-route` picks it if you do not know which one); every other command in this capability
+({{skill: kb/route}} picks it if you do not know which one); every other command in this capability
 carries `--base commitments`, and this is the one that must not.
 
 That lands in the knowledge base's `.kb/pending/`, and kb's archiver promotes it to the

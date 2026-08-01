@@ -9,7 +9,7 @@ description: 'Creates a new knowledge base: interviews the user for purpose, zon
   kb-import.'
 metadata:
   aos:
-    origin: kb@0.7.0
+    origin: kb@0.7.3
 ---
 # init
 
@@ -51,7 +51,7 @@ the clone's own history before rendering; `--template <url>` points at a differe
 when a clone fails for any reason — announced, never silent, never blocking.
 
 It renders the templates, git-inits, registers the base in `kb-registry.yaml`, writes
-`<home>/.aos/kb-principal.yml` if it does not exist yet, and commits. It **does not** touch
+`<HOME>/aos/tests/.sandbox/aos-home/.aos/kb-principal.yml` if it does not exist yet, and commits. It **does not** touch
 the repo's git identity: the user's own identity authors every write and the acting agent is
 recorded as committer, which is the attribution the weekly audit reads. Overwriting it with
 a per-base agent identity would erase the one attribution git gives for free, and on a base
@@ -70,11 +70,16 @@ but leaves the tree uncommitted, which lint reports as a finding — so follow o
 Three jobs, and init is not finished until all three exist. The harness cheat-sheet gives the
 exact cron syntax for this harness; what does not vary is *what* to schedule:
 
-| id | when | runs | as |
-|---|---|---|---|
-| `nightly-promote` | `30 23 * * *` | the archiver agent, prompt `agents/archiver/promote.md` | agent job |
-| `weekly-maintain` | `0 7 * * 6` | the archiver agent, prompt `agents/archiver/lint.md` | agent job |
-| `sync` | `*/5 * * * *` | `kb sync --all` | **exec job — no model wakes up** |
+| id | when | runs | as | environment |
+|---|---|---|---|---|
+| `nightly-promote` | `30 23 * * *` | the archiver agent, prompt `agents/archiver/promote.md` | agent job | `AOS_AGENT=agent:archiver` |
+| `weekly-maintain` | `0 7 * * 6` | the archiver agent, prompt `agents/archiver/lint.md` | agent job | `AOS_AGENT=agent:archiver` |
+| `sync` | `*/5 * * * *` | `kb sync --all` | **exec job — no model wakes up** | `AOS_AGENT=agent:archiver`, `AOS_REGISTRY=<HOME>/aos/tests/.sandbox/aos-home/personal/kb-registry.yaml`, `AOS_HOME=<HOME>/aos/tests/.sandbox/aos-home` |
+
+**The environment column is not optional, and it is the column people drop.** A cheat-sheet
+puts it in the job's own env, a wrapper script, or an `export` before the command — whichever
+your harness supports; what matters is that the job carries it. Every one of these fails
+*quietly*: the job runs, the work happens, and the damage surfaces days later.
 
 Three things silently break if you skip them, and each fails quietly rather than loudly:
 
@@ -82,7 +87,7 @@ Three things silently break if you skip them, and each fails quietly rather than
   holds no write grant on `entities/** concepts/** projects/** index.md` — so a job that
   looks like it worked commits every promotion as the wrong subject, and the next weekly
   lint reports each one as a grants-audit **critical**.
-- **`AOS_REGISTRY=<home>/personal/kb-registry.yaml` in the sync wrapper** (or pass
+- **`AOS_REGISTRY=<HOME>/aos/tests/.sandbox/aos-home/personal/kb-registry.yaml` in the sync wrapper** (or pass
   `--registry`), because a bare `kb sync` with no resolvable registry exits **0** having
   synced nothing.
 - **The single-owner rule**: each of these runs in exactly one harness, so check none of

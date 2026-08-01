@@ -14,7 +14,7 @@ markdown, and nothing else. The capability ships:
 - one **Archiver** agent across all bases (cross-base re-routing is its point), on two agent
   schedules plus a script-direct exec sync cron.
 
-Skills, by the names they install under (`aos-lock skills` applies the prefix): `kb` (entry
+Skills, by the names they install under (`aos-cap skills` applies the prefix): `kb` (entry
 — the runtime face), `kb-capture` (the sub-5s path when the user fires off a thought),
 `kb-route` (destination resolution), `kb-recall` (cited answers with honest gaps), `kb-init`
 (interview → scaffold → schedules), `kb-adopt` (register in place, report divergence, run

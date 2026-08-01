@@ -1,7 +1,7 @@
 ---
 name: kb
 description: Explains how the user's knowledge bases are laid out and which kb skill
-  handles a given job — the tree, the pending queue, expiry, links, base health, maintenance.
+  handles a given job — the tree, the one queue, expiry, links, base health, maintenance.
   Use when the user asks how their knowledge base works, what state a base is in,
   why something was or was not kept, or wants base maintenance run, and no narrower
   kb skill matches. Do NOT use to file something the user just said (that is kb-capture),
@@ -9,7 +9,7 @@ description: Explains how the user's knowledge bases are laid out and which kb s
   base for a write already in hand (that is kb-route).
 metadata:
   aos:
-    origin: kb@0.7.0
+    origin: kb@0.7.3
 ---
 # kb — the base system in one page
 
@@ -95,14 +95,25 @@ construction.
 
 ## Which skill
 
-| Job | Skill |
+| Job | Where it goes |
 |---|---|
-| The user just said something worth keeping | `kb-capture` |
-| Pick the destination base for a write in hand | `kb-route` |
-| Answer "what do I know about X?" | `kb-recall` |
-| Create a new base | `kb-init` |
-| Register a tree that already exists | `kb-adopt` |
-| Bulk-migrate another KB's content | `kb-import` |
+| The user just said something worth keeping | kb-capture |
+| Pick the destination base for a write in hand | kb-route |
+| Answer "what do I know about X?" | kb-recall |
+| Create a new base | kb-init |
+| Register a tree that already exists | kb-adopt |
+| Bulk-migrate another KB's content | kb-import |
+
+**The scheduled passes are not skills, and that is why they are not in this table.** They are
+*agent prompts* — `agents/archiver/promote.md` (the nightly promote) and
+`agents/archiver/lint.md` (the weekly maintenance) — which the archiver agent is woken with,
+and they live in the capability source rather than in any installed skill. If you are the
+archiver and you were woken by a schedule, your prompt is your procedure: follow it, not this
+map. If you are the front agent and the user asks for one on demand (*"promote the inbox
+now"*), read that prompt from `<HOME>/aos/tests/.sandbox/aos-home/upstream/capabilities/kb/agents/archiver/` and follow
+it as written — do not reconstruct a promote pass from this skill, because the judgment that
+makes promotion safe (default-empty, and what clears the bar) is stated there and nowhere
+else.
 
 ## Authority
 

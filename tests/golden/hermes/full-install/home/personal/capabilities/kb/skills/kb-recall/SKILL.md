@@ -8,7 +8,7 @@ description: Answers a question from what is already stored in the user's knowle
   itself works (that is kb).
 metadata:
   aos:
-    origin: kb@0.7.0
+    origin: kb@0.7.3
 ---
 # recall
 
@@ -18,7 +18,7 @@ asking agent.
 
 1. **Pick bases.** An explicit mention wins ("in my work base"). Otherwise route the question
    yourself against the registry — read it directly at `$AOS_REGISTRY`, else
-   `<home>/personal/kb-registry.yaml`, since no verb lists bases — where each entry's
+   `<HOME>/aos/tests/.sandbox/aos-home/personal/kb-registry.yaml`, since no verb lists bases — where each entry's
    `purpose` is the rubric. Candidates are cheap; read deeply only in the top-ranked base or
    two, and pass `--base <name>` on every command so you know which one answered.
 2. **Find candidates with two engines, combined freely.**
@@ -38,7 +38,7 @@ asking agent.
    funding after March"). On a miss, say so — and *offer* to capture the open question as a
    curation signal. Never auto-capture.
 5. **Offer to file back.** A substantive, durable synthesis can become a page: offer it,
-   never file it silently. If accepted it goes through the `kb-route` skill, `verified: false`,
+   never file it silently. If accepted it goes through the kb-route skill, `verified: false`,
    `origin:` pointing at this session. On a shared base the offer lands in the queue like
    every other agent write.
 6. **Bump state** — only if you are this base's state writer (`agent:main` by default;

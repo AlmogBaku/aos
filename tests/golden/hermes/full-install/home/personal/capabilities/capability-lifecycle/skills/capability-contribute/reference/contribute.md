@@ -46,12 +46,13 @@ PRs need an accepted issue first. Show the draft; file only on explicit yes.
    `MOD.example.md` ships invented placeholders. When in doubt, redact.
 5. **Gate** (run from `<home>/upstream`): `bash tools/check.sh` green; bump the
    capability's `CAPABILITY.md` `version` and confirm with
-   `node tools/lint/aos-lint.mjs --base <canonical-remote>/main` — on a fork,
+   `uv run --project tools/aos_lint python -m aos_lint.cli --base <canonical-remote>/main`
+   — on a fork,
    `origin/main` is the fork's stale default and compares against the wrong base.
    Install output changed → the goldens note in CONTRIBUTING applies (a real
    re-render, never simulated).
 6. **Dogfood**: with the branch checked out, run a per-capability upgrade — the
-   version bump makes `capability-upgrade` see the work; the user now runs the
+   version bump makes capability-upgrade see the work; the user now runs the
    change for real. Post-merge caution: if review altered files after dogfooding,
    re-bump (or force a re-render) so the upgrader re-fires.
 7. **The PR**: draft the body — what/why in upstream's vocabulary, the referenced

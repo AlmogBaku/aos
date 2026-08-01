@@ -10,18 +10,24 @@ description: Records a thought, note, link or fact the user fired off, verbatim,
   is kb-recall).
 metadata:
   aos:
-    origin: kb@0.7.0
+    origin: kb@0.7.3
 ---
 # capture
 
 Capture is dumb and fast on purpose. Classification is the archiver's job overnight; asking
 the user anything here is what makes people stop capturing.
 
-1. Resolve the destination with the `kb-route` skill. **Never ask "work or personal?"** — a
+1. Resolve the destination with the kb-route skill. **Never ask "work or personal?"** — a
    wrong-but-cheap landing in a private base is corrected by the nightly pass.
 2. Write it: `kb --base <name> capture --text "<verbatim content>" --source <channel>`.
    Frontmatter, sha256 dedup, an entry in `.kb/pending/` and an attributed commit all come
    free from the tool. Verbatim means verbatim — no cleanup, no summarising, no titling.
+   **`--source` is where the thought arrived**, in `<medium>` or `<medium>:<detail>` form:
+   `chat` for the ordinary case — the user typing to you — then `whatsapp:voice`,
+   `telegram`, `email`, `slack:<channel>`, `forwarded` for the rest. It is free text, not a
+   closed set, so the rule is only that a later reader can tell where it came from; `chat`
+   is the right answer far more often than anything else, and guessing something ornate
+   makes the provenance worse, not better. It prints the pending path — keep it for step 3.
 3. A correction to something already captured is a **new capture linked to the old one**:
    `kb capture --corrects <path> --text "…"`. Never edit a capture, and never leave the
    link to be inferred from prose later.
@@ -33,7 +39,7 @@ No clarifying questions, ever, on this path. If routing is taking real work (gra
 across several bases, a model call), take the cheap answer instead: capture into the default
 base and let the archiver re-route overnight. Losing the thought is the only real failure.
 
-The `kb_routing` stamp `kb-route` describes is a **required follow-up, outside the five
+The `kb_routing` stamp kb-route describes is a **required follow-up, outside the five
 seconds** — do it right after the reply, not before. An unstamped capture is a defect worth
 fixing on the next pass, because the lint check that keeps model-routed writes out of shared
 bases has nothing to inspect without it.

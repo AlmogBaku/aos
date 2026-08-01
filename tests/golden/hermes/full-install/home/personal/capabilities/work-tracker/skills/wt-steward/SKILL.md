@@ -7,7 +7,7 @@ description: 'Maintains an existing commitments backlog: overdue, about to expir
   schedule new work — that happens when the user speaks, through wt-capture and wt-schedule.'
 metadata:
   aos:
-    origin: work-tracker@0.1.0
+    origin: work-tracker@0.1.2
 ---
 # steward
 
@@ -15,10 +15,12 @@ metadata:
 happened at the moment they spoke. This pass keeps the *existing* backlog honest, which is
 the job nobody is awake for.
 
-Run as `agent:steward` — `export AOS_AGENT=agent:steward` before the first `kb` call. The
-default `agent:main` holds no write grant on `projects/**`, so every project link it makes
-becomes a grants-audit critical a week later: the write succeeds, the commit lands, and
-nothing complains until the weekly lint.
+Run as `agent:steward` — `export AOS_AGENT=agent:steward` before the first `kb` call.
+Attribution is the enforcement substrate: the committer of every write is the subject the
+weekly grants audit checks, and the whole point of this pass being a named agent is that its
+unattended edits are attributable to it rather than to the agent the user was talking to.
+Nothing stops you writing as `agent:main` — the tool never refuses on grants — so the failure
+mode is a week of the steward's overnight changes indistinguishable from the user's own.
 
 ## The five signals
 
@@ -41,7 +43,7 @@ kb --base commitments find --where status=next --without block
 
 It catches anything whose immediate scheduling failed — no calendar, a sub-agent that died,
 an async capture at 3am. **It should normally return nothing.** A base where it consistently
-doesn't has a broken `wt-schedule` path, and that is worth *reporting* rather than quietly
+doesn't has a broken wt-schedule path, and that is worth *reporting* rather than quietly
 compensating for every night. Fixing the symptom here hides the defect forever.
 
 ## Whether to bother the user
@@ -86,7 +88,17 @@ Read the dry run before the real one:
 
 ```
 kb --base commitments prune --dry-run
+kb --base commitments prune
+kb --base commitments index rebuild
 ```
+
+**The rebuild is part of the close-out, not an optional tidy.** `prune` deletes the page and
+leaves its `index.md` entry behind, so every completed commitment adds one dead entry — which
+`kb lint` reports as index drift on a base whose lint nobody reads, because it exits 0. This is
+why the install puts `index.md` on the steward's grant row as well as the front agent's.
+
+`prune` also skips anything this subject holds no write grant for and says so — those are
+somebody else's to delete, and it will name them rather than failing the sweep.
 
 ## The close-out report
 

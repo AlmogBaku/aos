@@ -1,7 +1,6 @@
 installs:
   capability-lifecycle:
     artifacts:
-      <HOME>/.local/share/uv/tools/aos-lock/bin/aos-lock: <SHA256>
       <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-build/SKILL.md: <SHA256>
       ? <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-build/reference/build.md
       : <SHA256>
@@ -80,10 +79,10 @@ installs:
     schedules_owned: []
     scripts: []
     source_root: upstream
-    version: 0.3.4
+    version: 0.3.6
   kb:
     artifacts:
-      <HOME>/.local/share/uv/tools/aos-kb/bin/kb: <SHA256>
+      <HOME>/.hermes/profiles/aos-test/home/.local/share/uv/tools/aos-kb/bin/kb: <SHA256>
       <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb-adopt/SKILL.md: <SHA256>
       <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb-capture/SKILL.md: <SHA256>
       <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb-import/SKILL.md: <SHA256>
@@ -120,9 +119,9 @@ installs:
     - <ID>
     - <ID>
     scripts:
-    - <HOME>/.hermes/scripts/aos-kb-sync.sh
+    - <HOME>/.hermes/profiles/aos-archiver/scripts/aos-kb-sync.sh
     source_root: upstream
-    version: 0.7.0
+    version: 0.7.3
   work-tracker:
     artifacts:
       <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/work-tracker/skills/work-tracker/SKILL.md: <SHA256>
@@ -131,9 +130,7 @@ installs:
       <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/work-tracker/skills/wt-schedule/SKILL.md: <SHA256>
       <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/work-tracker/skills/wt-steward/SKILL.md: <SHA256>
       <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/work-tracker/skills/wt-update/SKILL.md: <SHA256>
-    config_keys:
-    - toolsets
-    - model.default
+    config_keys: []
     env_lines: []
     links:
       <HOME>/.hermes/profiles/aos-steward/skills/work-tracker: <HOME>/aos/tests/.sandbox/aos-home/personal/capabilities/work-tracker/skills/work-tracker
@@ -146,5 +143,5 @@ installs:
     - <ID>
     scripts: []
     source_root: upstream
-    version: 0.1.0
+    version: 0.1.2
 version: 1

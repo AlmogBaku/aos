@@ -11,6 +11,8 @@
 
 Binds every lifecycle operation, on every harness, with or without a cheat-sheet.
 
+## The household, and where everything lives
+
 - **The household is the ground truth of where things live** (§3.1): `<home>` (default
   `~/aos`) contains `upstream/` (the kit clone — pristine, never anything personal, not
   even untracked files), `personal/` (the user's one private git repo: MOD files at
@@ -26,6 +28,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   holds a `CAPABILITY.md`** — `personal/capabilities/<id>/` exists for every capability the
   user has answers for (it is the mirrored overlay path), so treating a MOD-only directory
   as a second source would report a shadow on every ordinary install.
+
+## The diff gate · MOD.md authorship · contribution approval
+
 - **The diff gate is never optional.** Nothing lands in the harness until the user has
   seen the full diff of what you are about to write and approved it (§5.4). The three
   phases are explicit: **STAGE** (render the personalized artifacts into `personal/`'s
@@ -50,36 +55,50 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   before the gate. Where the harness has a native plan/read-only mode (cheat-sheet
   Primitive mapping, `plan mode` row), STAGE runs inside it and the GATE approval is
   the exit.
-- **You never write** any `MOD.md` except through `capability-evolve` or an interview,
+- **You never write** any `MOD.md` except through capability-evolve or an interview,
   and you never edit shipped capability files in any source root — personalization
   lives only in `personal/` (the MOD files and the pinned renders).
 - **You never contribute without approval.** You never open a PR, file an issue,
   comment, +1, push, fork, or create a branch on a remote — for upstream or any repo
   the user doesn't own — without the user's explicit approval or request. No exceptions. Offers are cheap; writes that
   leave the machine are the user's alone to authorize.
-- **The lockfile is `aos-lock`'s file.** Everything you materialize is recorded — **one
+
+## The lockfile, and what gets recorded
+
+- **The lockfile is `aos-cap`'s file.** Everything you materialize is recorded — **one
   entry per capability, covering every harness it is installed into** (`record` replaces
   the entry wholesale, so a second-harness install must re-record the *combined* set:
-  start from `aos-lock show <id>` and add to it, never call `record` with a partial
+  start from `aos-cap show <id>` and add to it, never call `record` with a partial
   list). An entry carries: version, source root, render-file paths + sha256,
   harness symlinks (`--link` — the tool reads each link's target itself), job ids under
   `schedules_owned`, config keys, `.env` variable names, scripts; a capability's
-  installed tool binary is recorded as an `--artifact` (hash the command on PATH). You
-  call verbs (`aos-lock --help`), you never read or write the YAML. No lockfile record,
+  installed tool binary is recorded as an `--artifact` — but **resolve the symlink first**
+  (`readlink -f $(command -v <tool>)`): `uv tool install` puts a *link* on PATH, and a symlink
+  passed as `--artifact` is refused at exit 16 by design (that flag hashes files; links are
+  `--link`'s job). Recording the resolved binary is what lets `verify` notice a stale tool. You
+  call verbs (`aos-cap --help`), you never read or write the YAML. No lockfile record,
   no artifact. If a crash lands between EXECUTE and `record`, everything written
   carries provenance anyway — re-introspect for the tags and record or remove what you
   find.
-- **A skill's installed name is computed, and it is single-owner.** `aos-lock skills <cap-dir>`
+
+## Installed skill names, renders, and symlinks
+
+- **A skill's installed name is computed, and it is single-owner.** `aos-cap skills <cap-dir>`
   gives you the name each skill ships under (`<skill_prefix><id>`; the entry skill keeps the
   capability id). **Gate before you materialize**:
-  `aos-lock --home <home> skills <cap-dir> --check --harness-skills <each skills dir this
+  `aos-cap --home <home> skills <cap-dir> --check --harness-skills <each skills dir this
   harness reads>`
   — exit 17 means the name is already claimed by another capability in the household, by a
   lockfile-recorded link, or by a skill the harness already has (aos-installed or not).
   Stop and report it; **never rename at install time** — the name belongs to the package, so
-  the fix is upstream (`capability-contribute`) or in the user's own package. Full rules:
+  the fix is upstream (capability-contribute) or in the user's own package. Full rules:
   the naming rules the `capability-lifecycle` entry skill links.
-- **Skills materialize as pinned renders + symlinks, never copies.** `aos-lock render
+- **An agent's name is computed and single-owner too.** Harnesses keep a flat agent namespace
+  as well, so `aos-cap --home <home> agents <cap-dir> --check` gates any capability that
+  ships `agents/` — same `<skill_prefix><agent-id>` computation, same exit 17, same
+  never-rename-here rule. It reads two of three sources and names the third (agents already
+  in the harness — no enumeration yet) in capitals.
+- **Skills materialize as pinned renders + symlinks, never copies.** `aos-cap render
   <cap-dir> <id> --out personal/capabilities/<capability>/skills` does the mechanical half:
   the whole folder travels (`reference/`, `scripts/`, `templates/` — scripts are executed,
   never loaded as context), the render lands under the **installed name**, its frontmatter
@@ -91,6 +110,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   harnesses resolve links only if `<home>/personal` is mounted read-only — the cheat-sheet's
   Materialization guide says how; without the mount, stop and say so (never fall back to
   copying: one canonical render, everywhere).
+
 - **A `depends.host` feature is a *harness capability*, answered by the cheat-sheet's
   Feature notes table — never by probing the user's live configuration.** ✓ means this
   harness can express the feature; a platform the user has not paired yet is a setup note
@@ -98,6 +118,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   cannot do it at all (or there is no sheet and your own reading of the harness says so).
   Getting this backwards fails an install that would have worked, which is worse than the
   degraded-mode path the vocabulary exists to enable.
+
+## The persist hook · schedules · context blocks · secrets
+
 - **The persist hook**: after every MOD write (interview, evolve, retirement,
   drift-fold) and every render, commit `personal/` with a dated one-line message —
   you, not the user; silently. The `personal/` git history is the primary safety net;
@@ -127,6 +150,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 - **Secrets**: values go to the harness's store, never into files or chat — and never
   into `personal/` (it may be pushed to a private remote); `MOD.md` and configs carry
   references only — `{store: <name>, key: <key>}`.
+
+## Removal, and how references resolve
+
 - **Removal** walks the lockfile entry backwards; `MOD.md` is never deleted (§3.3), and
   render deletions in `personal/` happen via a commit (revertible). Verify by
   re-running introspection until no aos provenance (`metadata.aos.origin`, `aos:` names,
@@ -141,7 +167,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   household path into renders (same pass as `{{mod}}`), and scheduled commands get
   `--home`/`AOS_HOME` baked the same way. The lifecycle capability's own skills are
   render-stable (no `{{mod}}` slots) and keep the placeholder — resolve it at use time
-  with `aos-lock --home <path> home` (or bare `aos-lock home` from inside the
+  with `aos-cap --home <path> home` (or bare `aos-cap home` from inside the
   household; exit 15 when there is none), never by guessing `~/aos`.
 - Harness-owned files (e.g. Hermes `config.yaml`, `cron/jobs.json`) are touched only
   through the harness's own CLI, per the cheat-sheet.

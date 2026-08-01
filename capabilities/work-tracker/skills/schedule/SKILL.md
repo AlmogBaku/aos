@@ -34,7 +34,7 @@ acting outward as the user; blocking time on their own calendar is not.
 
 ## 3. Take the slot and write it
 
-`wt-capture` hands you the page path. Reached directly (*"find me two hours for the CFP"*),
+{{skill: capture}} hands you the page path. Reached directly (*"find me two hours for the CFP"*),
 find it first rather than guessing at the slug — the open set is small:
 
 ```

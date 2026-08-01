@@ -8,7 +8,7 @@ description: 'Updates an existing commitment when the user reports progress: com
   commitment (that is wt-capture) or to find time for one (wt-schedule).'
 metadata:
   aos:
-    origin: work-tracker@0.1.0
+    origin: work-tracker@0.1.2
 ---
 # update
 
@@ -27,7 +27,7 @@ The open set is small, so match by title against what the user said. Add
 Genuinely ambiguous between two actions → ask which. Guessing here writes the wrong page and
 the user finds out later, if ever, which is worse than one short question.
 
-Nothing matches → this is probably a new commitment. Hand to `wt-capture` rather than
+Nothing matches → this is probably a new commitment. Hand to wt-capture rather than
 inventing a page here.
 
 ## 2. Apply it
@@ -65,11 +65,18 @@ and deleting on the spot means the user cannot ask why it disappeared.
 as a capture, so it outlives the action when `expires` fires:
 
 ```
-kb capture --text "Acme wants a pilot in Q4" --source chat
+kb --base <the user's knowledge base> capture --text "Acme wants a pilot in Q4" --source chat
 ```
 
-That lands in `.kb/pending/`, and kb's archiver promotes it to the project page overnight —
-you do not write the wiki page yourself.
+**`--base` is not optional here, and omitting it is silent.** An unqualified `kb capture`
+resolves by walking up from the working directory, and you are working inside the commitments
+base — so the knowledge lands in the base it was supposed to outlive, at exit 0, with a
+cheerful confirmation naming a file in the wrong tree. Name the knowledge base explicitly
+(kb-route picks it if you do not know which one); every other command in this capability
+carries `--base commitments`, and this is the one that must not.
+
+That lands in the knowledge base's `.kb/pending/`, and kb's archiver promotes it to the
+project page overnight — you do not write the wiki page yourself.
 
 **Without this step the never-the-only-copy rule is aspirational**, and `kb prune` starts
 losing things: the action page said the call happened, the action page is gone, and what was

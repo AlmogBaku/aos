@@ -17,7 +17,7 @@ Everything the run creates is identifiable and disposable:
   `tests/fixtures/personal/*` copied in, `diff_review` set to `auto-accept` for
   unattended runs — the §5.4 degenerate case, recorded in the global MOD as the spec
   requires; interactive runs keep `always-review`), and `.aos/` (created by
-  `aos-lock --home <sandbox>/aos-home init`).
+  `aos-cap --home <sandbox>/aos-home init`).
 
 ## Run
 
@@ -29,8 +29,18 @@ Everything the run creates is identifiable and disposable:
 2. `hermes profile create aos-test`, then give it a working provider — a fresh profile has
    only `model.default` and fails with `Invalid length for parameter modelId`. Copy a
    working profile's `config.yaml` (`model.provider`, `base_url`, and the `terminal`/`file`/
-   `skills`/`cronjob` toolsets); `normalize.mjs` skips `config.yaml`, so nothing private
+   `skills`/`cronjob` toolsets); the normalizer skips `config.yaml`, so nothing private
    reaches the snapshot. Capability agents (`aos-archiver`, `aos-steward`) need the same.
+
+   **Copy the credential env too, not just `config.yaml`.** A freshly-created profile writes
+   its own `.env`, which SHADOWS the root's — and the root's is where the provider credentials
+   live (`AWS_PROFILE`/`AWS_REGION` for bedrock, plus `SSL_CERT_FILE`/`REQUESTS_CA_BUNDLE`).
+   Without them Hermes blocks forever on `auth.lock` resolving credentials it cannot see:
+   **zero output, zero CPU, `futex_do_wait`, nothing in any log.** That reads exactly like a
+   provider outage and is not one — it cost three abandoned runs on 2026-08-01 before
+   `ps -o wchan` named the lock. Copy the lines, then smoke-test with
+   `hermes -p aos-test -z "Reply with exactly: READY"` before spending a real install on it.
+
    Also configure a git identity in the seeded `personal/` repo
    (`git -C <sandbox>/aos-home/personal config user.name/user.email` — the fixture persona
    is Dana Fixture): the persist hook commits as the user, and the agent correctly refuses
@@ -48,13 +58,13 @@ Everything the run creates is identifiable and disposable:
    > `aos-<name>` profiles. Renders land in `personal/` and skills are symlinked per
    > the contract. Install: kb (work-tracker comes later, as its own prompt — see the
    > Day-N step). The lockfile lives at `aos-home/.aos/installs.lock.yaml`
-   > (`aos-lock --home <sandbox>/aos-home`).
+   > (`aos-cap --home <sandbox>/aos-home`).
 
    The installer gets **no other context** — BOOTSTRAP + the capability-lifecycle
    contract + capability + cheat-sheet + overlay must suffice; that is the test.
    Bootstrap installs capability-lifecycle (ten skills — the interview engine among
    them, so there is no separate onboarding install) and kb. The name gate
-   (`aos-lock skills … --check`) runs before each install; a fresh `aos-test` profile has
+   (`aos-cap skills … --check`) runs before each install; a fresh `aos-test` profile has
    no skills of its own, so it must come back clean.
 
    **Day-N step** (the seam this exists to prove): a SEPARATE, fresh prompt with no
@@ -62,20 +72,20 @@ Everything the run creates is identifiable and disposable:
    at <sandbox>/aos-home"` (default-profile fallback as above) — must trigger the
    materialized `capability-install` skill and complete the install.
 
-4. **Check**: `node tests/golden/check.mjs --live` runs the structural checks against the
+4. **Check**: `uv run --project tools/aos_lint python -m aos_lint.golden.check --live` runs the structural checks against the
    materialized tree (expectations in `tests/golden/expectations/*.yaml`), plus the
    canary check against the pre-state snapshot.
-5. **Snapshot**: `node tests/golden/normalize.mjs <paths>` → commit under
+5. **Snapshot**: `uv run --project tools/aos_lint python -m aos_lint.golden.normalize <paths>` → commit under
    `tests/golden/hermes/<cap>/`. The commit diff is the reviewable render (RFC-002).
    Save the run transcript to `tests/transcripts/`.
 
    **Re-rendering instead of re-running.** A prose fix to a `{{mod}}`-slot-free skill can be
-   re-rendered into the snapshot with `aos-lock render` rather than costing a whole live run —
+   re-rendered into the snapshot with `aos-cap render` rather than costing a whole live run —
    the render is a pure function of source + version for those skills. Two conditions, both
    non-negotiable: prove it first by rendering an *untouched* skill and confirming byte
-   identity with the committed snapshot, and pipe the output through `normalize.mjs` (skipping
+   identity with the committed snapshot, and pipe the output through the normalizer (skipping
    it leaves un-normalized values that the next real run silently flips back). Record which
-   files came in that way, here or in the transcript. `check.mjs` asserts the snapshot equals
+   files came in that way, here or in the transcript. `aos_lint.golden.check` asserts the snapshot equals
    what the normalizer produces, which catches the second mistake but not the first. Anything
    an agent *decided* — placement, links, schedules, context blocks — only a live run can
    attest.
@@ -86,7 +96,7 @@ Everything the run creates is identifiable and disposable:
    "change work-tracker's steward hour to 22:00" — must route through
    `capability-evolve`: the cron job changes, the change lands in
    `personal/capabilities/work-tracker/MOD.md` (auto-committed by the persist hook), and
-   `aos-lock verify` stays clean. **Note when running via the default-profile fallback:**
+   `aos-cap verify` stays clean. **Note when running via the default-profile fallback:**
    the fallback agent does not carry the materialized skills in context, so the prompt
    must name the skill path explicitly (`~/.hermes/profiles/aos-test/skills/
    capability-evolve/SKILL.md`) — otherwise it edits the cron

@@ -5,7 +5,7 @@
 #   home   = <repo>/tests/.sandbox/aos-home  (the household: upstream/ + personal/ + .aos/)
 # Every skill path below is an INSTALLED name (§2.5): `<skill_prefix><id>`, with the entry
 # skill keeping the capability id. capability-lifecycle declares `capability-`, work-tracker
-# declares `wt-`, kb takes the default `kb-`. `aos-lock skills <cap-dir>` is the authority.
+# declares `wt-`, kb takes the default `kb-`. `aos-cap skills <cap-dir>` is the authority.
 agents: [archiver, steward]
 
 expect_files:
@@ -128,8 +128,12 @@ schedules:
 
 sentinels:
   - {text: "🦜", in: "front:skills/wt-capture/SKILL.md"}
-  # the MARS mode boundary is the ONE block aos writes to the front agent's identity file
+  # the two blocks aos writes to the front agent's identity file, and only these two: the
+  # MARS mode boundary, and the vocabulary no harness owns. `forbid_texts` below asserts the
+  # retired identity block stays absent — `.includes` on `:identity`, which `:concepts`
+  # does not contain, so the two assertions do not fight.
   - {text: "aos:capability-lifecycle:mode-boundary", in: "front:SOUL.md"}
+  - {text: "aos:capability-lifecycle:concepts", in: "front:SOUL.md"}
   # the sync wrapper must pin the household's registry — a bare `kb sync` silently no-ops.
   # Its home is the HARNESS ROOT scripts dir (`~/.hermes/scripts/`), which is where the
   # cheat-sheet's Materialization guide sends `--script` files and the only place Hermes
@@ -139,13 +143,14 @@ sentinels:
   - {text: "kb-registry.yaml", in_dir: "root:scripts"}
   # steward_hour 22:47 → cron expression "47 22 * * *" in the steward's jobs
   - {text: "47 22", in_dir: "steward:cron"}
-  # The global MOD's sacred time must reach the schedule-touching agent. Matched on the
-  # distinctive token, not the fixture's phrasing: the contract says *distill* the identity
-  # facts, so the render legitimately rewords them ("Thursday choir practice, 19:00–21:00").
-  # A verbatim assertion here would contradict the contract it is testing.
-  - {text: "choir", in_dir: "steward:"}
-  # …and the time fact itself, so the sentinel keeps its signal
-  - {text: "19:00", in_dir: "steward:"}
+  # RETIRED, 2026-08-01 — these asserted the global MOD's sacred time was distilled into
+  # the steward's files ("choir", "19:00"). Commit 74f32fd deliberately STOPPED distilling
+  # identity facts into agents: the harness owns user context, MOD.md is the authoritative
+  # store, and a copy is a second source of truth for facts we do not own. The steward's own
+  # spec agrees in as many words — "It reads the global overlay and honours it" — so it is
+  # built to read MOD.md at runtime, not to carry a snapshot of it. Asserting the copy
+  # exists contradicted the contract, and the live run that finally exercised the steward
+  # is what surfaced it: the sentinel was the stale side, not the render.
   # exec schedule: the sync job's command must invoke the tool, not an agent prompt
   - {text: "kb sync --all", in_dir: "archiver:"}
 

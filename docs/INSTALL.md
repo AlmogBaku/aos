@@ -14,7 +14,7 @@ expect, what you'll be asked, and what ends up where.
   cheat-sheet, and show it to you before anything lands —
   [contributing that sheet](../CONTRIBUTING.md) is how the next person skips the step.
 - **git** — the kit is a clone, and upgrades are `git pull`.
-- **[`uv`](https://docs.astral.sh/uv/) (required)** — it carries the `aos-lock`
+- **[`uv`](https://docs.astral.sh/uv/) (required)** — it carries the `aos-cap`
   bookkeeping tool that owns the install record; your agent offers the official
   installer if it's missing.
 
@@ -22,8 +22,8 @@ expect, what you'll be asked, and what ends up where.
 
 Paste into your agent:
 
-> Fork and clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream (a plain clone
-> works too), read ~/aos/upstream/BOOTSTRAP.md, then set me up.
+> Clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream, read
+> ~/aos/upstream/BOOTSTRAP.md, then set me up.
 
 ## What happens next
 
@@ -31,20 +31,23 @@ Paste into your agent:
    about to happen, and the two promises (your answers stay yours; nothing lands without
    a visible diff) — and takes questions.
 2. **Prerequisites + the household.** git and `uv` verified (offered for install if
-   missing); the kit clone lands at `~/aos/upstream` (forked by default — you're one
-   branch from contributing; a plain clone works too), and `~/aos/personal` is created
-   as your own private repo (a private remote is offered, never required).
+   missing); the kit clone lands at `~/aos/upstream` (a plain clone — you're one branch
+   from contributing, and if you want a fork later your agent offers the one command),
+   and `~/aos/personal` is created as your own private repo (a private remote is
+   offered, never required).
 3. **The lifecycle capability installs itself.** One inline install puts the whole
    lifecycle — install, upgrade, remove, onboard, import, build, contribute, evolve — plus
-   the `aos-lock` tool into your harness. From here on, "install X" is a skill, and the lockfile
+   the `aos-cap` tool into your harness. From here on, "install X" is a skill, and the lockfile
    (`~/aos/.aos/installs.lock.yaml`, the record of everything materialized) is written by
    the tool, never by hand. Two things ride along:
-   - **One block on your own agent.** aos adds a single marked passage to your front
-     agent's identity file: *before creating a cron job, a standing reminder, or any
-     recurring automation, stop and offer to plan it properly*. That's all it adds — your
-     identity facts stay in `MOD.md` (your harness already keeps its own notes about you;
-     a second copy would just drift). Agents aos *creates* later are a different case —
-     it writes those files whole.
+   - **Two blocks on your own agent.** aos adds two marked passages to your front agent's
+     identity file, and nothing else. The first: *before creating a cron job, a standing
+     reminder, or any recurring automation, stop and offer to plan it properly*. The second
+     is vocabulary — what a capability is, and that your things live in `~/aos` — because
+     nothing else in your harness would ever tell it that. What it does **not** add is your
+     identity facts: those stay in `MOD.md` (your harness already keeps its own notes about
+     you; a second copy would just drift). Agents aos *creates* later are a different case —
+     it writes those files whole, so the vocabulary goes in inline.
    - **`skill-creator`, by reference.** Anthropic's skill-authoring skill is linked from
      `~/aos/vendor` (or installed via your harness's plugin mechanism) and kept current —
      never copied into the kit. Best-effort: no network, no plugin, no problem.

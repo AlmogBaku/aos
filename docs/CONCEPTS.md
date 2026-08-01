@@ -52,9 +52,16 @@ Two files have special roles:
   `<skill_prefix><id>` — `kb-init`, `wt-schedule`, `capability-install` — so it still says
   what it is when it's sitting next to thirty other skills. The installer computes it and
   refuses to install a name something else already owns (yours, another capability's, or a
-  skill aos never touched) rather than silently overriding it. Skills are named for actions,
-  agents for roles. The rules live in the `capability-lifecycle` skill's naming
-  reference.
+  skill aos never touched) rather than silently overriding it. **Agents work the same way** —
+  they land in a flat per-harness namespace too, so `archiver` installs as `kb-archiver`,
+  computed from the same prefix and gated the same way. Skills are named for actions, agents
+  for roles.
+
+  Because the name is computed, shipped prose never writes it: a reference is authored as a
+  slot (`{{skill: <id>}}`, `{{agent: <id>}}`) and the render substitutes the real name. That
+  is what keeps a prefix change from silently invalidating every cross-reference in the kit —
+  the render fails loudly on a slot that names nothing, and CI catches a hand-written name.
+  The rules live in the `capability-lifecycle` skill's naming reference.
 
 ## The household — where aos lives on your machine
 
@@ -72,9 +79,10 @@ plain directory, not itself a repo):
 
 The words worth keeping: `upstream/` (and any future org root) is a **distribution**;
 `personal/` is **your instance**, which travels between machines via its own private
-remote; only `.aos/` is machine-local. The split is what lets your daily install double as
-your dev checkout — a branch cut from `upstream/` is clean by construction
-([CONTRIBUTING](../CONTRIBUTING.md)).
+remote; only `.aos/` is machine-local. The split is what lets one clone serve both jobs:
+`upstream/` is the aos source your install reads from *and* the clone you'd edit to
+contribute, so a branch cut from it is clean by construction — change it only for what
+belongs to everybody ([CONTRIBUTING](../CONTRIBUTING.md)).
 
 **Renders are pinned, and harnesses link to them.** Installing doesn't copy a skill into
 your harness. Filling a skill's `{{mod}}` slots with your answers is a judgment call, not a
@@ -305,7 +313,7 @@ cheat-sheet at the steps that need it. Four mechanisms keep it honest:
 - **The diff gate.** Every write is shown to you in full before it lands. Never
   optional.
 - **The lockfile.** Everything materialized is recorded in `.aos/installs.lock.yaml`
-  (paths, hashes, links, owned schedule ids) — written and verified by the `aos-lock` tool,
+  (paths, hashes, links, owned schedule ids) — written and verified by the `aos-cap` tool,
   never by the model. Removal walks it backwards; no record, no artifact. And your
   `MOD.md` *states what you changed*: upgrades re-apply it to fresh upstream, and the evolve skill
   writes your changes into it so they survive.
@@ -352,7 +360,7 @@ is. When building reveals the spec is wrong, the spec gets fixed — the
 | **distribution / instance** | `upstream/` (and future org roots) ship capabilities; `personal/` is *your* instance of them |
 | **capability** | An installable directory of skills/agents/tools/crons/patches |
 | **entry skill** | `skills/<id>/` — the capability's runtime face and map |
-| **installed name** | The name a skill ships under: `<skill_prefix><id>`, computed by `aos-lock skills`, unique across the harness |
+| **installed name** | The name a skill ships under: `<skill_prefix><id>`, computed by `aos-cap skills`, unique across the harness. An agent's is computed the same way, from the same prefix, by `aos-cap agents` |
 | **overlay** | Your `MOD.md` files + `kb-registry.yaml`; user-owned, never shipped |
 | **base** | One KB instance == one git repo, registered in `kb-registry.yaml` |
 | **materialize** | The installer writing a capability's artifacts into your harness |

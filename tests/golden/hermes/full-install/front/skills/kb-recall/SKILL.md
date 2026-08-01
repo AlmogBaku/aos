@@ -8,7 +8,7 @@ description: Answers a question from what is already stored in the user's knowle
   itself works (that is kb).
 metadata:
   aos:
-    origin: kb@0.7.0
+    origin: kb@0.7.2
 ---
 # recall
 
@@ -38,7 +38,7 @@ asking agent.
    funding after March"). On a miss, say so — and *offer* to capture the open question as a
    curation signal. Never auto-capture.
 5. **Offer to file back.** A substantive, durable synthesis can become a page: offer it,
-   never file it silently. If accepted it goes through the `kb-route` skill, `verified: false`,
+   never file it silently. If accepted it goes through the kb-route skill, `verified: false`,
    `origin:` pointing at this session. On a shared base the offer lands in the queue like
    every other agent write.
 6. **Bump state** — only if you are this base's state writer (`agent:main` by default;

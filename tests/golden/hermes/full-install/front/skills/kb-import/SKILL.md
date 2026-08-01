@@ -8,7 +8,7 @@ description: Bulk-imports another knowledge base's content into a base — inter
   a single document — that is an ordinary capture.
 metadata:
   aos:
-    origin: kb@0.7.0
+    origin: kb@0.7.2
 ---
 # import — bulk knowledge import, with the user
 
@@ -41,7 +41,7 @@ Copy this checklist and work the stages in order, **stopping for the user betwee
 `kb import survey <src>` (`--json` for raw numbers): counts by directory and extension,
 frontmatter fields in use, wikilink density, large binaries, and the **shape** —
 `old-methodology` (see [reference/v1-migration.md](reference/v1-migration.md)), `obsidian`,
-`plain`, or `base-native` (stop: that is `kb-adopt`, not import). Present a short digest and
+`plain`, or `base-native` (stop: that is kb-adopt, not import). Present a short digest and
 a first-cut mapping proposal.
 
 **Sanity-check the counts before presenting them.** The default skip list covers `.git`,
@@ -84,7 +84,7 @@ workaround. Delegation means the other agent runs the command.
 
 ## 2. Mapping — the agreement
 
-Talk it through: the target base (existing, or run the `kb-init` skill first) · their folders
+Talk it through: the target base (existing, or run the kb-init skill first) · their folders
 → our zones and types · what lands as raw, what becomes a wiki page, what is skipped ·
 attachment destinations · frontmatter correspondences · **per-set vouching**, where the user
 vouches `verified: true` for sets that are their own curated knowledge and everything
