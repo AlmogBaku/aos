@@ -1,79 +1,142 @@
 # AGENTS.md
 
-Guidance for any coding agent working in this repository. `CLAUDE.md` is a symlink to this
-file — one source, two names, because `AGENTS.md` is the convention most harnesses auto-load
-and `CLAUDE.md` is the one Claude Code looks for. Edit this file; never replace the symlink
-with a copy, or the two will drift and nobody will notice which is stale.
+For any coding agent working in this repo. `CLAUDE.md` is a symlink to this file — edit this
+one, never replace the symlink with a copy.
+
+## Read first
+
+1. **`bash tools/check.sh` before every commit.** The one gate; runs exactly what CI runs.
+2. **Never commit to `main` or `spec`** — branch-protected, maintainers included. Branch, then PR.
+3. **Sign every commit** (`git commit -s`). Retrofitting DCO rewrites every SHA, and `docs/BUILD-GAPS.md` cites SHAs.
+4. **Never push, fork, open a PR or file an issue without the user's explicit approval.**
+
+Full rules: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## What this repo is
 
-**`main` is the built kit; the spec lives on the `spec` branch.** The build phase's first slice is here — the lint CI and three committed capabilities: `kb` (infra, ships the `kb` tool), `work-tracker` (usecase, built on kb), and `capability-lifecycle` (infra — the whole life of a capability in ten skills: install/upgrade/remove/onboard/import/build/contribute/evolve/review plus the entry skill, the MOD.md overlay, the household layout, the `aos-cap` tool, and the per-harness cheat-sheets as reference files of its entry skill; it absorbed the former `onboarding`, `importer`, and `capability-builder` capabilities, so the MARS building-mode boundary of ARCHITECTURE §9 now lives inside it). The spec docs (ARCHITECTURE.md, design/, capability one-pagers, RFCs, prior-art) are the reference-on-paper and live **only on the `spec` branch** — read them with `git show spec:<path>` or a `spec`-branch checkout/worktree; do not copy them back onto main. For a capability not yet built, its spec docs are the only source of truth. (`aos` is a placeholder name; RFC-001 picks the real one.)
+`main` is the built kit. **The spec lives only on the `spec` branch** — read it with
+`git show spec:<path>`, never copy it onto main. For an unbuilt capability, its spec docs are
+the only source of truth. (`aos` is a placeholder; RFC-001 picks the real name.)
 
-The subject matter is a protocol: a curated set of *capabilities* that install into an existing agent harness (Hermes is e2e-verified; NanoClaw, OpenClaw, Nanobot and Claude Code have research-drafted cheat-sheets; OpenCode later), personalize themselves via an onboarding interview, and survive upgrades. The kit is deliberately "protocol + implementations, no runtime".
+A protocol plus implementations, no runtime: *capabilities* that install into an existing
+harness, personalize via an interview, and survive upgrades.
+
+| Capability | Type | Ships |
+|---|---|---|
+| `kb` | infra | knowledge infrastructure + the `kb` tool |
+| `work-tracker` | usecase | commitments, built on kb |
+| `capability-lifecycle` | infra | ten lifecycle skills + the `aos-cap` tool |
+
+Hermes is e2e-verified. NanoClaw, OpenClaw, Nanobot, Claude Code have research-drafted
+cheat-sheets.
 
 ## Commands
 
-**`bash tools/check.sh` is the one local gate — run it before every commit.** It runs, in order, everything CI runs (`.github/workflows/ci.yml`):
+`uv` is the only prerequisite — no `package.json`, no `node_modules`. Lint commands elide the
+prefix `uv run --quiet --project tools/aos_lint python -m`.
 
-- **Tier 0 — the `kb` tool** (`capabilities/kb/tool`, a `typer` Python CLI; requires [`uv`](https://docs.astral.sh/uv/), skipped locally with a warning if absent): `uv run tests/tool/test_kb.py` + `uv run tests/tool/test_cap.py` (black-box via typer's `CliRunner` — the report text is the contract, no imports below the app object) + lint the shipped example base (`tests/fixtures/example-base/` must pass `kb lint` with zero criticals/findings).
-- **Tier 1 — deterministic lint** (all Python, in `tools/aos_lint`; the invocation prefix below is `uv run --quiet --project tools/aos_lint python -m`): `aos_lint.cli` (schema/contract validator over §2/§3/§5; `tools/aos_lint/src/aos_lint/checks/*.py` is the code list) + `aos_lint.selftest` (every contract code must fire on a planted-violation fixture; an unlisted code firing fails too) + `aos_lint.gates.retired` (repo-wide: retired vocabulary, the old command name, and every skill description's shape — trigger clause, negative clause naming a sibling, third person) + `aos_lint.gates.coverage` (every CLI verb is documented; every count quoted in prose matches what the tools report) + `aos_lint.gates.kb_commands` (every documented `kb <verb> --flag` must exist in the tool). Outside `check.sh` on purpose: `aos_lint.gates.template_drift` needs the network and reports offline as a skip — run it by hand after touching `templates/`.
-- **Tier 2 — golden structural checks**: `uv run --quiet --project tools/aos_lint python -m aos_lint.golden.check` (re-checks committed snapshots under `tests/golden/hermes/`).
+| | Command |
+|---|---|
+| everything CI runs | `bash tools/check.sh` |
+| tier 0 — tool suites | `uv run tests/tool/test_kb.py` · `uv run tests/tool/test_cap.py` |
+| tier 1 — lint | `aos_lint.cli` · `aos_lint.selftest` |
+| tier 1 — gates | `aos_lint.gates.{retired,coverage,kb_commands}` |
+| tier 2 — goldens | `aos_lint.golden.check` |
+| **version-bump check** | `aos_lint.cli --base origin/main` |
+| the `kb` tool ad hoc | `uv run --project capabilities/kb/tool kb --help` — 24 verbs: `init adopt migrate capture ingest pending inbox find set prune archive search links state grants lint index sync commit history refuse verify config import` |
+| live e2e | `tests/golden/PROTOCOL.md`, then `aos_lint.golden.{check --live full-install,normalize}` |
 
-Narrower invocations:
+- `aos_lint.cli --base origin/main` is the **only** thing that catches a missing version bump.
+- `aos_lint.gates.template_drift` is outside `check.sh`: needs network, skips offline.
+- **`uv tool install --force` reuses the cached wheel** — a new module silently does not ship.
+  `uv cache clean <pkg>` first. Same reason to prefer `uv run --project` over `uvx --from`.
+- **`BaseToolTest` is a concrete leaf (~65 tests), not a base class.** Copy its setUp.
+- A capability version bump is up to **four** sites: `CAPABILITY.md`, `MOD.example.md`'s
+  `onboarded_version`, and if it ships a tool, `tool/pyproject.toml` + the tool's `VERSION`.
 
-- **One tool test**: `uv run tests/tool/test_kb.py BaseToolTest.test_init_scaffolds_and_registers` (aos-cap suite: `uv run tests/tool/test_cap.py`). Note `BaseToolTest` is a concrete leaf with ~65 tests of its own, **not** a base class — a new class copies its ~12-line setUp instead of inheriting.
-- **Lint diff-aware (version-bump check)**: `uv run --quiet --project tools/aos_lint python -m aos_lint.cli --base origin/main` — the `version/bump` check only fires with `--base`, requiring a `CAPABILITY.md` version bump when a capability's files change.
-- **Run the `kb` tool ad hoc**: `uv run --project capabilities/kb/tool kb --help` (24 verbs: `init adopt migrate capture ingest pending inbox find set prune archive search links state grants lint index sync commit history refuse verify config import`). Prefer `uv run --project` over `uvx --from`, which can serve a stale cached build — and note `uv tool install --force` is **not** enough on its own: it reinstalls but reuses the cached wheel, so a NEW module in the package silently does not ship. Adding `slots.py` to `aos-cap` reproduced this — the PATH binary copied files verbatim, substituting nothing, which reads as a mechanism-wide failure rather than a packaging one. `uv cache clean <pkg>` before `uv tool install` when a module was added or moved. Git is the base's audit substrate — every write verb makes its own commit (author = the human principal, committer = the acting agent, `aos-verb` trailer), and there is no separate log file.
-- **The e2e (tier 2 live)** is a REAL install into a disposable `aos-test` Hermes profile — never simulated. Exact prompts + steps: `tests/golden/PROTOCOL.md`; then `... python -m aos_lint.golden.check --live full-install` and `... python -m aos_lint.golden.normalize`. See `docs/TESTING.md`.
+## Layout
 
-## Document map
+**On `spec`:** `ARCHITECTURE.md` is the only normative document — §2 package format, **§3 the
+overlay contract (inviolable)**, §4 KB, §5 install, §7 build order, **§8 decision index**. Plus
+`rfcs/`, `capabilities/*.md` one-pagers, `design/` (`capability-anatomy.md` is the worked example).
 
-On the **`spec` branch** (authoritative for contracts; `git show spec:<path>`):
+**On main:**
 
-- **`ARCHITECTURE.md`** — the spec, and the only document that is normative. §2 capability package format, **§3 the overlay contract (declared inviolable)**, §4 KB registry/routing/authorization, §5 install via the harness LLM + cheat-sheets, §6 importer, §7 build order, **§8 the decision index**, Appendix B (risk register).
-- **`rfcs/RFC-00N-*.md`** — the eight open decisions · **`capabilities/*.md`** — one-pagers (with each capability's v0.1 acceptance) · **`design/*.md`** — deep-dive exhibits (`capability-anatomy.md` is the worked example built capabilities mirror) · `prior-art.md`, `diagram.svg`.
+| Path | What |
+|---|---|
+| `capabilities/<id>/` | built capabilities (§2.1); each has an entry skill named after itself, depth in a sibling `reference/` one level deep |
+| `.../reference/harness-<runtime>.md` | per-harness cheat-sheets — reference files of the entry skill, so they travel with the render |
+| `BOOTSTRAP.md` | the agent-facing install sequence; both entry paths clone first |
+| `docs/` | `CONCEPTS` (model) · `INSTALL`/`USAGE` (human) · `TESTING` · **`BUILD-GAPS`** (spec-gap ledger) · `DOGFOOD` |
+| `tools/aos_lint/` | the whole repo-side toolchain: `checks/`, `gates/`, test-only `golden/` |
+| `tests/` | tier-0 suites, fixtures, golden **data**, transcripts |
 
-On **main** (this branch — the build):
+`aos_lint` **imports** name computation and manifest vocabulary from the shipped `aos-cap`
+rather than mirroring it. `constants.py` owns `KIT_NAME`, so the RFC-001 rename is one file.
 
-- **`capabilities/<id>/`** — built capability directories (§2.1 layout). Every capability mirrors the §2.5 anatomy: an **entry skill** named after itself (`skills/<id>/SKILL.md` — the runtime face; a short map) with on-demand depth in a sibling `reference/` **one level deep** (not the old `skills/<skill>/sections/`). `kb` additionally ships its `kb` tool at `capabilities/kb/tool/` (a `uv`-installed Python CLI, the §2.4 deterministic executor — judgment-free by contract: no LLM, no agent, files + exit codes are the interface).
-- **`capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`** — the per-harness cheat-sheets, reference files of the entry skill that reads them (so they travel with the render and resolve from an installed skill; there is no capability-level `harnesses/` dir) (§5.2's six sections; lean — the shared aos install contract lives in the capability's `reference/contract.md`). `hermes.md` is e2e-verified; `nanoclaw.md` (one sheet, v1+v2), `openclaw.md`, `nanobot.md`, `claude-code.md` are research-drafted. The lockfile is `aos-cap`'s file — agents call verbs, never edit the YAML.
-- **`BOOTSTRAP.md`** (repo root) — the agent-facing install script the README paste-block points at; **`CONTRIBUTING.md`** (repo root) — the contributor guide.
-- **`docs/`** — `CONCEPTS.md` (the mental model, explanatory — contracts live on the spec branch, never restated), `INSTALL.md` + `USAGE.md` (human-facing how-to guides), `TESTING.md` (how to run everything), `BUILD-GAPS.md` (**the spec-gap ledger — every artifact↔spec mismatch gets a row; artifact-side fixes land in the same main commit, spec-side fixes land on the `spec` branch and the row names them**), `DOGFOOD.md` (deferred live-dogfood checklist), `diagram.svg` (the architecture illustration, originally copied from the spec branch by explicit decision — **the two copies are byte-identical today**, verified `diff <(git show spec:diagram.svg) docs/diagram.svg`; an earlier note here and a BUILD-GAPS row both claimed main's was ahead and the spec owed a redraw, which was stale, so trust the `diff` over either).
-- **`tools/`** — `aos_lint/`, one Python package holding the whole repo-side toolchain: the RFC-002 tier-1 lint (`checks/`, schema/contract validator, with a planted-violation fixture under `tools/lint/selftest/fixture/` — useful for authoring any capability, not just testing), the four standalone `gates/`, and the test-only `golden/` machinery. `uv` is the **only** prerequisite — there is no `package.json` and no `node_modules`. It **imports** name computation and the manifest vocabulary from the shipped `aos-cap` (`aos_cap.names`, `aos_cap.constants`, `aos_cap.slots`) rather than mirroring them: the retired `tools/lib/skill-names.mjs` claimed the two "must agree" with nothing testing it. `constants.py` still owns the `KIT_NAME` placeholder, so the RFC-001 rename is a one-file sweep. `bash tools/check.sh` runs everything CI runs. **Run it before every commit.**
-- **`tests/`** — `tool/test_kb.py` + `tool/test_cap.py` (the tier-0 suites), fixtures (Dana Fixture persona + sentinels; `example-base/` is the golden `kb lint`-clean tree), the golden-render **data** (`tests/golden/`: `PROTOCOL.md`, `expectations/`, `prestate.sh`, snapshots under `hermes/` — the code that reads them is `aos_lint.golden`), and transcripts of real runs. The e2e is a REAL install into a disposable `aos-test` Hermes profile namespace — see `tests/golden/PROTOCOL.md`; never simulate the harness, and never touch `~/.hermes` outside `aos-*` profiles or `~/ai-kb` at all.
+**Never touch `~/.hermes` outside `aos-*` profiles, or `~/ai-kb` at all.**
 
-## Firm position vs. open RFC — check before changing any decision
+## Rules that are easy to break
 
-ARCHITECTURE §8 splits every decision into two tables:
+- **The overlay family** (`MOD.md`, `kb-registry.yaml`) is user-owned. Upstream never ships,
+  writes or merges those paths; do not create them here. `.aos/` is machine-local, gitignored.
+- **Rule of two** — a manifest field exists only once two in-repo capabilities need it
+  machine-read. §2.2 lists what was deliberately left out; don't helpfully add it.
+- **Extra fields: the word is `metadata`.** In an *external* schema (`SKILL.md`) our extensions
+  nest under its hatch — `metadata.aos.*`. In *our own* (`CAPABILITY.md`, `.kb/base.yml`), `x-*`
+  is reserved for third parties; what *we* need becomes a real field or stays prose.
+- **No program anywhere** — `install`/`update`/`import` are conversational actions. Per-harness
+  support is a cheat-sheet, never adapter code, and an aid rather than a gate.
+- **Names are computed and single-owner (§2.5).** A skill installs as `<skill_prefix><id>`
+  (`aos-cap skills`); an agent the same way (`aos-cap agents`, own namespace, same exit 17, no
+  `agent_prefix` — rule of two). Skills are verbs, agents are roles. Never rename at install to
+  dodge a collision; fix the package.
+- **References are slots, never computed names.** Write `{{skill: <id>}}` / `{{agent: <id>}}`
+  and the render substitutes. A hardcoded name rots on a prefix change; a bare id names nothing.
+  A dangling slot fails the render (exit 18) and CI. A leading backslash escapes an example —
+  which is what lets the docs teaching this rule survive being rendered by it.
+- **Skill scoping** — every skill declares `used_by`. No cross-capability skill sharing (open
+  RFC-009); capabilities compose through the shared `main` agent or a tool on PATH.
+- **Entry-skill anatomy (§2.5)** — `skills/<id>/SKILL.md`, depth one level deep, no chains.
+  `CAPABILITY.md` is the installer's briefing (never loaded at runtime); the entry skill is the
+  runtime face.
+- **KB safety** — `audience: shared` KBs never accept LLM-routed writes. Capture latency is
+  sacred: routing is never a synchronous prompt.
+- **Single-owner schedules** — each `schedules[]` entry runs in exactly one harness at a time.
 
-- **Firm positions** carry a rationale and a section number. They can change, but via an issue against that specific section *with a counter-proposal* — not by quietly rewording the spec.
-- **Open RFCs** must not be resolved inside ARCHITECTURE or a capability page. RFC-006 owns the multi-KB routing/authorization behavior and RFC-007 the permission-gate vocabulary; the `kb` and `permission-gate` pages proceed with their build plans but explicitly defer the contested behavior, and edits should preserve that split.
+## Changing a decision
 
-## Normative rules that are easy to break while editing
+ARCHITECTURE §8 splits every decision in two. **Firm positions** change via an issue against
+that section *with a counter-proposal*, never by quietly rewording the spec. **Open RFCs** are
+never resolved inside ARCHITECTURE or a capability page — RFC-006 owns multi-KB
+routing/authorization, RFC-007 the permission-gate vocabulary; preserve that split.
 
-- **The overlay family** — every `MOD.md` (global + per-capability) and `kb-registry.yaml` — is user-owned. Upstream never ships, writes, or merges those paths; do not create them in this repo. `.aos/` is machine-local state and gitignored. (ARCHITECTURE §3.1; `.gitignore` explains why the overlay family itself is deliberately *not* ignored — that's RFC-005.)
-- **Rule of two** — a manifest/schema field only exists once two in-repo capabilities need it machine-read; until then it stays prose. §2.2 lists what was deliberately left out (`provides` graph, hooks vocabulary, per-capability grants, model/cost hints); don't "helpfully" add them.
-- **Extra fields: one word, and the owner decides the namespace.** The word is **`metadata`**, everywhere — KB pages and `SKILL.md` alike, so one concept reads as one concept. *Where* it goes depends on whose schema it is: in an **external** schema (`SKILL.md` is the Agent Skills spec's, and we are a vendor in it) our extensions nest under that schema's own hatch — `metadata.aos.*`, which is where the install-time provenance stamp lives. In **our own** schemas (`CAPABILITY.md`, `.kb/base.yml`) an extension namespace is for *other parties*: `x-*` is reserved in the manifest for third-party fields, and what *we* need becomes a real field (rule of two) or stays prose. A KB page's `metadata` is flat — there is no vendor to namespace against. Reaching for our own `x-` hatch in our own house is how a field avoids the rule-of-two conversation it should have had.
-- **No program anywhere** — `aos import` / `install` / `update` are conversational actions the harness agent performs, never a CLI. Per-harness support is a cheat-sheet (`capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md` — knowledge), never adapter code; it's an aid, not a gate (BOOTSTRAP's no-cheat-sheet path installs without one). Capability-shipped software is standalone behind a process boundary, reached by a thin per-harness shim.
-- **Skill identity (§2.5)** — a skill id is capability-local; the name it *installs* under is `<skill_prefix><id>` (declared in `CAPABILITY.md`, else `<capability-id>-`), computed by `aos-cap skills` and single-owner across the whole harness. An **agent** ships the same way — `<skill_prefix><agent-id>`, computed by `aos-cap agents`, single-owner in the harness's own flat agent namespace, gated under the same exit 17 (no `agent_prefix` field: rule of two). Skills are action-oriented (`install`, `drain`), agents are role-oriented (`archiver`); the entry skill is named after its capability. Never rename at install time to dodge a collision — fix it in the package. Runtime rules: `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/naming.md`.
-- **Skill scoping** — every skill declares `used_by`; agents only load skills declared for them. There is no cross-*capability* skill-sharing vocabulary (`used_by` can't name another capability's agent — that's open RFC-009); one capability composes with another only through the shared `main` agent or a tool on PATH (how work-tracker reaches kb — via the `kb` command, never a foreign skill).
-- **Entry-skill anatomy (§2.5)** — every capability ships `skills/<id>/SKILL.md` (lint-enforced, `structure/entry-skill`), with depth in a sibling `reference/` **one level deep** — no reference chains. `CAPABILITY.md` is the *installer's briefing* (consumed at install, never loaded at runtime); the entry skill is the *runtime face*. Don't reintroduce the retired `skills/<skill>/sections/` layout.
-- **KB safety** — `audience: shared` KBs never accept LLM-routed writes (rule-matched, explicitly tagged, or human-approved only); capture latency is sacred, so routing is never a synchronous prompt.
-- **Single-owner rule** — each `schedules[]` entry runs in exactly one harness at a time.
+## Build phase
 
-## Build phase (this is what the new session is for)
+Order is fixed — ARCHITECTURE §7. Each remaining step proves exactly one seam; don't build
+ahead of it. Hermes is the first harness.
 
-The build phase turns the spec into the artifacts it describes. The spec docs become the **reference-on-paper**: build against them, and treat `design/capability-anatomy.md` as the worked example every capability directory should mirror.
+- **A capability is:** `CAPABILITY.md` (typed frontmatter + installer's briefing), the
+  `skills/<id>/` entry skill plus focused skills, `agents/*.agent.yaml` if it needs one,
+  `ONBOARDING.md` + `MOD.example.md` **as a pair or neither**, plus `kb/` and `adapters/` as needed.
+- **This repo is public.** Capabilities are extracted from a live private setup, but nothing
+  personal lands in a committed file: no real names, companies or relationships; no secrets; no
+  actual KB content. `ONBOARDING.md` ships *questions*, `MOD.example.md` *placeholders*. Lift
+  the mechanism, genericize the content; when in doubt, redact.
+- **A spec gap means fixing the spec, not diverging.** Update ARCHITECTURE on `spec` via the
+  firm-position discipline. A capability silently inconsistent with a contract is a bug in one
+  or the other — never something to leave standing.
+- **"Does it work"** = can the harness LLM, given only the capability + cheat-sheet + a fixture
+  `MOD.example.md`, produce a correct install? That is the golden-render test — dogfood it on
+  Hermes for real.
 
-- **Order is fixed — follow ARCHITECTURE §7.** The built slice is `capability-lifecycle` (which carries onboarding, import, build, and review) plus `kb` and `work-tracker`. Each remaining step exists to prove exactly one seam; don't build ahead of it. **Hermes is the first harness** (cheat-sheet `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md`; required sections in ARCHITECTURE §5.2).
-- **What "build a capability" means, concretely:** create the directory exactly per ARCHITECTURE §2.1/§2.5 — `CAPABILITY.md` (typed frontmatter + prose *installer's briefing*), the `skills/<id>/` entry skill plus any focused skills (valid Agent Skills folders — the portable core; agent prompt bodies co-locate under `agents/<name>/`), `agents/*.agent.yaml` if it needs its own agent, `ONBOARDING.md` (frontmatter questions + interview script) and `MOD.example.md` (the shipped seed) — required as a pair, or neither, plus `kb/` and `adapters/<harness>/` as needed. The `kb` capability additionally ships its `base` tool (`capabilities/kb/tool/`) and the init templates under `skills/init/templates/` (`base.yml`, `AGENTS.md` w/ grants seed, the base README…) — design in `design/kb-methodology.md`; there is no methodology subdirectory (the seam was dissolved; kb IS the methodology).
-- **Self-containment is a hard guardrail — this repo is public.** Reference capabilities are *extracted from* a live private setup (a production KB, a Hermes install), but nothing personal may land in a committed file: no real names/companies/relationships, no secrets or tokens, no actual KB content. `ONBOARDING.md` ships *questions*; `MOD.example.md` ships *placeholder* answers, never anyone's real ones. Extraction = lift the mechanism, genericize the content. When in doubt, redact.
-- **When building reveals a spec gap, fix the spec — don't diverge.** The method is "build reveals what to spec." If a contract doesn't fit reality, update ARCHITECTURE **on the `spec` branch** via the firm-position discipline (or open/adjust an RFC there); rule-of-two still governs any new field. A capability silently inconsistent with a contract is a bug in one or the other — never something to leave standing.
-- **Verifying with no runtime:** "does it work" = can the harness LLM, given only the capability + the harness cheat-sheet + a fixture `MOD.example.md`, produce a correct install? That is the golden-render test (RFC-002 tier 2); dogfood it on Hermes for real. Tier-1 lint (schema / frontmatter / `used_by` / overlay-family checks) is the first CI to stand up (RFC-002).
+## Adding documents
 
-## Conventions when adding documents
-
-- Match the existing section skeleton for the family you're adding to (capability one-pager, RFC, design deep-dive). New RFCs take the next `rfcs/RFC-00N-<slug>.md` number.
-- Cross-links are relative; diagrams are inline mermaid inside the markdown. **Every mermaid block must parse** — the gotcha that bit us: a `;` inside a *sequence-diagram* message is a statement separator and breaks rendering (use `—` or `,`). It's fine inside a quoted flowchart label.
-- Adding or removing a capability or RFC means updating the tables that index them: ARCHITECTURE §7 (build order), §8 (both decision tables), Appendix A/B where relevant, and the README reading list. A new design deep-dive should be linked from both ARCHITECTURE and the capability page it serves.
-- ARCHITECTURE's own bar (risk #5): a contract no reference capability exercises gets cut. Prefer sharpening an existing section over adding a new one.
+- Match the section skeleton of the family you're adding to. New RFCs take the next number.
+- Relative cross-links; inline mermaid. **Every mermaid block must parse** — a `;` inside a
+  *sequence-diagram* message is a statement separator and breaks rendering (use `—`). Fine
+  inside a quoted flowchart label.
+- Adding or removing a capability or RFC means updating the tables that index it: §7, §8,
+  Appendix A/B, and the README reading list.
+- A contract no reference capability exercises gets cut (§ risk 5). Sharpen an existing section
+  rather than adding one.
