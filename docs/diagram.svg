@@ -22,8 +22,8 @@
     </style>
   </defs>
 
-  <!-- Tier: organisms (use-case capabilities) -->
-  <text class="tier-label" x="30" y="34">USE-CASE CAPABILITIES <tspan class="atomic">· organisms</tspan></text>
+  <!-- Tier: use-case capabilities -->
+  <text class="tier-label" x="30" y="34">USE-CASE CAPABILITIES <tspan class="atomic"></tspan></text>
   <g>
     <rect class="box org" x="30"  y="46" width="150" height="46"/><text class="box-t" x="105" y="70">Work tracker</text><text class="caption" x="105" y="84">capture · schedule · steward</text>
     <rect class="box org" x="192" y="46" width="128" height="46"/><text class="box-t" x="256" y="74">News tracker</text>
@@ -31,8 +31,8 @@
     <rect class="box org" x="482" y="46" width="90" height="46"/><text class="box-t" x="527" y="74">…</text>
   </g>
 
-  <!-- Tier: molecules (infrastructure capabilities) -->
-  <text class="tier-label" x="30" y="140">INFRASTRUCTURE CAPABILITIES <tspan class="atomic">· molecules</tspan></text>
+  <!-- Tier: infrastructure capabilities -->
+  <text class="tier-label" x="30" y="140">INFRASTRUCTURE CAPABILITIES <tspan class="atomic"></tspan></text>
   <g>
     <rect class="box mol" x="30"  y="152" width="150" height="54"/><text class="box-t" x="105" y="176">Knowledge base</text><text class="caption" x="105" y="192">registry · router · authz</text>
     <rect class="box mol" x="195" y="152" width="210" height="54"/><text class="box-t" x="300" y="176">Capability lifecycle</text><text class="caption" x="300" y="192">install · upgrade · onboard · build · evolve</text>
@@ -41,13 +41,13 @@
   </g>
 
   <!-- Tier: atoms -->
-  <text class="tier-label" x="30" y="252">SKILLS <tspan class="atomic">· atoms · Agent Skills spec (SKILL.md) — the portable core</tspan></text>
+  <text class="tier-label" x="30" y="252">SKILLS <tspan class="atomic">· Agent Skills spec (SKILL.md) — the portable core</tspan></text>
   <rect class="box atom" x="30" y="264" width="730" height="34"/>
   <text class="caption" x="395" y="286">kb-capture · kb-recall · wt-capture · wt-schedule · capability-install · capability-review · …</text>
 
   <!-- Side: MOD.md (templates) -->
   <g>
-    <text class="tier-label" x="790" y="34">OVERLAY <tspan class="atomic">· templates</tspan></text>
+    <text class="tier-label" x="790" y="34">OVERLAY <tspan class="atomic">· your answers, in your own repo</tspan></text>
     <rect class="box mod" x="790" y="46" width="140" height="252"/>
     <text class="box-t" x="860" y="74">MOD.md</text>
     <text class="caption" x="860" y="94">user-owned, in personal/</text>
@@ -88,7 +88,7 @@
   </g>
 
   <!-- Pages tier -->
-  <text class="tier-label" x="30" y="598">PERSONALIZED INSTALLS <tspan class="atomic">· pages · your version, in your harness</tspan></text>
+  <text class="tier-label" x="30" y="598">PERSONALIZED INSTALLS <tspan class="atomic">· your version, in your harness</tspan></text>
   <g>
     <rect class="box page" x="30" y="610" width="270" height="46" rx="23"/>
     <text x="165" y="638" font-size="12" fill="white" text-anchor="middle" font-weight="700">Almog's stack · Hermes/NanoClaw/OpenClaw</text>
