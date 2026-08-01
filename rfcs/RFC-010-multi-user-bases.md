@@ -34,7 +34,7 @@ should be read as a step toward it.
 These were not close calls once the evidence was in, and they are implemented on `main`.
 
 **1. Ingestion stays per-person; only curation is a choice.** Everyone captures with their
-own agent. `base inbox` shows the acting principal's pending captures. Two reasons, and the
+own agent. `kb inbox` shows the acting principal's pending captures. Two reasons, and the
 second is the serious one:
 
 - N households draining one shared inbox promote the same capture N times.
@@ -46,8 +46,9 @@ second is the serious one:
 
 **2. A principal is a human, and git already models this.** Author = the person whose
 knowledge it is; committer = the acting agent. Rebase preserves the author, forges show it
-in `blame`, and no new identity system is invented. `BASE.yaml principals:` maps an author
-email to the subject the Grants table names. **Absent a roster every write is `user`** — so
+in `blame`, and no new identity system is invented. **The Grants table IS the roster** — it
+names principal ids directly, so a separate `principals:` map would have been a second copy
+of the same fact, and the two could disagree. **Absent any row every write is `user`** — so
 a private base needs no configuration and nothing changes for it.
 
 This extends the closed subject vocabulary of `kb-authorization.md` §4.1, which is
@@ -64,7 +65,7 @@ only when hunk boundaries coincide, and forge-side merges ignore `.gitattributes
 **4. Enforcement is by routing method, never by refusing the verb.** A shared base has
 `raw/` and accepts explicit and rule-matched captures — §4.3 bars the *method*, and
 kb-authorization §6.2 Case 3 walks through an explicit-tagged capture landing in a shared
-base. Refusing `base capture` would have contradicted four normative statements. What was
+base. Refusing `kb capture` would have contradicted four normative statements. What was
 missing was §4.5's layer-2 check, which had never been built: **zero `method: llm` records
 in a shared base, ever**. It exists now.
 
@@ -79,7 +80,7 @@ to "whose, and who pays". It would also be the neutral curator a shared base oth
 lacks.
 
 **The deterministic half was built, then descoped.** A CI janitor shipped on `main` — and
-`base init --audience shared` emitted it — under the reasoning that a shared base otherwise
+`kb init --audience shared` emitted it — under the reasoning that a shared base otherwise
 has no neutral actor, and that on the plan a small team actually has, a failing check is the
 only enforcement that exists: GitHub gates rulesets, branch protection and CODEOWNERS to
 Pro/Team/Enterprise for private repositories, so on the free plan you cannot block a bad
@@ -101,20 +102,27 @@ default-empty promotion and the shared-base review gate are the differentiator h
 shipped memory system (mem0, Letta, Zep) gates writes into shared memory at all — and a
 cheap unattended curator is the obvious way to lose it.
 
-**Deliberately left open.** Today curation is a household's job, in one of two shapes the
-grants table already expresses without any new field:
+**Deliberately left open.** Today curation is a household's job, in one of two shapes:
 
 | Mode | Grants shape | Cost |
 |---|---|---|
 | Per-principal (default) | everyone holds capture + propose grants | none — each drains only their own |
 | Designated curator | one principal holds the wiki write grants | that household's agent reads everyone's raw material |
 
-Rule of two: a `curation:` field earns its place when a third mode is machine-read, not
-before.
+> **Reversed 2026-07-29: `curation:` is now a declared field** (`self` | `designated`, plus
+> `curator:` naming the person), in `.kb/base.yml`. This paragraph previously refused it on
+> rule-of-two grounds, and that reasoning was wrong for a reason worth keeping: the two modes
+> are not two *configurations* of one behaviour, they are two different answers to "whose
+> queue is this", and the tool has to know which before it can route a single entry. Leaving
+> it implicit in the grants table meant the answer had to be *inferred* from an ACL every
+> time — and an inference that is usually right is exactly the kind of thing that fails
+> silently on the base where it matters. Declaring it costs one line and makes the mode
+> greppable, testable, and visible to the person reading their own base's config. The
+> rule-of-two bar still holds for a *third* mode.
 
 ### Q2 — Does the review gate become a pull request?
 
-`_ops/needs-review/` is a hand-rolled editorial workflow. Decap CMS ships the same thing as
+`.kb/pending/` is a hand-rolled editorial workflow. Decap CMS ships the same thing as
 branch-per-entry plus a PR against markdown-in-git, and branch protection would make
 "agents propose, humans apply" genuinely enforced rather than cooperative.
 
@@ -133,9 +141,24 @@ Proposal: `origin:` stays base-local and lint-checkable; `source_origin` carries
 base-qualified reference. Note the appendix of kb-authorization leans against cross-base
 addressing, so this needs an explicit decision rather than a quiet adoption.
 
+> **A second consumer (2026-07-29), which raises this from tidy to load-bearing.**
+> `work-tracker` stores commitments in their own private base and links each one to the
+> project it belongs to — a `project:` field pointing at a page that legitimately lives in a
+> *different* base (the work KB). So the dangling reference is no longer only a provenance
+> back-pointer an auditor might follow; it is a link a user follows to answer "what is this
+> for", and it breaks in the ordinary case rather than the archaeological one.
+>
+> It also settles what the answer cannot be: **a markdown link does not rescue this.** A
+> relative `../acme-kb/…` assumes the two bases sit adjacent on disk, which the registry
+> never guarantees and a second machine routinely violates. Only a base-qualified wikilink
+> (`[[acme-kb:projects/kubecon]]`) or an absolute URL can work — see kb-methodology §5.4,
+> which now states the intra-base/external split explicitly and names this as the gap.
+> Two consumers, so the rule-of-two bar for a schema answer is met; the *shape* is still
+> this RFC's to decide.
+
 ### Q4 — Subtree privacy
 
-There is no way to keep `raw/` readable only to its owner inside one shared repo.
+There is no way to keep `_raw/` readable only to its owner inside one shared repo.
 sparse-checkout and partial clone hide **nothing** (all objects are cloned; they are
 performance mechanisms), and neither GitHub nor GitLab has per-branch read ACLs. Only a
 separate private repo — optionally wired in as a submodule — puts the boundary where a

@@ -1,6 +1,6 @@
 # Design deep-dive: installation, end to end
 
-*Companion to ARCHITECTURE §3 + §5. Every flow the installer story implies: bootstrap, dependency-ordered install, upgrade, removal — with the deterministic/agentic boundary marked on every step: **[D]** = mechanical (checkable, scriptable — `aos-lock` carries the bookkeeping verbs; RFC-004's reopen path, taken), **[A]** = LLM judgment.*
+*Companion to ARCHITECTURE §3 + §5. Every flow the installer story implies: bootstrap, dependency-ordered install, upgrade, removal — with the deterministic/agentic boundary marked on every step: **[D]** = mechanical (checkable, scriptable — `aos-cap` carries the bookkeeping verbs; RFC-004's reopen path, taken), **[A]** = LLM judgment.*
 
 ## 1. Bootstrap: the first five minutes
 
@@ -12,8 +12,8 @@ One file, on purpose: `BOOTSTRAP.md` is a warm stub — it defines the install *
 
 Bootstrap sequence the agent then follows (from `BOOTSTRAP.md`, at the clone root beside the README — the human's door and the agent's door side by side):
 
-0. The paste-block already forked-and-cloned (fork by default — `gh repo fork --clone` wires origin+upstream; plain clone works, forking later is one command; silent, harmless). **Welcome first** — what the kit is, what will happen, questions answered — before any other action; then **[D]** prerequisites: `git` and `uv` (required — `uv` carries the bookkeeping tool; offer the official installer, refuse to continue without).
-1. **[D]** Verify the clone shape; **create the household**: `personal/` git-init (offer a private remote — `gh repo create --private`; forks are public, nothing personal ever lands in the clone), seed the mirrored shape; then inline-install the **capability-lifecycle** capability (the only chicken-and-egg break): read its contract reference in full, `uv tool install … aos-lock`, `aos-lock --home ~/aos init`, render its five skills into `personal/` and symlink them to the front agent per its cheat-sheet (none for this harness → its no-cheat-sheet reference: generic mapping contract, self-drafted sheet, diff-gated — never a stop), STAGE→GATE→EXECUTE, `aos-lock record`.
+0. The paste-block already cloned (a plain clone — `origin` = canonical; silent, harmless). **Not a fork**: §5.4 lists `fork` among the writes requiring the user's explicit approval, so the paste-block cannot ask the agent to perform one. Forking later is one command (`gh repo fork --remote`), and the agent offers it at most once. **Welcome first** — what the kit is, what will happen, questions answered — before any other action; then **[D]** prerequisites: `git` and `uv` (required — `uv` carries the bookkeeping tool; offer the official installer, refuse to continue without).
+1. **[D]** Verify the clone shape; **create the household**: `personal/` git-init (offer a private remote — `gh repo create --private`; forks are public, nothing personal ever lands in the clone), seed the mirrored shape; then inline-install the **capability-lifecycle** capability (the only chicken-and-egg break): read its contract reference in full, `uv tool install … aos-cap`, `aos-cap --home ~/aos init`, render its five skills into `personal/` and symlink them to the front agent per its cheat-sheet (none for this harness → its no-cheat-sheet reference: generic mapping contract, self-drafted sheet, diff-gated — never a stop), STAGE→GATE→EXECUTE, `aos-cap record`.
 2. Hand over to the installed skills: run the **global interview** (`capability-onboard`, whose own `ONBOARDING.md` is the global one → `personal/MOD.md`) then install **kb** through `capability-install` (its interview + KB adopt/init → `personal/kb-registry.yaml`) as ordinary §2 installs.
 3. Done — celebratory specific summary. Everything after is `install <capability>` on demand, triggering the materialized skills.
 
@@ -32,20 +32,20 @@ sequenceDiagram
     H->>L: [D] dependency check: kb? capability-lifecycle? installed — versions = repo revision
     Note over H: missing dep → recurse: install it first (its interview included)
     H->>H: [D] host-feature check vs cheat-sheet feature notes<br/>(required missing → stop, preferred missing → note degraded mode,<br/>no sheet → check depends.host by live introspection)
-    H->>L: [D] name gate: aos-lock skills --check (household · lockfile links · the harness's own skills)<br/>collision → stop, nothing written — the fix belongs in the package
+    H->>L: [D] name gate: aos-cap skills --check (household · lockfile links · the harness's own skills)<br/>collision → stop, nothing written — the fix belongs in the package
     H->>O: run interview (ONBOARDING.md — questions + script)
     O->>U: [A] conversational interview (goals, gym days, injuries…)
     O->>O: [D] validate answers against ONBOARDING.md questions
     O-->>HA: [D] secret values → harness-native store
     O->>H: [A] MOD.md written (frontmatter answers + prose nuances)
-    H->>H: [D] aos-lock render per skill → the installed name, frontmatter name, origin tag
+    H->>H: [D] aos-cap render per skill → the installed name, frontmatter name, origin tag
     H->>H: [A] TRANSFORM: fill {{mod}} slots in the render, bake the household path
     H->>H: [A] translate declarations per cheat-sheet<br/>(agent→profile, schedule→jobs.json, skills scoped by used_by)
     H->>U: [D] present full diff of everything about to be written
     U->>H: approve
     H->>HA: [D] commit pinned render in personal/ · create symlinks · write native injections, origin-tagged
     H->>HA: [A] register KB zones (append grant rows to target KB's AGENTS.md table)
-    H->>L: [D] aos-lock record — artifacts + hashes + schedules_owned (single-owner rule)
+    H->>L: [D] aos-cap record — artifacts + hashes + schedules_owned (single-owner rule)
     H->>U: installed — degraded modes listed if any
 ```
 
@@ -64,7 +64,7 @@ The riskiest operation, so every agentic step (the re-render) is fenced by deter
 flowchart TB
     A["git pull in upstream/<br/>[D] cannot touch personal/, by construction"] --> B{"capability files<br/>changed? [D]"}
     B -->|no| Z(["nothing to do"])
-    B -->|yes| V["aos-lock verify: hand-edit drift?<br/>[D] → fold into MOD.md first [A] (§3.3)<br/>beyond-slots fold → §9 promotion judgment"]
+    B -->|yes| V["aos-cap verify: hand-edit drift?<br/>[D] → fold into MOD.md first [A] (§3.3)<br/>beyond-slots fold → §9 promotion judgment"]
     V --> M(("re-render: fresh upstream ×<br/>MOD.md → personal/ working tree<br/>[A] — the risky step (risk #1)"))
     M --> D["git diff in personal/<br/>[D gate]"]
     D --> Q{"user approves?<br/>[H]"}
@@ -101,4 +101,4 @@ doctor verifies nothing orphaned                          [D]
 | Upgrade re-render (overlay re-apply) | A | drift-fold before, git-diff gate in `personal/` after (revert = rollback), reference/-file granularity |
 | Drift detection, duplicate schedules | D | `doctor` |
 
-The pattern is deliberate: **every [A] step is sandwiched between [D] checks.** The LLM is trusted with judgment, never with bookkeeping — the [D] bookkeeping column is enforced by `aos-lock` (capability-lifecycle), the outcome of RFC-004's reopen path.
+The pattern is deliberate: **every [A] step is sandwiched between [D] checks.** The LLM is trusted with judgment, never with bookkeeping — the [D] bookkeeping column is enforced by `aos-cap` (capability-lifecycle), the outcome of RFC-004's reopen path.

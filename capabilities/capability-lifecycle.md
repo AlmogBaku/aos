@@ -20,7 +20,7 @@ The whole life of a capability as **nine `main`-scoped skills** under `skill_pre
 | `capability-contribute` | the shipped source, for everyone: small tweaks land directly and transparently, major ones re-run the research/design/approval shape scaled down; drafts the upstream branch and opens the PR only on explicit confirm |
 | `capability-evolve` | *your* install, through the overlay — and the overlay's exit side |
 
-Plus the overlay mechanism (§3: interviews → MOD.md, the `{{mod}}` transform, MOD.md as the user's stated deltas with `capability-evolve` as its write path), the per-harness cheat-sheets (shipped in-capability at `harnesses/<harness-runtime>.md`, §5.2), the MARS mode-boundary block on the front agent's identity file (§9), and the `aos-lock` tool (§2.4: manifest parse/validate, **installed skill names + the collision gate**, the mechanical render, and the lockfile verbs — the lockfile is the tool's file; agents call verbs, never edit the YAML). `BOOTSTRAP.md` shrinks to a warm stub that inline-installs this capability (the only chicken-and-egg break) and hands over.
+Plus the overlay mechanism (§3: interviews → MOD.md, the `{{mod}}` transform, MOD.md as the user's stated deltas with `capability-evolve` as its write path), the per-harness cheat-sheets (shipped in-capability at `harnesses/<harness-runtime>.md`, §5.2), the MARS mode-boundary block on the front agent's identity file (§9), and the `aos-cap` tool (§2.4: manifest parse/validate, **installed skill names + the collision gate**, the mechanical render, and the lockfile verbs — the lockfile is the tool's file; agents call verbs, never edit the YAML). `BOOTSTRAP.md` shrinks to a warm stub that inline-installs this capability (the only chicken-and-egg break) and hands over.
 
 Boundaries the skills keep between themselves: `capability-evolve` changes *your install* through the overlay; `capability-contribute` changes the *shipped source* for everyone; `capability-build` makes something that does not exist yet. Evolve is the single front door for "change this" and routes — and the overlay has an exit side (§3.3): a generally-useful statement is promotable (signal-gated per §9's judgment, lightest rung first) and retires once an upgrade lands the upstream version covering it.
 
@@ -31,12 +31,12 @@ Boundaries the skills keep between themselves: `capability-evolve` changes *your
 - The proven funnel: real-Hermes e2e cycles (full install, day-N install, evolve, exact removal) driven by the pre-capability BOOTSTRAP — its §0 contract, interview mechanics, and no-cheat-sheet procedure are the extraction sources for `reference/contract.md`, `reference/naming.md`, `reference/overlay.md`, `reference/no-cheatsheet.md`.
 - The four research-drafted cheat-sheets (hermes e2e-verified; nanoclaw v1+v2, openclaw, nanobot research-drafted).
 - The interview UX: the "interview me, I hate blank pages" flow already proven in Almog's setup, plus the BOOTSTRAP interview of coleam00/second-brain-starter (but re-runnable, never self-deleting). Personalization is hardcoded in `state/SOUL.md` and persona files today — the biggest genuine gap in the live setup.
-- kb's `base` tool packaging + black-box test pattern — the template `aos-lock` mirrors.
+- kb's `base` tool packaging + black-box test pattern — the template `aos-cap` mirrors.
 - Anthropic's `skill-creator` skill for generic skill craft — **referenced, never vendored** (Apache-2.0, kept current under `<home>/vendor/`): it owns drafting, description-trigger tuning, evals, packaging; `reference/naming.md` owns aos identity, and aos wins on names.
 
 ## Depends
 
-`capabilities: []` · `host: {}` — but bootstrap itself requires `git` and **`uv`** (hard prerequisite: `uv` carries `aos-lock`; BOOTSTRAP step 0 offers the official installer and refuses to continue without it. kb's prose fallback for its own verbs is unaffected).
+`capabilities: []` · `host: {}` — but bootstrap itself requires `git` and **`uv`** (hard prerequisite: `uv` carries `aos-cap`; BOOTSTRAP step 0 offers the official installer and refuses to continue without it. kb's prose fallback for its own verbs is unaffected).
 
 ## Onboarding sketch
 
@@ -44,7 +44,7 @@ It ships `ONBOARDING.md` + `MOD.example.md`, but their subject is the **user**, 
 
 ## v0.1 acceptance
 
-One uninterrupted sequence on a real harness: paste-block → welcome-and-explain before any action → prerequisites verified → the nine skills + `aos-lock` materialize (name gate → STAGE→GATE→EXECUTE, tool-recorded lockfile) → the global interview runs from `capability-onboard` → kb installs *through `capability-install`* → a **separate, fresh prompt** installs gtd-capture (proving day-N triggering with no BOOTSTRAP in context) → a planted name collision stops that install at the gate with nothing written → an evolve records a nuance in the capability's MOD.md and refreshes hashes (`aos-lock verify` clean) → removal via `capability-remove` walks the lockfile to a prestate-identical harness. Structural checks per the golden-render protocol (RFC-002).
+One uninterrupted sequence on a real harness: paste-block → welcome-and-explain before any action → prerequisites verified → the ten skills + `aos-cap` materialize (name gate → STAGE→GATE→EXECUTE, tool-recorded lockfile) → the global interview runs from `capability-onboard` → kb installs *through `capability-install`* → a **separate, fresh prompt** installs gtd-capture (proving day-N triggering with no BOOTSTRAP in context) → a planted name collision stops that install at the gate with nothing written → an evolve records a nuance in the capability's MOD.md and refreshes hashes (`aos-cap verify` clean) → removal via `capability-remove` walks the lockfile to a prestate-identical harness. Structural checks per the golden-render protocol (RFC-002).
 
 ## Note on build order
 

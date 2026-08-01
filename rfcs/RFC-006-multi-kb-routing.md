@@ -20,4 +20,4 @@ Evidence, not argument: replay two weeks of real captures (hand-labeled work/per
 
 ## Process
 
-Runs alongside kb's build (build 1); decide before gtd-capture (build 3) sends real traffic through it. Auto-accept per RFC-003 window applies to the *choice among options*, not to skipping the replay.
+Runs alongside kb's build (build 1); decide before work-tracker (build 3) sends real traffic through it. Auto-accept per RFC-003 window applies to the *choice among options*, not to skipping the replay.
