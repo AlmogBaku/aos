@@ -9,7 +9,7 @@ description: Changes how an installed aos capability behaves for THIS user and r
   — and not to install, upgrade or remove, which are their own skills.
 metadata:
   aos:
-    origin: capability-lifecycle@0.3.5
+    origin: capability-lifecycle@0.3.6
 ---
 # capability-evolve
 

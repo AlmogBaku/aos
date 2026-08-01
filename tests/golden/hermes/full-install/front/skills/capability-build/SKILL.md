@@ -14,7 +14,7 @@ description: 'Detects when a request has drifted from a one-off task into buildi
   or capability-evolve (one user''s install).'
 metadata:
   aos:
-    origin: capability-lifecycle@0.3.5
+    origin: capability-lifecycle@0.3.6
 ---
 # capability-build — the detector
 

@@ -58,5 +58,5 @@ triggering (a real skill install rather than a synthesized command file), and pr
 
 Until then these sets are the durable artifact, and the descriptions are hand-authored to the
 guide's shape — third person, `Use when`, and `Do NOT use` wherever a skill competes for a
-trigger — which `tools/check-kb-surface.mjs` enforces mechanically. An independent
+trigger — which the `aos_lint.gates.retired` gate enforces mechanically (it validates every skill description's shape, not just the retired vocabulary). An independent
 `tessl review run quality` pass scored all seven descriptions 85–100%, four of them at 100%.

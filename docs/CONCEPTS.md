@@ -52,9 +52,16 @@ Two files have special roles:
   `<skill_prefix><id>` — `kb-init`, `wt-schedule`, `capability-install` — so it still says
   what it is when it's sitting next to thirty other skills. The installer computes it and
   refuses to install a name something else already owns (yours, another capability's, or a
-  skill aos never touched) rather than silently overriding it. Skills are named for actions,
-  agents for roles. The rules live in the `capability-lifecycle` skill's naming
-  reference.
+  skill aos never touched) rather than silently overriding it. **Agents work the same way** —
+  they land in a flat per-harness namespace too, so `archiver` installs as `kb-archiver`,
+  computed from the same prefix and gated the same way. Skills are named for actions, agents
+  for roles.
+
+  Because the name is computed, shipped prose never writes it: a reference is authored as a
+  slot (`{{skill: <id>}}`, `{{agent: <id>}}`) and the render substitutes the real name. That
+  is what keeps a prefix change from silently invalidating every cross-reference in the kit —
+  the render fails loudly on a slot that names nothing, and CI catches a hand-written name.
+  The rules live in the `capability-lifecycle` skill's naming reference.
 
 ## The household — where aos lives on your machine
 

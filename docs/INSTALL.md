@@ -40,12 +40,14 @@ Paste into your agent:
    the `aos-cap` tool into your harness. From here on, "install X" is a skill, and the lockfile
    (`~/aos/.aos/installs.lock.yaml`, the record of everything materialized) is written by
    the tool, never by hand. Two things ride along:
-   - **One block on your own agent.** aos adds a single marked passage to your front
-     agent's identity file: *before creating a cron job, a standing reminder, or any
-     recurring automation, stop and offer to plan it properly*. That's all it adds — your
-     identity facts stay in `MOD.md` (your harness already keeps its own notes about you;
-     a second copy would just drift). Agents aos *creates* later are a different case —
-     it writes those files whole.
+   - **Two blocks on your own agent.** aos adds two marked passages to your front agent's
+     identity file, and nothing else. The first: *before creating a cron job, a standing
+     reminder, or any recurring automation, stop and offer to plan it properly*. The second
+     is vocabulary — what a capability is, and that your things live in `~/aos` — because
+     nothing else in your harness would ever tell it that. What it does **not** add is your
+     identity facts: those stay in `MOD.md` (your harness already keeps its own notes about
+     you; a second copy would just drift). Agents aos *creates* later are a different case —
+     it writes those files whole, so the vocabulary goes in inline.
    - **`skill-creator`, by reference.** Anthropic's skill-authoring skill is linked from
      `~/aos/vendor` (or installed via your harness's plugin mechanism) and kept current —
      never copied into the kit. Best-effort: no network, no plugin, no problem.

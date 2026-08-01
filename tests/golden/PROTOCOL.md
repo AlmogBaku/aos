@@ -85,7 +85,7 @@ Everything the run creates is identifiable and disposable:
    non-negotiable: prove it first by rendering an *untouched* skill and confirming byte
    identity with the committed snapshot, and pipe the output through the normalizer (skipping
    it leaves un-normalized values that the next real run silently flips back). Record which
-   files came in that way, here or in the transcript. `check.mjs` asserts the snapshot equals
+   files came in that way, here or in the transcript. `aos_lint.golden.check` asserts the snapshot equals
    what the normalizer produces, which catches the second mistake but not the first. Anything
    an agent *decided* — placement, links, schedules, context blocks — only a live run can
    attest.
