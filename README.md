@@ -24,9 +24,13 @@ markdown, prompts, and (where real code is needed) standalone tools behind proce
 boundaries. No runtime, no CLI, no rent.
 
 > [!TIP]
-> **Reading this as an agent?** Your entry point is [`BOOTSTRAP.md`](BOOTSTRAP.md) — the
-> install sequence (you are the installer). It tells you when to load your harness
-> runtime's [cheat-sheet](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/). Everything else here is context for your human.
+> **Reading this as an agent?** Clone first, then read the local copy:
+> `git clone https://github.com/AlmogBaku/aos.git ~/aos/upstream` →
+> `~/aos/upstream/BOOTSTRAP.md`. That is the install sequence (you are the installer), and
+> it reads files out of the clone, so following it from this web page gets you two steps in
+> and stuck. It tells you when to load your harness runtime's
+> [cheat-sheet](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/).
+> Everything else here is context for your human.
 
 ## What's in the box
 
@@ -148,7 +152,7 @@ This repo is the kit — what lands at `~/aos/upstream`, pristine (your own thin
 directory over, in `~/aos/personal`):
 
 ```text
-BOOTSTRAP.md               ← agents start here (the install sequence)
+BOOTSTRAP.md               ← agents start here, from the CLONE (the install sequence)
 CONTRIBUTING.md            ← humans with a PR start here
 capabilities/<id>/         ← the built capabilities (see table above); cheat-sheets live in
                              capability-lifecycle's reference/harness-<runtime>.md, one per runtime

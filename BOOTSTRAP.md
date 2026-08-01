@@ -7,17 +7,26 @@ carry everything else.
 
 ## The experience
 
-You are already in the clone (the paste-block cloned it — silent, harmless).
-**Before any check or write, welcome your user**, in the voice
-defined by the `capability-lifecycle` entry skill's `## Experience` section
-(`capabilities/capability-lifecycle/skills/capability-lifecycle/SKILL.md` — read it now;
-it binds every step below and every lifecycle interaction after): warm + expert, concept
-before mechanics, explain-then-act. Tell them, in your own friendly words: what aos is
-(batteries for the harness they already run), what's about to happen (~5 minutes — a short
-interview, then installs), and the two promises — *their answers become their `MOD.md`,
-forever theirs in their own private repo; nothing lands without a visible diff*. Answer
-questions if they have any, then proceed — the diff gate is the safety net, not repeated
-consent prompts.
+**Step zero — are you in the clone?** If the user pasted the README's install block, yes.
+If you got here by reading `BOOTSTRAP.md` on the web, no, and every path below resolves to
+nothing:
+
+```
+git clone https://github.com/AlmogBaku/aos.git ~/aos/upstream
+```
+
+Then follow `~/aos/upstream/BOOTSTRAP.md`, not the web page — §2 reads files out of the
+clone. Plain clone, not a fork: a fork is a public write the contract gates on the user's
+explicit yes (§1.2 offers it).
+
+**Then welcome your user, before any check or write.** Read the
+`capability-lifecycle` entry skill's `## Experience` section now
+(`capabilities/capability-lifecycle/skills/capability-lifecycle/SKILL.md`) — it binds every
+step below. In your own words: what aos is (batteries for the harness they already run),
+what happens next (~5 minutes: a short interview, then installs), and the two promises —
+*their answers become their `MOD.md`, theirs forever in their own private repo; nothing
+lands without a visible diff*. Take questions, then proceed. The diff gate is the safety
+net, not repeated consent prompts.
 
 ## 0. Prerequisites
 
@@ -46,17 +55,14 @@ Vocabulary for the user, if they ask: `upstream/` (and future org roots) are
 *distributions*; `personal/` is *their instance* — it syncs across machines via its
 private remote; only `.aos/` is machine-local.
 
-1. Confirm this clone is at `~/aos/upstream` and clean (`git -C ~/aos/upstream status`).
-   If the paste-block landed it elsewhere (e.g. `~/aos` directly — the pre-household
-   shape), stage the move: `mv ~/aos ~/aos-kit && mkdir ~/aos && mv ~/aos-kit
-   ~/aos/upstream` (a directory can't be moved inside itself in one step).
-2. Check remotes: the normal shape is `origin` = canonical, and that's all this install
-   needs. Mention once that if they ever want to contribute, forking is one command
-   (`gh repo fork --remote`, which renames canonical to `upstream`) — an *offer* they
-   take or ignore, never something you run: a fork is a public write to their account,
-   and the contract gates it behind their explicit yes. **Forks are public** — which is
-   safe, because nothing personal ever enters this clone. `gh` missing or
-   unauthenticated → say so in a clause and move on; it blocks nothing here.
+1. Confirm the clone is at `~/aos/upstream` and clean (`git -C ~/aos/upstream status`).
+   Not there at all → clone it now (the Experience section's step zero); it landed
+   elsewhere (e.g. `~/aos` directly — the pre-household shape) → stage the move:
+   `mv ~/aos ~/aos-kit && mkdir ~/aos && mv ~/aos-kit ~/aos/upstream` (a directory can't
+   be moved inside itself in one step).
+2. Remotes: `origin` = canonical is all this install needs. Mention once that contributing
+   later means forking (`gh repo fork --remote`) — an offer, never something you run. No
+   `gh`, or unauthenticated → say so and move on; it blocks nothing.
 3. Create the personal root: `git init ~/aos/personal`, seed the mirrored shape
    (`capabilities/` directory).
    Then check the commit identity: `git -C ~/aos/personal config user.email`. Empty, and
@@ -110,9 +116,9 @@ The lifecycle skills are live — from here `install <capability>` triggers
 
 1. **The global interview** — run `capability-onboard` against this capability's own
    `ONBOARDING.md`: identity, timezone, working hours, sacred time, red lines →
-   `~/aos/personal/MOD.md`. Nothing from those answers is copied into your identity file —
-   your harness already owns user context, and `MOD.md` is the authoritative store. It is the first thing the user experiences; take the Experience section
-   seriously here.
+   `~/aos/personal/MOD.md`. Copy none of it into your identity file: the harness already
+   owns user context, `MOD.md` is authoritative. This is the user's first experience of
+   aos — take the Experience section seriously here.
 2. **kb**, as an ordinary install — its interview + KB setup (adopt existing KBs / init a
    fresh one → `~/aos/personal/kb-registry.yaml`).
 
