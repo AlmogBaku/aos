@@ -139,7 +139,7 @@ description: "Records something the user has said they must do themselves: class
 5. Confirm in one line. No echo, no follow-up questions.
 ```
 
-**Installed for this user** (the *page* — what `aos-lock render` materialized into `personal/capabilities/work-tracker/skills/wt-capture/` and the LLM then personalized: the render directory, the frontmatter `name`, and the symlink all carry the **installed name**, committed there and symlinked from the harness):
+**Installed for this user** (the *page* — what `aos-cap render` materialized into `personal/capabilities/work-tracker/skills/wt-capture/` and the LLM then personalized: the render directory, the frontmatter `name`, and the symlink all carry the **installed name**, committed there and symlinked from the harness):
 
 ```markdown
 ---
@@ -207,4 +207,4 @@ path→target and checked structurally — `verify` reports MISSING / NOT A LINK
 where a link belongs) / RELINKED / DANGLING. Keyed entries in harness-owned files
 (a `jobs.json` job) are tracked by `schedules_owned` id, not by hash.
 
-Hashes exist so `aos-lock verify` can tell *"you hand-edited the rendered skill"* (→ round-trip it into MOD.md, §3.3) apart from *"the render is what we wrote"* — without them, drift is invisible and the overlay rots (risk #4).
+Hashes exist so `aos-cap verify` can tell *"you hand-edited the rendered skill"* (→ round-trip it into MOD.md, §3.3) apart from *"the render is what we wrote"* — without them, drift is invisible and the overlay rots (risk #4).
