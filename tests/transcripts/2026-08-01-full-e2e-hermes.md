@@ -46,7 +46,7 @@ expectation was the stale side, not the render.**
 
 work-tracker is fully installed and verified. Summary:
 
-**Installed work-tracker 0.1.2** into the aos-test Hermes profile, from the household at `/home/anakin/aos/tests/.sandbox/aos-home`.
+**Installed work-tracker 0.1.2** into the aos-test Hermes profile, from the household at `<repo>/tests/.sandbox/aos-home`.
 
 What landed:
 
