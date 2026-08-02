@@ -1,8 +1,7 @@
 # Contributing
 
 The fastest way to move anything here is to build against it — **a working PR outranks
-an RFC comment**. This page is the mechanics; the philosophy is in the
-[README](README.md#why-this-is-open-source).
+an RFC comment**. This page is the mechanics; the [README](README.md) is the why.
 
 ## The two branches
 
