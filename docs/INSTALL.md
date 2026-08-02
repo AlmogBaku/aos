@@ -9,7 +9,7 @@ expect, what you'll be asked, and what ends up where.
 
 - **Any harness with an agent.** There is no installer program — your own agent does the
   installing, following BOOTSTRAP. Hermes is e2e-verified today; see the
-  [support table](../README.md#install). If your harness has no cheat-sheet yet, your
+  [support table](../README.md#harnesses). If your harness has no cheat-sheet yet, your
   agent doesn't stop: BOOTSTRAP has it introspect your harness, draft its own
   cheat-sheet, and show it to you before anything lands —
   [contributing that sheet](../CONTRIBUTING.md) is how the next person skips the step.

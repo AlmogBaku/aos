@@ -2,208 +2,176 @@
 
 # aos
 
-**The batteries for your agent harness.**
-
-Capabilities that install into the agent you already run — interview you once,
-personalize themselves, and survive every upgrade.
+*The batteries for your agent harness.*
 
 [![CI](https://github.com/AlmogBaku/aos/actions/workflows/ci.yml/badge.svg)](https://github.com/AlmogBaku/aos/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Spec](https://img.shields.io/badge/spec-ARCHITECTURE%20v0.1-001F5C.svg)](https://github.com/AlmogBaku/aos/tree/spec)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Spec](https://img.shields.io/badge/spec-ARCHITECTURE%20v0.1-001F5C.svg?style=flat-square)](https://github.com/AlmogBaku/aos/tree/spec)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
+
+[Install](#install) • [What's included](#whats-included) • [The capability](#the-capability) • [Harnesses](#harnesses) • [Docs](#docs)
 
 </div>
 
-> [!NOTE]
-> `aos` is a placeholder name — [RFC-001](https://github.com/AlmogBaku/aos/blob/spec/rfcs/RFC-001-naming.md) picks the real one.
+**A kit for building your own personal assistant.**
 
-Harnesses are batteries-not-included: OpenClaw, Hermes, or NanoClaw give you an agent,
-then leave the chief-of-staff layer — knowledge base, capture, schedules, personas — for
-you to hand-roll. This kit is that layer, as a **protocol plus reference implementations**:
-markdown, prompts, and (where real code is needed) standalone tools behind process
-boundaries. No runtime, no CLI, no rent.
+Your harness — Hermes, OpenClaw, NanoClaw, Claude Code — is a runtime: an agent, a model, tools,
+somewhere to put a cron. It is not an assistant. Everything above the runtime you build yourself,
+from scratch, per harness, and it lands as loose files you can't package, share, or move.
 
-> [!TIP]
-> **Reading this as an agent?** Clone first, then read the local copy:
-> `git clone https://github.com/AlmogBaku/aos.git ~/aos/upstream` →
-> `~/aos/upstream/BOOTSTRAP.md`. That is the install sequence (you are the installer), and
-> it reads files out of the clone, so following it from this web page gets you two steps in
-> and stuck. It tells you when to load your harness runtime's
-> [cheat-sheet](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/).
-> Everything else here is context for your human.
+This kit is that missing layer, in two halves:
 
-## What's in the box
+| | |
+|---|---|
+| **The protocol** | How you package anything for a runtime: the **capability**, an interview that personalizes it, an overlay that survives upgrades, a translation per harness. No runtime, no daemon, no service — the new software is a prompt. |
+| **The implementations** | The batteries: **infrastructure** capabilities everything else builds on (a knowledge base, the capability lifecycle, soon agents talking to each other) and **personal-assistant** capabilities built on those. |
 
-Built and passing the [three CI tiers](docs/TESTING.md) today:
-
-| Capability | Type | What it does |
-|---|---|---|
-| [**kb**](capabilities/kb/) | infra | Multi-base knowledge infrastructure: registry, rules-first routing, the base engine (immutable `_raw/` + current-truth wiki), and the deterministic [`kb` tool](capabilities/kb/tool/) |
-| [**work-tracker**](capabilities/work-tracker/) | usecase | Commitments only you can keep: filed as you speak, time blocked in the same exchange, a nightly steward keeping the backlog honest, and an exit when they are done |
-| [**capability-lifecycle**](capabilities/capability-lifecycle/) | infra | The whole life of a capability, as skills in your harness: install · upgrade · remove · onboard (the interview engine → your `MOD.md`) · import (wrap what you already built) · build (a chat request that's really a use case → intake → design → approval) · contribute · evolve. Owns the household and its pinned renders, the [`aos-cap`](capabilities/capability-lifecycle/tool/) tool (lockfile + computed skill and agent names), the per-harness cheat-sheets, and Anthropic's [`skill-creator`](https://github.com/anthropics/skills) by reference |
-
-Planned next, in [build order](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#7-reference-capabilities--build-order) — each step proves one new seam:
-**ptt-mode** (voice) ·
-**interviewing** (capability-on-capability) · **news-tracker** (the "boring port") ·
-**permission-gate** (capabilities that ship code) · **router** (front-door dispatch) ·
-**agent-comms** (agent↔agent, glass-box).
+A personal chief of staff shouldn't be anyone's proprietary IP, so this is a commons — built for
+ourselves, on whatever harness we each run.
 
 ## Install
 
-Paste into your agent:
-
-> Clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream, read
-> ~/aos/upstream/BOOTSTRAP.md, then set me up.
-
-That's the whole funnel — there is no installer binary. Your harness's own agent performs
-the install: it interviews you (identity, timezone, sacred time, red lines), writes your
-answers to a `MOD.md` it will never overwrite, renders each skill against them, links the
-render into your harness, creates agents and schedules per its cheat-sheet, and records
-every artifact in a lockfile so removal is exact. Everything lands in one directory — the
-**household**:
+Paste this to your agent:
 
 ```text
-~/aos/
-├── upstream/    ← the kit clone: pristine, nothing personal ever lands here
-├── personal/    ← your private repo: MOD.md files, every rendered skill, your own capabilities
-├── vendor/      ← third-party skills the kit references rather than ships
-└── .aos/        ← machine-local: the install lockfile
+Clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream, read
+~/aos/upstream/BOOTSTRAP.md, then set me up.
 ```
 
-`upstream/` is the aos source: your install reads from it, and it's the same clone you'd
-edit to contribute — so every user is one branch from being a contributor. Change it only
-for what belongs to everybody (anything just for you is a `MOD.md` line in `personal/`);
-forking, when you need somewhere to push, is one command (`gh repo fork --remote`). Never
-a gate, and never something your agent does without asking.
+That's the whole funnel. Your own agent does the work: it interviews you (identity, timezone,
+sacred hours, red lines), writes your answers somewhere it will never overwrite, wires the skills
+into your harness, and records every artifact so removal is exact.
+
+Prerequisites: `git`, [`uv`](https://docs.astral.sh/uv/), and an agent harness. What actually
+happens: [docs/INSTALL.md](docs/INSTALL.md).
 
 > [!IMPORTANT]
-> Nothing lands in your harness without your approval: the installer shows the full diff
-> of every write before making it, and everything it materializes is recorded in
-> `.aos/installs.lock.yaml`. No lockfile record, no artifact.
+> Every change is diff-previewed before it touches your harness, and everything installed is
+> recorded — removal walks that record backwards. The diff is a standing safety net, deliberately
+> not a consent prompt per write. Separately and absolutely: your agent never pushes, forks, opens
+> a PR or files an issue without you asking it to.
+
+> [!TIP]
+> **Reading this as an agent?** Clone first, then follow the *local* copy at
+> `~/aos/upstream/BOOTSTRAP.md` — it reads files out of the clone, so working from this web page
+> strands you two steps in.
+
+## What's included
+
+**Infrastructure — the substrate everything else builds on:**
+
+| | |
+|---|---|
+| [**capability-lifecycle**](capabilities/capability-lifecycle/) | The lifecycle as skills your agent gains: install, upgrade, remove, the interview, wrapping something you already built into a capability, reviewing one. It also draws the line between **operating** and **building** mode, so before your agent makes something durable it stops and offers to plan it properly. |
+| [**kb**](capabilities/kb/) | Where your data lives. Say something worth keeping and it's filed — no form, no questions. Ask later and you get an answer *with sources*, or an honest "not in the KB". Several bases (personal, work), rules deciding what lands where, and a deterministic `kb` tool other capabilities call. |
+
+**Personal-assistant capabilities, built on those:**
+
+| | |
+|---|---|
+| [**work-tracker**](capabilities/work-tracker/) | *"I need to write the CFP by Friday"* becomes a tracked commitment with time blocked for it, in the same exchange. A nightly steward finds what slipped and asks about it. |
+
+> [!NOTE]
+> **Coming next**, mostly more substrate: **agent-comms** (agents talking to each other, with no
+> dark channels), **permission-gate**, **router**, **ptt-mode** and **interviewing** (voice),
+> **news-tracker**.
+
+## The capability
+
+The protocol has one noun. A **capability** is an installable package — **think a distro package,
+apt for your agent** — of five building blocks:
+
+| Block | What it is |
+|---|---|
+| **Skills** | knowledge your agent loads on demand — portable [Agent Skills](https://agentskills.io) folders |
+| **Agents** | personas that run scheduled or delegated work |
+| **Tools** | real commands on PATH or an MCP server, no LLM inside. Also how one capability reaches another: a process boundary, not a shared prompt |
+| **Schedules** | crons, agent-driven or script-direct |
+| **Patches** | harness modifications, where genuinely unavoidable |
+
+Installing one is a **conversation, not a command**. `install`, `update` and `remove` are things
+you say; your harness's own LLM does the work, and the only thing a tool ever touches is
+bookkeeping, hashes and diffs.
+
+**And the shipped capability is not the installed one.** Upstream ships a template; your harness
+runs *your* version. The interview asks how you want it to behave, your answers go in a repo you
+own, and the install stays reconstructible as `template × your answers`:
+
+- Upstream never ships, writes or merges your answers. `git pull` cannot reach them.
+- An upgrade re-runs the transform against the new version. **That transform is judgment, not
+  templating** — which is why the gate is a git diff in your own repo: read what changed, commit
+  to accept, `git revert` to roll back.
+- Edit the installed thing by hand and your agent folds the change back into your answers.
+
+Two kinds, and the manifest says which. **Infrastructure** (`tags: [infra]`) is substrate others
+layer on; **use-case** (`tags: [usecase]`) solves one problem by composing the layers below. That
+layering is the point: `work-tracker` is under 900 lines of markdown and YAML with no storage
+engine, no retrieval and no installer of its own, because the two infra capabilities beneath it
+have those. Its steward calls `kb find --where status=next` as a shell command.
+
+Where this sits next to curated packs like gstack, and the 26-project survey behind `kb`:
+[prior-art.md](https://github.com/AlmogBaku/aos/blob/spec/prior-art.md).
+
+## Harnesses
+
+![aos architecture: use-case capabilities compose on infrastructure capabilities, which break down into skills; your answers sit beside them in your own repo; the harness LLM combines the capability, your answers and a per-harness cheat-sheet into your own version, linked into your harness](docs/diagram.svg)
+
+Only the [Agent Skills](https://agentskills.io) folder is portable today; hooks, schedules,
+sub-agents and secret stores differ materially. So support is a **translation** problem, and the
+translation is a **document, not code** — six sections teaching that harness's own LLM how the
+concepts map onto its primitives. No adapter, no plugin, and with no document at all your agent
+works the mapping out itself.
+
+**Written for five harnesses, verified end to end on one.** A capability lists a harness only once
+someone has actually run it there, which is why exactly one row below is bold.
 
 | Harness | Status |
 |---|---|
-| [OpenClaw](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-openclaw.md) | 🧪 cheat-sheet shipped, research-drafted — not yet e2e-verified |
-| [Hermes](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md) | ✅ supported — e2e-tested for real |
-| [NanoClaw](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanoclaw.md) (v1 + v2) | 🧪 cheat-sheet shipped, research-drafted — not yet e2e-verified |
-| [Nanobot](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanobot.md) | 🧪 cheat-sheet shipped, research-drafted — not yet e2e-verified |
-| Claude Code | 🧪 cheat-sheet shipped, research-drafted — no runner yet |
-| OpenCode | 📋 planned — BOOTSTRAP's no-cheat-sheet path works today; [contribute a sheet](CONTRIBUTING.md) |
+| [Hermes](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md) | **Supported** — verified by a real install, not a simulation |
+| [OpenClaw](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-openclaw.md) · [NanoClaw](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanoclaw.md) · [Nanobot](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanobot.md) · [Claude Code](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-claude-code.md) | Translation written from the harness's docs; no real install has run against it yet |
+| OpenCode | Planned — and the no-document path works today |
 
-New here? The human-facing walkthrough is [docs/INSTALL.md](docs/INSTALL.md).
+[Adding one](CONTRIBUTING.md) is one document.
 
-## What it feels like
+## The loop this is all for
 
-```text
-You    ▸ capture: renew the passport before the Berlin trip
-Agent  ▸ 🦜                          # your MOD.md picked that confirmation — instant, no questions
+Someone builds a personal-trainer capability in their own harness and asks their agent to wrap it
+into a package; it splits the generic mechanism from their personal details. PR. You install it,
+and the interview asks *you* — your goals, your gym days, your injuries. Their next release merges
+in without touching your answers.
 
-You    ▸ I need to find time to write the CFP before Friday
-Agent  ▸ filed, and blocked 09:00-11:00 Thursday — outside your sacred hours.
-         Sound right?                # the same exchange, not at midnight
-
-23:00  ▸ the steward walks the backlog: the CFP block still stands, one
-         commitment has slipped three times and is worth re-deciding — it asks
-23:30  ▸ kb's archiver promotes what is actually knowledge into wiki pages
-         (skeptical by default — most captures aren't)
-
-You    ▸ what's on my plate for the Berlin trip?
-Agent  ▸ a query, not a list file — with links into your KB, and "not in the KB"
-         when it doesn't know, instead of inventing an answer
-```
-
-Capture is dumb and fast; judgment runs on schedules; recall cites its sources and admits
-gaps. Day-to-day details: [docs/USAGE.md](docs/USAGE.md).
-
-## How it works
-
-![aos architecture: use-case capabilities compose on infra capabilities (knowledge base, capability lifecycle), which break down into skills; the user-owned MOD.md overlay sits beside them; both live in the household — upstream/, personal/, vendor/, .aos/ — and the harness LLM turns capability × MOD.md × cheat-sheet into a pinned render symlinked into your harness](docs/diagram.svg)
-
-Seven commitments make the loop work (plain-words tour in [docs/CONCEPTS.md](docs/CONCEPTS.md)):
-
-- **Protocol, not runtime.** A capability is a directory of skills, agent specs, schedules,
-  and templates your harness's LLM installs — `install`/`update`/`remove` are conversations,
-  never a program.
-- **Your personalization is untouchable.** Interviews write `MOD.md` files that upstream
-  never ships or merges; a `git pull` can't eat your nuances — by construction. They live
-  in your own repo beside every rendered skill, so an upgrade is a git diff you review and
-  a rollback is `git revert`.
-- **One render, linked — never copied.** Applying your answers to a skill is judgment, so
-  the result is written once into `personal/`, committed, and symlinked into your harness.
-  One canonical copy means "what's installed" has exactly one answer.
-- **The adapter is knowledge, not code.** Supporting a harness means writing a
-  [cheat-sheet](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md) that teaches its own LLM the mapping —
-  six sections, zero glue code. And it's an aid, not a gate: with no cheat-sheet,
-  BOOTSTRAP has the agent derive the mapping itself.
-- **Every capability has one face.** An entry skill named after the capability is the
-  runtime map; depth stays one `reference/` hop away.
-- **A name is single-owner, and never hand-written.** Harnesses keep one flat namespace for
-  skills and another for agents, so the name each installs under is computed
-  (`<skill_prefix><id>`) and gated against everything already there — your other
-  capabilities, the lockfile, and skills aos never installed. Shipped prose says
-  `{{skill: <id>}}` rather than the computed result, so renaming a prefix can't leave a
-  hundred references pointing at nothing.
-- **Deterministic where it counts.** Real machinery (like kb's `kb` tool) is standalone,
-  judgment-free software: files and exit codes, no LLM inside.
+**Wrap → share → install → personalize → upgrade.** Neither of you rewrote anything. Every
+contract in this repo exists to make that loop work, and the first step is the cheapest
+contribution path there is: you already have a working version of something.
 
 ## Repo layout
 
-This repo is the kit — what lands at `~/aos/upstream`, pristine (your own things live one
-directory over, in `~/aos/personal`):
+This repo is the kit — what lands at `~/aos/upstream`. Your own things live one directory over.
 
 ```text
-BOOTSTRAP.md               ← agents start here, from the CLONE (the install sequence)
-CONTRIBUTING.md            ← humans with a PR start here
-capabilities/<id>/         ← the built capabilities (see table above); cheat-sheets live in
-                             capability-lifecycle's reference/harness-<runtime>.md, one per runtime
-docs/                      ← concepts, install & usage guides, testing, gap ledger
-tools/ · tests/            ← deterministic lint + golden-render checks (CI)
+BOOTSTRAP.md          the install sequence (agents start here, from the clone)
+capabilities/<id>/    the built capabilities; per-harness cheat-sheets live inside
+                      capability-lifecycle's reference/
+docs/                 concepts, install and usage guides, testing, the gap ledger
+tools/ · tests/       the lint, the gates, and the golden-render checks CI runs
 ```
 
-The **[`spec` branch](https://github.com/AlmogBaku/aos/tree/spec)** is the other half of
-the repo: the normative [ARCHITECTURE.md](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md),
-eight open [RFCs](https://github.com/AlmogBaku/aos/tree/spec/rfcs), capability one-pagers,
-and design deep-dives. Main is the kit you install; spec is the paper it's built against.
+The [`spec` branch](https://github.com/AlmogBaku/aos/tree/spec) is the other half:
+[ARCHITECTURE.md](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md) (normative), the
+open [RFCs](https://github.com/AlmogBaku/aos/tree/spec/rfcs), capability one-pagers and design
+deep-dives. Main is the kit you install; spec is the paper it's built against.
 
-## The one story to keep in mind
-
-A team member's personal-trainer capability, built in their own Hermes: they *ask their
-agent* to import it into the kit → PR → you ask your agent to install it → the interview
-asks *you* (your goals, your gym days, your injuries) → your harness runs *your*
-version → the author's next release merges in without touching your nuances.
-**Wrap → share → install → personalize → upgrade.** Every contract in this repo exists to
-make that loop work.
-
-## Why this is open source
-
-The harness companies — and a wave of startups on top of them — are commercializing exactly
-this layer: the built-in building blocks, the chief-of-staff, the second brain. We are
-builders. We build this anyway, for ourselves, on whatever harness we each run — and we're
-not going to pay rent on our own work, to them or to anyone productizing it.
-
-A chief of staff is not something that should live inside some company's proprietary IP.
-It's something everybody should have. Turning it into a product is not our job; keeping it
-a commons is. That's why the concepts, the contracts, and the batteries are open — MIT, one
-repo, belonging to the people who build with them.
+> [!NOTE]
+> `aos` is a placeholder name — [RFC-001](https://github.com/AlmogBaku/aos/blob/spec/rfcs/RFC-001-naming.md)
+> picks the real one.
 
 ## Docs
 
 | Doc | The question it answers |
 |---|---|
-| [docs/CONCEPTS.md](docs/CONCEPTS.md) | What is a capability, an overlay, a base? — the mental model |
+| [docs/CONCEPTS.md](docs/CONCEPTS.md) | What is a capability, an overlay, a base? |
 | [docs/INSTALL.md](docs/INSTALL.md) | What actually happens when I install this? |
 | [docs/USAGE.md](docs/USAGE.md) | How do I use it day to day? |
-| [BOOTSTRAP.md](BOOTSTRAP.md) | (For your agent) the exact install sequence |
 | [docs/TESTING.md](docs/TESTING.md) | How is any of this tested without a runtime? |
-| [docs/BUILD-GAPS.md](docs/BUILD-GAPS.md) | Where has building diverged from the spec, and what happened? |
-| [Spec branch reading list](https://github.com/AlmogBaku/aos/tree/spec#readme) | The contracts themselves — normative |
-
-## Contributing
-
-The fastest way to move anything is to build against it — a working PR outranks an RFC
-comment. Capability PRs, harness cheat-sheets, and RFC input are all wanted:
-**[CONTRIBUTING.md](CONTRIBUTING.md)**.
-
-## License
-
-[MIT](LICENSE).
+| [docs/BUILD-GAPS.md](docs/BUILD-GAPS.md) | Where has building diverged from the spec? |
+| [BOOTSTRAP.md](BOOTSTRAP.md) | (For your agent) the exact install sequence |
