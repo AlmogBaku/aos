@@ -9,7 +9,7 @@
 [![Spec](https://img.shields.io/badge/spec-ARCHITECTURE%20v0.1-001F5C.svg?style=flat-square)](https://github.com/AlmogBaku/aos/tree/spec)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
-[What you get](#what-you-get) • [Install](#install) • [How it works](#how-it-works) • [Harnesses](#harness-support) • [Docs](#docs)
+[What you get](#what-you-get) • [Compare](#how-this-compares) • [Install](#install) • [How it works](#how-it-works) • [Harnesses](#harness-support) • [Docs](#docs)
 
 </div>
 
@@ -39,6 +39,25 @@ Two properties that shape daily use:
   passes that need thinking run overnight, where waiting is free.
 - **Recall admits gaps.** Answers cite their sources, and "not in the KB" beats a confident
   invention.
+
+## How this compares
+
+Curated capability packs for agent harnesses already exist, and some are popular. The gap is
+not *what* they ship — it's what happens when you adapt it.
+
+|  | Personalize by | What an upgrade does |
+|---|---|---|
+| [gstack](https://github.com/garrytan/gstack) (~122k★) — dev-team skills, multi-host, paste-to-install | Forking the repo | You lose upstream. The community's own workaround is to stay forked; its harshest reviewer kept 6 of 35 commands |
+| PAI / LifeOS — life-ops on Claude Code, 45 skills, has an interview | Forking the template | Same: no upstream story, single harness by construction |
+| **aos** | Answering an interview, once | Re-applies your answers to the new version and shows you the diff |
+
+The one-line version: **gstack's distribution architecture, applied to chief-of-staff work,
+with the personalization layer it doesn't have.** An opinionated pack that assumes you are its
+author sheds most of its surface on contact with anyone else; the fix isn't fewer opinions, it's
+somewhere for yours to live that upgrades can't reach.
+
+Researched properly, including the knowledge-base field (26 projects) and what was deliberately
+*not* copied: [prior-art.md](https://github.com/AlmogBaku/aos/blob/spec/prior-art.md).
 
 ## Install
 
