@@ -9,7 +9,7 @@
 [![Spec](https://img.shields.io/badge/spec-ARCHITECTURE%20v0.1-001F5C.svg?style=flat-square)](https://github.com/AlmogBaku/aos/tree/spec)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
-[The capability](#the-capability) • [What's included](#whats-included) • [Compare](#how-this-compares) • [Install](#install) • [Any harness](#one-capability-any-harness) • [Docs](#docs)
+[The capability](#the-capability) • [What's included](#whats-included) • [Compare](#how-this-compares) • [Install](#install) • [Many harnesses](#one-capability-many-harnesses) • [Docs](#docs)
 
 </div>
 
@@ -51,8 +51,10 @@ you own, and the install is always reconstructible as `template × your answers`
 not the file format — is where the whole product lives:
 
 - Upstream never ships, writes or merges your answers. `git pull` cannot reach them.
-- An upgrade re-runs the same transform against the new version. The review gate is a git diff in
-  your own repo: commit to accept, `git revert` to roll back.
+- An upgrade re-runs the same transform against the new version. **That transform is judgment,
+  not templating** — which is exactly why the review gate is a git diff in your own repo: you
+  read what changed, commit to accept, `git revert` to roll back. The guarantee is
+  reconstructible and reviewable, not magic.
 - Edit the installed thing by hand and your agent folds the change back into your answers, so the
   next upgrade keeps it.
 
@@ -94,22 +96,34 @@ Two properties that shape daily use:
 
 ## How this compares
 
-Curated capability packs for agent harnesses already exist, and some are popular. The gap is
-not *what* they ship — it's what happens when you adapt it.
+Curated capability packs exist, and one is very popular. The interesting axis isn't *what* they
+ship — it's what happens when you adapt it, and for whom.
 
-|  | Personalize by | What an upgrade does |
-|---|---|---|
-| [gstack](https://github.com/garrytan/gstack) (~122k★) — dev-team skills, multi-host, paste-to-install | Forking the repo | You lose upstream. The community's own workaround is to stay forked; its harshest reviewer kept 6 of 35 commands |
-| PAI / LifeOS — life-ops on Claude Code, 45 skills, has an interview | Forking the template | Same: no upstream story, single harness by construction |
-| **aos** | Answering an interview, once | Re-applies your answers to the new version and shows you the diff |
+|  | Domain | Personalize by | Then an upgrade… |
+|---|---|---|---|
+| [gstack](https://github.com/garrytan/gstack) (~122k★) | dev team | forking the repo | …is something you've opted out of |
+| PAI / LifeOS | life ops | copying the template | …is something you've opted out of |
+| **aos** | life ops | answering an interview | …re-runs against your answers, diff in hand |
 
-The one-line version: **gstack's distribution architecture, applied to chief-of-staff work,
-with the personalization layer it doesn't have.** An opinionated pack that assumes you are its
-author sheds most of its surface on contact with anyone else; the fix isn't fewer opinions, it's
-somewhere for yours to live that upgrades can't reach.
+Two things follow, and only the second is a criticism:
 
-Researched properly, including the knowledge-base field (26 projects) and what was deliberately
-*not* copied: [prior-art.md](https://github.com/AlmogBaku/aos/blob/spec/prior-art.md).
+- **gstack got the distribution architecture right**, and we took it: paste-to-install as the
+  entire funnel, one file per harness as a first-class contribution path, and state that updates
+  never touch. Its install path is the same bet as ours — paste a sentence, the agent's own LLM
+  does the work.
+- **It has no place for your version to live.** Adapt a persona's text and you're forked, so you
+  choose between your changes and their next release. That's tolerable in the dev-team domain and
+  corrosive in life-ops, where the whole value *is* your specifics — your hours, your people, your
+  red lines.
+
+So: **gstack's distribution architecture, applied to chief-of-staff life-ops, with the
+personalization layer it doesn't have.** (Their own README demo is a user building a personal
+chief of staff. Our domain is their example.)
+
+There's a second, denser positioning claim behind `kb`: a 26-project survey found the knowledge-base
+field split between *filing without governance* and *governance without files*, with nothing
+file-native doing both. That, the projects deliberately **not** copied, and the numbers behind the
+table are in [prior-art.md](https://github.com/AlmogBaku/aos/blob/spec/prior-art.md).
 
 ## Install
 
@@ -123,9 +137,10 @@ sacred hours, red lines), writes your answers somewhere it will never overwrite,
 skills into your harness, and records every artifact so removal is exact.
 
 > [!IMPORTANT]
-> Nothing lands without your approval. You see the full diff of every write before it happens,
-> and everything installed is recorded — no record, no artifact. Removal walks that record
-> backwards.
+> Every change is diff-previewed before it touches your harness, and everything installed is
+> recorded — no record, no artifact, and removal walks that record backwards. The diff is a
+> standing safety net, deliberately not a consent prompt per write. Separately and absolutely:
+> your agent never pushes, forks, opens a PR or files an issue without you asking it to.
 
 Prerequisites: `git`, [`uv`](https://docs.astral.sh/uv/), and an agent harness. Walkthrough of
 what actually happens: [docs/INSTALL.md](docs/INSTALL.md).
@@ -135,7 +150,7 @@ what actually happens: [docs/INSTALL.md](docs/INSTALL.md).
 > `~/aos/upstream/BOOTSTRAP.md` — it reads files out of the clone, so working from this web
 > page strands you two steps in.
 
-## One capability, any harness
+## One capability, many harnesses
 
 ![aos architecture: use-case capabilities compose on infrastructure capabilities, which break down into skills; your answers sit beside them in your own repo; the harness LLM combines the capability, your answers and a per-harness cheat-sheet into your own version, linked into your harness](docs/diagram.svg)
 
@@ -151,6 +166,11 @@ than pretending the seam isn't there, and says honestly when a harness can't do 
 Anything that must be exact — computed names, hashes, layout — comes from a judgment-free tool:
 files and exit codes, no LLM inside. Everything needing taste stays with the agent, behind the
 diff gate.
+
+**Where this stands honestly:** the translation is designed and written for five harnesses, and
+**verified end to end on one.** A capability lists a harness only when someone has actually run it
+there — which is why the table below has one green row and several caveats, and why "across
+harnesses" is the bet this project is still earning rather than a result it can show you.
 
 Plain-words tour of the model: [docs/CONCEPTS.md](docs/CONCEPTS.md).
 
@@ -170,8 +190,7 @@ Plain-words tour of the model: [docs/CONCEPTS.md](docs/CONCEPTS.md).
 > has run against it. It is marked that way until someone runs one — [adding a
 > sheet](CONTRIBUTING.md) is one document.
 
-More batteries are coming, and most of them are substrate — in
-[build order](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#7-reference-capabilities--build-order):
+More batteries are coming, and most of them are substrate:
 
 | Planned | Kind | What it unlocks |
 |---|---|---|
@@ -190,6 +209,12 @@ run your version. Their next release merges in without touching your answers.
 
 **Wrap → share → install → personalize → upgrade.** Neither of you rewrote anything. Every
 contract in this repo exists to make that loop work.
+
+That first step is deliberate: **you already have a working version of something.** Wrapping it
+should feel like packaging, not a rewrite — so ask your agent to import it, and it inventories
+what you built, separates the generic mechanism from your personal details, and hands you a draft
+plus a report on what it couldn't figure out. That's how the commons gets seeded, and it's the
+cheapest contribution path there is.
 
 ## Repo layout
 
