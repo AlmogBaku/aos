@@ -34,8 +34,7 @@ ourselves, on whatever harness we each run.
 Paste this to your agent:
 
 ```text
-Clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream, read
-~/aos/upstream/BOOTSTRAP.md, then set me up.
+Clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream, read ~/aos/upstream/BOOTSTRAP.md, then set me up.
 ```
 
 That's the whole funnel. Your own agent does the work: it interviews you (identity, timezone,
