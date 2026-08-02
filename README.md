@@ -33,8 +33,10 @@ ourselves, on whatever harness we each run.
 
 Paste this to your agent:
 
-> Clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream, read
-> ~/aos/upstream/BOOTSTRAP.md, then set me up.
+```text
+Clone https://github.com/AlmogBaku/aos.git to ~/aos/upstream, read
+~/aos/upstream/BOOTSTRAP.md, then set me up.
+```
 
 That's the whole funnel. Your own agent does the work: it interviews you (identity, timezone,
 sacred hours, red lines), writes your answers somewhere it will never overwrite, wires the skills
@@ -69,9 +71,10 @@ happens: [docs/INSTALL.md](docs/INSTALL.md).
 |---|---|
 | [**work-tracker**](capabilities/work-tracker/) | *"I need to write the CFP by Friday"* becomes a tracked commitment with time blocked for it, in the same exchange. A nightly steward finds what slipped and asks about it. |
 
-Coming next, mostly more substrate: **agent-comms** (agents talking to each other, with no dark
-channels), **permission-gate**, **router**, **ptt-mode** and **interviewing** (voice),
-**news-tracker**.
+> [!NOTE]
+> **Coming next**, mostly more substrate: **agent-comms** (agents talking to each other, with no
+> dark channels), **permission-gate**, **router**, **ptt-mode** and **interviewing** (voice),
+> **news-tracker**.
 
 ## The capability
 
@@ -82,7 +85,7 @@ apt for your agent** — of five building blocks:
 |---|---|
 | **Skills** | knowledge your agent loads on demand — portable [Agent Skills](https://agentskills.io) folders |
 | **Agents** | personas that run scheduled or delegated work |
-| **Tools** | real commands on PATH, no LLM inside. Also how one capability reaches another: a process boundary, not a shared prompt |
+| **Tools** | real commands on PATH or an MCP server, no LLM inside. Also how one capability reaches another: a process boundary, not a shared prompt |
 | **Schedules** | crons, agent-driven or script-direct |
 | **Patches** | harness modifications, where genuinely unavoidable |
 
