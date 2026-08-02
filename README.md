@@ -13,19 +13,28 @@
 
 </div>
 
-**Harnesses are batteries-not-included.** Hermes, OpenClaw, NanoClaw, Claude Code — each hands
-you an agent and its own way of doing skills, personas, schedules and secrets. Personal harnesses
-read as chatbots, but they're runtimes: a chat message can seed a cron, a persona, a standing
-automation. Anything durable you build lands as loose files wired into one harness by hand, with
-no way to package it, share it, or move it.
+**A kit for building your own personal assistant.**
 
-**This kit is the batteries.** Not a framework — two things: a **protocol** for how you ship a
-capability, change it, and keep it updated, and a set of **implementations** built on it. There is
-no runtime, no daemon, no service. The new software is a prompt.
+Your harness — Hermes, OpenClaw, NanoClaw, Claude Code — is a runtime. It gives you an agent, a
+model, tools, somewhere to put a cron. What it doesn't give you is an assistant: everything above
+the runtime is yours to invent. A place to keep what you know. Something that remembers what you
+said you'd do. Passes that run while you sleep. A way to say "not during choir practice" once and
+have it stick. Everyone builds that themselves, from scratch, per harness — and it ends up as
+loose files hand-wired into one runtime, with no way to package it, share it, or move it.
 
-And the batteries are a commons. Harness vendors and a wave of startups are commercializing
-exactly this layer; we build it anyway, for ourselves, on whatever harness we each run. A personal
-chief of staff shouldn't be anyone's proprietary IP.
+**Harnesses are batteries-not-included. This kit is the batteries.** Two layers, and both matter:
+
+| | |
+|---|---|
+| **The protocol** | How you build for a runtime at all: the **capability** as a unit of packaging, an interview that personalizes it, an overlay that survives upgrades, and a translation per harness. The methodology, not a framework — there is no runtime here, no daemon, no service. The new software is a prompt. |
+| **The implementations** | The batteries themselves: **infrastructure** capabilities everything else is built on (a knowledge base to serve your data, the lifecycle that installs and evolves capabilities, soon agents talking to each other) and **personal-assistant** capabilities built on those (commitment tracking today; briefings, news, voice next). |
+
+Both halves ship in one repo, and the second is what proves the first is usable. Once the protocol
+holds, everybody just contributes implementations — nobody has to build a platform.
+
+And the batteries are a commons. Harness vendors and a wave of startups are commercializing exactly
+this layer; we build it anyway, for ourselves, on whatever harness we each run. A personal chief of
+staff shouldn't be anyone's proprietary IP.
 
 ## The capability
 
@@ -72,16 +81,17 @@ steward calls `kb find --where status=next` as a shell command; it never loads a
 
 ## What's included
 
-The batteries. Three today, more coming.
+Three capabilities today, more coming. Every one of them is also a worked example of the protocol
+— `capability-lifecycle` most of all, since the thing that installs capabilities is itself one.
 
-**Infrastructure — what you build on:**
+**Infrastructure — the substrate everything else is built on:**
 
 | | |
 |---|---|
 | [**capability-lifecycle**](capabilities/capability-lifecycle/) | The lifecycle itself, as skills your agent gains: install, upgrade, remove, the interview, wrapping something you already built into a capability, and reviewing one. It also draws the line between **operating** and **building** mode — a chat message can seed a cron or a persona as easily as a one-off answer, so before your agent builds something durable it stops and offers to plan it properly. |
 | [**kb**](capabilities/kb/) | Where your data lives. Say something worth keeping and it's filed — no form, no questions. Ask later and you get an answer *with sources*, or an honest "not in the KB". Several bases (personal, work) with rules deciding what lands where, and a deterministic `kb` tool other capabilities call. |
 
-**Use-case — what it looks like when you build on them:**
+**Personal-assistant capabilities — what it looks like when you build on them:**
 
 | | |
 |---|---|
@@ -93,6 +103,16 @@ Two properties that shape daily use:
   passes that need thinking run overnight, where waiting is free.
 - **Recall admits gaps.** Answers cite their sources, and "not in the KB" beats a confident
   invention.
+
+**Coming next**, and most of it is substrate rather than more assistants:
+
+| Planned | Kind | What it unlocks |
+|---|---|---|
+| **agent-comms** | infra | Agents talking to each other: a real envelope, and a glass-box rule so there are no dark channels between them |
+| **permission-gate** | infra | Capabilities that ship code, with per-user and per-group access control |
+| **router** | infra | Front-door dispatch, so several personas stop fighting over one inbox |
+| **ptt-mode** · **interviewing** | infra | Voice, and capabilities that interview on behalf of other capabilities |
+| **news-tracker** | usecase | The deliberately boring port — proof the contract is cheap to build against |
 
 ## How this compares
 
@@ -167,38 +187,20 @@ Anything that must be exact — computed names, hashes, layout — comes from a 
 files and exit codes, no LLM inside. Everything needing taste stays with the agent, behind the
 diff gate.
 
-**Where this stands honestly:** the translation is designed and written for five harnesses, and
-**verified end to end on one.** A capability lists a harness only when someone has actually run it
-there — which is why the table below has one green row and several caveats, and why "across
-harnesses" is the bet this project is still earning rather than a result it can show you.
-
-Plain-words tour of the model: [docs/CONCEPTS.md](docs/CONCEPTS.md).
-
-## Harness support
+**Where this stands honestly:** the translation is written for five harnesses and **verified end to
+end on one.** "Across harnesses" is the bet this project is still earning, not a result it can show
+you yet.
 
 | Harness | Status |
 |---|---|
-| [Hermes](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md) | Supported — verified by a real install, not a simulation |
-| [OpenClaw](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-openclaw.md) | Cheat-sheet shipped, research-drafted — not yet verified end to end |
-| [NanoClaw](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanoclaw.md) (v1 + v2) | Cheat-sheet shipped, research-drafted |
-| [Nanobot](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanobot.md) | Cheat-sheet shipped, research-drafted |
-| [Claude Code](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-claude-code.md) | Cheat-sheet shipped, research-drafted |
-| OpenCode | Planned — the no-cheat-sheet path works today |
+| [Hermes](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md) | **Supported** — verified by a real install, not a simulation |
+| [OpenClaw](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-openclaw.md) · [NanoClaw](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanoclaw.md) · [Nanobot](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanobot.md) · [Claude Code](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-claude-code.md) | Translation written from the harness's docs; no real install has run against it yet |
+| OpenCode | Planned — and the no-document path works today |
 
-> [!NOTE]
-> "Research-drafted" means the mapping was written from the harness's docs but no real install
-> has run against it. It is marked that way until someone runs one — [adding a
-> sheet](CONTRIBUTING.md) is one document.
+A capability lists a harness only once someone has actually run it there — which is why exactly one
+row is bold. [Adding a harness](CONTRIBUTING.md) is one document.
 
-More batteries are coming, and most of them are substrate:
-
-| Planned | Kind | What it unlocks |
-|---|---|---|
-| **agent-comms** | infra | Agents talking to each other: a real envelope, and a glass-box rule so there are no dark channels between them |
-| **permission-gate** | infra | Capabilities that ship code, with per-user and per-group access control |
-| **router** | infra | Front-door dispatch, so several personas stop fighting over one inbox |
-| **ptt-mode** · **interviewing** | infra | Voice, and capabilities that interview on behalf of other capabilities |
-| **news-tracker** | usecase | The deliberately boring port — proof the contract is cheap to build against |
+Plain-words tour of the whole model: [docs/CONCEPTS.md](docs/CONCEPTS.md).
 
 ## The loop this is all for
 
