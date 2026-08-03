@@ -1,7 +1,8 @@
 # Importer acceptance — trip-planning, 2026-07-22
 
 Real run of capabilities/importer/skills/import against the live Hermes (read-only,
-verified: zero writes to ~/.hermes or ~/ai-kb; ai-kb working tree clean). Draft emitted
+verified: zero writes to ~/.hermes or to any KB outside the sandbox; the source tree's
+working tree was clean). Draft emitted
 to the sandbox only — the draft MOD.md holds real nuances and is never committed.
 
 ## Result — acceptance bar met

@@ -91,7 +91,7 @@
   <text class="tier-label" x="30" y="598">PERSONALIZED INSTALLS <tspan class="atomic">· your version, in your harness</tspan></text>
   <g>
     <rect class="box page" x="30" y="610" width="270" height="46" rx="23"/>
-    <text x="165" y="638" font-size="12" fill="white" text-anchor="middle" font-weight="700">Almog's stack · Hermes/NanoClaw/OpenClaw</text>
+    <text x="165" y="638" font-size="12" fill="white" text-anchor="middle" font-weight="700">Your stack · Hermes/NanoClaw/OpenClaw</text>
     <rect class="box page" x="330" y="610" width="220" height="46" rx="23" opacity="0.85"/>
     <text x="440" y="638" font-size="12" fill="white" text-anchor="middle" font-weight="700">Collaborator's harness</text>
     <rect class="box page" x="580" y="610" width="180" height="46" rx="23" opacity="0.7"/>

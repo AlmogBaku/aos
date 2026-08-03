@@ -11,21 +11,21 @@ Cron output artifacts:
 - Removed the empty `cron/output/` directories recreated by Hermes.
 
 Materialized skill directories removed:
-- `/home/anakin/.hermes/profiles/aos-archiver/skills/kb-authz-check/`
-- `/home/anakin/.hermes/profiles/aos-archiver/skills/kb-lint/`
-- `/home/anakin/.hermes/profiles/aos-drainer/skills/gtd-capture-drain/`
-- `/home/anakin/.hermes/profiles/aos-drainer/skills/gtd-capture-format-entry/`
-- `/home/anakin/.hermes/profiles/aos-test/skills/gtd-capture-capture/`
-- `/home/anakin/.hermes/profiles/aos-test/skills/gtd-capture-format-entry/`
-- `/home/anakin/.hermes/profiles/aos-test/skills/kb-adopt/`
-- `/home/anakin/.hermes/profiles/aos-test/skills/kb-authz-check/`
-- `/home/anakin/.hermes/profiles/aos-test/skills/kb-init/`
-- `/home/anakin/.hermes/profiles/aos-test/skills/kb-route/`
-- `/home/anakin/.hermes/profiles/aos-test/skills/onboarding-interview/`
+- `~/.hermes/profiles/aos-archiver/skills/kb-authz-check/`
+- `~/.hermes/profiles/aos-archiver/skills/kb-lint/`
+- `~/.hermes/profiles/aos-drainer/skills/gtd-capture-drain/`
+- `~/.hermes/profiles/aos-drainer/skills/gtd-capture-format-entry/`
+- `~/.hermes/profiles/aos-test/skills/gtd-capture-capture/`
+- `~/.hermes/profiles/aos-test/skills/gtd-capture-format-entry/`
+- `~/.hermes/profiles/aos-test/skills/kb-adopt/`
+- `~/.hermes/profiles/aos-test/skills/kb-authz-check/`
+- `~/.hermes/profiles/aos-test/skills/kb-init/`
+- `~/.hermes/profiles/aos-test/skills/kb-route/`
+- `~/.hermes/profiles/aos-test/skills/onboarding-interview/`
 
 Recorded scripts removed:
-- `/home/anakin/.hermes/profiles/aos-archiver/scripts/kb-sync-all.sh`
-- `/home/anakin/.hermes/profiles/aos-archiver/scripts/kb-sync.sh`
+- `~/.hermes/profiles/aos-archiver/scripts/kb-sync-all.sh`
+- `~/.hermes/profiles/aos-archiver/scripts/kb-sync.sh`
 
 Config keys unset via Hermes CLI:
 - `model.default` from `aos-test`
@@ -33,12 +33,12 @@ Config keys unset via Hermes CLI:
 - `model.default` from `aos-drainer`
 
 Marker blocks removed from:
-- `/home/anakin/.hermes/profiles/aos-test/SOUL.md`
-- `/home/anakin/.hermes/profiles/aos-archiver/SOUL.md`
-- `/home/anakin/.hermes/profiles/aos-drainer/SOUL.md`
+- `~/.hermes/profiles/aos-test/SOUL.md`
+- `~/.hermes/profiles/aos-archiver/SOUL.md`
+- `~/.hermes/profiles/aos-drainer/SOUL.md`
 
 Updated:
-- `/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+- `~/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
 
 The lockfile now has empty `created_profiles`, `config_keys`, `capabilities`, and `artifacts`.
 
@@ -47,7 +47,7 @@ Preserved:
 - `CLONE/MOD.md`
 - `CLONE/kb-registry.yaml`
 - Capability overlay files
-- User KBs under `/home/anakin/aos/tests/.sandbox/kb`
+- User KBs under `~/aos/tests/.sandbox/kb`
 
 Verification:
 - All three profiles still exist.

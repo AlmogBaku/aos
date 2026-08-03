@@ -6,15 +6,15 @@ Installed only:
   - `skills/capability-builder-capability-builder/`
   - `skills/capability-builder-evolve-capability/`
 
-Target: `/home/anakin/.hermes/profiles/aos-test`
+Target: `~/.hermes/profiles/aos-test`
 
 The capability-builder mode-boundary block was appended verbatim to:
 
-`/home/anakin/.hermes/profiles/aos-test/SOUL.md`
+`~/.hermes/profiles/aos-test/SOUL.md`
 
 Lockfile:
 
-`/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+`~/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
 
 Verification:
 

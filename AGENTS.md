@@ -40,7 +40,7 @@ prefix `uv run --quiet --project tools/aos_lint python -m`.
 | everything CI runs | `bash tools/check.sh` |
 | tier 0 — tool suites | `uv run tests/tool/test_kb.py` · `uv run tests/tool/test_cap.py` |
 | tier 1 — lint | `aos_lint.cli` · `aos_lint.selftest` |
-| tier 1 — gates | `aos_lint.gates.{retired,coverage,kb_commands}` |
+| tier 1 — gates | `aos_lint.gates.{retired,coverage,kb_commands,privacy}` |
 | tier 2 — goldens | `aos_lint.golden.check` |
 | **version-bump check** | `aos_lint.cli --base origin/main` |
 | the `kb` tool ad hoc | `uv run --project capabilities/kb/tool kb --help` — 24 verbs: `init adopt migrate capture ingest pending inbox find set prune archive search links state grants lint index sync commit history refuse verify config import` |
@@ -74,7 +74,9 @@ overlay contract (inviolable)**, §4 KB, §5 install, §7 build order, **§8 dec
 `aos_lint` **imports** name computation and manifest vocabulary from the shipped `aos-cap`
 rather than mirroring it. `constants.py` owns `KIT_NAME`, so the RFC-001 rename is one file.
 
-**Never touch `~/.hermes` outside `aos-*` profiles, or `~/ai-kb` at all.**
+**Stay inside your own namespace.** A run touches `~/.hermes` only under the `aos-*` profiles
+it created, and writes a KB only under `tests/.sandbox/`. A real KB — anyone's, at any path —
+is never written, and `tests/golden/prestate.sh` is what proves the rest untouched.
 
 ## Rules that are easy to break
 

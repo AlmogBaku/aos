@@ -106,13 +106,35 @@ _TIMESTAMP = re.compile(
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 _SHA256 = re.compile(r"\b[0-9a-f]{64}\b")
 _ID = re.compile(r"\b[0-9a-f]{12}\b")
+# A synthesized principal (`aos_kb.identity.synthesize_principal`) is `<user>@<host>.local`,
+# built from getpass.getuser() and socket.gethostname() — two facts about whoever ran the e2e
+# and none about the install. It reached a committed snapshot once, because $HOME was the only
+# thing normalized here.
+#
+# Matched by SHAPE rather than by substituting $USER: a username is often an ordinary word
+# (`dana`, `user`, `home`), and a bare \buser\b replace corrupts unrelated prose and
+# `home/.local/share/uv` paths. The shape carries no literal, so this rule is identical on
+# every machine — which is what makes a snapshot portable rather than merely scrubbed.
+_PRINCIPAL = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.local\b")
+# An agent session/run uuid. MUST run before _ID, whose 12-hex pattern otherwise eats the
+# uuid's last group and leaves the first four in place — a partial redaction that still
+# identifies the run.
+_SESSION = re.compile(
+    r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b")
 
 
 def normalize_text(text: str) -> str:
+    # $HOME FIRST, always. A username usually appears INSIDE $HOME, so any rule naming the
+    # user has to run after the path collapse or it rewrites the path's interior and the
+    # $HOME replace then no longer matches (`/home/<USER>/.hermes`, with $HOME dead). The
+    # rules below are shape-based and so are order-independent against HOME today; the
+    # ordering is kept because the next user-derived rule added here will not be.
     text = text.replace(HOME, "<HOME>")
+    text = _PRINCIPAL.sub("<PRINCIPAL>", text)
     text = _TIMESTAMP.sub("<TIMESTAMP>", text)
     text = _DATE.sub("<DATE>", text)
     text = _SHA256.sub("<SHA256>", text)
+    text = _SESSION.sub("<SESSION-ID>", text)  # before _ID — see above
     return _ID.sub("<ID>", text)
 
 

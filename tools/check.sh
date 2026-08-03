@@ -43,4 +43,5 @@ $LINT aos_lint.selftest
 $LINT aos_lint.gates.retired
 $LINT aos_lint.gates.coverage
 $LINT aos_lint.gates.kb_commands
+$LINT aos_lint.gates.privacy
 $LINT aos_lint.golden.check

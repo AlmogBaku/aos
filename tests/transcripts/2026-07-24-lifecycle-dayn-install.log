@@ -1,6 +1,6 @@
 Installed `gtd-capture@0.2.0` from:
 
-`/home/anakin/aos/tests/.sandbox/aos-clone`
+`~/aos/tests/.sandbox/aos-clone`
 
 Materialized:
 
@@ -22,7 +22,7 @@ Materialized:
 
 Lockfile recorded at:
 
-`/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+`~/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
 
 Verification passed:
 

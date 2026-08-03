@@ -36,7 +36,7 @@ Runs `aos_lint.cli` (89 checks in 15 code families over the §2/§3/§5 contract
 schema/contract linter, useful any time you're authoring a capability, not just for
 testing), the lint selftest (`aos_lint.selftest` — every contract code must fire
 on a planted-violation fixture, and a code that fires without being listed is also a
-failure), and three gates the linter structurally cannot cover, because it validates schema
+failure), and four gates the linter structurally cannot cover, because it validates schema
 and these check *content*:
 
 - **`aos_lint.gates.retired`** — repo-wide: no retired vocabulary survives, no artifact
@@ -53,6 +53,19 @@ and these check *content*:
 - **`aos_lint.gates.kb_commands`** — every documented `kb <verb> --flag`, in the
   capabilities *and* `docs/`, exists in the tool. Two careful human passes over the same
   prose still shipped nine commands that failed on invocation; that is the class this closes.
+- **`aos_lint.gates.privacy`** — no personal-environment literal survives anywhere in the
+  tracked tree: absolute `/home/<name>` or `/Users/<name>` paths (including the `-home-<name>-`
+  form tooling leaves when it flattens a path into a filename), synthesized
+  `<user>@<host>.local` principals, session uuids, and numeric uids in temp paths. The rule
+  is a **shape**, never a name: a list of banned usernames would move the leak into the gate
+  and would say nothing about the next contributor, so real names stay with CONTRIBUTING's
+  scrub checklist. `~/`, `$HOME`, `<HOME>` and placeholder names (`you`, `user`, `dana`,
+  `runner`, …) all pass — what is banned is an *absolute* path naming a person.
+  **`tests/transcripts/` is deliberately NOT exempt here**, unlike in the retired-token gate:
+  verbatimness is a policy about retired vocabulary, and the public-repo redaction rule has no
+  historical exemption. The gate asserts its own patterns against concatenation-built canaries
+  before walking the tree, because a `gates/` code is invisible to `aos_lint.selftest` and a
+  rotted regex would otherwise report clean forever.
 
 Then the golden structural checker. CI runs the same on every push/PR.
 
@@ -96,10 +109,14 @@ Equivalence judging for re-renders: [`tests/golden/RUBRIC.md`](../tests/golden/R
 - **Interview round-trip**: fresh interview from
   `tests/fixtures/interview/onboarding.answers.yaml` → MOD.md; re-run must be a no-op;
   `--refresh` must show an empty diff for unchanged answers.
-- Transcripts of real runs live in `tests/transcripts/`.
+- Transcripts of real runs live in `tests/transcripts/` — verbatim apart from one privacy
+  redaction pass, whose vocabulary
+  [that directory's README](../tests/transcripts/README.md) states.
 
 ## Boundaries
 
-`~/ai-kb` is never written. The live `~/.hermes` is touched only inside the
-`aos-test`/`aos-*` profile namespace, with prestate snapshots proving the rest untouched.
+No real KB is ever written — the golden run's bases live under `tests/.sandbox/kb/`, and a
+KB outside that tree is out of bounds whoever owns it. The live `~/.hermes` is touched only
+inside the `aos-test`/`aos-*` profile namespace, with prestate snapshots proving the rest
+untouched.
 The 2-week live routing replay is post-build (`docs/DOGFOOD.md` → RFC-006).

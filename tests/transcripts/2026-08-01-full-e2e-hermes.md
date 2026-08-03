@@ -58,4 +58,4 @@ What landed:
 
 Degraded mode in effect: no calendar skill is installed on this harness, so `calendar.write` runs degraded — commitments, statuses and the steward pass all work, but `wt-schedule` will say so rather than silently placing blocks; the steward's `--without block` backstop catches anything left unscheduled.
 
-One thing worth flagging: the kb-principal identity in this sandbox is a synthesized `anakin@anakin.local` rather than a real one — that's a kb-level onboarding gap predating this install, not something work-tracker introduced, and it's the one remaining lint finding.
+One thing worth flagging: the kb-principal identity in this sandbox is a synthesized `<user>@<host>.local` rather than a real one — that's a kb-level onboarding gap predating this install, not something work-tracker introduced, and it's the one remaining lint finding.

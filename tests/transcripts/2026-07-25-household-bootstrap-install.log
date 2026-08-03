@@ -15,8 +15,8 @@ Materialized:
 
 KBs initialized:
 
-- `/home/anakin/aos/tests/.sandbox/kb/personal-kb`
-- `/home/anakin/aos/tests/.sandbox/kb/acme-kb`
+- `~/aos/tests/.sandbox/kb/personal-kb`
+- `~/aos/tests/.sandbox/kb/acme-kb`
 
 Schedules on `aos-archiver`:
 
@@ -26,7 +26,7 @@ Schedules on `aos-archiver`:
 
 The sync script is at:
 
-`/home/anakin/.hermes/scripts/aos-kb-sync.sh`
+`~/.hermes/scripts/aos-kb-sync.sh`
 
 Verification passed:
 
@@ -40,10 +40,10 @@ Verification passed:
 
 Lockfile:
 
-`/home/anakin/aos/tests/.sandbox/aos-home/.aos/installs.lock.yaml`
+`~/aos/tests/.sandbox/aos-home/.aos/installs.lock.yaml`
 
 Personal install commits were created in:
 
-`/home/anakin/aos/tests/.sandbox/aos-home/personal`
+`~/aos/tests/.sandbox/aos-home/personal`
 
 `gtd-capture` was not installed.

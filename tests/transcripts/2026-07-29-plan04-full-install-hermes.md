@@ -62,7 +62,7 @@ profiles deleted, three lockfile entries removed — **no guessing at any step**
   never touched, at any checkpoint.
 - **User data survived**: three KB bases, all three `MOD.md` files, and `kb-principal.yml`
   left in place rather than assumed (removal *offers*, never assumes).
-- `~/ai-kb` untouched throughout — mtime still 2026-07-04.
+- No KB outside `tests/.sandbox/` was touched at any point — verified by mtime.
 
 ## Results
 

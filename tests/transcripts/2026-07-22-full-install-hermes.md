@@ -22,12 +22,12 @@ Degraded mode:
 - Outbound messaging is unavailable in the namespaced profiles, so reminders use local schedule delivery/reporting rather than WhatsApp delivery.
 
 KBs initialized:
-- `/home/anakin/aos/tests/.sandbox/kb/personal-kb`
-- `/home/anakin/aos/tests/.sandbox/kb/acme-kb`
+- `~/aos/tests/.sandbox/kb/personal-kb`
+- `~/aos/tests/.sandbox/kb/acme-kb`
 - Both have methodology scaffolding, grants, inboxes, git bootstrap commits, and drainer grants.
 
 Lockfile:
-- `/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+- `~/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
 
 Files written/materialized:
 

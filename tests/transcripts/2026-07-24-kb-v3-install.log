@@ -11,8 +11,8 @@ Capabilities:
 - `gtd-capture` → front agent + drainer
 
 KBs initialized:
-- `/home/anakin/aos/tests/.sandbox/kb/personal-kb`
-- `/home/anakin/aos/tests/.sandbox/kb/acme-kb`
+- `~/aos/tests/.sandbox/kb/personal-kb`
+- `~/aos/tests/.sandbox/kb/acme-kb`
 
 Tool install performed and recorded:
 - `aos-base==0.3.0`
@@ -25,7 +25,7 @@ Schedules:
 - `aos:kb:sync` — archiver, `*/5 * * * *`, deterministic no-agent script, job `40ca6de715d4`
 
 Lockfile:
-`/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+`~/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
 
 Verification passed:
 - Required materialized files present

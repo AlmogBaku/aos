@@ -42,5 +42,7 @@ jobs:
         run: uv run --quiet --project tools/aos_lint python -m aos_lint.gates.coverage
       - name: kb documented-command check
         run: uv run --quiet --project tools/aos_lint python -m aos_lint.gates.kb_commands
+      - name: privacy gate
+        run: uv run --quiet --project tools/aos_lint python -m aos_lint.gates.privacy
       - name: golden structural checks
         run: uv run --quiet --project tools/aos_lint python -m aos_lint.golden.check

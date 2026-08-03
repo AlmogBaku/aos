@@ -1,7 +1,7 @@
 Batch complete.
 
 Target:
-`/tmp/claude-1002/-home-anakin-aos/af74abc6-b33e-45a6-8fb7-afa4f12fd282/scratchpad/e2e-import/target`
+`/tmp/claude-<uid>/-<project>-aos/<session-id>/scratchpad/e2e-import/target`
 
 Completed:
 - Copied `raw/**` and `assets/*` per agreement.

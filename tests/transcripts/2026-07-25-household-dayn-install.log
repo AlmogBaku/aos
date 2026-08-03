@@ -9,7 +9,7 @@ Materialized:
   - `gtd-capture-drain`
   - drainer-specific `SOUL.md`
 - Personal renders:
-  - `/home/anakin/aos/tests/.sandbox/aos-home/personal/capabilities/gtd-capture/skills/`
+  - `~/aos/tests/.sandbox/aos-home/personal/capabilities/gtd-capture/skills/`
 - Schedule:
   - `aos:gtd-capture:nightly-drain`
   - owner: `aos-drainer`

@@ -30,7 +30,7 @@ Read `harnesses/hermes/CHEATSHEET.md` and `docs/BOOTSTRAP.md` from the clone at 
 
 Ran the project's own golden-render check against the live materialized tree:
 ```
-cd /home/anakin/aos && HOME=/home/anakin node tests/golden/check.mjs full-install --live
+cd ~/aos && HOME=~ node tests/golden/check.mjs full-install --live
 → golden: 0 failures
 ```
 This validated: all expected files present, `used_by` scoping respected (no cross-pollution), every materialized `SKILL.md` carries `x-aos-origin`, all four schedules exist under the right profile with single-owner names, sentinel content checks (🦜 emoji, drain-hour cron expression, sacred-time text, `base sync --all` in the exec job), and the lockfile lists all three capabilities.

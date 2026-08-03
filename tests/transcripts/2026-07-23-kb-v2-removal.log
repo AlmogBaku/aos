@@ -21,7 +21,7 @@ Removed per the CHEATSHEET Removal order:
 
 Updated:
 
-`/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+`~/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
 
 Its `created_profiles`, `config_keys`, `capabilities`, and `artifacts` entries are now empty. Overlay source paths remain recorded.
 

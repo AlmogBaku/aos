@@ -10,9 +10,9 @@ Verification passed:
 - Profile wrapper files created by `hermes profile create` moved to trash after profile creation
 
 Profiles:
-- `/home/anakin/.hermes/profiles/aos-test`
-- `/home/anakin/.hermes/profiles/aos-archiver`
-- `/home/anakin/.hermes/profiles/aos-drainer`
+- `~/.hermes/profiles/aos-test`
+- `~/.hermes/profiles/aos-archiver`
+- `~/.hermes/profiles/aos-drainer`
 
 Schedules:
 - `aos:kb:nightly-promote` — archiver — `30 23 * * *` — `38d16587b35a`
@@ -24,13 +24,13 @@ Degraded mode:
 - Outbound messaging is unavailable in the namespaced profiles. Reminders use local schedule delivery/reporting instead of WhatsApp delivery.
 
 Lockfile:
-- `/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+- `~/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
 
 Every materialized artifact and its SHA-256 is recorded there. Files written:
 
 `aos-test`
-- `/home/anakin/.hermes/profiles/aos-test/SOUL.md`
-- `/home/anakin/.hermes/profiles/aos-test/config.yaml`
+- `~/.hermes/profiles/aos-test/SOUL.md`
+- `~/.hermes/profiles/aos-test/config.yaml`
 - `skills/onboarding-interview/SKILL.md`
 - `skills/onboarding-interview/sections/answer-validation.md`
 - `skills/kb-route/SKILL.md`
@@ -42,25 +42,25 @@ Every materialized artifact and its SHA-256 is recorded there. Files written:
 - `skills/gtd-capture-format-entry/SKILL.md`
 
 `aos-archiver`
-- `/home/anakin/.hermes/profiles/aos-archiver/SOUL.md`
-- `/home/anakin/.hermes/profiles/aos-archiver/config.yaml`
-- `/home/anakin/.hermes/profiles/aos-archiver/cron/jobs.json`
-- `/home/anakin/.hermes/profiles/aos-archiver/scripts/kb-sync.sh`
-- `/home/anakin/.hermes/profiles/aos-archiver/scripts/kb-sync-all.sh`
+- `~/.hermes/profiles/aos-archiver/SOUL.md`
+- `~/.hermes/profiles/aos-archiver/config.yaml`
+- `~/.hermes/profiles/aos-archiver/cron/jobs.json`
+- `~/.hermes/profiles/aos-archiver/scripts/kb-sync.sh`
+- `~/.hermes/profiles/aos-archiver/scripts/kb-sync-all.sh`
 - `skills/kb-authz-check/SKILL.md`
 - `skills/kb-lint/SKILL.md`
 
 `aos-drainer`
-- `/home/anakin/.hermes/profiles/aos-drainer/SOUL.md`
-- `/home/anakin/.hermes/profiles/aos-drainer/config.yaml`
-- `/home/anakin/.hermes/profiles/aos-drainer/cron/jobs.json`
+- `~/.hermes/profiles/aos-drainer/SOUL.md`
+- `~/.hermes/profiles/aos-drainer/config.yaml`
+- `~/.hermes/profiles/aos-drainer/cron/jobs.json`
 - `skills/gtd-capture-drain/SKILL.md`
 - `skills/gtd-capture-drain/drain-prompt.md`
 - `skills/gtd-capture-format-entry/SKILL.md`
 
 KBs:
-- `/home/anakin/aos/tests/.sandbox/kb/personal-kb`
-- `/home/anakin/aos/tests/.sandbox/kb/acme-kb`
+- `~/aos/tests/.sandbox/kb/personal-kb`
+- `~/aos/tests/.sandbox/kb/acme-kb`
 
 Each KB contains the same 34 initialized files:
 - `.gitattributes`, `.gitignore`, `AGENTS.md`, `SCHEMA.md`, `index.md`, `log.md`

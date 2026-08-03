@@ -1,6 +1,6 @@
 Changed permanently.
 
-- Durable ledger: `/home/anakin/aos/tests/.sandbox/aos-clone/capabilities/gtd-capture/MOD.md`
+- Durable ledger: `~/aos/tests/.sandbox/aos-clone/capabilities/gtd-capture/MOD.md`
   - `drain_hour: "22:00"`
 - Live Hermes schedule:
   - Profile: `aos-drainer`
