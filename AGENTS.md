@@ -74,9 +74,12 @@ overlay contract (inviolable)**, §4 KB, §5 install, §7 build order, **§8 dec
 `aos_lint` **imports** name computation and manifest vocabulary from the shipped `aos-cap`
 rather than mirroring it. `constants.py` owns `KIT_NAME`, so the RFC-001 rename is one file.
 
-**Stay inside your own namespace.** A run touches `~/.hermes` only under the `aos-*` profiles
-it created, and writes a KB only under `tests/.sandbox/`. A real KB — anyone's, at any path —
-is never written, and `tests/golden/prestate.sh` is what proves the rest untouched.
+**Stay inside your own namespace.** In whatever harness you install into, you own only what you
+created: `aos-*` profiles/agents, `aos:<capability>:<schedule-id>` crons, and the skill and
+agent links `aos-cap skills`/`agents` names. The rest of that harness's root — `~/.hermes`,
+`~/.claude`, `~/.openclaw`, the checkout root, per its cheat-sheet — is somebody's live setup.
+A KB is written only under `tests/.sandbox/`; a real KB, anyone's at any path, never.
+`tests/golden/prestate.sh` proves it for Hermes; a second harness needs its own.
 
 ## Rules that are easy to break
 

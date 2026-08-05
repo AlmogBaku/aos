@@ -116,7 +116,9 @@ Equivalence judging for re-renders: [`tests/golden/RUBRIC.md`](../tests/golden/R
 ## Boundaries
 
 No real KB is ever written — the golden run's bases live under `tests/.sandbox/kb/`, and a
-KB outside that tree is out of bounds whoever owns it. The live `~/.hermes` is touched only
-inside the `aos-test`/`aos-*` profile namespace, with prestate snapshots proving the rest
-untouched.
+KB outside that tree is out of bounds whoever owns it. The harness root is touched only
+inside the `aos-test`/`aos-*` namespace, with prestate snapshots proving the rest untouched.
+Named paths here are Hermes' (`~/.hermes`) because Hermes is the first harness and the only
+one with a live e2e; the rule is about the namespace, so a second harness inherits it and
+owes its own `prestate.sh`.
 The 2-week live routing replay is post-build (`docs/DOGFOOD.md` → RFC-006).
