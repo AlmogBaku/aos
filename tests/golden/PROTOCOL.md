@@ -45,6 +45,16 @@ Everything the run creates is identifiable and disposable:
    (`git -C <sandbox>/aos-home/personal config user.name/user.email` — the fixture persona
    is Dana Fixture): the persist hook commits as the user, and the agent correctly refuses
    to invent an identity.
+
+   **Export `AOS_PRINCIPAL_ID=dana@example.com` for the whole run**, matching that persona.
+   Pinned for the same reason `tools/check.sh` and `ci.yml` pin it: "who ran the e2e" is not
+   a property of the install. Without it the tool synthesizes `<user>@<host>.local` from
+   `getpass` and `socket` and lands whoever ran it in a committed snapshot — which is
+   exactly what happened once. The normalizer now redacts that shape too, but the pin is
+   the fix at the source and the normalizer is the backstop. The synthesis path itself stays
+   covered by `tests/tool/test_kb.py`, which asserts the `.local` suffix directly, so
+   pinning here moves that coverage to where the subject is the tool rather than the
+   operator — it does not drop it.
 3. **Install** — tell the agent (`hermes -p aos-test -z "<prompt>"`, falling back to the
    default profile with the same prompt if the fresh profile has no credentials):
 

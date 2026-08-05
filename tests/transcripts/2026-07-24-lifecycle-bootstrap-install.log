@@ -1,4 +1,4 @@
-Installed from `/home/anakin/aos/tests/.sandbox/aos-clone`.
+Installed from `~/aos/tests/.sandbox/aos-clone`.
 
 Materialized:
 
@@ -22,7 +22,7 @@ Schedules on `aos-archiver`:
 
 Lockfile:
 
-`/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+`~/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
 
 Verification:
 

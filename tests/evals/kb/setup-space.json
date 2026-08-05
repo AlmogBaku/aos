@@ -13,7 +13,7 @@
   {"query": "my base is still on the old layout, theres a BASE.yaml at the root", "should_trigger": false},
   {"query": "use my obsidian vault as-is, i dont want files moved around", "should_trigger": false},
   {"query": "import my old obsidian vault into the new base — theres about 400 notes in there", "should_trigger": false},
-  {"query": "migrate the content out of ~/ai-kb into the personal base, i'll review the mapping with you", "should_trigger": false},
+  {"query": "migrate the content out of ~/ai-notes into the personal base, i'll review the mapping with you", "should_trigger": false},
   {"query": "bring in my old zettelkasten, keep the originals untouched", "should_trigger": false},
   {"query": "robin says the venue is booked for the 14th", "should_trigger": false},
   {"query": "what do i know about acme", "should_trigger": false},

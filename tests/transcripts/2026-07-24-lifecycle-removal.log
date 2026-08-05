@@ -36,7 +36,7 @@ Verification passed:
 - No `base` or `aos-lock` tool commands remain.
 - Grant rows for `kb`, `gtd-capture`, and `onboarding` are gone from both sandbox KBs.
 - `MOD.md` files remain untouched:
-  - `/home/anakin/aos/tests/.sandbox/aos-clone/MOD.md`
-  - `/home/anakin/aos/tests/.sandbox/aos-clone/capabilities/gtd-capture/MOD.md`
-  - `/home/anakin/aos/tests/.sandbox/aos-clone/capabilities/kb/MOD.md`
+  - `~/aos/tests/.sandbox/aos-clone/MOD.md`
+  - `~/aos/tests/.sandbox/aos-clone/capabilities/gtd-capture/MOD.md`
+  - `~/aos/tests/.sandbox/aos-clone/capabilities/kb/MOD.md`
 EXIT=0

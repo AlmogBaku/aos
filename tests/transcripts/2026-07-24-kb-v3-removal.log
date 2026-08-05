@@ -12,11 +12,11 @@ Removed:
   - `aos:gtd-capture:nightly-drain`
 - All materialized skills, context markers, scripts, and profile config from those profiles.
 - Recorded tool install: `uv tool uninstall aos-base` (`base` removed).
-- Lockfile: `/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
+- Lockfile: `~/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml`
 
 Preserved:
 - All overlay sources, including `MOD.md` and `kb-registry.yaml`.
-- KB trees under `/home/anakin/aos/tests/.sandbox/kb/`.
+- KB trees under `~/aos/tests/.sandbox/kb/`.
 - Root `~/.hermes/config.yaml`, verified byte-for-byte by SHA-256.
 - Other uv tools (`awscli`, `localstack`, `markdown`, `nano-pdf`, `yad2`).
 

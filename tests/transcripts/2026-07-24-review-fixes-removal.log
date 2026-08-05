@@ -27,7 +27,7 @@ Removed:
   - `uv tool uninstall aos-base`
   - `base` is absent from `uv tool list`.
 - Lockfile:
-  - `/home/anakin/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml` deleted.
+  - `~/aos/tests/.sandbox/aos-clone/.aos/installs.lock.yaml` deleted.
 - Via-matched grant rows for `kb@0.3.0` and `gtd-capture@0.2.0` from:
   - `tests/.sandbox/kb/personal-kb/AGENTS.md`
   - `tests/.sandbox/kb/acme-kb/AGENTS.md`

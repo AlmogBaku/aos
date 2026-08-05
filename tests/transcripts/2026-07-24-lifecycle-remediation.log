@@ -1,15 +1,15 @@
 Applied both fixes.
 
 1. Onboarding context
-- Appended to `/home/anakin/.hermes/profiles/aos-test/SOUL.md`
+- Appended to `~/.hermes/profiles/aos-test/SOUL.md`
 - Marker-delimited as:
   `<!-- aos:onboarding@0.2.0 begin -->` / `end`
 - Preserved all text outside the markers.
 - Full diff was shown before writing.
 
 2. Archiver sync wrapper
-- Rewrote `/home/anakin/.hermes/profiles/aos-archiver/scripts/aos-kb-sync.sh` to:
-  `base --registry /home/anakin/aos/tests/.sandbox/aos-clone/kb-registry.yaml sync --all`
+- Rewrote `~/.hermes/profiles/aos-archiver/scripts/aos-kb-sync.sh` to:
+  `base --registry ~/aos/tests/.sandbox/aos-clone/kb-registry.yaml sync --all`
 - Shell syntax check passed.
 - Wrapper exits 0.
 
