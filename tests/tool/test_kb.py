@@ -98,7 +98,7 @@ class BaseToolTest(unittest.TestCase):
         self.reg = self.dir / "kb-registry.yaml"
         # AOS_HOME is not optional in a test: the principal file is machine-local, and
         # without it the tool would establish an identity in the developer's real
-        # ~/.aos/ on the first verb call.
+        # ~/aos/.aos/ on the first verb call.
         self.home = self.dir / "household"
         (self.home / ".aos").mkdir(parents=True)
         # The principal is pinned for the same reason GIT_IDENTITY is: on a runner with

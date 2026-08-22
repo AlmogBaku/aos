@@ -126,7 +126,7 @@ someone has actually run it there, which is why exactly one row below is bold.
 
 | Harness | Status |
 |---|---|
-| [Hermes](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md) | **Supported** — verified by a real install, not a simulation |
+| [Hermes](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md) · [Codex](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-codex.md) | **Supported** — verified by a real install, not a simulation |
 | [OpenClaw](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-openclaw.md) · [NanoClaw](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanoclaw.md) · [Nanobot](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanobot.md) · [Claude Code](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-claude-code.md) | Translation written from the harness's docs; no real install has run against it yet |
 | OpenCode | Planned — and the no-document path works today |
 

@@ -274,7 +274,7 @@ def _household_claims(opts: HasHome, cap_id: str, cap_dir: Optional[Path], namer
                         for label in ("upstream", "personal")):
         # A resolved root with NEITHER capability directory is not a household, and saying
         # so is the point: `find_home_soft` accepts any ancestor holding a `.aos/`, and
-        # `~/.aos/` exists on every machine that has ever installed aos — so linting a bare
+        # `~/aos/.aos/` exists on every machine that has ever installed aos — so linting a bare
         # kit clone printed "checked: household /home/you" after consulting a household with
         # zero capabilities in it. A clean-looking gate that checked nothing is the exact
         # failure the label discipline above exists to prevent. `_household_of` anchors on
