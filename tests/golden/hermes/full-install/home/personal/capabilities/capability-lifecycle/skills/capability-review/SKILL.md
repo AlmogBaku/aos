@@ -11,7 +11,7 @@ description: 'Reviews a capability as architecture and then as prose — traces 
   that is capability-contribute upstream, or capability-evolve for one user.'
 metadata:
   aos:
-    origin: capability-lifecycle@0.3.6
+    origin: capability-lifecycle@0.3.7
 ---
 # capability-review
 
