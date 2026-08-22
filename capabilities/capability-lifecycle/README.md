@@ -25,7 +25,7 @@ agent, names and hashes never do.
 | `skills/contribute/` | change a capability's shipped source, for everyone — and draft the upstream contribution when the user confirms |
 | `skills/evolve/` | change how an installed capability behaves *for you*, recorded so it survives upgrades; promotes upstream when generally useful (signal-gated, offer-only) |
 | `skills/review/` | review a capability as architecture then as prose: trace the flows and decision points, map units against the resources powering them, diagram it, stress the tree, then check that every documented command exists and every artifact has a reader. Read-only |
-| `skills/capability-lifecycle/reference/harness-<runtime>.md` | the per-harness cheat-sheets (hermes · nanoclaw v1+v2 · openclaw · nanobot · claude-code) — reference files of the skill that reads them, so they travel with the render |
+| `skills/capability-lifecycle/reference/harness-<runtime>.md` | the per-harness cheat-sheets (hermes · nanoclaw v1+v2 · openclaw · nanobot · claude-code · codex) — reference files of the skill that reads them, so they travel with the render |
 | `tool/` | `aos-cap` — deterministic manifest, installed-name, and lockfile verbs |
 
 Installed skill names are computed, not authored: the ids above are capability-local, and
@@ -47,6 +47,7 @@ Spec one-pager: [capability-lifecycle.md](https://github.com/AlmogBaku/aos/blob/
 | Harness | Status |
 |---|---|
 | Hermes | ✅ e2e-tested for real |
+| Codex | ✅ e2e-tested for real |
 | NanoClaw (v1+v2), OpenClaw, Nanobot | 🧪 cheat-sheet shipped, research-drafted |
 | Claude Code | 🧪 cheat-sheet shipped, research-drafted — no runner yet |
 | OpenCode | 📋 no sheet yet — the no-cheat-sheet path applies |
