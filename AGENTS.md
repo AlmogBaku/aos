@@ -28,6 +28,7 @@ harness, personalize via an interview, and survive upgrades.
 | `capability-lifecycle` | infra | ten lifecycle skills + the `aos-cap` tool |
 | `open-session` | infra | one skill: a scheduled job opens one titled, user-visible session |
 | `structured-interview` | usecase | one skill: resumable interviews + the source-linked InterviewRecord |
+| `ghostwriter` | usecase | five skills: interview-driven editorial workflow, on kb + open-session |
 
 Hermes is e2e-verified. NanoClaw, OpenClaw, Nanobot, Claude Code have research-drafted
 cheat-sheets.
