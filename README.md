@@ -70,6 +70,7 @@ happens: [docs/INSTALL.md](docs/INSTALL.md).
 | | |
 |---|---|
 | [**work-tracker**](capabilities/work-tracker/) | *"I need to write the CFP by Friday"* becomes a tracked commitment with time blocked for it, in the same exchange. A nightly steward finds what slipped and asks about it. |
+| [**structured-interview**](capabilities/structured-interview/) | Being interviewed, properly. One question at a time, listening for the thing worth following instead of marching through a questionnaire, and stopping when the objective is met rather than when the list runs out. The record is rewritten after every turn, so you can answer three days later and pick up exactly where you stopped. Other capabilities call it when they need something only you know. |
 
 > [!NOTE]
 > **Coming next**, mostly more substrate: **agent-comms** (agents talking to each other, with no
