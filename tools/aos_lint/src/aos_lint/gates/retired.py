@@ -329,7 +329,15 @@ def _sibling_named(desc, cap) -> bool:
     # accepting it let "Does not need any configuration — kb works out of the box." pass while
     # discriminating nothing. The entry skill is the one exception: its id IS the capability id,
     # so it can only point at the narrower skills, which the filter below leaves it able to do.
-    return any(str(n) in desc for n in names if n != cap.id)
+    siblings = [str(n) for n in names if n != cap.id]
+    # A capability whose only skill IS its entry skill has no sibling to point at, and §2.1 makes
+    # further skill folders optional — so demanding one of it fails a package the spec allows,
+    # and the only way to pass would be to invent a second skill or to name another capability's,
+    # both worse than the honest description. Such a skill still owes a negative clause (checked
+    # by the caller); what it cannot owe is a name that does not exist.
+    if not siblings:
+        return True
+    return any(n in desc for n in siblings)
 
 
 if __name__ == "__main__":

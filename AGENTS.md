@@ -26,6 +26,7 @@ harness, personalize via an interview, and survive upgrades.
 | `kb` | infra | knowledge infrastructure + the `kb` tool |
 | `work-tracker` | usecase | commitments, built on kb |
 | `capability-lifecycle` | infra | ten lifecycle skills + the `aos-cap` tool |
+| `open-session` | infra | one skill: a scheduled job opens one titled, user-visible session |
 
 Hermes is e2e-verified. NanoClaw, OpenClaw, Nanobot, Claude Code have research-drafted
 cheat-sheets.
