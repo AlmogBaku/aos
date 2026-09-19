@@ -41,11 +41,12 @@ and these check *content*:
 
 - **`aos_lint.gates.retired`** — repo-wide: no retired vocabulary survives, no artifact
   invokes the old command name, and every shipped skill description carries its trigger
-  clause, a negative clause naming a **sibling** skill, and third person. Exemptions are
-  deliberately narrow and each states its reason in the file: a short prefix allowlist for
-  material that is *historical by nature* (transcripts, the append-only ledger, frozen
-  snapshots, LAYOUT 1 fixtures), a per-file-and-per-token list for source that must NAME the
-  old world in order to migrate it, and a `<!-- retired-ok: <tokens> -->` marker that exempts
+  clause, a negative clause naming a **sibling** skill (a capability whose only skill is its
+  entry skill has none to name, so it owes the clause and not the name), and third person.
+  Exemptions are deliberately narrow and each states its reason in the file: a short prefix
+  allowlist for material that is *historical by nature* (transcripts, the append-only ledger,
+  frozen snapshots, LAYOUT 1 fixtures), a per-file-and-per-token list for source that must NAME
+  the old world in order to migrate it, and a `<!-- retired-ok: <tokens> -->` marker that exempts
   **only the tokens it names** — never the rest of the file.
 - **`aos_lint.gates.coverage`** — every CLI verb is documented (parsed from the tool's own
   `--help`, so the list cannot drift), and every count quoted in prose is the count the
