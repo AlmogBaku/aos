@@ -93,8 +93,8 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 - **A skill's installed name is computed, and it is single-owner.** `aos-cap skills <cap-dir>`
   gives you the name each skill ships under (`<skill_prefix><id>`; the entry skill keeps the
   capability id). **Gate before you materialize**:
-  `aos-cap --home <home> skills <cap-dir> --check --harness-skills <each skills dir this
-  harness reads>`
+  `aos-cap --home <home> skills <cap-dir> --check --harness-skills <dir> …` — one
+  `--harness-skills` per skills dir this harness reads (the flag repeats; it takes no list)
   — exit 17 means the name is already claimed by another capability in the household, by a
   lockfile-recorded link, or by a skill the harness already has (aos-installed or not).
   Stop and report it; **never rename at install time** — the name belongs to the package, so
@@ -122,8 +122,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   briefing says *how* (toolsets, identity, wiring), never *where*. A briefing that places
   something the manifest does not declare — "install into a dedicated profile", "link me
   into every profile that calls me" — is a package defect: stop and report it (the fix is
-  the package's, {{skill: contribute}}). `main` is the harness's front agent and nothing
-  else — never "the profile I happen to be installing into".
+  the package's, {{skill: contribute}}). `main` is the harness's front agent — the one the
+  cheat-sheet names, or the disposable front profile a test run designates — and a briefing
+  never turns it into a dedicated profile of its own.
 - **`uses` is the consumer's grant.** Each entry links the provider's existing render into
   the skills location of every listed agent of *this* capability, under the provider's
   installed name (`aos-cap manifest` prints it as `uses[].installed_name`; the target is
@@ -132,12 +133,14 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   move or delete it. A grant to `main` that the provider's own `used_by: [main]` already
   serves needs no second link. A harness that scopes skills by config rather than by
   directory records the grant the way its cheat-sheet records `used_by`.
-- **An agent that already exists is adopted, not re-created.** When an agent's computed
-  name is already a harness agent that is evidently this capability's (its skills, jobs or
-  workspace), keep everything it holds — sessions, workspace, identity file — and write
-  `purpose` as its identity only when *creating* the agent. Removal deletes only agents this
+- **An agent that already exists is adopted, not re-created — on positive evidence only.**
+  When an agent's computed name is already a harness agent, adopt it only if something shows
+  it is this capability's: the lockfile already has this capability's entry (an upgrade), or
+  the agent holds this capability's skill links or `aos:<capability>:` jobs. Then keep
+  everything it holds — sessions, workspace, identity file — and write `purpose` as its
+  identity only when *creating* the agent. An agent with none of that is **not** evidence,
+  however empty: it may be the user's own, so stop and ask. Removal deletes only agents this
   entry created (the cheat-sheet says how that is recorded); an adopted agent stays.
-  Anything else under that name is a collision: stop.
 
 - **A `depends.host` feature is a *harness capability*, answered by the cheat-sheet's
   Feature notes table — never by probing the user's live configuration.** ✓ means this

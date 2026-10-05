@@ -31,8 +31,9 @@ the overlay doctrine, and the Experience rules. Then:
    supported-but-unconfigured channel → install, and say what they still need to set up;
    `preferred` unsupported → note each schedule's declared degraded mode for recording.
 5. **Name gate**, before anything is written:
-   `aos-cap --home <home> skills <dir> --check --harness-skills <each skills dir this
-   harness reads, per the cheat-sheet's Primitive mapping>`. Read its `checked:` lines —
+   `aos-cap --home <home> skills <dir> --check --harness-skills <dir> …` — one
+   `--harness-skills` per skills dir this harness reads, per the cheat-sheet's Primitive
+   mapping. Read its `checked:` lines —
    a source it could not reach is named in capitals, and "clean" against two of three
    sources is not clean. Exit 17 → stop and report which name is
    taken and by whom; a collision is fixed in the package ({{skill: contribute}}, or the
@@ -55,8 +56,8 @@ the overlay doctrine, and the Experience rules. Then:
    Source files stay untouched.
 8. **STAGE** per the cheat-sheet's Materialization guide: the render sits in
    `personal/`'s working tree (uncommitted) plus the exact native command plan —
-   agents (an existing one evidently this capability's is adopted, never re-created —
-   contract), skill symlinks (the installed name → the render, per `used_by`; container
+   agents (an existing one is adopted only on positive evidence it is this capability's,
+   never re-created; none → stop and ask — contract), skill symlinks (the installed name → the render, per `used_by`; container
    harness → verify the `<home>/personal` mount per the cheat-sheet), `uses` links (per
    row: the provider's recorded render from `aos-cap show <provider>` → each listed agent's
    skills location, under `installed_name`; a path another entry or a stranger holds →

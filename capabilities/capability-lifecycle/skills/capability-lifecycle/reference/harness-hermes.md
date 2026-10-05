@@ -25,7 +25,7 @@ mutation goes through the `hermes` CLI.
 |---|---|---|
 | agent | **profile** — a full parallel HERMES_HOME (own `config.yaml`, `.env`, `SOUL.md`, `skills/`, `cron/`) | `~/.hermes/profiles/<name>/`; directory-defined, no registry entry. `hermes profile create <name>` — or adopt an existing one that is evidently this capability's (contract); target with `hermes -p <name> …` |
 | front agent (`main`) | the default profile | `~/.hermes/` itself |
-| skill | Agent Skills folder — a **symlink** to the pinned render in `<home>/personal` | link at `~/.hermes/skills/<installed-name>` (main) or `profiles/<p>/skills/<installed-name>` (`aos-cap skills`) — per-profile links are how `used_by` scoping works, and a `uses` grant is one more link into the grantee's `profiles/<p>/skills/`; a profile sees only its own skills dir. Hermes follows symlinks in skills dirs. Name gate: pass both dirs to `--harness-skills` |
+| skill | Agent Skills folder — a **symlink** to the pinned render in `<home>/personal` | link at `~/.hermes/skills/<installed-name>` (main) or `profiles/<p>/skills/<installed-name>` (`aos-cap skills`) — per-profile links are how `used_by` scoping works, and a `uses` grant is one more link into the grantee's `profiles/<p>/skills/`; a profile sees only its own skills dir. Hermes follows symlinks in skills dirs. Name gate: one `--harness-skills` per dir (the flag repeats) |
 | schedule | cron job owned by exactly one profile (mapping is by directory, not a field) | `hermes -p <profile> cron create '<cron>' '<prompt>' --name … --skill …` |
 | context block | `SOUL.md` = identity; `workspace/AGENTS.md` = working-dir instructions | inside the profile dir |
 | secret | `.env` line | see Secrets |
@@ -47,7 +47,8 @@ the profile's default doesn't already fit the class; never hardcode provider nam
    empty) and record that `SOUL.md` as an `--artifact` — that record is what marks the
    profile as created by this capability; `context_files` → workspace, referenced from
    `workspace/AGENTS.md`; `workspace: shared` → skip profile creation, wire into the
-   default profile. **Profile already there** and evidently this capability's → adopt it:
+   default profile. **Profile already there** with positive evidence it is this
+   capability's (contract: its entry, its skill links or `aos:<capability>:` jobs) → adopt it:
    no `profile create`, no `SOUL.md` write, keep its `state.db`, sessions, gateway,
    workspace and hand-written identity files; record no `SOUL.md`.
 2. **Skills**: `aos-cap skills <cap-dir>` gives the installed name; the render lives once

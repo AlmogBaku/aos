@@ -35,7 +35,7 @@ skill, and anything in the household is written from a root. Run the uniqueness 
 as the package is structurally parseable — `CAPABILITY.md`, `README.md`, every declared
 skill's `SKILL.md` and every schedule's `prompt_ref` exist — and before rendering or
 materializing anything: `aos-cap --home <home> skills <package-dir> --check
---harness-skills <the harness's skills dir(s)>`. The verb validates the manifest first, and
+--harness-skills <dir> …` (one flag per skills dir). The verb validates the manifest first, and
 the validator refuses a declaration whose README, skill folders or prompt refs are missing,
 so a gate right after `CAPABILITY.md` alone cannot run. Exit 17 means the name is taken;
 rename in the package, never at install time. References to other skills or agents are written as slots
