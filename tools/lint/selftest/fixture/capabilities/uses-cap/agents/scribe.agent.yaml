@@ -1,0 +1,3 @@
+name: scribe
+purpose: The agent that loads every file here — the reach the uses check computes.
+model_class: fast

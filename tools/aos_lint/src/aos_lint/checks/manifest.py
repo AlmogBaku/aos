@@ -3,7 +3,7 @@ import re
 from ..constants import (
     CAPABILITY_TAGS_ORDERED, DEGRADED_MODES, DEPENDS_KEYS, HOST_FEATURES_ORDERED,
     HOST_LEVELS_ORDERED, KB_KEYS_ORDERED, KB_ZONE_KEYS, MAIN_AGENT, MANIFEST_KEYS_ORDERED,
-    SCHEDULE_KEYS_ORDERED, SKILL_ENTRY_KEYS_ORDERED,
+    SCHEDULE_KEYS_ORDERED, SKILL_ENTRY_KEYS_ORDERED, USES_ENTRY_KEYS_ORDERED,
 )
 from ..frontmatter import read_frontmatter
 from .agents import agent_names
@@ -49,6 +49,7 @@ def check_manifests(ctx) -> None:
         _check_schedules(ctx, data.get("schedules"), cap, file, agents)
         _check_skills_bijection(ctx, data.get("skills"), cap, file)
         _check_kb(ctx, data.get("kb"), cap, file, agents)
+        _check_uses(ctx, data, cap, file, agents)
 
         if not (cap.dir / "README.md").exists():
             ctx.report("error", "manifest/readme", file,
@@ -197,3 +198,54 @@ def _check_kb(ctx, kb, cap, file, agents) -> None:
             ctx.report("error", "kb/owner-agent", file,
                        f'kb zone "{_u(zone.get("path"))}": owner_agent '
                        f'"{_u(zone.get("owner_agent"))}" does not resolve')
+
+
+def _check_uses(ctx, data, cap, file, agents) -> None:
+    """`uses` (RFC-009 option 2): one of this capability's agents loads a skill another
+    capability ships. Same rules as `aos-cap manifest`, so CI and the installer agree: the
+    provider is a dependency, it declares the skill, and the grantee is main or our agent."""
+    uses = data.get("uses")
+    if uses is None:
+        return
+    if not isinstance(uses, list):
+        ctx.report("error", "uses/shape", file,
+                   "uses must be a list of {capability, skill, agents} mappings")
+        return
+    deps = {str(d) for d in ((data.get("depends") or {}).get("capabilities") or [])}
+    seen = set()
+    for entry in uses:
+        if not isinstance(entry, dict):
+            ctx.report("error", "uses/shape", file, f"uses entry {entry!r} must be a mapping")
+            continue
+        for key in entry:
+            if key not in USES_ENTRY_KEYS_ORDERED:
+                ctx.report("error", "uses/unknown-key", file,
+                           f'unknown uses key "{key}" (one of '
+                           f"{', '.join(USES_ENTRY_KEYS_ORDERED)})")
+        prov, skill, grantees = entry.get("capability"), entry.get("skill"), entry.get("agents")
+        if (prov, skill) in seen:
+            ctx.report("error", "uses/duplicate", file,
+                       f"uses names {prov}/{skill} twice — merge the agents lists")
+        seen.add((prov, skill))
+        if prov == cap.id or str(prov) not in deps:
+            ctx.report("error", "uses/capability", file,
+                       f'uses capability "{prov}" must be another capability listed in '
+                       f"depends.capabilities (own skills are scoped with used_by)")
+        else:
+            provider = next((r / "capabilities" / str(prov) for r in [ctx.root, *ctx.dep_roots]
+                             if (r / "capabilities" / str(prov) / "CAPABILITY.md").exists()), None)
+            if provider is not None:
+                pm = read_frontmatter(provider / "CAPABILITY.md").data or {}
+                ids = {e.get("id") for e in (pm.get("skills") or []) if isinstance(e, dict)}
+                if skill not in ids:
+                    ctx.report("error", "uses/skill", file,
+                               f'"{prov}" declares no skill "{skill}"')
+        if not isinstance(grantees, list) or not grantees:
+            ctx.report("error", "uses/agents", file,
+                       f"uses {prov}/{skill}: agents must be a non-empty list")
+        else:
+            for a in grantees:
+                if a != MAIN_AGENT and a not in agents:
+                    ctx.report("error", "uses/agents", file,
+                               f'uses {prov}/{skill}: agent "{a}" is neither "main" nor a '
+                               f"declared agent")

@@ -14,8 +14,8 @@ Rows began as the pre-rewrite suite's **81** tests: 40 happy-path (exit 0 only) 
 pin a non-zero exit. Per code: **1** generic → 8 · **12** manifest invalid → 10 · **13**
 drift → 3 · **14** no such entry → 3 · **15** no home → 4 · **16** artifact missing → 4 ·
 **17** name collision → 9. Sections added since carry their own counts — the console-script
-smoke tests the rewrite added, and the **18** name-slot family — so the file stays a
-complete index of the suite.
+smoke tests the rewrite added, the **18** name-slot family, and `uses` with its **19**
+one-owner-per-link exit — so the file stays a complete index of the suite.
 
 Rows tagged **PIN** are regression pins for real bugs that shipped. Their one-line "why"
 is the point of the row — a rewrite that drops one re-opens the bug, and a rewrite that
@@ -25,15 +25,15 @@ keeps the assertion but loses the reason invites a later reader to "simplify" it
 
 | verb | promises | exits |
 |---|---|---|
-| `manifest <dir>` | parse + validate a `CAPABILITY.md` (§2.2), emit it as JSON on stdout | 0, 12 |
+| `manifest <dir>` | parse + validate a `CAPABILITY.md` (§2.2), emit it as JSON on stdout; each `uses` row carries the provider's `installed_name` | 0, 12 |
 | `skills <dir>` | every skill's **installed** name (`<prefix><id>`, entry skill verbatim); `--json` adds the prefix; `--check` **is** the collision gate and names the sources it consulted | 0, 12, 15, 17, 1 |
 | `agents <dir>` | every agent's **installed** name (`<skill_prefix><agent-id>`, from `agents/*.agent.yaml`); `--json` adds the prefix; `--check` is the same single-owner gate over the agent namespace, against **two** of three sources — and names the third it cannot reach | 0, 12, 15, 17 |
 | `render <dir> <skill> --out` | copy `skills/<id>/` to `<out>/<installed-name>/`, rewrite `name`, stamp `metadata.aos.origin`, resolve the `{{skill:}}`/`{{agent:}}` name slots; mechanical + idempotent | 0, 1, 12, 14, 18 |
 | `home` | print the resolved household root | 0, 15 |
 | `init` | create an empty `<home>/.aos/installs.lock.yaml`; the one verb that may find no `.aos/` | 0, 1, 15 |
-| `record <cap> --version` | write one capability's entry: artifact sha256s, link targets, source root, jobs, config keys, env-var names, scripts | 0, 15, 16 |
+| `record <cap> --version` | write one capability's entry: artifact sha256s, link targets (own `--link`, used `--uses-link`), source root, jobs, config keys, env-var names, scripts; refuses a link another entry records | 0, 1, 15, 16, 19 |
 | `rehash <cap>` | re-hash the recorded artifacts in place after an approved evolve | 0, 14, 15, 16 |
-| `verify [<cap>]` | re-hash artifacts and re-read links against disk | 0, 13, 14, 15 |
+| `verify [<cap>]` | re-hash artifacts and re-read links (own and used) against disk | 0, 13, 14, 15 |
 | `show <cap>` | print one entry as JSON | 0, 14, 15 |
 | `list` | installed capabilities + versions + counts | 0, 15 |
 | `remove <cap>` | drop one entry (after the removal walk) | 0, 14, 15 |
@@ -260,3 +260,24 @@ boundary, so the one thing it structurally cannot prove gets its own subprocess 
 
 - [ ] test_the_installed_script_runs_and_reports_its_version — 0; the real `aos-cap` console script
 - [ ] test_the_installed_script_completes_a_real_verb_end_to_end — 0; `init` then `list` through a real process
+
+## `uses` — consumer-side composition (RFC-009 option 2) — 12
+
+A consumer's agent loads a skill another capability ships: the consumer declares the grant,
+the installer links the provider's render into the consumer's agent and records it under
+the **consumer** (`uses_links`). The incident behind the section: a provider's upgrade
+re-derived its links from its own `used_by` and moved a consumer's link away; the
+consumer's jobs failed silently for two weeks.
+
+- [ ] test_valid_grant_carries_the_providers_installed_name — 0; consumer in `personal/`, provider in `upstream/`; the row's `installed_name` uses the **provider's** prefix
+- [ ] test_provider_must_be_a_dependency — 12; a used skill's provider is installed first, so it must be in `depends.capabilities`
+- [ ] test_a_capability_cannot_use_itself — 12; own skills are scoped with `used_by`
+- [ ] test_skill_must_be_declared_by_the_provider — 12; the message lists what the provider declares
+- [ ] test_agents_must_be_main_or_declared_and_non_empty — 12; same agent vocabulary as `used_by`
+- [ ] test_duplicate_and_unknown_keys_rejected — 12; one invocation reports both
+- [ ] test_malformed_shape_is_exit_12_not_a_traceback — 12; `uses:` of the wrong YAML shape
+- [ ] test_uses_link_roundtrip_and_damage_is_drift — 0, 13; `--uses-link` lands in `uses_links`, not `links`; a removed one is `MISSING LINK`, the same label as an own link
+- [ ] test_a_link_has_exactly_one_owner — **PIN**; 19; the incident's shape: recording a path another entry already holds is refused and the lockfile is byte-identical, in both directions
+- [ ] test_rerecording_your_own_links_is_not_a_conflict — 0; the guard looks only at **other** entries
+- [ ] test_one_path_cannot_be_both_kinds — 1; a link is an own skill or a used one, never both
+- [ ] test_a_consumers_uses_link_is_not_a_name_claim — **PIN**; 0; `links` basenames are name claims, so a consumer holding the provider's skill there would make the provider's own `skills --check` report its own skill as taken

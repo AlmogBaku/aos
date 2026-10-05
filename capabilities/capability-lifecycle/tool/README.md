@@ -14,12 +14,13 @@ uvx --from <home>/upstream/capabilities/capability-lifecycle/tool aos-cap --help
 Verbs: `manifest <dir>` · `skills <dir> [--check] [--harness-skills DIR]× [--json]` ·
 `agents <dir> [--check] [--json]` ·
 `render <dir> <skill-id> --out DIR [--force]` · `init` ·
-`record <cap> --version … --source-root upstream|personal|<org> --artifact …× --link …× --job …× --config-key …× --env-line …× --script …×` ·
+`record <cap> --version … --source-root upstream|personal|<org> --artifact …× --link …× --uses-link …× --job …× --config-key …× --env-line …× --script …×` ·
 `rehash <cap>` (refresh recorded hashes in place) · `verify [<cap>]` · `show <cap>` ·
 `list` · `remove <cap>`. Household discovery: `--home` > `$AOS_HOME` > cwd-upward search
 for `.aos/`. Exit codes: 0 ok · 1 generic (init over an existing lockfile) · 12 manifest
 invalid · 13 drift · 14 no such entry · 15 no home · 16 artifact missing / not a symlink ·
-17 skill- or agent-name collision · 18 unresolvable `{{skill:}}`/`{{agent:}}` slot.
+17 skill- or agent-name collision · 18 unresolvable `{{skill:}}`/`{{agent:}}` slot ·
+19 a link another entry already records.
 
 ## Skill names (§2.5)
 
@@ -96,7 +97,10 @@ resolve `personal/` first then `upstream/` — a shadowed id is reported, never 
 Lockfile entry fields (written only by `record`): `version`, `source_root` (which
 household root shipped the capability), `artifacts` (path → sha256 — the pinned-render
 files and native artifacts), `links` (harness symlink path → target, read from the link
-itself; `verify` flags MISSING/RELINKED/DANGLING links), `schedules_owned` (job ids),
-`config_keys`, `env_lines` (variable *names*, never values), `scripts`. Tests:
+itself; `verify` flags MISSING/RELINKED/DANGLING links), `uses_links` (the same shape, for
+another capability's skill this capability's `uses` linked into one of its agents — kept
+apart because `links` basenames are name claims and these are not), `schedules_owned` (job ids),
+`config_keys`, `env_lines` (variable *names*, never values), `scripts`. One owner per
+link: `record` refuses (19) a path another entry already records, own or used. Tests:
 `uv run tests/tool/test_cap.py` (black-box subprocess; stdout + exit codes are the
 contract).

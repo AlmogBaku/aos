@@ -11,14 +11,14 @@ Changing a value here therefore changes what CI enforces, which is the point."""
 import re
 from pathlib import Path
 
-VERSION = "0.3.7"                       # tracks the capability-lifecycle version
+VERSION = "0.4.0"                       # tracks the capability-lifecycle version
 LOCK_REL = Path(".aos") / "installs.lock.yaml"
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 CRON5 = re.compile(r"^\S+\s+\S+\s+\S+\s+\S+\s+\S+$")
 
 # The kit-side lint imports these (aos_lint.constants re-exports them) — one definition.
 MANIFEST_KEYS = {"id", "version", "tags", "summary", "depends", "schedules", "skills", "kb",
-                 "skill_prefix"}
+                 "skill_prefix", "uses"}
 CAPABILITY_TAGS = {"infra", "usecase"}
 HOST_FEATURES = {"cron", "messaging.inbound", "messaging.outbound", "voice.stt",
                  "voice.tts", "calendar.read", "calendar.write", "email", "secrets-store"}
@@ -26,6 +26,8 @@ HOST_LEVELS = {"required", "preferred", "optional"}
 SCHEDULE_KEYS = {"id", "cron", "agent", "prompt_ref", "exec", "degraded"}
 DEGRADED = {"manual", "skip", "inline"}
 SKILL_ENTRY_KEYS = {"id", "used_by"}
+# RFC-009 option 2: a consumer grants one of ITS agents a skill another capability ships.
+USES_ENTRY_KEYS = {"capability", "skill", "agents"}
 KB_KEYS = {"writes", "zones"}
 
 # Agent Skills spec (agentskills.io/specification): the shipped `name` is what a harness

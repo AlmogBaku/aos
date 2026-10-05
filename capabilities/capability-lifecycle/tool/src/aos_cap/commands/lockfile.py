@@ -1,5 +1,5 @@
 """The seven verbs that own `<home>/.aos/installs.lock.yaml`: `init` creates it,
-`record` writes one capability's entry, `rehash` refreshes its hashes after an approved
+`record` writes one capability's entry (refusing a link another entry already owns), `rehash` refreshes its hashes after an approved
 evolve, `verify` compares it against disk, and `show`/`list`/`remove` read and prune it.
 
 Grouped because they all begin with the same two lines — resolve the household, load the
@@ -44,6 +44,10 @@ def cmd_record(
     link: Annotated[Optional[list[str]], typer.Option(
         "--link",
         help="repeatable harness symlink path (target read from the link itself)")] = None,
+    uses_link: Annotated[Optional[list[str]], typer.Option(
+        "--uses-link",
+        help="repeatable: a symlink this capability's `uses` created — another capability's "
+             "skill linked into one of this capability's agents")] = None,
     source_root: Annotated[str, typer.Option(
         "--source-root",
         help="which household root shipped the capability (upstream|personal|<org>)")] = "upstream",
@@ -55,7 +59,7 @@ def cmd_record(
     script: Annotated[Optional[list[str]], typer.Option(
         "--script", help="script/hook file installed")] = None,
 ) -> None:
-    artifact, link = list(artifact or []), list(link or [])
+    artifact, link, uses_link = list(artifact or []), list(link or []), list(uses_link or [])
     job, config_key = list(job or []), list(config_key or [])
     env_line, script = list(env_line or []), list(script or [])
     root = find_home(ctx.obj)
@@ -64,17 +68,40 @@ def cmd_record(
         "version": version,
         "source_root": source_root,
         "artifacts": {str(artifact_path(a)): sha256(artifact_path(a)) for a in artifact},
-        "links": {os.path.normpath(str(Path(l).expanduser().absolute())): readlink_or_fail(l) for l in link},
+        "links": {_abs(l): readlink_or_fail(l) for l in link},
+        # Kept apart from `links`: every `links` basename is a NAME CLAIM (names.py
+        # lock_link_names), so a consumer holding a provider's skill there would make the
+        # provider's own upgrade collide with itself (exit 17).
+        "uses_links": {_abs(l): readlink_or_fail(l) for l in uses_link},
         "schedules_owned": list(job),
         "config_keys": list(config_key),
         "env_lines": list(env_line),
         "scripts": list(script),
     }
+    both = sorted(set(entry["links"]) & set(entry["uses_links"]))
+    if both:
+        fail(Exit.GENERIC, f"{both[0]} given as both --link and --uses-link — a link is "
+                           f"this capability's own skill or a used one, never both")
+    # One owner per link. Two entries recording the same path is how a provider's upgrade
+    # once moved a consumer's link out from under it: whichever re-recorded last won.
+    mine = set(entry["links"]) | set(entry["uses_links"])
+    for other, held in sorted(lock["installs"].items()):
+        if other == capability:
+            continue
+        for path in sorted(mine & (set(held.get("links") or {}) | set(held.get("uses_links") or {}))):
+            fail(Exit.LINK_OWNED, f"LINK_OWNED: {path} is already recorded by '{other}' — one "
+                                  f"owner per link; re-record '{other}' without it first "
+                                  f"(start from `aos-cap show {other}`)")
     lock["installs"][capability] = entry
     save_lock(root, lock)
     print(f"recorded {capability}@{version}: "
           f"{len(entry['artifacts'])} artifacts, {len(entry['links'])} links, "
-          f"{len(entry['schedules_owned'])} schedules")
+          f"{len(entry['schedules_owned'])} schedules"
+          + (f", {len(entry['uses_links'])} uses links" if entry["uses_links"] else ""))
+
+
+def _abs(path: str) -> str:
+    return os.path.normpath(str(Path(path).expanduser().absolute()))
 
 
 @app.command("rehash", help="re-hash a capability's recorded artifacts in place "
@@ -115,7 +142,11 @@ def cmd_verify(ctx: typer.Context, capability: Optional[str] = typer.Argument(No
                 drift.append(f"{cap}: MISSING {path}")
             elif sha256(p) != sha:
                 drift.append(f"{cap}: DRIFT {path}")
-        for path, target in lock["installs"][cap].get("links", {}).items():
+        entry = lock["installs"][cap]
+        # A used skill's link is damaged in exactly the same ways as an own one, so the same
+        # four labels apply — the upgrade prose branches on them without caring which kind.
+        links = {**(entry.get("links") or {}), **(entry.get("uses_links") or {})}
+        for path, target in links.items():
             p = Path(path)
             if not p.is_symlink():
                 # present-but-not-a-link is the banned copy case; absent is a plain miss
@@ -150,7 +181,8 @@ def list_installs(ctx: typer.Context) -> None:
         print(f"{cap}  {entry.get('version', '?')}  "
               f"{len(entry.get('artifacts', {}))} artifacts  "
               f"{len(entry.get('links', {}))} links  "
-              f"{len(entry.get('schedules_owned', []))} schedules")
+              f"{len(entry.get('schedules_owned', []))} schedules"
+              + (f"  {len(entry['uses_links'])} uses links" if entry.get("uses_links") else ""))
 
 
 @app.command("remove", help="drop a capability's entry (after the removal walk)")

@@ -50,9 +50,14 @@ EXPECTED = [
     # where an alternative existed (an agent or a schedule to scope to), so nothing else in
     # this fixture can plant it — prefix-cap carries a `janitor` agent for exactly this.
     "skill/all-main",
+    # RFC-009 option 2: a consumer's grant of another capability's skill to its own agent,
+    # malformed every way the installer would refuse — and the missing grant itself.
+    "uses/shape", "uses/unknown-key", "uses/duplicate", "uses/capability", "uses/skill",
+    "uses/agents", "uses/missing",
 ]
 
 REFER_REL = "capabilities/name-cap/skills/refer/SKILL.md"
+USES_CAP = "capabilities/uses-cap"
 
 
 def main(argv=None) -> int:
@@ -89,6 +94,26 @@ def main(argv=None) -> int:
                   "and no schedule: there was no role to scope to, so the question is "
                   "unanswerable rather than unanswered", file=sys.stderr)
             return 1
+
+    # uses/missing must fire where only the scribe loads a foreign reference — a skill AND a
+    # schedule prompt — and stay silent where main loads the file too or a grant covers it.
+    # Pinned by file: the code firing anywhere would not prove the reach is computed at all.
+    missing_files = {f.file.rsplit(":", 1)[0] for f in findings if f.code == "uses/missing"}
+    for want in (f"{USES_CAP}/skills/uses-cap/SKILL.md", f"{USES_CAP}/schedules/nightly.md"):
+        if want not in missing_files:
+            print(f"selftest FAILED — uses/missing did not fire on {want}", file=sys.stderr)
+            return 1
+    for quiet in ("shared", "covered"):
+        if f"{USES_CAP}/skills/{quiet}/SKILL.md" in missing_files:
+            print(f"selftest FAILED — uses/missing fired on skills/{quiet}, which main also "
+                  "loads or a grant covers", file=sys.stderr)
+            return 1
+    # ...and a schedule prompt is scanned for slots at all, or a dangling one ships unseen.
+    if not any(f.code == "skills/ref-dangling" and f.file.startswith(f"{USES_CAP}/schedules/")
+               for f in findings):
+        print("selftest FAILED — skills/ref-dangling did not fire on the schedule prompt",
+              file=sys.stderr)
+        return 1
 
     # The slot checks must fire on a dangling slot and stay SILENT on an escaped one. Pinned by
     # line, because the codes firing at all proves nothing: the same fixture line carries both

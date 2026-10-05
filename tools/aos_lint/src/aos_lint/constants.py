@@ -6,6 +6,7 @@ picks the real name, and when it does, this file plus a grep is the change.
 
 What this file does NOT own: the SCHEMA vocabulary. `MANIFEST_KEYS`, `CAPABILITY_TAGS`,
 `HOST_FEATURES`, `HOST_LEVELS`, `SCHEDULE_KEYS`, `DEGRADED`, `SKILL_ENTRY_KEYS`, `KB_KEYS`,
+`USES_ENTRY_KEYS`,
 the name regexes, the slot regexes and `ORIGIN_PATH` are re-exported from
 `aos_cap.constants` — the SHIPPED tool's. The .mjs version carried its own copies and a
 comment saying they "must agree", with nothing testing the agreement; a schema the lint and
@@ -30,6 +31,7 @@ from aos_cap.constants import (  # noqa: F401  (re-exported vocabulary)
     SKILL_NAME_MAX,
     SKILL_NAME_RE,
     SKILL_PREFIX_RE,
+    USES_ENTRY_KEYS,
 )
 from aos_cap.slots import AGENT_SLOT, ESCAPED_SLOT, SKILL_SLOT  # noqa: F401
 
@@ -96,7 +98,7 @@ CHEATSHEET_SECTIONS = [
 # error messages, where a set's iteration order would make the message unstable. These are
 # the ordered forms the messages use, and they are asserted to cover the same members.
 MANIFEST_KEYS_ORDERED = ["id", "version", "tags", "summary", "depends", "schedules",
-                         "skills", "kb", "skill_prefix"]
+                         "skills", "kb", "skill_prefix", "uses"]
 CAPABILITY_TAGS_ORDERED = ["infra", "usecase"]
 HOST_FEATURES_ORDERED = ["cron", "messaging.inbound", "messaging.outbound", "voice.stt",
                          "voice.tts", "calendar.read", "calendar.write", "email",
@@ -106,6 +108,7 @@ SCHEDULE_KEYS_ORDERED = ["id", "cron", "agent", "prompt_ref", "exec", "degraded"
 DEGRADED_MODES = ["manual", "skip", "inline"]
 SKILL_ENTRY_KEYS_ORDERED = ["id", "used_by"]
 KB_KEYS_ORDERED = ["writes", "zones"]
+USES_ENTRY_KEYS_ORDERED = ["capability", "skill", "agents"]
 
 # The ordered forms are a display concern, never a second source of truth: if the shipped
 # tool gains a manifest key and this file is not updated, the mismatch fails at import time
@@ -119,6 +122,7 @@ for _ordered, _canonical, _what in [
     (DEGRADED_MODES, DEGRADED, "DEGRADED"),
     (SKILL_ENTRY_KEYS_ORDERED, SKILL_ENTRY_KEYS, "SKILL_ENTRY_KEYS"),
     (KB_KEYS_ORDERED, KB_KEYS, "KB_KEYS"),
+    (USES_ENTRY_KEYS_ORDERED, USES_ENTRY_KEYS, "USES_ENTRY_KEYS"),
 ]:
     if set(_ordered) != set(_canonical):
         raise AssertionError(
