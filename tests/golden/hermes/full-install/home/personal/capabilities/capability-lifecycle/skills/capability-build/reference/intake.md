@@ -9,6 +9,8 @@ Ask, clustering related questions and skipping what's already answered:
   (`cron`, `messaging.inbound/outbound`, `voice.stt/tts`, `calendar.read/write`,
   `email`, `secrets-store`)?
 - Does it compose with anything already installed, or stand alone?
+- Who runs each piece — the user's default assistant, or its own agent (a separate chat,
+  identity or toolset)? Does that agent need another capability's skill?
 - Who approves what it does before it does it, if anything is consequential or
   irreversible?
 - Scope: what's explicitly out for v0.1?

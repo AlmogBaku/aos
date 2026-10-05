@@ -209,6 +209,17 @@ mode-boundary block above; `aos:onboarding@…` — the distilled identity block
 **removed outright, not renamed** (item 4: the harness owns user context). This is a
 documented walk, not an automated migration — no released users exist yet.
 
+## Upgrading to 0.4.0 — consumer links
+
+0.4.0 adds `uses` (a consumer's agent loading another capability's skill) and one owner per
+lockfile link. **Reinstall the tool first** (`uv cache clean aos-cap`, then `uv tool install
+--force`): a 0.3.x `record` does not know `--uses-link` and drops `uses_links` from any entry
+it rewrites. A household that hand-linked a provider's skill into a consumer's agent has
+that link recorded on the **provider's** entry; once the consumer declares `uses`, move it —
+re-record the provider without it, then record it on the consumer with `--uses-link` (exit
+19 refuses the other order). `capability-upgrade`'s reconcile step finds these: a recorded
+link the provider no longer declares is shown and asked about, never dropped.
+
 ## Removal
 
 `aos-cap show capability-lifecycle` → delete the ten skill symlinks and the

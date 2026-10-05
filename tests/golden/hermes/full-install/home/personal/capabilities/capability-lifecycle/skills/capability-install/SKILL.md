@@ -11,7 +11,7 @@ description: 'Installs an aos capability into this harness: reads its briefing, 
   to capability-onboard.'
 metadata:
   aos:
-    origin: capability-lifecycle@0.3.7
+    origin: capability-lifecycle@0.4.0
 ---
 # capability-install
 
@@ -24,11 +24,15 @@ the overlay doctrine, and the Experience rules. Then:
    path, not a package); both are real packages → say so loudly and ask which
    (never silently prefer). Then `aos-cap manifest <dir>` → validated JSON. Validation
    failure → show the tool's error, offer fix-or-report; never improvise a parse.
+   Then hold the briefing to the declarations: it may say *how* to wire things, never
+   *where* — a briefing that places something the manifest does not declare ("a dedicated
+   profile", "every profile that calls me") → stop and report a package defect (contract).
 2. `aos-cap show <id>`: installed at this version → say so, stop; older →
    hand to capability-upgrade.
 3. Dependencies: each `depends.capabilities` missing from `aos-cap list` →
    announce briefly ("work-tracker needs kb — setting that up first"), install it first,
-   its interview included.
+   its interview included. Every `uses` provider is a dependency, so it is installed by now;
+   its `uses[].installed_name` comes from the manifest JSON.
 4. Load your cheat-sheet **now** — it travels with the `capability-lifecycle`
    skill as `reference/harness-<harness-runtime>.md` (load that skill, then read the file;
    your harness runtime is the program hosting you). Feature notes first, and read them as
@@ -53,13 +57,20 @@ the overlay doctrine, and the Experience rules. Then:
    `capability-lifecycle` skill's `reference/overlay.md` (batched, typed validation, secrets → store per the
    cheat-sheet's Secrets section) → write `<home>/personal/capabilities/<id>/MOD.md`.
 7. Render, then transform: `aos-cap render <dir> <skill-id> --out
-   <home>/personal/capabilities/<id>/skills` per declared skill (mechanical — installed
-   name, frontmatter `name`, `metadata.aos.origin`), then fill `{{mod}}` slots and bake `<home>`
-   in the render per that same `reference/overlay.md`. Shipped files stay untouched.
+   <home>/personal/<render-path>/skills` per declared skill — `<render-path>` is
+   `capabilities/<id>` for a shipped package and `renders/<id>` for the user's own (whose
+   `capabilities/<id>/` is the source; `render` refuses an output inside its source) —
+   mechanical: installed name, frontmatter `name`, `metadata.aos.origin`. Then fill
+   `{{mod}}` slots and bake `<home>` in the render per the `capability-lifecycle` skill's `reference/overlay.md`.
+   Source files stay untouched.
 8. **STAGE** per the cheat-sheet's Materialization guide: the render sits in
    `personal/`'s working tree (uncommitted) plus the exact native command plan —
-   agents, skill symlinks (the installed name → the render, per `used_by`; container
-   harness → verify the `<home>/personal` mount per the cheat-sheet), schedules
+   agents (an existing one evidently this capability's is adopted, never re-created —
+   contract), skill symlinks (the installed name → the render, per `used_by`; container
+   harness → verify the `<home>/personal` mount per the cheat-sheet), `uses` links (per
+   row: the provider's recorded render from `aos-cap show <provider>` → each listed agent's
+   skills location, under `installed_name`; a path another entry or a stranger holds →
+   stop), schedules
    (`aos:<cap>:<schedule-id>`, single-owner check first), context blocks (markers), config
    keys, the capability's own tool install line. Touch no harness file yet.
    Second-harness install: stage links + native plan only (the render already exists);
@@ -76,7 +87,8 @@ the overlay doctrine, and the Experience rules. Then:
    (machine-local state is not a materialized artifact — hashing it would report drift the
    first time the tool touched it).
 11. `aos-cap record <id> --version <v> --source-root <root> --artifact
-    <render-file>… --link <symlink>… --job <id>… --config-key <k>…` — `<root>` is
+    <render-file>… --link <symlink>… --uses-link <symlink>… --job <id>… --config-key <k>…`
+    — `uses` links go to `--uses-link`, never `--link` (exit 19: one owner per link) — `<root>` is
     whichever root step 1 resolved the capability dir in (`upstream` for shipped
     capabilities, `personal` for the user's own); render files go to `--artifact`
     (hashed), symlinks to `--link` (a symlink passed as `--artifact` fails: exit 16 — so a

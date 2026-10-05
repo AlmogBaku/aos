@@ -100,8 +100,9 @@ A KB is written only under `tests/.sandbox/`; a real KB, anyone's at any path, n
   and the render substitutes. A hardcoded name rots on a prefix change; a bare id names nothing.
   A dangling slot fails the render (exit 18) and CI. A leading backslash escapes an example —
   which is what lets the docs teaching this rule survive being rendered by it.
-- **Skill scoping** — every skill declares `used_by`. No cross-capability skill sharing (open
-  RFC-009); capabilities compose through the shared `main` agent or a tool on PATH.
+- **Skill scoping** — every skill declares `used_by`, which names only the capability's own
+  agents. Another capability's skill reaches your agent only through a `uses` grant (RFC-009
+  option 2, resolution owed on `spec`); otherwise compose through `main` or a tool on PATH.
 - **Entry-skill anatomy (§2.5)** — `skills/<id>/SKILL.md`, depth one level deep, no chains.
   `CAPABILITY.md` is the installer's briefing (never loaded at runtime); the entry skill is the
   runtime face.

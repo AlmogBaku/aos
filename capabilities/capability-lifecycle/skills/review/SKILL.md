@@ -60,9 +60,11 @@ Two layers, kept separate — conflating them hides both kinds of gap:
 Then the edges: who invokes whom, who writes what, who owns which path. **A unit with no
 resource is a wish; a resource with no unit is dead weight.** Both are findings.
 
-Check the composition boundary too: a capability reaches another only through the shared
-`main` agent or a tool on PATH — never a foreign skill (RFC-009 is open, so a cross-capability
-skill reference is a defect today, not a style choice).
+Check the composition boundary too: a capability reaches another through the shared `main`
+agent, a tool on PATH, or a declared `uses` grant — a foreign skill a non-main agent loads
+with no `uses` entry is a defect, not a style choice. Check the other direction as well:
+every `uses` agent actually loads that skill, and no briefing places anything the manifest
+does not declare (a profile, an agent, a link) — the installer follows declarations only.
 
 ## 3. Diagram it **[A]**
 

@@ -23,9 +23,9 @@ mutation goes through the `hermes` CLI.
 
 | aos concept | Hermes primitive | Where / how |
 |---|---|---|
-| agent | **profile** — a full parallel HERMES_HOME (own `config.yaml`, `.env`, `SOUL.md`, `skills/`, `cron/`) | `~/.hermes/profiles/<name>/`; directory-defined, no registry entry. `hermes profile create <name>`; target with `hermes -p <name> …` |
+| agent | **profile** — a full parallel HERMES_HOME (own `config.yaml`, `.env`, `SOUL.md`, `skills/`, `cron/`) | `~/.hermes/profiles/<name>/`; directory-defined, no registry entry. `hermes profile create <name>` — or adopt an existing one that is evidently this capability's (contract); target with `hermes -p <name> …` |
 | front agent (`main`) | the default profile | `~/.hermes/` itself |
-| skill | Agent Skills folder — a **symlink** to the pinned render in `<home>/personal` | link at `~/.hermes/skills/<installed-name>` (main) or `profiles/<p>/skills/<installed-name>` (`aos-cap skills`) — per-profile links are how `used_by` scoping works; Hermes follows symlinks in skills dirs. Name gate: pass both dirs to `--harness-skills` |
+| skill | Agent Skills folder — a **symlink** to the pinned render in `<home>/personal` | link at `~/.hermes/skills/<installed-name>` (main) or `profiles/<p>/skills/<installed-name>` (`aos-cap skills`) — per-profile links are how `used_by` scoping works, and a `uses` grant is one more link into the grantee's `profiles/<p>/skills/`; a profile sees only its own skills dir. Hermes follows symlinks in skills dirs. Name gate: pass both dirs to `--harness-skills` |
 | schedule | cron job owned by exactly one profile (mapping is by directory, not a field) | `hermes -p <profile> cron create '<cron>' '<prompt>' --name … --skill …` |
 | context block | `SOUL.md` = identity; `workspace/AGENTS.md` = working-dir instructions | inside the profile dir |
 | secret | `.env` line | see Secrets |
@@ -44,13 +44,19 @@ the profile's default doesn't already fit the class; never hardcode provider nam
 
 1. **Agents → profiles.** `hermes profile create <name>`; then inside the profile:
    `purpose` + persona content → `SOUL.md` (replace the seeded default, never leave it
-   empty); `context_files` → workspace, referenced from `workspace/AGENTS.md`;
-   `workspace: shared` → skip profile creation, wire into the default profile.
+   empty) and record that `SOUL.md` as an `--artifact` — that record is what marks the
+   profile as created by this capability; `context_files` → workspace, referenced from
+   `workspace/AGENTS.md`; `workspace: shared` → skip profile creation, wire into the
+   default profile. **Profile already there** and evidently this capability's → adopt it:
+   no `profile create`, no `SOUL.md` write, keep its `state.db`, sessions, gateway,
+   workspace and hand-written identity files; record no `SOUL.md`.
 2. **Skills**: `aos-cap skills <cap-dir>` gives the installed name; the render lives once
-   at `<home>/personal/capabilities/<capability>/skills/<installed-name>/` (contract);
+   at `<home>/personal/<render-path>/skills/<installed-name>/` (contract);
    create a symlink per `used_by` — `ln -s <render-dir> ~/.hermes/skills/<installed-name>`
    (main) or into `profiles/<p>/skills/`. Never copy. Record each link with
-   `aos-cap record … --link <linkpath>`. Enumerate what is already there for the name gate
+   `aos-cap record … --link <linkpath>`. Per `uses` row (`aos-cap manifest`): `ln -s
+   <provider's recorded render dir> ~/.hermes/profiles/<agent>/skills/<installed_name>` for
+   each listed agent, recorded with `--uses-link` on **this** capability's entry. Enumerate what is already there for the name gate
    with `hermes skills list` (`-p <profile>` per profile), or the dirs themselves:
    `~/.hermes/skills` and `~/.hermes/profiles/*/skills`.
 3. **Schedules.** Agent-type entries (`agent` + `prompt_ref`):
@@ -106,14 +112,16 @@ Drive everything from the lockfile entry, in order:
 
 1. Cron jobs: `hermes -p <profile> cron remove <id>` per `schedules_owned` id; then
    delete leftover `cron/output/<id>*`.
-2. Skills: delete the symlink from **every** profile the lockfile's `links` list; then
-   delete the render dirs in `<home>/personal/capabilities/<capability>/skills/` via a
-   commit (revertible — the persist hook's message says why).
+2. Skills: delete every symlink the entry's `links` and `uses_links` list; then delete the
+   render dirs in `<home>/personal/<render-path>/skills/` via a commit (revertible — the
+   persist hook's message says why). Never `capabilities/<id>/` of the user's own package:
+   that is its source.
 3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks.
 4. Config keys: `hermes config unset <key>` per recorded key.
 5. `.env` lines added at install: remove after asking the user.
-6. Profiles created by this capability and used by nothing else: `hermes profile delete
-   <name>`.
+6. Profiles this capability created (its entry records their `SOUL.md`) and used by
+   nothing else: `hermes profile delete <name>`. An adopted profile is never deleted —
+   no recorded `SOUL.md` means ask.
 7. Recorded `~/.hermes/scripts/` and `hooks/` files: delete.
 8. Remove the lockfile entry; verify per the contract (re-run Introspection).
 

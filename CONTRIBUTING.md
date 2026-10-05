@@ -126,8 +126,9 @@ it, review the draft + `GAP.md` it emits, open the PR.
 House rules the linter can't fully check:
 
 - **Skills are scoped.** Every skill declares `used_by`; `used_by` cannot name another
-  capability's agent (open RFC-009). Capabilities compose through the shared `main`
-  agent or a tool on PATH — never by loading a foreign skill.
+  capability's agent. A consumer whose own agent loads another capability's skill declares
+  a `uses` grant (RFC-009 option 2, resolution owed on `spec`); otherwise capabilities
+  compose through the shared `main` agent or a tool on PATH.
 - **Shipped software is judgment-free.** A capability tool is standalone, behind a
   process boundary: files and exit codes, no LLM calls inside
   ([spec §2.4](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#24-harness-native-code-capabilities-ship-software)).
