@@ -277,14 +277,13 @@ A user's personalization lives at **mirrored capability paths inside their `pers
                                # in it, ever — not even untracked files
   personal/                    # the user's ONE private repo — "my aos, as built"
     MOD.md                     # global: identity, timezone, working hours, sacred time, red lines
-    kb-registry.yaml           # the user's KB registry (§4.1) — user-owned like MOD.md
     capabilities/work-tracker/ # personalized twin of upstream/capabilities/work-tracker/
       MOD.md                   # this user's nuances for work-tracker
       skills/...               # the pinned render (§3.2) — rendered artifacts, tracked
   .aos/                        # machine-local state at household level, outside every repo
     installs.lock.yaml         # what's installed where: versions, source roots, links, hashes
-                               # (plus any machine-local file a capability's tool writes for
-                               #  itself — kb's kb-principal.yml is the one today)
+    kb-registry.yaml           # kb's registry of every base (§4.1) — machine-local, not overlay
+    kb-principal.yml           # kb's principal list — who authors writes on this machine
   <org>/                       # future seam: further source roots ("distributions") as siblings
 ```
 
@@ -310,7 +309,7 @@ Never schedule over kids pickup (17:30). Prefer batching calls on Tue/Thu.
 
 **The invariant (normative, CI-enforced):**
 
-The **user-owned overlay family** is: every `MOD.md` (global + per-capability) and `kb-registry.yaml`.
+The **user-owned overlay family** is: every `MOD.md` (global + per-capability).
 
 1. Upstream never ships, writes, or merges into any overlay-family path. CI rejects them in PRs to the shared repo.
 2. Onboarding writes **only** overlay-family files (and harness secret stores — see below).
@@ -378,7 +377,7 @@ The KB is the most load-bearing infrastructure capability: nearly every use-case
 
 ### 4.1 The registry: `kb-registry.yaml`
 
-User-owned (lives at the personal root next to the global `MOD.md` — `<home>/personal/kb-registry.yaml`, §3.1; same invariant — upstream never touches it):
+Machine-local (lives at `<home>/.aos/kb-registry.yaml` — not overlay; upstream never touches it; only `kb init`/`kb adopt` create it; missing → error naming the path):
 
 ```yaml
 default: personal

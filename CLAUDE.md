@@ -25,7 +25,7 @@ ARCHITECTURE §8 splits every decision into two tables:
 
 ## Normative rules that are easy to break while editing
 
-- **The overlay family** — every `MOD.md` (global + per-capability) and `kb-registry.yaml` — is user-owned. Upstream never ships, writes, or merges those paths; do not create them in this repo. `.aos/` is machine-local state and gitignored. (ARCHITECTURE §3.1; `.gitignore` explains why the overlay family itself is deliberately *not* ignored — that's RFC-005.)
+- **The overlay family** — every `MOD.md` (global + per-capability) — is user-owned. Upstream never ships, writes, or merges those paths; do not create them in this repo. `.aos/` is machine-local state and gitignored; `kb-registry.yaml` lives there, not in `personal/`. (ARCHITECTURE §3.1; `.gitignore` explains why the overlay family itself is deliberately *not* ignored — that's RFC-005.)
 - **Rule of two** — a manifest/schema field only exists once two in-repo capabilities need it machine-read; until then it stays prose. §2.2 lists what was deliberately left out (`provides` graph, hooks vocabulary, per-capability grants, model/cost hints); don't "helpfully" add them.
 - **No program anywhere** — `aos import` / `install` / `update` are conversational actions the harness agent performs, never a CLI. Per-harness support is a cheat-sheet (`capabilities/capability-lifecycle/harnesses/<harness-runtime>.md` — knowledge), never adapter code. Capability-shipped software is standalone behind a process boundary, reached by a thin per-harness shim.
 - **Skill scoping** — every skill declares `used_by`; agents only load skills declared for them.
