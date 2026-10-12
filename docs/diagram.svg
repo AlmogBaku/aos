@@ -82,7 +82,7 @@
     <text class="side" x="0"   y="12">Hermes · <tspan font-style="italic">profiles + cron/jobs.json</tspan></text>
     <text class="side" x="230" y="12">NanoClaw · <tspan font-style="italic">groups + DB tasks</tspan></text>
     <text class="side" x="440" y="12">OpenClaw · <tspan font-style="italic">agents + workspace files</tspan></text>
-    <text class="side" x="0"   y="28">Nanobot · <tspan font-style="italic">agents/*.md + MCP</tspan></text>
+    <text class="side" x="0"   y="28">Nanobot · <tspan font-style="italic">instances + cron tool</tspan></text>
     <text class="side" x="230" y="28">Claude Code · <tspan font-style="italic">skills + CronCreate</tspan></text>
     <text class="side" x="440" y="28" opacity="0.45">OpenCode <tspan font-style="italic">(later)</tspan></text>
   </g>

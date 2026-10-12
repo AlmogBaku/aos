@@ -206,8 +206,8 @@ def lock_link_names(root: Path, capability: Optional[str]) -> dict[str, str]:
             if "skills" not in Path(link).parts[:-1]:
                 continue
             # .stem, not .name: a harness that installs skills as flat `<name>.md` files
-            # (Nanobot) records a link whose basename carries the extension, and it has to
-            # compare equal to a computed installed name at all three sites.
+            # records a link whose basename carries the extension, and it has to compare
+            # equal to a computed installed name at all three sites.
             out.setdefault(Path(link).stem, cap)
     return {name: cap for name, cap in out.items() if capability is None or cap == capability}
 
@@ -252,7 +252,7 @@ def harness_owners(dirs: Iterable[str], ours: set[str],
             if child.is_dir():
                 name = child.name
             elif child.suffix == ".md" and child.stem.upper() != "README":
-                name = child.stem   # Nanobot's flat skills/<name>.md form
+                name = child.stem   # a flat skills/<name>.md form
             else:
                 continue
             if Path(name).stem in ours:

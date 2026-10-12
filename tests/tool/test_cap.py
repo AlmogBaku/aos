@@ -756,7 +756,7 @@ class SkillNameTest(unittest.TestCase):
     def test_flat_harness_skill_file_also_collides(self):
         harness = self.home / "harness" / "skills"
         harness.mkdir(parents=True)
-        (harness / "democap-sort.md").write_text("flat form (Nanobot)\n")
+        (harness / "democap-sort.md").write_text("flat form\n")
         cap = self.cap("democap", ["democap", "sort"])
         self.assertEqual(self.skills(cap, "--check", "--harness-skills",
                                      str(harness)).returncode, 17)
@@ -839,8 +839,8 @@ class SkillNameTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
 
     def test_reinstall_over_our_own_flat_form_link_is_clean(self):
-        """Nanobot installs skills as skills/<name>.md, so the lockfile records a link
-        whose basename carries .md — it still has to match our own exemption."""
+        """A harness that installs skills as skills/<name>.md records a link whose
+        basename carries .md — it still has to match our own exemption."""
         harness = self.home / "harness" / "skills"
         harness.mkdir(parents=True)
         (harness / "democap-sort.md").write_text("flat form\n")
