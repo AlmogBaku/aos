@@ -194,6 +194,8 @@ skills:                        # every shipped skill, with SCOPE — who loads i
     used_by: [main]
   - id: steward
     used_by: [steward]         # ONLY the steward agent loads it — nobody else
+uses:                          # OPTIONAL (RFC-009): one of OUR agents loads THEIR skill —
+  - {capability: kb, skill: route, agents: [steward]}   # linked into steward, recorded under us
 
 kb:
   zones:                       # grants requested into the target base at install (§4.3)
@@ -205,7 +207,7 @@ kb:
 
 (No `onboarding` or `mod_example` field — `ONBOARDING.md` and `MOD.example.md` sit at fixed paths, found by convention. A manifest field would be a pointer to a constant, which nothing needs; the *presence* of `ONBOARDING.md` is itself the signal that a capability has an interview.)
 
-**Skill scoping (normative):** every skill declares `used_by` — which agents load it (`main` = the harness's front agent; other names = agents from `agents/`). The installing LLM materializes each skill **only into the workspaces of the agents that use it**. No agent ever loads a skill it isn't declared to use; a capability that scopes everything to `main` is the degenerate case and the linter asks why. This is the anti-pollution rule: ten installed capabilities must not mean every agent carries fifty skills' worth of context.
+**Skill scoping (normative):** every skill declares `used_by` — which agents load it (`main` = the harness's front agent; other names = agents from `agents/`). The installing LLM materializes each skill **only into the workspaces of the agents that use it**. No agent ever loads a skill it isn't declared to use; a capability that scopes everything to `main` is the degenerate case and the linter asks why. This is the anti-pollution rule: ten installed capabilities must not mean every agent carries fifty skills' worth of context. `used_by` names only the declaring capability's own agents; another capability's skill reaches one of your agents only through a `uses` grant (RFC-009, resolved 2026-10-12): the installer materializes it into that agent's workspace and records the link under *your* entry, so the provider's own upgrade can never move it. A file that only a non-main agent reads and that references a foreign skill without a grant is a lint error.
 
 **`skill_prefix` (normative):** the one field that shapes a name. It exists because two families needed it, not one: `capability-lifecycle` declares `capability-` (ten skills whose ids would otherwise repeat their capability) and `work-tracker` declares `wt-` (a two-word id makes the default prefix unwieldy on every skill it touches — `work-tracker-capture`, `work-tracker-schedule`); `kb` exercises the default. Both the kit linter and the install tool machine-read it — rule of two satisfied on both counts. Absent or empty means the capability id, so most capabilities never write it.
 
@@ -537,6 +539,7 @@ The installer being an LLM does not relax the discipline — it is *why* the dis
 - Everything materialized is **recorded** in `<home>/.aos/installs.lock.yaml` — at household level, spanning source roots (capability, version, source root, artifact paths, links, hashes).
 - Every skill name is **gated before anything is written** (§2.1): the installer computes each installed name and refuses to proceed if one is already claimed — by another capability in the household, by a link the lockfile records, or by a skill the harness already has, aos-installed or not. The gate is deterministic (a tool verb, exit code 17), because "is this name taken" is not a judgment call.
 - Upgrade rollback is `git revert` in `personal/` — the pinned-render history is the primary safety net.
+- **Declarations decide placement.** `used_by`, `schedules[].agent`, `uses` and `agents/` say where every skill, job and link lands; the briefing says *how*, never *where*. A briefing that places something the manifest does not declare is a package defect and the install stops. Every lockfile link has exactly one owner: recording a path another entry already holds is refused.
 - `aos-cap verify` reports drift (lockfile hash ≠ on-disk artifact) and link damage (missing, re-targeted, dangling, or replaced by a copy); the deferred `doctor` verb (RFC-004) will add degraded installs, orphaned artifacts, and patch/version mismatches (§2.4).
 
 What is *not* open: prose-driven mutation of live configs with no lockfile, no diff, and no revertible history — hand-mutated harness configs accumulate `.bak` graveyards. The bookkeeping is carried by a capability tool: **the lockfile is `aos-cap`'s file** (capability-lifecycle) — agents call verbs, never edit the YAML. That is RFC-004's named reopen path, taken; the RFC's no-kit-level-tool decision stands.
@@ -643,7 +646,7 @@ kb and capability-lifecycle are built together: the installer needs the intervie
 | [RFC-006](rfcs/RFC-006-multi-kb-routing.md) | Multi-KB routing & authorization: does §4.2–4.3 hold? (kb's contested core; decided by replay evidence) |
 | [RFC-007](rfcs/RFC-007-permission-gate-vocabulary.md) | Permission-gate policy vocabulary (inventory the group's existing gates first) |
 | [RFC-008](rfcs/RFC-008-agent-comms-opinionation.md) | Agent-to-agent comms: how opinionated? (normative envelope + glass-box rule vs advisory pattern) |
-| [RFC-009](rfcs/RFC-009-capability-composition.md) | Cross-capability skill dependency: can capability B's agents use capability A's skills? (`used_by` can't cross capabilities; `provides` graph deferred; work-tracker→kb is real consumer #1, and it composes through the `kb` command on PATH — never a foreign skill) |
+| [RFC-009](rfcs/RFC-009-capability-composition.md) | **Resolved 2026-10-12 (proposed, closing after dogfood):** a consumer-side `uses` grant (option 2) — the installer links the provider's render into the consumer's agent and records it under the consumer; one owner per link; `provides` graph still deferred. Was: cross-capability skill dependency — can capability B's agents use capability A's skills? (`used_by` can't cross capabilities; `provides` graph deferred; work-tracker→kb is real consumer #1, and it composes through the `kb` command on PATH — never a foreign skill) |
 | [RFC-010](rfcs/RFC-010-multi-user-bases.md) | Bases several humans write to: does CI ever curate and whose key pays (Q1, **open**), the review gate as a pull request (Q2), cross-base provenance and links (Q3 — two consumers now: promoted-page `origin:` and work-tracker's `project:`), subtree privacy (Q4). Four things are already decided and built: per-person ingestion, the principal as a git author, one file per record, and enforcement by routing method |
 
 ## 9. Capability-authoring mode

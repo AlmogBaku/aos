@@ -1,6 +1,25 @@
 # RFC-009: Cross-capability skill dependency
 
-**Status:** open · **Decides:** whether and how capability B's agents may use capability A's skills
+**Status:** resolved 2026-10-12 (proposed — closes after the dogfood period) · **Decides:** whether and how capability B's agents may use capability A's skills
+
+## Resolution: option 2 — a consumer-side `uses` grant
+
+A capability whose **own** agent loads another capability's skill declares the grant itself:
+
+```yaml
+uses:
+  - {capability: kb, skill: route, agents: [steward]}
+```
+
+The installer links the provider's existing render into each listed agent's skill location, under the provider's *installed* name, and records that link under the **consumer's** lockfile entry (`uses_links`, kept apart from the consumer's own `links` because link basenames are name claims). The provider's install, upgrade and removal never create, move or delete it; every lockfile link has exactly one owner, and recording a path another entry already holds is refused. `used_by` keeps naming only the declaring capability's own agents. A file that only a non-main agent reads and that references a foreign skill without a grant is a lint error; a file `main` also reads stays silent, because `main` composes through the provider's own `used_by: [main]` link. The `provides` surface graph stays on §2.2's absent list — `uses` is the narrow grant, not a graph.
+
+**Why the consumer and not the provider (option 1).** A provider should not have to know its consumers: option 1 turns every new consumer into an edit to the provider, and the incident below was precisely a provider's own bookkeeping deciding where a consumer's link lived.
+
+**Evidence, first question** — *does any agent actually need a foreign skill?* Yes. A use-case capability's own agent ran scheduled jobs that load a session-opening skill from one infra capability and an interview skill from another; mediating through `main` was not what happened in practice. With no way to declare the grant, the links were made by hand and recorded on the providers' entries. A provider upgrade then re-derived its links from its own `used_by: [main]`, moved the link to the front agent, and the consumer's jobs reported success for about two weeks while opening nothing (`docs/BUILD-GAPS.md`, 2026-10-05, on `main`).
+
+**Evidence, second question** — *can a harness load a skill from another capability's directory without copying?* Yes on Hermes: a profile reads only its own `skills/` directory and follows symlinks there, so a grant is one more symlink into the grantee's profile. The other harnesses scope `used_by` either by directory or by a per-agent `skills:` list, and `uses` is materialized the same way `used_by` is on each.
+
+**Rule of two.** Two machine readers exist on `main` (`aos-cap manifest`/`record` and the `uses/*` lint family, capability-lifecycle 0.4.0). The first in-repo declarer is the contributed ghostwriter capability, once it declares its agent. Built ahead of this resolution, on a branch, as a documented gap — which is what this section closes.
 
 ## Question
 
@@ -47,4 +66,4 @@ resolve the RFC, which **stays open**.
 
 ## Process
 
-Deferred to its own session (deliberate — raised during the kb redesign, 2026-07-23, not solved there). Decide before build 4 if a build surfaces a real cross-agent need; otherwise decide by the last build. Build 3 has now been done twice without surfacing one.
+Deferred to its own session (deliberate — raised during the kb redesign, 2026-07-23, not solved there). Decide before build 4 if a build surfaces a real cross-agent need; otherwise decide by the last build. Build 3 has now been done twice without surfacing one. **Decided 2026-10-12**: the need surfaced in a dogfooded use-case capability (the Resolution section above); proposed, closing after the dogfood period, like RFC-005.
