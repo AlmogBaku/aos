@@ -83,8 +83,9 @@ A KB is written only under `tests/.sandbox/`; a real KB, anyone's at any path, n
 
 ## Rules that are easy to break
 
-- **The overlay family** (`MOD.md`, `kb-registry.yaml`) is user-owned. Upstream never ships,
-  writes or merges those paths; do not create them here. `.aos/` is machine-local, gitignored.
+- **The overlay family** (`MOD.md`) is user-owned. Upstream never ships, writes or merges
+  those paths; do not create them here. `.aos/` is machine-local, gitignored — `kb-registry.yaml`
+  lives there, not in `personal/`.
 - **Rule of two** — a manifest field exists only once two in-repo capabilities need it
   machine-read. §2.2 lists what was deliberately left out; don't helpfully add it.
 - **Extra fields: the word is `metadata`.** In an *external* schema (`SKILL.md`) our extensions

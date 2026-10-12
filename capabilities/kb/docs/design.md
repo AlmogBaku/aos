@@ -141,15 +141,14 @@ and scaffolding a base *overwrote* the repository's git identity. So a shared ba
 express "Alice's agent may write here, Bob's may not", and could not say whose captures were
 whose.
 
-Now the tool establishes an identity for itself on the first verb call and stores it in
-`<home>/.aos/kb-principal.yml`, machine-local and gitignored. It is a **list**, because one
-person is not one identity — a work address should not author a personal base — matched
-against base names with first-match-wins.
+Identity is stored in `<home>/.aos/kb-principal.yml`, machine-local and gitignored. It is a
+**list**, because one person is not one identity — a work address should not author a
+personal base — matched against base names with first-match-wins. `kb init --principal <id>`
+(or `AOS_PRINCIPAL_ID`) writes the file; `kb config set principal.id=` also writes it.
 
-It **never blocks and never prompts.** A weak value (synthesized, `noreply@`) is not an
-error: the write proceeds and lint reports it. The tool detects and stores; the onboarding
-interview fixes what detection got wrong. Anything else would put a tty prompt on a path a
-cron has to run.
+Write verbs with no resolvable identity error, naming the file. Read-only verbs (`kb lint`,
+`kb find`, `kb search`, `kb inbox`) need none. The onboarding interview collects the id and
+writes it; a cron that only runs sync and exec-style jobs needs no identity.
 
 There is no separate roster. Grant rows name principal ids directly, so the grants table
 **is** the roster — one source instead of two that can disagree.

@@ -15,8 +15,8 @@ can change without touching test bodies. Each suite keeps exactly one real-subpr
 class (`InstalledScriptSmokeTest` / `InstalledScriptTest`): CliRunner never leaves the
 process, so it can't prove `[project.scripts]` actually resolves as an installed console
 script — that's the one thing those classes exist to check. `test_cap.py` additionally
-needs a `chdir` helper, because a few of its behaviours (the cwd-upward `.aos/` search, a
-relative `--artifact`, a relative capability dir) are genuine functions of the process
+needs a `chdir` helper, because a few of its behaviours (relative `--artifact`, a relative
+capability dir) are genuine functions of the process
 cwd, which an in-process runner inherits rather than isolates. What that suite must cover
 — every verb, every failure mode, and the bug behind each regression pin — is indexed in
 `tests/tool/COVERAGE-cap.md`, which is diffable against the file's `def test_*` names.

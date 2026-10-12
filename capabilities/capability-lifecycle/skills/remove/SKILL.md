@@ -39,11 +39,11 @@ contract, and the Experience rules.
    third-party skill: unlink it, and offer to drop the vendor clone only if no other entry
    links into it.
    **Its machine-local state under `<home>/.aos/` is not in the lockfile, so nothing walks
-   it backwards** — removing kb leaves `kb-principal.yml` behind. Offer to delete it, and
-   say what it is: the list mapping this machine's human principals to their bases. It is
-   the user's, not the capability's, so an unasked deletion loses an answer they gave; a
-   re-install would otherwise adopt the old identity silently, which is right often enough
-   to be worth asking about rather than guessing.
+   it backwards** — removing kb leaves `kb-principal.yml` and `kb-registry.yaml` behind.
+   Offer to delete them, and say what each is: the principal list (who authors writes on
+   this machine) and the registry (the list of every base). Both are the user's, not the
+   capability's — an unasked deletion loses answers they gave; a re-install would adopt the
+   old values silently, which is right often enough to be worth asking about.
 5. Tell the user their MOD.md stays: "your answers survive — in your personal repo,
    reinstalling brings it back personalized."
 6. Verify: re-introspect until no `metadata.aos.origin`, `aos:` names, marker

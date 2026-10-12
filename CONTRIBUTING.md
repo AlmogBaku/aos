@@ -136,8 +136,9 @@ House rules the linter can't fully check:
   harness agent performs. Per-harness support is a cheat-sheet, never adapter code.
 - **Rule of two.** A manifest field must have two in-repo machine consumers or stay
   prose. Don't "helpfully" add fields.
-- **The overlay is user-owned.** Never ship, write, or merge any `MOD.md` or
-  `kb-registry.yaml` (fixtures and golden snapshots are the one exemption).
+- **The overlay is user-owned.** Never ship, write, or merge any `MOD.md`
+  (fixtures and golden snapshots are the one exemption). `kb-registry.yaml` is
+  machine-local in `.aos/` — not overlay, and equally excluded from the kit.
 
 > [!WARNING]
 > **This repo is public and capabilities are extracted from real setups.** Nothing

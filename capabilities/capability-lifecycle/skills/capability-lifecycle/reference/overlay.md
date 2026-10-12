@@ -12,9 +12,8 @@
 state, not a history.** Typed answers live in its frontmatter; anything the questions
 don't cover is an imperative prose statement in its body ("the steward runs at 22:00, not
 23:00"). The overlay family lives in the personal root at mirrored paths
-(`<home>/personal/MOD.md`, `<home>/personal/capabilities/<id>/MOD.md`,
-`<home>/personal/kb-registry.yaml` — §3.1); upstream never ships, writes, or merges any
-of it. Everything personal is reconstructible from `original × MOD.md`; that
+(`<home>/personal/MOD.md`, `<home>/personal/capabilities/<id>/MOD.md` — §3.1); upstream
+never ships, writes, or merges any of it. Everything personal is reconstructible from `original × MOD.md`; that
 reconstructibility is what makes upgrades safe.
 
 **One statement per subject — edit, never accumulate.** When something changes, find the

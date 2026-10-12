@@ -20,10 +20,8 @@ cheat-sheet.
 
 - Installed once at capability install → the `kb` command on PATH; the lockfile records it
   and removal uninstalls it. `uv` itself is a one-line install.
-- Cron: the wrapper **must anchor the registry** — export
-  `AOS_REGISTRY=<home>/personal/kb-registry.yaml`, or pass `--registry`. A bare `kb sync`
-  with no resolvable registry exits 0 having synced nothing, which is the silent failure.
-- Surfacing: optionally compose a notifier around the exec call
+- Cron: no registry export needed — `kb sync` resolves `<home>/.aos/kb-registry.yaml` by
+  default (`AOS_REGISTRY` is an override only). Optionally compose a notifier around the exec call
   (`… || <harness-notify "kb sync needs attention">`). The file bus — `.kb/pending/`, git
   history, exit codes — is the portable interface either way.
 - Env: `AOS_REGISTRY` · `AOS_AGENT` (the acting subject, committer of every write) ·

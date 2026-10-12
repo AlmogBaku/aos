@@ -106,10 +106,10 @@ _TIMESTAMP = re.compile(
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 _SHA256 = re.compile(r"\b[0-9a-f]{64}\b")
 _ID = re.compile(r"\b[0-9a-f]{12}\b")
-# A synthesized principal (`aos_kb.identity.synthesize_principal`) is `<user>@<host>.local`,
-# built from getpass.getuser() and socket.gethostname() — two facts about whoever ran the e2e
-# and none about the install. It reached a committed snapshot once, because $HOME was the only
-# thing normalized here.
+# A synthesized principal is `<user>@<host>.local`, built from getpass.getuser() and
+# socket.gethostname() — two facts about whoever ran the e2e and none about the install. kb
+# synthesized one until it stopped guessing identities; it reached a committed snapshot once,
+# because $HOME was the only thing normalized here, and the shape is still scrubbed.
 #
 # Matched by SHAPE rather than by substituting $USER: a username is often an ordinary word
 # (`dana`, `user`, `home`), and a bare \buser\b replace corrupts unrelated prose and

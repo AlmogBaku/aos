@@ -24,7 +24,7 @@ from ..constants import UNIVERSAL_FIELDS, RAW_FIELDS, PENDING_FIELDS, PENDING_KI
 from ..frontmatter import slugify, read_frontmatter
 from ..identity import today, is_repo, git, sequencer_state, is_weak_principal, \
     principal_file, resolve_principal
-from ..registry import load_registry
+from ..registry import load_registry, registry_path
 from ..base import Base, resolve_base
 from .wiki import _link_graph
 
@@ -255,30 +255,33 @@ def _lint_grants_via_grammar(base: Base, findings: list) -> None:
 
 
 def _lint_grants_audit(base: Base, global_opts, critical: list, findings: list,
-                       info: list, audit_days: int) -> str:
+                       info: list, audit_days: int) -> str | None:
     """Authorship x grants over recent commits.
 
     This is a real check now rather than one deferred to a cross-check that was
     never built. Every write is its own commit, so nothing is batched under one
     identity and there is no exemption to make: the *committer* is the acting agent
     (the subject a grant names) and the *author* is the principal whose knowledge it
-    is. A commit with neither is the finding. Returns the resolved principal id, so
-    the caller's principal-drift check reuses it rather than resolving twice."""
+    is. A commit with neither is the finding. Returns the resolved principal id (None
+    with no identity), so the caller's principal-drift check reuses it rather than
+    resolving twice."""
     grants = base.grants()
-    # The reporting half of "the principal never blocks": a synthesized or placeholder
-    # identity authors every write, and the write proceeds — this is where it surfaces.
+    # A placeholder identity authors every write and the write proceeds — this is where
+    # it surfaces. NO identity is not a finding: a read needs none, and a write without
+    # one already fails, naming the file.
     pid = resolve_principal(global_opts, base.cfg.get("name", base.root.name),
-                            base.root, persist=False)
-    if is_weak_principal(pid):
-        findings.append(f"weak principal {pid!r} — a synthesized or placeholder "
-                        f"identity authors every write. Fix it in "
-                        f"{principal_file()} or run kb's onboarding interview")
+                            required=False)
+    if pid and is_weak_principal(pid):
+        findings.append(f"weak principal {pid!r} — a placeholder identity authors "
+                        f"every write. Fix it in {principal_file()} or run kb's "
+                        f"onboarding interview")
 
     # Principal drift: a shard whose owner is neither the current principal nor named
     # in any grant row is somebody who left, or a typo that silently made a new person.
     # Only sharded state has an owner in its filename; the flat file belongs to
     # whoever holds the base, so its name says nothing about drift.
-    known = {r.subject.strip().lower() for r in grants} | {pid.lower(), "user"}
+    known = {r.subject.strip().lower() for r in grants} | {"user"} \
+        | ({pid.lower()} if pid else set())
     known_slugs = {slugify(k) for k in known}
     for sp in (base.state_paths() if base.audience() == "shared" else []):
         who = sp.stem
@@ -326,7 +329,9 @@ def _lint_routing(base: Base, global_opts, critical: list, findings: list) -> No
     """§4.5 layer 2: no LLM-routed write may ever reach a shared base. The exclusion
     is a list filter, not a threshold, so the check is an existence test — and it is
     the falsifiable half of the rule the route skill states in prose."""
-    bar = float((load_registry(global_opts) or {}).get("confidence_bar", 0.7) or 0.7)
+    # A base linted by path needs no registry (CI has none): the default bar stands in.
+    reg = load_registry(global_opts) if registry_path(global_opts).exists() else {}
+    bar = float(reg.get("confidence_bar", 0.7) or 0.7)
     # Both halves of the capture path: an LLM-routed capture is a violation the moment
     # it is written, not only once it is ingested — checking _raw/ alone would let one
     # sit in the queue unreported.

@@ -45,7 +45,7 @@ def cmd_skills(
     data, rows = skill_rows(cap_dir)
     if check:
         collisions, sources = skill_collisions(ctx.obj, harness_skills, cap_dir.name,
-                                               rows, cap_dir)
+                                               rows)
         if collisions:
             for line in collisions:
                 print(line, file=sys.stderr)
@@ -85,7 +85,7 @@ def cmd_agents(
     cap_dir = Path(dir).resolve()
     data, rows = agent_rows(cap_dir)
     if check:
-        collisions, sources = agent_collisions(ctx.obj, cap_dir.name, rows, cap_dir)
+        collisions, sources = agent_collisions(ctx.obj, cap_dir.name, rows)
         if collisions:
             for line in collisions:
                 print(line, file=sys.stderr)

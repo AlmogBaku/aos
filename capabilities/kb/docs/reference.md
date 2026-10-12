@@ -18,7 +18,7 @@ Lookup, not narrative. The reasoning is in [design.md](design.md).
 | `entities/ concepts/ projects/ profile/` | `agent:archiver` (`profile/` is `agent:main`) | wiki pages, current truth only |
 | `.gitattributes` | tool | git-LFS patterns for large binaries |
 | `<home>/.aos/kb-principal.yml` | tool | machine-local, gitignored: the principal list |
-| `<home>/personal/kb-registry.yaml` | user | the registry of every base — overlay family, never shipped upstream |
+| `<home>/.aos/kb-registry.yaml` | tool | machine-local, gitignored: the registry of every base |
 
 ## Page frontmatter
 
@@ -65,7 +65,7 @@ can move it).
 
 | Verb | Reads / Writes | What it does |
 |---|---|---|
-| `kb init` | W | scaffold a new base, register it, write the principal file |
+| `kb init` | W | scaffold a new base, register it, write the principal file when `--principal` (or `AOS_PRINCIPAL_ID`) is given |
 | `kb adopt` | W (registry only) | register an existing tree; zero writes into it |
 | `kb migrate` | W | previous layout → current, with `git mv` so history follows |
 | `kb capture` | W | file content into `.kb/pending/`; `--corrects <path>` links a correction |

@@ -112,18 +112,18 @@ def _household_of(cap_dir: Path) -> Optional[Path]:
     """The `<home>/` a capability directory sits inside, or None.
 
     Deliberately NOT `find_home_soft`: that one answers "which household is this
-    invocation about", so it consults `--home`, `$AOS_HOME` and the cwd first — all of
+    invocation about", so it reads `--home`, `$AOS_HOME` and the `~/aos` default — any of
     which can name a DIFFERENT household than the package being read. This one answers
     "where does this directory live", which has exactly one honest source: the path
     itself. A household package lives at `<home>/{upstream,personal}/capabilities/<id>`,
     so the home is the ancestor whose `upstream/` or `personal/` the package is INSIDE.
 
     Anchored that way rather than by looking for a marker, and deliberately not `.aos/`:
-    `.aos/` is machine-local and exists at `~/` on any machine that has ever installed aos,
-    so a marker search would let a real household anywhere above an unrelated kit clone
-    claim it — and cross-capability references in `~/work/aos` would start resolving into
-    `~/personal`. A package that is in no household gets None, and `resolve_capability`
-    falls back to the sibling directory for it.
+    `.aos/` is machine-local and sits wherever a household was ever initialised, so a
+    marker search would let a real household anywhere above an unrelated kit clone claim
+    it — and cross-capability references in `~/work/aos` would start resolving into the
+    user's `personal/`. A package that is in no household gets None, and
+    `resolve_capability` falls back to the sibling directory for it.
     """
     cap_dir = Path(cap_dir).resolve()
     for cand in cap_dir.parents:
@@ -263,7 +263,7 @@ def harness_owners(dirs: Iterable[str], ours: set[str],
     return owners
 
 
-def _household_claims(opts: HasHome, cap_id: str, cap_dir: Optional[Path], namer,
+def _household_claims(opts: HasHome, cap_id: str, namer,
                       ) -> tuple[Optional[Path], dict[str, str], set[str], str]:
     """The two free sources — the household's other capabilities and the lockfile's
     recorded links — as (root, taken, ours, source label).
@@ -273,16 +273,16 @@ def _household_claims(opts: HasHome, cap_id: str, cap_dir: Optional[Path], namer
     back empty, so the label says `NO HOUSEHOLD RESOLVED` in as many words."""
     taken: dict[str, str] = {}
     ours: set[str] = set()
-    root = find_home_soft(opts, cap_dir)
+    root = find_home_soft(opts)
     if root and not any((root / label / "capabilities").is_dir()
                         for label in ("upstream", "personal")):
         # A resolved root with NEITHER capability directory is not a household, and saying
-        # so is the point: `find_home_soft` accepts any ancestor holding a `.aos/`, and
-        # `~/.aos/` exists on every machine that has ever installed aos — so linting a bare
-        # kit clone printed "checked: household /home/you" after consulting a household with
-        # zero capabilities in it. A clean-looking gate that checked nothing is the exact
-        # failure the label discipline above exists to prevent. `_household_of` anchors on
-        # the same evidence, for the same reason.
+        # so is the point: a `.aos/` is all `find_home_soft` checks, and `~/aos/.aos/`
+        # exists as soon as `aos-cap init` has run, before anything is cloned beside it —
+        # so checking a kit clone printed "checked: household ~/aos" after consulting a
+        # household with zero capabilities in it. A clean-looking gate that checked nothing
+        # is the exact failure the label discipline above exists to prevent.
+        # `_household_of` anchors on the same evidence, for the same reason.
         return None, taken, ours, (
             f"{root} HOLDS A .aos/ BUT NO upstream/ OR personal/ capabilities — not a "
             f"household, so other capabilities and the lockfile were NOT checked "
@@ -319,12 +319,11 @@ def _name_collisions(taken: dict[str, str], cap_id: str, rows: list[dict]) -> li
 
 
 def skill_collisions(opts: HasHome, harness_skills: list[str], cap_id: str,
-                     rows: list[dict], cap_dir: Optional[Path] = None,
-                     ) -> tuple[list[str], list[str]]:
+                     rows: list[dict]) -> tuple[list[str], list[str]]:
     """(collisions, sources consulted). The caller reports the sources: a source that was
     skipped must never be indistinguishable from a source that came back empty."""
     root, taken, ours, household_source = _household_claims(
-        opts, cap_id, cap_dir, capability_skill_names)
+        opts, cap_id, capability_skill_names)
     sources = [household_source]
     for name, where in harness_owners(harness_skills, ours, root).items():
         taken.setdefault(name, where)
@@ -334,8 +333,8 @@ def skill_collisions(opts: HasHome, harness_skills: list[str], cap_id: str,
     return _name_collisions(taken, cap_id, rows), sources
 
 
-def agent_collisions(opts: HasHome, cap_id: str, rows: list[dict],
-                     cap_dir: Optional[Path] = None) -> tuple[list[str], list[str]]:
+def agent_collisions(opts: HasHome, cap_id: str,
+                     rows: list[dict]) -> tuple[list[str], list[str]]:
     """The agent twin of `skill_collisions` — two of three sources, and it says so.
 
     Enumerating the agents ALREADY in the harness is deferred: it needs a per-harness
@@ -345,7 +344,7 @@ def agent_collisions(opts: HasHome, cap_id: str, rows: list[dict],
     capitals in the report, the same discipline `skill_collisions` holds for a household it
     could not resolve."""
     _root, taken, _ours, household_source = _household_claims(
-        opts, cap_id, cap_dir, capability_agent_names)
+        opts, cap_id, capability_agent_names)
     sources = [household_source,
                "NO --harness-agents SUPPORTED YET — agents already in the harness were "
                "NOT checked"]

@@ -96,7 +96,7 @@ nothing to reconcile when you edit the render by hand.
 The one **inviolable** contract
 ([§3](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#3-overlay--onboarding--the-inviolable-contract)).
 Your answers, nuances, and red lines live in `MOD.md` files (one global, one per
-capability) plus `kb-registry.yaml` — together, the **overlay family**. Three rules make
+capability) — together, the **overlay family**. Three rules make
 them safe:
 
 1. **Upstream never ships them.** The kit ships `MOD.example.md` seeds; your real
@@ -122,7 +122,7 @@ everything and shows the diff first.
 
 ([§4](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#4-knowledge-bases-registry-routing-authorization))
 A KB instance is a **base** (one git repo). You may have several — personal, a shared
-work KB your colleagues pull — all registered in your user-owned `kb-registry.yaml`.
+work KB your colleagues pull — all registered in `~/aos/.aos/kb-registry.yaml` (machine-local).
 
 - **Routing is rules first.** Channel rules, explicit tags (`work: …`), and keyword
   rules decide deterministically; an LLM is consulted only above a confidence bar, and
@@ -212,10 +212,10 @@ Two identities are involved in every write, and git has had the vocabulary all a
 it. So there is nothing to invent and no log to maintain — `git log --format='%an %cn'`
 answers "whose is this, and who wrote it down".
 
-The list mapping this machine's humans to their bases is `<home>/.aos/kb-principal.yml`,
-written by the tool on first use. You are never prompted for it: with no git identity
-configured, the write still lands, lint reports it, and onboarding fixes it later. Blocking
-a capture to ask who you are would trade the one property capture cannot lose.
+The list mapping this machine's humans to their bases is `<home>/.aos/kb-principal.yml`.
+Written by `kb init --principal <id>` or `kb config set principal.id=`; `AOS_PRINCIPAL_ID`
+overrides for one call without touching the file. Write verbs without a resolved identity
+error naming the file; read-only verbs need none. The onboarding interview collects the id.
 
 ### Curation modes — and why centralized ingestion is a non-goal
 
@@ -361,7 +361,7 @@ is. When building reveals the spec is wrong, the spec gets fixed — the
 | **capability** | An installable directory of skills/agents/tools/crons/patches |
 | **entry skill** | `skills/<id>/` — the capability's runtime face and map |
 | **installed name** | The name a skill ships under: `<skill_prefix><id>`, computed by `aos-cap skills`, unique across the harness. An agent's is computed the same way, from the same prefix, by `aos-cap agents` |
-| **overlay** | Your `MOD.md` files + `kb-registry.yaml`; user-owned, never shipped |
+| **overlay** | Your `MOD.md` files; user-owned, never shipped |
 | **base** | One KB instance == one git repo, registered in `kb-registry.yaml` |
 | **materialize** | The installer writing a capability's artifacts into your harness |
 | **render (pinned)** | A capability's files with your `MOD.md` applied, committed in `personal/`; your harness symlinks to it |

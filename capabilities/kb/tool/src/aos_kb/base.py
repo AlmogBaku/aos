@@ -307,7 +307,7 @@ def acting(args, base: Base) -> tuple[str, tuple[str, str], str]:
     is the principal id itself when the table names it, else `user` — the single-human
     case, which is every private base."""
     agent = agent_subject(args)
-    pid = resolve_principal(args, base.cfg.get("name", base.root.name), base.root)
+    pid = resolve_principal(args, base.cfg.get("name", base.root.name))
     author = (principal_name(args, base.root, pid), pid)
     return agent, author, base.grant_subject(pid)
 

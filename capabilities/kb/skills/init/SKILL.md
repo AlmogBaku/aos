@@ -42,14 +42,12 @@ the clone's own history before rendering; `--template <url>` points at a differe
 `--templates <local-dir>` skips the network entirely, which is also the automatic fallback
 when a clone fails for any reason — announced, never silent, never blocking.
 
-It renders the templates, git-inits, registers the base in `kb-registry.yaml`, writes
-`<home>/.aos/kb-principal.yml` if it does not exist yet, and commits. It **does not** touch
-the repo's git identity: the user's own identity authors every write and the acting agent is
-recorded as committer, which is the attribution the weekly audit reads. Overwriting it with
-a per-base agent identity would erase the one attribution git gives for free, and on a base
-two people share it would make both of them the same author. If no git identity is
-configured the tool says so and proceeds anyway — capture never blocks — and lint reports
-the weak principal until onboarding fixes it.
+It renders the templates, git-inits, registers the base in `<home>/.aos/kb-registry.yaml`
+(creating it if absent), writes `<home>/.aos/kb-principal.yml` when `--principal` (or
+`AOS_PRINCIPAL_ID`) is given, and commits. A write verb with no resolvable identity — neither
+flag nor file — errors, naming the file. Read-only verbs (`kb lint`, `kb find`, etc.) need
+no identity. It **does not** touch the repo's git identity: the user's own identity authors
+every write and the acting agent is recorded as committer.
 
 Then apply the interview's zone and type adjustments with `kb config set` (for example
 `kb config set 'zones.decisions={kind: wiki}'`), which commits each change itself, and create
@@ -66,22 +64,19 @@ exact cron syntax for this harness; what does not vary is *what* to schedule:
 |---|---|---|---|---|
 | `nightly-promote` | `30 23 * * *` | the archiver agent, prompt `agents/archiver/promote.md` | agent job | `AOS_AGENT=agent:archiver` |
 | `weekly-maintain` | `0 7 * * 6` | the archiver agent, prompt `agents/archiver/lint.md` | agent job | `AOS_AGENT=agent:archiver` |
-| `sync` | `*/5 * * * *` | `kb sync --all` | **exec job — no model wakes up** | `AOS_AGENT=agent:archiver`, `AOS_REGISTRY=<home>/personal/kb-registry.yaml`, `AOS_HOME=<home>` |
+| `sync` | `*/5 * * * *` | `kb sync --all` | **exec job — no model wakes up** | `AOS_AGENT=agent:archiver`, `AOS_HOME=<home>` |
 
 **The environment column is not optional, and it is the column people drop.** A cheat-sheet
 puts it in the job's own env, a wrapper script, or an `export` before the command — whichever
 your harness supports; what matters is that the job carries it. Every one of these fails
 *quietly*: the job runs, the work happens, and the damage surfaces days later.
 
-Three things silently break if you skip them, and each fails quietly rather than loudly:
+Two things silently break if you skip them, and each fails quietly rather than loudly:
 
 - **`AOS_AGENT=agent:archiver` in both archiver jobs.** It defaults to `agent:main`, which
   holds no write grant on `entities/** concepts/** projects/** index.md` — so a job that
   looks like it worked commits every promotion as the wrong subject, and the next weekly
   lint reports each one as a grants-audit **critical**.
-- **`AOS_REGISTRY=<home>/personal/kb-registry.yaml` in the sync wrapper** (or pass
-  `--registry`), because a bare `kb sync` with no resolvable registry exits **0** having
-  synced nothing.
 - **The single-owner rule**: each of these runs in exactly one harness, so check none of
   them already exists before creating it.
 

@@ -78,10 +78,11 @@ the overlay doctrine, and the Experience rules. Then:
 10. **EXECUTE** the approved plan: commit the render in `personal/` (dated
    message — the persist hook), create the symlinks, run the native plan; `kb:`
    zones → draft grant rows into each target KB's `## Grants` table, user approves.
-   A capability's tool may write its own machine-local file under `<home>/.aos/` on first
-   use — kb's `kb-principal.yml` is the one today. Do **not** create it yourself: the tool
-   owns it, the same way `aos-cap` owns the lockfile. Say it exists in the summary so
-   the user is not surprised by a file nobody mentioned, and leave it out of `record`
+   A capability's tool may write machine-local files under `<home>/.aos/` — kb writes
+   `kb-principal.yml` (on `kb init --principal` or `kb config set principal.id=`) and
+   `kb-registry.yaml` (on `kb init`/`kb adopt`). Do **not** create them yourself: the tool
+   owns them, the same way `aos-cap` owns the lockfile. Say they exist in the summary so
+   the user is not surprised by files nobody mentioned, and leave them out of `record`
    (machine-local state is not a materialized artifact — hashing it would report drift the
    first time the tool touched it).
 11. `aos-cap record <id> --version <v> --source-root <root> --artifact
@@ -97,5 +98,7 @@ the overlay doctrine, and the Experience rules. Then:
 12. `aos-cap verify <id>` — exit 13 means what you just recorded does not match what is
     on disk (a link that is a copy, a missed render, a hash taken before the transform).
     Fix it now: you still know what you wrote, and the next person to find out would be
-    {{skill: upgrade}}, months from now.
+    {{skill: upgrade}}, months from now. Hooks get the same check from the harness side:
+    each one consented and active per the cheat-sheet (its doctor, where the harness has
+    one) — a hook the harness skips fails silently.
 13. Celebrate specifically: what, where, which schedules, degraded modes in effect.

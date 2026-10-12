@@ -127,8 +127,8 @@ def cmd_sync(
     no_jitter: Annotated[bool, typer.Option(
         help="skip the pre-fetch stagger (tests, and a one-off manual run)")] = False,
 ):
-    reg = load_registry(ctx.obj)
     if all:
+        reg = load_registry(ctx.obj)    # one base named by path needs no registry
         targets = [k for k in reg["kbs"] if k.get("sync") == "rebase-5min"]
         # Bases the scheduled sweep does not cover are reported, not dropped: an
         # adopted base is always `manual`, so silence here reads as "everything is
@@ -150,7 +150,7 @@ def cmd_sync(
             print(f"{kb.get('name')}: skipped (not a git repo)")
             continue
         name = kb.get("name", root.name)
-        pid = resolve_principal(ctx.obj, name, root)
+        pid = resolve_principal(ctx.obj, name)
         code = _sync_one(root, name, agent,
                          (principal_name(ctx.obj, root, pid), pid))
         worst = max(worst, code)

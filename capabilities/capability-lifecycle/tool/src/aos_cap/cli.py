@@ -46,8 +46,8 @@ app.add_typer(lockfile_app)
 def main_callback(
     ctx: typer.Context,
     home: Optional[str] = typer.Option(
-        None, "--home", help="household root, e.g. ~/aos (else $AOS_HOME, else a "
-                             "cwd-upward .aos/ search)"),
+        None, "--home", help="household root (else $AOS_HOME, else ~/aos; never "
+                             "searched for). `init` alone requires it named"),
     version: bool = typer.Option(
         False, "--version", callback=version_callback, is_eager=True),
 ):

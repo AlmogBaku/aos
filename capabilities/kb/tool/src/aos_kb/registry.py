@@ -1,8 +1,10 @@
 """Where a machine's bases are registered, and where that registry file itself lives.
-`find_household()` is the one function nearly everything else in the tool roots
-through — the household is `<home>/{upstream,personal,.aos}`, and `.aos/` is the
-marker, checked before any `capabilities/` heuristic so a render inside `personal/`
-(which also carries `capabilities/`) is never mistaken for the household or upstream."""
+
+The aos home is `$AOS_HOME`, else `~/aos` — named, never discovered: a cwd-upward
+search for `.aos/` let any folder carrying one become the household. The registry is
+`--registry`/`$AOS_REGISTRY`, else `<home>/.aos/kb-registry.yaml`, and only `kb init`
+and `kb adopt` may create it; every other reader of a missing one is an error that
+names the path."""
 
 import os
 from pathlib import Path
@@ -10,38 +12,14 @@ from pathlib import Path
 import yaml
 
 
-def find_household() -> Path | None:
-    """The household root: <home>/{upstream,personal,.aos}. `.aos/` is the marker —
-    checked before any capabilities/ heuristic, so a render inside personal/ (which
-    also carries capabilities/) is never mistaken for the household or for upstream."""
+def find_household() -> Path:
+    """The household root: <home>/{upstream,personal,.aos}."""
     env = os.environ.get("AOS_HOME")
-    if env:
-        return Path(env).expanduser()
-    for p in [Path.cwd(), *Path.cwd().parents]:
-        if (p / ".aos").is_dir():
-            return p
-    return None
+    return Path(env).expanduser() if env else Path.home() / "aos"
 
 
 def find_upstream_root() -> Path:
-    home = find_household()
-    if home:
-        return home / "upstream"
-    # not inside a household: a bare kit checkout is its own upstream root
-    for p in [Path.cwd(), *Path.cwd().parents]:
-        if (p / "capabilities" / "kb" / "CAPABILITY.md").is_file():
-            return p
-    return Path.home() / "aos" / "upstream"
-
-
-def find_personal_root() -> Path:
-    home = find_household()
-    if home:
-        return home / "personal"
-    for p in [Path.cwd(), *Path.cwd().parents]:
-        if (p / "kb-registry.yaml").exists():
-            return p
-    return Path.home() / "aos" / "personal"
+    return find_household() / "upstream"
 
 
 def registry_path(args) -> Path:
@@ -50,12 +28,18 @@ def registry_path(args) -> Path:
     env = os.environ.get("AOS_REGISTRY")
     if env:
         return Path(env).expanduser()
-    return find_personal_root() / "kb-registry.yaml"
+    return find_household() / ".aos" / "kb-registry.yaml"
 
 
-def load_registry(args) -> dict:
+def load_registry(args, create: bool = False) -> dict:
+    """`create=True` is for `init` and `adopt` alone: they start an absent registry
+    empty. Anyone else reading a missing one is pointed at the path it expected."""
     p = registry_path(args)
     if not p.exists():
+        if not create:
+            from .identity import die   # identity imports this module
+            die(f"no registry at {p} — create it with `kb init` or `kb adopt`, "
+                f"or pass --registry")
         return {"default": None, "kbs": []}
     data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
     data.setdefault("kbs", [])
@@ -64,5 +48,6 @@ def load_registry(args) -> dict:
 
 def save_registry(args, data: dict):
     p = registry_path(args)
+    p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True),
                  encoding="utf-8")

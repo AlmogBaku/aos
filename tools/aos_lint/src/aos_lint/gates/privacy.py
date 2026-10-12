@@ -71,8 +71,9 @@ PATTERNS = [
      (1,),
      "a home directory flattened into a filename, which a plain /home/<name> sweep misses"),
     ("privacy/weak-principal",
-     # `aos_kb.identity.synthesize_principal` builds <user>@<host>.local from getpass and
-     # socket. Both halves are facts about the operator. Angle-bracket placeholders
+     # The <user>@<host>.local shape kb once synthesized from getpass and socket (it no
+     # longer guesses an identity, but the shape still turns up wherever a tool does).
+     # Both halves are facts about the operator. Angle-bracket placeholders
      # (`<user>@<host>.local`) fall outside the character class and so pass, which is what
      # lets the docs teaching this rule state the shape.
      re.compile(r"\b([A-Za-z0-9._%+-]+)@([A-Za-z0-9-]+)\.local\b"),

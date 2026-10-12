@@ -17,6 +17,7 @@ in-process CliRunner call structurally cannot exercise (it never leaves this pro
 so it never resolves `[project.scripts] kb = ...` or crosses a real process boundary).
 Run: uv run tests/tool/test_kb.py
 """
+import contextlib
 import datetime as _dt
 import os
 import re
@@ -60,6 +61,17 @@ def git_env(extra=None):
     return env
 
 
+def uv_dirs():
+    """uv's cache and interpreter dirs, pinned before a subprocess gets a throwaway HOME —
+    both default to paths under HOME, and losing them means a re-download per call."""
+    if not hasattr(uv_dirs, "cached"):
+        ask = lambda *a: subprocess.run(["uv", *a], capture_output=True,  # noqa: E731
+                                        text=True).stdout.strip()
+        uv_dirs.cached = {"UV_CACHE_DIR": ask("cache", "dir"),
+                          "UV_PYTHON_INSTALL_DIR": ask("python", "dir")}
+    return uv_dirs.cached
+
+
 class Result:
     """Adapts typer's CliRunner Result to the subprocess.CompletedProcess-shaped
     surface (.returncode/.stdout/.stderr) every existing assertion in this file already
@@ -81,13 +93,31 @@ class Result:
         return self._r.stderr
 
 
+@contextlib.contextmanager
+def chdir(path):
+    """`contextlib.chdir` is 3.11+ and this file's floor is 3.10, so: the same thing.
+    CliRunner runs in *this* process and inherits its cwd, and the stray-`.aos/`
+    regression is a function of cwd."""
+    before = os.getcwd()
+    os.chdir(str(path))
+    try:
+        yield
+    finally:
+        os.chdir(before)
+
+
 def run(args, env_extra=None, cwd=None):
     """In-process invocation of the same `app` the installed `kb` script wires to.
-    `cwd` is accepted (never used by any real test — no kb invocation here relies on
-    process cwd; every base is reached via `--base <path>`) only so call sites that
-    still pass it keep working unchanged."""
-    cli_result = _runner.invoke(app, args, env=git_env(env_extra),
-                                catch_exceptions=False)
+
+    HOME is a fresh empty directory for every call unless the caller passes one: the aos
+    home is `$AOS_HOME`, else `~/aos`, so a call that left AOS_HOME unset would otherwise
+    read — or write — the developer's real household. `cwd`, when given, is the process
+    cwd for the duration of the call."""
+    with tempfile.TemporaryDirectory() as home, \
+            (chdir(cwd) if cwd else contextlib.nullcontext()):
+        cli_result = _runner.invoke(app, args,
+                                    env=git_env({"HOME": home, **(env_extra or {})}),
+                                    catch_exceptions=False)
     return Result(cli_result)
 
 
@@ -96,14 +126,12 @@ class BaseToolTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.dir = Path(self.tmp.name)
         self.reg = self.dir / "kb-registry.yaml"
-        # AOS_HOME is not optional in a test: the principal file is machine-local, and
-        # without it the tool would establish an identity in the developer's real
-        # ~/.aos/ on the first verb call.
+        # AOS_HOME is pinned: the principal file lives at <home>/.aos/kb-principal.yml,
+        # and the first `kb init` below writes it there.
         self.home = self.dir / "household"
         (self.home / ".aos").mkdir(parents=True)
-        # The principal is pinned for the same reason GIT_IDENTITY is: on a runner with
-        # no git identity the tool would synthesize <user>@<host>.local, which lint
-        # correctly reports as weak — so a fixture that must lint clean carries one.
+        # The principal is pinned because a write verb with no identity is an error, and
+        # `kb init` on a fresh home takes its identity from exactly this.
         self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
                     "AOS_HOME": str(self.home),
                     "AOS_PRINCIPAL_ID": "dana@example.com",
@@ -902,8 +930,10 @@ class SharedBaseTest(unittest.TestCase):
 
 
 class PrincipalTest(unittest.TestCase):
-    """The principal resolves on the first verb call, with no init step, and never
-    prompts — a cron has no tty and capture latency is sacred."""
+    """Identity is `--principal`/`$AOS_PRINCIPAL_ID` — an override, never written to
+    disk — else the first matching entry in `<home>/.aos/kb-principal.yml`, which only
+    `kb init` writes. A write with neither is an error that names the file; a read needs
+    neither. Nothing here ever prompts — a cron has no tty and capture latency is sacred."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -911,21 +941,28 @@ class PrincipalTest(unittest.TestCase):
         self.home = self.dir / "household"
         (self.home / ".aos").mkdir(parents=True)
         self.reg = self.dir / "kb-registry.yaml"
+        # AOS_PRINCIPAL_ID is unset on purpose (None deletes it): every identity in this
+        # class is supplied by the test, never inherited from the shell that ran it.
         self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
-                    "AOS_HOME": str(self.home)}
+                    "AOS_HOME": str(self.home), "AOS_PRINCIPAL_ID": None}
         self.pfile = self.home / ".aos" / "kb-principal.yml"
 
     def tearDown(self):
         self.tmp.cleanup()
 
-    def base(self, name, **kw):
+    def base(self, name, principal=None, **kw):
+        """`kb init`. With no `principal`, its identity has to come from the file."""
         root = self.dir / name
-        argv = ["init", name, "--path", str(root), "--templates", str(TEMPLATES)]
+        argv = (["--principal", principal] if principal else []) + \
+            ["init", name, "--path", str(root), "--templates", str(TEMPLATES)]
         for k, v in kw.items():
             argv += [f"--{k.replace('_', '-')}", v]
         r = run(argv, self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
         return root
+
+    def write_pfile(self, entries):
+        self.pfile.write_text(yaml.safe_dump(entries, sort_keys=False))
 
     def author_email(self, root):
         """The principal is what git records as the author, so that is where an
@@ -933,24 +970,71 @@ class PrincipalTest(unittest.TestCase):
         return subprocess.run(["git", "log", "-1", "--pretty=%ae"], cwd=root,
                               capture_output=True, text=True).stdout.strip()
 
-    def test_first_verb_call_writes_the_principal_file_with_no_init_step(self):
-        root = self.base("b")
-        self.pfile.unlink(missing_ok=True)
-        r = run(["--base", str(root), "capture", "--text", "a thought"],
-                {**self.env, "AOS_PRINCIPAL_ID": "alice@personal.dev"})
+    def test_an_override_is_never_written_to_disk(self):
+        """An override that wrote the file would make itself permanent: the next call
+        with no override would silently author as whoever passed one last."""
+        root = self.base("b", principal="dana@example.com")
+        self.pfile.unlink()
+        r = run(["--base", str(root), "--principal", "alice@personal.dev",
+                 "capture", "--text", "via the flag"], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertTrue(self.pfile.exists(), "the first verb call establishes identity")
-        entries = yaml.safe_load(self.pfile.read_text())
-        self.assertIsInstance(entries, list)
-        self.assertEqual(entries[0]["id"], "alice@personal.dev")
+        self.assertEqual(self.author_email(root), "alice@personal.dev")
+        r = run(["--base", str(root), "capture", "--text", "via the env"],
+                {**self.env, "AOS_PRINCIPAL_ID": "bob@personal.dev"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.author_email(root), "bob@personal.dev")
+        self.assertFalse(self.pfile.exists(), "an override was written to disk")
+
+    def test_a_write_with_no_identity_fails_naming_the_file_and_kb_init(self):
+        root = self.base("b", principal="dana@example.com")
+        self.pfile.unlink()
+        # A git identity in the repo (and the suite's GIT_* env) is not a principal:
+        # guessing one from git is exactly what made a stranger's address author writes.
+        subprocess.run(["git", "config", "user.email", "git-says@example.com"],
+                       cwd=root, check=True)
+        r = run(["--base", str(root), "capture", "--text", "whose is this?"], self.env)
+        self.assertNotEqual(r.returncode, 0, r.stdout)
+        self.assertIn(str(self.pfile), r.stderr)
+        self.assertIn("kb init --principal", r.stderr)
+        self.assertEqual(list((root / ".kb" / "pending").glob("*.md")), [],
+                         "the capture landed with no identity")
+        self.assertFalse(self.pfile.exists())
+
+    def test_read_only_verbs_run_with_no_identity_and_establish_none(self):
+        """A report is not a reason to establish an identity: `kb lint` on someone else's
+        base must neither fail for want of one nor write one as a side effect of reading."""
+        root = self.base("b", principal="dana@example.com")
+        self.pfile.unlink()
+        for verb in (["lint"], ["inbox"], ["find"], ["search", "anything"]):
+            r = run(["--base", str(root), *verb], self.env)
+            self.assertEqual(r.returncode, 0, f"`kb {verb[0]}`: {r.stderr}")
+            self.assertFalse(self.pfile.exists(), f"`kb {verb[0]}` wrote {self.pfile}")
+
+    def test_kb_init_never_rewrites_a_matching_entry(self):
+        """An entry already answers for this base, so init's override is an override like
+        any other: it authors this call and is not written."""
+        self.write_pfile([{"id": "alice@personal.dev", "bases": ["*"]}])
+        before = self.pfile.read_text()
+        root = self.base("b", principal="override@example.com")
+        self.assertEqual(self.author_email(root), "override@example.com")
+        self.assertEqual(self.pfile.read_text(), before)
+
+    def test_kb_init_appends_a_catch_all_when_no_entry_matches(self):
+        """No entry answers for this base, so init establishes one — last, because the
+        file is first-match-wins and the existing entries are narrower."""
+        self.write_pfile([{"id": "alice@acme.com", "bases": ["acme_*"]}])
+        self.base("home", principal="alice@personal.dev")
+        self.assertEqual(yaml.safe_load(self.pfile.read_text()),
+                         [{"id": "alice@acme.com", "bases": ["acme_*"]},
+                          {"id": "alice@personal.dev", "bases": ["*"]}])
 
     def test_env_beats_the_file_and_the_file_is_first_match_wins(self):
-        root_work = self.base("acme_wiki")
-        root_home = self.base("home")
-        self.pfile.write_text(yaml.safe_dump([
+        self.write_pfile([
             {"id": "alice@acme.com", "bases": ["acme_*"]},
             {"id": "alice@personal.dev", "bases": ["*"]},
-        ], sort_keys=False))
+        ])
+        root_work = self.base("acme_wiki")
+        root_home = self.base("home")
         r = run(["--base", str(root_work), "capture", "--text", "at work"], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(self.author_email(root_work), "alice@acme.com")
@@ -962,61 +1046,22 @@ class PrincipalTest(unittest.TestCase):
         self.assertEqual(self.author_email(root_work), "override@example.com")
 
     def test_a_bare_star_last_is_the_catch_all(self):
-        self.pfile.write_text(yaml.safe_dump([{"id": "only@example.com",
-                                               "bases": ["*"]}], sort_keys=False))
+        self.write_pfile([{"id": "only@example.com", "bases": ["*"]}])
         root = self.base("anything")
         r = run(["--base", str(root), "capture", "--text", "x"], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(self.author_email(root), "only@example.com")
 
-    def test_no_git_identity_synthesizes_writes_anyway_and_lint_reports_it(self):
-        root = self.base("b")
-        self.pfile.unlink(missing_ok=True)
-        # The suite injects GIT_* so a CI runner can commit at all; clearing them here
-        # is what actually reproduces "no identity", since they beat `git config`.
-        # `git config --unset` only clears the repo level; the developer's --global
-        # identity (and the suite's own GIT_*) would still answer. Neutralising all
-        # three is what actually reproduces a machine with no identity.
-        bare = {k: "" for k in GIT_IDENTITY}
-        bare.update({"GIT_CONFIG_GLOBAL": os.devnull,
-                     "GIT_CONFIG_SYSTEM": os.devnull})
-        for k in ("user.email", "user.name"):
-            subprocess.run(["git", "config", "--unset", k], cwd=root,
-                           capture_output=True, check=False)
-        r = run(["--base", str(root), "capture", "--text", "still lands"],
-                {**self.env, **bare})
-        self.assertEqual(r.returncode, 0, r.stderr)      # never blocks
-        self.assertNotIn("?", r.stdout.replace("(", ""))  # never prompts
-        entries = yaml.safe_load(self.pfile.read_text())
-        self.assertTrue(entries[0]["id"].endswith(".local"),
-                        f"expected a synthesized id, got {entries[0]['id']!r}")
-        r = run(["--base", str(root), "lint"], {**self.env, **bare})
-        self.assertIn("weak principal", r.stdout)
-
-    def test_a_read_only_verb_never_establishes_an_identity(self):
-        """`kb lint` is report-only, so it must not have machine-state side effects.
-        Linting someone else's base would otherwise create the principal file as a
-        consequence of *reading* — a surprise, and the wrong answer to "whose base is
-        this"."""
-        root = self.base("b")
-        self.pfile.unlink(missing_ok=True)
-        for verb in (["lint"], ["inbox"]):
-            r = run(["--base", str(root), *verb], self.env)
-            self.assertEqual(r.returncode, 0, r.stderr)
-            self.assertFalse(self.pfile.exists(),
-                             f"`kb {verb[0]}` wrote {self.pfile}")
-
     def test_a_placeholder_identity_is_reported_not_accepted_silently(self):
+        self.write_pfile([{"id": "agents@localhost", "bases": ["*"]}])
         root = self.base("b")
-        self.pfile.write_text(yaml.safe_dump([{"id": "agents@localhost",
-                                               "bases": ["*"]}], sort_keys=False))
         r = run(["--base", str(root), "lint"], self.env)
         self.assertIn("weak principal", r.stdout)
 
     def test_no_principals_roster_is_read_from_the_config(self):
         # The template's commented-out roster block is Plan 2's to remove; what matters
         # here is that nothing READS it, so a base carrying one behaves identically.
-        root = self.base("b")
+        root = self.base("b", principal="alice@example.com")
         cfg = root / ".kb" / "base.yml"
         cfg.write_text(cfg.read_text() +
                        "\nprincipals:\n  alice@example.com: user:alice\n")
@@ -1032,7 +1077,7 @@ class PrincipalTest(unittest.TestCase):
     def test_the_grants_table_is_the_roster(self):
         # The roster existed only to translate an email into a grants subject, so the
         # email IS the subject: one source instead of two that can disagree.
-        root = self.base("b")
+        root = self.base("b", principal="alice@example.com")
         agents = root / "AGENTS.md"
         agents.write_text(agents.read_text().replace(
             "| user | `**` |", "| alice@example.com | `**` |", 1))
@@ -1040,6 +1085,109 @@ class PrincipalTest(unittest.TestCase):
                  "alice@example.com", "--verb", "write", "--path", "profile/x.md"],
                 self.env)
         self.assertIn("GRANTED", r.stdout)
+
+
+class HomeTest(unittest.TestCase):
+    """The aos home is `$AOS_HOME`, else `~/aos` — never discovered from cwd. The registry
+    is `--registry`/`$AOS_REGISTRY`, else `<home>/.aos/kb-registry.yaml`, and only `init`
+    and `adopt` create it. Every AOS_* variable is unset here unless a test sets it, HOME
+    is a directory the test owns, and the cwd is one it controls."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.user = self.dir / "user"               # stands in for ~
+        self.user.mkdir()
+        self.aos = self.user / "aos"                # the default aos home
+        self.elsewhere = self.dir / "elsewhere"     # a cwd under no household at all
+        self.elsewhere.mkdir()
+        self.env = {"HOME": str(self.user), "AOS_HOME": None, "AOS_REGISTRY": None,
+                    "AOS_PRINCIPAL_ID": None, "AOS_AGENT": "agent:main"}
+        self.who = {"AOS_PRINCIPAL_ID": "dana@example.com"}
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def init(self, name, root, registry, purpose="test base"):
+        """A base registered in an EXPLICIT registry, so setting one up never depends on
+        the default resolution under test."""
+        r = run(["--registry", str(registry), "init", name, "--path", str(root),
+                 "--purpose", purpose, "--templates", str(TEMPLATES)],
+                {**self.env, **self.who}, cwd=self.elsewhere)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return root
+
+    def test_a_stray_dot_aos_above_cwd_is_never_the_home(self):
+        """PIN: the home was found by walking up from cwd to the first `.aos/`, so any
+        project folder carrying one became the household — and every verb run from under
+        it read that folder's registry instead of the user's."""
+        (self.aos / ".aos").mkdir(parents=True)
+        self.init("b", self.dir / "real", self.aos / ".aos" / "kb-registry.yaml",
+                  purpose="the real one")
+        stray = self.dir / "project"
+        (stray / ".aos").mkdir(parents=True)
+        self.init("b", self.dir / "decoy", stray / ".aos" / "kb-registry.yaml",
+                  purpose="the decoy")
+        (stray / "personal").mkdir()      # where the old cwd-walk looked for a registry
+        shutil.copy(stray / ".aos" / "kb-registry.yaml",
+                    stray / "personal" / "kb-registry.yaml")
+        deep = stray / "src" / "deep"
+        deep.mkdir(parents=True)
+        r = run(["--base", "b", "config", "get", "purpose"], self.env, cwd=deep)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("the real one", r.stdout)
+
+    def test_a_base_name_with_no_registry_fails_naming_the_expected_path(self):
+        r = run(["--base", "b", "lint"], self.env, cwd=self.elsewhere)
+        self.assertNotEqual(r.returncode, 0, r.stdout)
+        self.assertIn(str(self.aos / ".aos" / "kb-registry.yaml"), r.stderr)
+        self.assertIn("kb init", r.stderr)
+
+    def test_lint_by_path_needs_no_registry(self):
+        """CI lints a shipped fixture by path on a runner with no household at all."""
+        reg = self.dir / "scratch-registry.yaml"
+        root = self.init("b", self.dir / "b", reg)
+        reg.unlink()
+        r = run(["--base", str(root), "lint"], {**self.env, **self.who},
+                cwd=self.elsewhere)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("Critical (0)", r.stdout)
+        self.assertFalse((self.aos / ".aos" / "kb-registry.yaml").exists())
+
+    def test_sync_by_path_needs_no_registry(self):
+        """Only `sync --all` reads the registry; one base named by path is all there is."""
+        reg = self.dir / "scratch-registry.yaml"
+        root = self.init("b", self.dir / "b", reg)
+        reg.unlink()
+        remote = self.dir / "b.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+        subprocess.run(["git", "remote", "add", "origin", str(remote)], cwd=root,
+                       check=True)
+        r = run(["--base", str(root), "sync"], {**self.env, **self.who},
+                cwd=self.elsewhere)
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+
+    def test_kb_init_with_a_principal_on_a_fresh_home_creates_registry_and_identity(self):
+        r = run(["--principal", "dana@example.com", "init", "b", "--path",
+                 str(self.dir / "b"), "--templates", str(TEMPLATES)], self.env,
+                cwd=self.elsewhere)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        reg = yaml.safe_load((self.aos / ".aos" / "kb-registry.yaml").read_text())
+        self.assertEqual([k["name"] for k in reg["kbs"]], ["b"])
+        self.assertEqual(yaml.safe_load((self.aos / ".aos" / "kb-principal.yml")
+                                        .read_text()),
+                         [{"id": "dana@example.com", "bases": ["*"]}])
+
+    def test_kb_init_with_no_principal_on_a_fresh_home_fails_naming_the_file(self):
+        root = self.dir / "b"
+        r = run(["init", "b", "--path", str(root), "--templates", str(TEMPLATES)],
+                self.env, cwd=self.elsewhere)
+        self.assertNotEqual(r.returncode, 0, r.stdout)
+        self.assertIn(str(self.aos / ".aos" / "kb-principal.yml"), r.stderr)
+        self.assertIn("kb init --principal", r.stderr)
+        # Refused before anything was written: no half-scaffolded base, no registry.
+        self.assertFalse(root.exists())
+        self.assertFalse((self.aos / ".aos" / "kb-registry.yaml").exists())
 
 
 class TemplateCloneTest(unittest.TestCase):
@@ -2180,10 +2328,13 @@ class InstalledScriptSmokeTest(unittest.TestCase):
     this is deliberately the sole survivor of the old fully-subprocess suite."""
 
     def run_installed(self, args, env_extra=None):
-        return subprocess.run(["uv", "run", "--quiet", "--project", str(TOOL_DIR),
-                               "kb", *args],
-                              capture_output=True, text=True,
-                              env=git_env(env_extra))
+        # HOME is a throwaway, as in `run()`; uv keeps its real cache and interpreters.
+        with tempfile.TemporaryDirectory() as home:
+            return subprocess.run(["uv", "run", "--quiet", "--project", str(TOOL_DIR),
+                                   "kb", *args],
+                                  capture_output=True, text=True,
+                                  env=git_env({**uv_dirs(), "HOME": home,
+                                               **(env_extra or {})}))
 
     def test_the_installed_script_runs_and_reports_its_version(self):
         r = self.run_installed(["--version"])

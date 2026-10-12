@@ -3,7 +3,7 @@
 Knowledge infrastructure (ARCHITECTURE §4). A KB instance is a **base**: a git repo of
 markdown, and nothing else. The capability ships:
 
-- the user-owned registry (`kb-registry.yaml`) plus rules-first routing with a
+- the machine-local registry (`<home>/.aos/kb-registry.yaml`) plus rules-first routing with a
   confidence-gated model fallback — shared bases **never** accept model-routed writes,
 - the store itself: an immutable flat `_raw/`, current-truth wiki pages, and one
   tool-managed `.kb/` holding config, the attention window, and the single pending queue,
