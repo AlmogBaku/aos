@@ -312,7 +312,7 @@ Never schedule over kids pickup (17:30). Prefer batching calls on Tue/Thu.
 The **user-owned overlay family** is: every `MOD.md` (global + per-capability).
 
 1. Upstream never ships, writes, or merges into any overlay-family path. CI rejects them in PRs to the shared repo.
-2. Onboarding writes **only** overlay-family files (and harness secret stores — see below). One carve-out: a capability's tool may keep its own machine-local state under `<home>/.aos/`, written only through that tool (e.g. `kb config set principal.id=`) — never by hand, and never part of the overlay.
+2. Onboarding writes **only** overlay-family files (and harness secret stores — see below). One carve-out: a capability's tool may keep its own machine-local state under `<home>/.aos/`, written only through that tool (e.g. `kb config set principal.id=`) — an install or interview never hand-writes it, and never part of the overlay.
 3. Every render/merge treats the overlay family as input, never output — except the explicit round-trip in §3.3.
 
 Rule 2 governs the *interview*: it writes only overlay-family files (and harness secret stores, and a tool's own `.aos/` state through that tool). Installing the capability that owns the interview materializes artifacts like any other capability (§5.3) — its context block into the front agent's identity file is an install-time write, not an interview write.
