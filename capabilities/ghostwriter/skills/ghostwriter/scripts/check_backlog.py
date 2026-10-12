@@ -24,6 +24,8 @@ VALID_NEXT_ACTIONS = {
     "manual-publish",
     "none",
 }
+# A piece is developed in gated steps; each stage ends waiting on the user's choice.
+VALID_STAGES = {"angles", "outline", "draft"}
 ALLOWED_ACTIONS = {
     "developing": {"develop", "critique"},
     "waiting": {"user-decision"},
@@ -277,6 +279,9 @@ def main() -> int:
             invalid.append({"path": str(path), "field": "next_action", "reason": "unknown or missing next_action"})
         elif action not in ALLOWED_ACTIONS[status]:
             invalid.append({"path": str(path), "field": "next_action", "reason": f"{action} is invalid for {status}"})
+        stage = meta.get("stage")
+        if stage is not None and str(stage) not in VALID_STAGES:
+            invalid.append({"path": str(path), "field": "stage", "reason": f"unknown stage {stage!r}; one of {sorted(VALID_STAGES)}"})
         if status in ACTIVE_PIECE_STATUSES:
             pieces.append(str(path))
             validate_dates(path, meta, args.piece_stale_days, stale_pieces, invalid)

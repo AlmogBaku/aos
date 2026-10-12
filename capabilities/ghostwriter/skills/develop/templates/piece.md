@@ -2,6 +2,7 @@
 title: <title>
 source_idea_id: <idea-id-or-none>
 status: developing
+stage: angles
 anchor_channel: <blog|linkedin|x>
 related_interviews: ["kb:<path>"]
 related_kb_sources: []
@@ -28,9 +29,19 @@ approval_required: false
 
 ## Abstract
 
-## Narrative
+## Angles
+
+- angle: <1>
+  hook: <one line>
+  synopsis: <three sentences>
+  shape: <story-lesson | problem-solution | layered argument | other>
+  evidence: <evidence-map claims it rests on>
+
+## Outline
 
 ## Current draft
+
+Sections done: <none | 1, 2, …>
 
 ## Derivatives
 

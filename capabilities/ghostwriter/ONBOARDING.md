@@ -31,6 +31,10 @@ questions:
     prompt: When should the editorial queue or active piece resume (5-field cron)?
     type: string
     required: true
+  - id: develop_ahead_cron
+    prompt: When should Ghostwriter work on its own between chats, preparing the next step (5-field cron)?
+    type: string
+    required: true
   - id: editorial_session_deliver
     prompt: 'Where should the editorial job''s cron delivery go — "local" for silent (the desktop session is the delivery), or "origin" or "<platform>:<chat_id>" to also get a ping?'
     type: string
@@ -57,4 +61,4 @@ questions:
 
 Defaults: Blog/LinkedIn/X; 10 ideas; 2 active pieces; ideas stale at 30 days, pieces at 14. With no voice corpus, critique preserves supplied vocabulary without inventing a verdict.
 
-The two cron answers must never share a minute: both jobs take the one editorial-workspace lock, so a shared minute costs a run. Each job opens a titled desktop session the user answers there, so both `*_deliver` answers default to `local` — silent; `origin` or `<platform>:<chat_id>` also pings that a session is waiting.
+The three cron answers must never share a minute: every job takes the one editorial-workspace lock, so a shared minute costs a run. Each job opens a titled desktop session the user answers there, so both `*_deliver` answers default to `local` — silent; `origin` or `<platform>:<chat_id>` also pings that a session is waiting.

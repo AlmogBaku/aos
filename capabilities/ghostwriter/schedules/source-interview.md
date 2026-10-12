@@ -14,8 +14,10 @@ in your system prompt, else the harness's session-id environment variable (on He
 source_thread_id: none; source_caller_id: aos:ghostwriter:source-interview; return_mode: direct; text only.
 
 This first turn is non-interactive: do not call any ask/clarify/question tool — put any choice in plain
-prose and stop. If an interview for this caller id is active, say so in one line and offer resume or fresh
-in prose, then stop. Otherwise start one per the interview skill you were given — public-safe,
-evidence-backed specifics from the user's recent work — persist the record, then ask exactly ONE open
-question and stop: no options, no lists, no answering it yourself.
+prose and stop. Read the entry skill's handoff first — always pick up from the last spot. If an interview
+for this caller id is active, resume it: one line on where we stopped, then its open question. Otherwise
+start one per the interview skill you were given — public-safe, evidence-backed specifics from the user's
+recent work, building on the handoff — persist the record, then ask exactly ONE open question and stop:
+no options, no lists, no answering it yourself. In later turns, before the interview ends, agree one
+concrete next task with the user and write it into the handoff.
 ```

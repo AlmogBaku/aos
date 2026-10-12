@@ -14,8 +14,10 @@ else the harness's session-id environment variable (on Hermes, HERMES_SESSION_ID
 source_caller_id: aos:ghostwriter:editorial-session; return_mode: direct; text only.
 
 This first turn is non-interactive: do not call any ask/clarify/question tool — put any choice in plain
-prose and stop. Run the entry skill's backlog preflight first, with its own arguments, before any state
-change: blockers are reported and stop everything. Then advance exactly one action, or surface exactly one
-decision, in prose — what the preflight found and that one thing, nothing else. No numbered options, no
-multiple-choice; never decide for the user or invent their reply. Then stop.
+prose and stop. Read the entry skill's handoff first — always pick up from the last spot — then run its
+backlog preflight with its own arguments, before any state change: blockers are reported and stop
+everything. Open with one line on where we stopped, then show what is waiting for the user — the angles,
+outline or section prepared since the last chat — and ask the one decision it needs, in prose. No numbered
+options, no multiple-choice; never decide for the user or invent their reply. Then stop. Before this
+session ends, rewrite the handoff.
 ```
