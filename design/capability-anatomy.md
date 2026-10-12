@@ -42,8 +42,9 @@ What a user's machine actually looks like (after installing two capabilities) �
 └── .aos/                         # machine-local state, outside every repo
     ├── installs.lock.yaml        # what's installed: versions, source roots, links, hashes
     ├── kb-registry.yaml          # kb's registry of every base — machine-local, not overlay
-    └── kb-principal.yml          # kb's principal list — written by `kb init --principal`
-                                  #   or `kb config set principal.id=`; recreated, not carried
+    └── kb-principal.yml          # kb's principal list — filled in by `kb init --principal`
+                                  #   when missing, changed by `kb config set principal.id=`;
+                                  #   recreated, not carried
 ```
 
 ★ = the personal root holds the overlay family: upstream never contains those paths; CI rejects them in PRs.
