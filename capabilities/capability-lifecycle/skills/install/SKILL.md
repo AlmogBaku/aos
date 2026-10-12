@@ -46,13 +46,17 @@ the overlay doctrine, and the Experience rules. Then:
    no enumeration yet and says so in capitals, so glance at what the harness already has.
 6. Interview, iff the capability ships ONBOARDING.md — run it per the
    `capability-lifecycle` skill's `reference/overlay.md` (batched, typed validation, secrets → store per the
-   cheat-sheet's Secrets section) → write `<home>/personal/capabilities/<id>/MOD.md`.
+   cheat-sheet's Secrets section) → write `<home>/personal/capabilities/<id>/MOD.md`
+   (capability-lifecycle's own: `<home>/personal/MOD.md` — the `capability-lifecycle` skill's
+   `reference/overlay.md`, Which MOD.md).
 7. Render, then transform: `aos-cap render <dir> <skill-id> --out
    <home>/personal/<render-path>/skills` per declared skill — `<render-path>` is
    `capabilities/<id>` for a shipped package and `renders/<id>` for the user's own (whose
    `capabilities/<id>/` is the source; `render` refuses an output inside its source) —
-   mechanical: installed name, frontmatter `name`, `metadata.aos.origin`. Then fill
-   `{{mod}}` slots and bake `<home>` in the render per the `capability-lifecycle` skill's `reference/overlay.md`.
+   mechanical: installed name, frontmatter `name`, `metadata.aos.origin`. Then the
+   transform per the `capability-lifecycle` skill's `reference/overlay.md`, against this
+   capability's MOD.md (Which MOD.md): fill `{{mod}}` slots, weave its prose statements,
+   bake `<home>`.
    Source files stay untouched.
 8. **STAGE** per the cheat-sheet's Materialization guide: the render sits in
    `personal/`'s working tree (uncommitted) plus the exact native command plan —
@@ -63,7 +67,10 @@ the overlay doctrine, and the Experience rules. Then:
    skills location, under `installed_name`; a path another entry or a stranger holds →
    stop), schedules
    (`aos:<cap>:<schedule-id>`, single-owner check first), context blocks (markers), config
-   keys, the capability's own tool install line. Touch no harness file yet.
+   keys, the capability's own tool install line — plus whatever the root MOD's household
+   rules add to each agent this install creates or adopts (the `capability-lifecycle` skill's
+   `reference/overlay.md`). Touch
+   no harness file yet.
    Second-harness install: stage links + native plan only (the render already exists);
    schedules stay with their current owner unless the user reassigns.
 9. **GATE**: show the full plan, payoff-framed — each artifact → what it does
