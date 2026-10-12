@@ -8,7 +8,7 @@ description: Estimates a commitment, links it to its project, and blocks time fo
   a reminder, and do NOT use to change what the user committed to — that is wt-update.
 metadata:
   aos:
-    origin: work-tracker@0.1.0
+    origin: work-tracker@0.1.2
 ---
 # schedule
 
@@ -22,26 +22,32 @@ How long is this, honestly? Prefer the user's own number where they gave one; ot
 rough estimate beats none, because it decides how much calendar to look for and lets the
 steward spot a two-minute job that has sat for three weeks.
 
-Record it as `estimate:` on the action — `45m`, `2h`. Keep the granularity from onboarding;
-invented precision (`37m`) reads as noise.
+Record it as `estimate:` on the action in half-hour steps — `30m`, `1h30m`, `2h`. That is the
+user's chosen granularity; invented precision (`37m`, `45m`) reads as noise.
 
 ## 2. Read the calendar before proposing anything
 
-Existing blocks, meetings, and the working windows from the global `MOD.md`. Then two rules
-that come from the user, not from this skill:
+Existing blocks, meetings, and the working windows from the global `MOD.md`. Blocks go on the
+user's **personal** calendar — never a work or shared one, where a block is visible to the
+wrong people. Then the rules that come from the user, not from this skill:
 
-- **Working hours** bound where a block may land at all.
+- **Working hours** bound where a block may land at all, and on top of them: **no blocks
+  before 10:00**, and **Friday afternoons are admin** — only admin-shaped work lands there.
+- **Long blocks belong before lunch** (mornings are deep work). **Two hours is the most booked
+  in one sitting**; anything longer is split across days.
 - **Sacred time is never scheduled over, and never silently moved.** This skill writes to a
   real calendar, so that rule is what makes the capability trustworthy rather than something
-  the user has to check up on. A conflict gets surfaced — *"the only two-hour gap is during
-  choir practice; shall I look at Friday instead?"* — never resolved on their behalf.
+  the user has to check up on. **Never book work during choir practice, Thursdays
+  19:00–21:00.** A conflict gets surfaced and the next window offered — *"the only two-hour
+  gap is during choir practice; shall I look at Friday instead?"* — never resolved on their
+  behalf.
 
 The global `MOD.md`'s red lines apply here too. Sending an invitation to another person is
 acting outward as the user; blocking time on their own calendar is not.
 
 ## 3. Take the slot and write it
 
-`wt-capture` hands you the page path. Reached directly (*"find me two hours for the CFP"*),
+wt-capture hands you the page path. Reached directly (*"find me two hours for the CFP"*),
 find it first rather than guessing at the slug — the open set is small:
 
 ```

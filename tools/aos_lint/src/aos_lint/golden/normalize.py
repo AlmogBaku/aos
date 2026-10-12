@@ -93,7 +93,23 @@ SKIP = {
     "executions.db", ".jobs.lock", "auth.lock", "state.db-shm", "state.db-wal",
     ".skills_prompt_snapshot.json", ".update_check", "context_length_cache.yaml",
     "verification_evidence.db", "models_dev_cache.json",
+    # Hermes 0.21's per-profile runtime state: the cron ticker's liveness stamps and plugin /
+    # model-cache bookkeeping — written by every tick or start, never by an install. `backups`
+    # holds Hermes's own `config.yaml.good.<ts>` copies: run-varying AND private (provider
+    # details), and the `.good.<ts>` suffix escapes the `config.yaml` rule above, so it has to
+    # be dropped as a directory.
+    "ticker_heartbeat", "ticker_last_success", ".tick.lock", "plugin-update-checks",
+    "models_dev_cache.etag", "backups",
 }
+# Directories dropped only under a given parent, for names too generic for SKIP's basename
+# match (a capability may well ship an `output/`). `cron/output/<job-id>/<ts>.md` is the
+# harness's per-run job log: a sync tick that fired before the snapshot writes one, and
+# nothing an install decided is in it.
+SKIP_UNDER = {("cron", "output")}
+# Lock files named by a hash or by whichever maintenance task ran, so no fixed basename can
+# list them: the cron ticker's per-fire claim (`cron/.fire-<hash>.lock`, left by every job
+# that fired) and Hermes's `state.db.<task>.lock` (fts_rebuild, quarantine, auto-maintenance…).
+SKIP_FILE = re.compile(r"^(\.fire-[0-9a-f]+|state\.db\.[\w-]+)\.lock$")
 # A known trailing suffix (e.g. `.sh.unused`, left when a harness renames a script)
 # must still normalize — otherwise absolute developer paths land in a committed
 # snapshot. Deliberately an allowlist: `.json.gz` must NOT be read as text.
@@ -155,7 +171,7 @@ def normalize_tree(s, d) -> None:
     """The `copy` of normalize.mjs, by its exported name."""
     s, d = Path(s), Path(d)
     if s.is_dir():
-        if s.name in SKIP:
+        if s.name in SKIP or (s.parent.name, s.name) in SKIP_UNDER:
             return
         d.mkdir(parents=True, exist_ok=True)
         # A skills/ dir with a .bundled_manifest is a harness-managed skill store:
@@ -180,7 +196,7 @@ def normalize_tree(s, d) -> None:
         if not _readdir(d):
             d.rmdir()
     else:
-        if s.name in SKIP:
+        if s.name in SKIP or SKIP_FILE.match(s.name):
             return
         d.parent.mkdir(parents=True, exist_ok=True)
         if TEXT.search(s.name):

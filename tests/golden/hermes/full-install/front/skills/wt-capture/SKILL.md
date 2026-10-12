@@ -11,7 +11,7 @@ description: 'Records something the user has said they must do themselves: class
   are knowledge and belong to kb-capture.'
 metadata:
   aos:
-    origin: work-tracker@0.1.0
+    origin: work-tracker@0.1.2
 ---
 # capture
 
@@ -24,7 +24,7 @@ that question routes every request into the list.
 
 | The commitment is | status: | plus | then |
 |---|---|---|---|
-| real work of the user's | `next` | — | hand off to `wt-schedule` |
+| real work of the user's | `next` | — | hand off to wt-schedule |
 | someone else's to answer | `waiting` | `waiting_on:` | nothing more |
 | a deadline, not hours | `next` | `due:` | a reminder, no block |
 | not now, maybe never | `someday` | — | nothing more |
@@ -61,7 +61,7 @@ Frontmatter. The four marked `required` are the ones `kb lint` reports as missin
 seven anyway, since the steward's queries depend on `status` and `since`:
 
 ```yaml
-title: call the dentist        # required
+title: call the dentist        # required — verb-first; deadline in it when there is one
 type: action                   # required
 created: <DATE>            # required
 timestamp: <TIMESTAMP>    # required
@@ -84,18 +84,22 @@ for a later pass to guess at.
 
 ## Hand off
 
-Needs real hours → invoke `wt-schedule`, in a sub-agent where the harness has them and inline
+Needs real hours → invoke wt-schedule, in a sub-agent where the harness has them and inline
 otherwise. Say which you did, because *"blocked 14:00–16:00 tomorrow"* and *"filed, no
 calendar here"* are different promises and the user is entitled to know which one they got.
 
-The user should experience one act, not two. `wt-schedule` comes back with the time; you
+The user should experience one act, not two. wt-schedule comes back with the time; you
 confirm once, with the time in it.
 
-**How the confirmation reads is the user's call**: verb-first phrasing, confirmed with a single
-🦜 emoji and nothing else — never echo the commitment back. Some people want the
-commitment phrased back in full, some want one emoji and nothing else. Honour it exactly —
-this is the line they see several times a day, and it is the whole surface of an interaction
-whose other half is silent.
+**How the confirmation reads is the user's call**: confirm every commitment with a single 🦜
+emoji — nothing else, ever. Never echo the commitment back. (When wt-schedule booked a slot,
+the slot is the one thing that may ride along with the 🦜, because it is a promise the user
+needs to see.) Honour it exactly — this is the line they see several times a day, and it is
+the whole surface of an interaction whose other half is silent.
+
+Page titles are verb-first and short (*"email Sam the deck"*), and anything with a deadline
+gets the deadline in the title (*"send Robin the contract by Fri 17 Oct"*) — that is the part
+worth seeing at a glance. The body still holds the user's own words verbatim.
 
 ## When something fails
 

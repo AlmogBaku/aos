@@ -1,6 +1,6 @@
 # The humans this machine writes as. First match wins, so a bare `*` belongs
-# last. Machine-local and gitignored: `kb` writes it on the first verb call
-# and kb's ONBOARDING.md fixes what detection got wrong.
+# last. Machine-local and gitignored: `kb init --principal <id>` writes it,
+# `kb config set principal.id=<id>` changes it, kb's ONBOARDING.md corrects it.
 - id: dana@example.com
   bases:
   - '*'

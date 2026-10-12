@@ -61,7 +61,7 @@ Frontmatter. The four marked `required` are the ones `kb lint` reports as missin
 seven anyway, since the steward's queries depend on `status` and `since`:
 
 ```yaml
-title: call the dentist        # required
+title: call the dentist        # required — verb-first; deadline in it when there is one
 type: action                   # required
 created: <DATE>            # required
 timestamp: <TIMESTAMP>    # required
@@ -91,10 +91,15 @@ calendar here"* are different promises and the user is entitled to know which on
 The user should experience one act, not two. wt-schedule comes back with the time; you
 confirm once, with the time in it.
 
-**How the confirmation reads is the user's call**: verb-first. Some people want the
-commitment phrased back in full, some want one emoji and nothing else. Honour it exactly —
-this is the line they see several times a day, and it is the whole surface of an interaction
-whose other half is silent.
+**How the confirmation reads is the user's call**: confirm every commitment with a single 🦜
+emoji — nothing else, ever. Never echo the commitment back. (When wt-schedule booked a slot,
+the slot is the one thing that may ride along with the 🦜, because it is a promise the user
+needs to see.) Honour it exactly — this is the line they see several times a day, and it is
+the whole surface of an interaction whose other half is silent.
+
+Page titles are verb-first and short (*"email Sam the deck"*), and anything with a deadline
+gets the deadline in the title (*"send Robin the contract by Fri 17 Oct"*) — that is the part
+worth seeing at a glance. The body still holds the user's own words verbatim.
 
 ## When something fails
 

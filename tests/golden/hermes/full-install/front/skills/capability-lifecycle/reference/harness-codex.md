@@ -41,6 +41,16 @@ Files Codex consumes for this integration are `~/.codex/skills/*/SKILL.md` and
    `~/.codex/AGENTS.md`. Preserve all non-aos instructions.
 4. Do not materialize capability agents or schedules. Agent-only functionality and
    scheduled work follow their declared degraded mode.
+5. Hooks: register in `~/.codex/hooks.json` or `[hooks]` in `~/.codex/config.toml`
+   (project `.codex/` overlays load only when `projects.<path>.trust_level` is set; append
+   only — trust keys are positional, so inserting ahead of existing hooks drops their
+   trust). New or changed non-managed hooks are skipped until trusted: the TUI prompts
+   "Hooks need review"; `codex exec` skips silently (source-inferred). Approve each
+   declared hook by its exact command through `/hooks` in the TUI — never
+   `--dangerously-bypass-hook-trust`, "Trust all and continue", or a managed layer (`/etc/codex`,
+   `requirements.toml`); trust keys on the definition, not the script. Don't claim `notify`
+   (single ungated user slot). Verify: `/hooks` shows `Trusted`; `codex doctor` does not
+   check hook trust.
 
 ## Introspection guide
 

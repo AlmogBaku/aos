@@ -5,6 +5,8 @@
 !tools/lint/selftest/fixture/.aos/
 # …and golden snapshots, which record the rendered user side incl. its lockfile
 !tests/golden/**/.aos/
+# …and the e2e fixture the golden protocol seeds into the sandbox household's .aos/
+!tests/fixtures/.aos/
 
 # NOTE on MOD.md (the overlay family): it lives in the user's ~/aos/personal repo,
 # never in this clone — so there is nothing to ignore. Upstream CI rejects

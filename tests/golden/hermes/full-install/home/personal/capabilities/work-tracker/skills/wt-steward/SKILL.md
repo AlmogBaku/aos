@@ -62,12 +62,16 @@ without showing me the draft"*). A `due` date is the user's promise to someone e
 moving it is their call even when the new date is obviously right.
 
 **Escalate on the pattern, not the event.** One slip is life; three is a bad commitment —
-*"this has moved three times; still want it, or should it go to someday?"* The threshold is
-an onboarding answer, default 3:
+*"this has moved three times; still want it, or should it go to someday?"* The user's
+threshold is **3** — below it reschedule silently, at it ask:
 
 ```
 kb --base commitments find --where 'slipped>=3'
 ```
+
+Rescheduling a block follows the same rules as wt-schedule: personal calendar only, no
+blocks before 10:00, at most two hours per sitting, and **never during choir practice
+(Thursdays 19:00–21:00)** — a reschedule that would land there is surfaced, not made.
 
 ## Applying a change
 

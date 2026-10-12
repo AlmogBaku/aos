@@ -84,6 +84,16 @@ the profile's default doesn't already fit the class; never hardcode provider nam
    does nothing. Record every key set in the lockfile.
 6. **Native code** (`adapters/hermes/plugins/`): hooks → profile `hooks/`; standalone
    programs stay standalone; `--script` files → `~/.hermes/scripts/`.
+7. **Shell hooks** (`hooks:` in the profile `config.yaml`): Hermes runs one only after
+   it is approved, and a desktop, dashboard or cron session cannot prompt, so it skips an
+   unapproved hook with a log warning — `fail_closed` included. Approve each by its exact
+   command: one `approvals` entry (`event`, `command`) in the profile's
+   `shell-hooks-allowlist.json`, or a TTY prompt. Never `hooks_auto_accept` or
+   `--accept-hooks`: both approve every hook the config holds. Then
+   `hermes -p <profile> hooks list` must show each hook allowlisted and
+   `hermes -p <profile> hooks doctor` must pass. Approval keys on the command string, not
+   the script, so after an upgrade rewrites a hook script, doctor's mtime drift is the
+   signal to re-check it. Removal: `hermes -p <profile> hooks revoke <command>`.
 
 ## Introspection guide
 

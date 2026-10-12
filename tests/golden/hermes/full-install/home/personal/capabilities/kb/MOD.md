@@ -2,6 +2,7 @@
 capability: kb
 onboarded_version: 0.1.0
 answers:
+  principal_id: dana@example.com
   existing_kbs: []
   create_default: true
   default_base: personal-kb
