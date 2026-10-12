@@ -146,7 +146,8 @@ Identity is stored in `<home>/.aos/kb-principal.yml`, machine-local and gitignor
 personal base — matched against base names with first-match-wins. `kb init` fills in a
 missing identity, from the `--principal` typed on it, and `kb config set principal.id=`
 changes it. `AOS_PRINCIPAL_ID`, like `--principal` on every other verb, overrides for one
-call and is never written — not even by `kb init`.
+call and is never written — not even by `kb init`, which on a machine with no identity
+yet refuses an env-only one and asks for a typed `--principal`.
 
 Write verbs with no resolvable identity error, naming the file. Read-only verbs (`kb lint`,
 `kb find`, `kb search`, `kb inbox`) need none. The onboarding interview collects the id and

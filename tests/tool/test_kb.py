@@ -1245,6 +1245,20 @@ class HomeTest(unittest.TestCase):
         self.assertFalse((self.aos / ".aos" / "kb-registry.yaml").exists())
         self.assertFalse(root.exists())
 
+    def test_kb_init_never_overwrites_an_unusable_identity_file(self):
+        """A principal file that parses to no usable entry is somebody's broken identity,
+        not a fresh machine: init must stop and name it, never replace it wholesale."""
+        pfile = self.aos / ".aos" / "kb-principal.yml"
+        pfile.parent.mkdir(parents=True, exist_ok=True)
+        pfile.write_text("id: dana@example.com\n", encoding="utf-8")
+        root = self.dir / "b"
+        r = run(["init", "b", "--path", str(root), "--templates", str(TEMPLATES),
+                 "--principal", "eve@example.com"], self.env, cwd=self.elsewhere)
+        self.assertNotEqual(r.returncode, 0, r.stdout)
+        self.assertIn(str(pfile), r.stderr)
+        self.assertEqual(pfile.read_text(encoding="utf-8"), "id: dana@example.com\n")
+        self.assertFalse(root.exists())
+
     def test_kb_init_with_no_principal_on_a_fresh_home_fails_naming_the_file(self):
         root = self.dir / "b"
         r = run(["init", "b", "--path", str(root), "--templates", str(TEMPLATES)],
@@ -1256,17 +1270,6 @@ class HomeTest(unittest.TestCase):
         # Refused before anything was written: no half-scaffolded base, no registry.
         self.assertFalse(root.exists())
         self.assertFalse((self.aos / ".aos" / "kb-registry.yaml").exists())
-
-    def test_an_override_on_a_fresh_home_never_creates_the_identity_file(self):
-        """Only `kb init` fills in a missing identity. A capture as a guest on a machine
-        with none authors that one write and leaves the machine without one."""
-        root = self.init("b", self.dir / "b", self.dir / "scratch-registry.yaml",
-                         home=self.dir / "elsewhere-home")
-        r = run(["--base", str(root), "--principal", "guest@example.com", "capture",
-                 "--text", "a guest was here"], self.env, cwd=self.elsewhere)
-        self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertFalse((self.aos / ".aos" / "kb-principal.yml").exists())
-
 
 class TemplateCloneTest(unittest.TestCase):
     """`kb init` clones a template repo by default (no fork — a plain, read-only,

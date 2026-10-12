@@ -28,16 +28,23 @@ Everything the run creates is identifiable and disposable:
 
 ## Run
 
-1. **Pre-state**: record `sha256(config.yaml)`, the profile list, root `skills/` listing,
-   and root cron job ids (`tests/golden/prestate.sh` → `tests/.sandbox/prestate.txt`).
+1. **Pre-state**: first, if `aos-test`, `aos-archiver` or `aos-steward` already exists and is
+   not this kit's own leftover from an earlier run, **stop** and ask for the profile to be
+   freed — a run creates, uses and deletes only profiles it made, and never borrows,
+   deletes or restores somebody's (`hermes profile list`; a leftover carries no session
+   or file the last run's transcript does not account for). Then record
+   `sha256(config.yaml)`, the profile list, root `skills/` listing, and root cron job ids
+   (`tests/golden/prestate.sh` → `tests/.sandbox/prestate.txt`).
    Also clear leftovers from a previous run inside the `aos-*` namespace (e.g. a renamed
    `scripts/aos-kb-sync.sh.unused` in a profile) — a sentinel must test what *this*
    install wrote, never debris that survived the last one.
 2. `hermes profile create aos-test`, then give it a working provider — a fresh profile has
-   only `model.default` and fails with `Invalid length for parameter modelId`. Copy a
-   working profile's `config.yaml` (`model.provider`, `base_url`, and the `terminal`/`file`/
-   `skills`/`cronjob` toolsets); the normalizer skips `config.yaml`, so nothing private
-   reaches the snapshot. Capability agents (`aos-archiver`, `aos-steward`) need the same.
+   only `model.default` and fails with `Invalid length for parameter modelId`. Set only
+   what it needs with `hermes -p <profile> config set` — `model.provider`, `model.default`,
+   `model.base_url` if the provider has one, and the `terminal`/`file`/`skills`/`cronjob`
+   toolsets — and never copy another profile's `config.yaml`: it carries that profile's
+   memory provider, plugins and integrations, which could reach its real stores at
+   runtime. A plugin store appearing in an `aos-*` profile fails normalize (step 5). Capability agents (`aos-archiver`, `aos-steward`) need the same.
 
    **Copy the credential env too, not just `config.yaml`.** A freshly-created profile writes
    its own `.env`, which SHADOWS the root's — and the root's is where the provider credentials
@@ -83,14 +90,16 @@ Everything the run creates is identifiable and disposable:
    them. With the two dirs pinned and `<sandbox>/uv/bin` first on PATH, both act on sandbox
    copies and every later `kb`/`aos-cap` call resolves those. Write PATH out in full — do
    not count on `$PATH` expanding inside a `.env`. The smoke test also has the profile print
-   `AOS_HOME`, `UV_TOOL_DIR` and its first PATH entry.
+   `AOS_HOME`, `AOS_PRINCIPAL_ID`, `UV_TOOL_DIR`, `UV_TOOL_BIN_DIR` and its first PATH entry.
 
    **The `.env` PATH line is not enough on its own.** Hermes 0.21's terminal tool takes its
    env from a login-shell snapshot that sources `~/.profile`/`~/.bashrc`, and a stock
    `~/.profile` prepends `~/.local/bin` — so the machine's own `kb`/`aos-cap` come first
    again, and the smoke test prints `~/.local/bin` as the first entry (2026-10-12). Put a
-   `<sandbox>/path.sh` holding `export PATH="<sandbox>/uv/bin:$PATH"` last in every `aos-*`
-   profile's `terminal.shell_init_files`, at the same moments as the `.env` lines:
+   `<sandbox>/path.sh` last in every `aos-*` profile's `terminal.shell_init_files` that
+   re-exports all five pins — `export PATH="<sandbox>/uv/bin:$PATH" AOS_HOME=…
+   AOS_PRINCIPAL_ID=… UV_TOOL_DIR=… UV_TOOL_BIN_DIR=…`, since an rc file that sets any of
+   them would otherwise win the same way — at the same moments as the `.env` lines:
 
    ```
    hermes -p <profile> config set terminal.shell_init_files \
@@ -174,12 +183,6 @@ Everything the run creates is identifiable and disposable:
    pre-state; `hermes profile delete` the test profiles. Removal's `uv tool uninstall`
    empties `<sandbox>/uv/` — the machine's own `aos-kb`/`aos-cap`, if any, were never
    touched (step 2).
-
-   Where `aos-test` is somebody's profile that the run borrowed, restore it from a
-   `tar -czf` taken before step 2: `hermes profile delete` it, extract with `tar -xpzf`
-   (without `-p` every mode comes back umask-shaped), then remove the tombstone
-   `profiles/.deleted/aos-test` that the delete wrote — until then Hermes reports the
-   restored profile as missing. `tar -dzf` against the archive confirms the restore.
 
 ## Judging (agentic, advisory)
 

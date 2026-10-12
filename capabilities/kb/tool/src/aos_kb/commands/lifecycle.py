@@ -19,6 +19,7 @@ from ..frontmatter import slugify, read_frontmatter, write_frontmatter
 from ..identity import (
     today, die, agent_subject, is_repo, git, is_weak_principal, principal_file,
     resolve_principal, init_principal, save_principals, principal_name,
+    usable_principals, principals_unusable,
 )
 from ..registry import load_registry, save_registry, find_upstream_root
 from ..base import Base, acting
@@ -201,7 +202,9 @@ def cmd_init(
         reg["default"] = name
     reg.setdefault("confidence_bar", 0.7)
     save_registry(ctx.obj, reg)
-    if save_identity:
+    # Checked again just before writing: the template clone ran in between, and an identity
+    # that appeared meanwhile is somebody's — leave it.
+    if save_identity and not usable_principals() and not principals_unusable():
         save_principals([{"id": pid, "bases": ["*"]}])
 
     base.commit("bootstrap", ".", f"base {name} scaffolded (layout {LAYOUT})",

@@ -104,10 +104,10 @@ SKIP = {
     # checkout's identity, absolute paths included) and the MCP discovery lock.
     "source-checks", ".mcp-discovery.lock",
 }
-# Hermes's per-profile plugin store, named by the marker it keeps. A memory provider in the
-# copied `config.yaml` (PROTOCOL step 2) installs its plugin's whole source tree here on the
-# first start; nothing an install did. Marker-matched, not a SKIP name: `plugins` is too
-# generic to drop wherever it appears.
+# Hermes's per-profile plugin store, named by the marker it keeps. One in an `aos-*` profile
+# means the profile inherited a plugin (a memory provider, say) that could reach somebody's
+# real store at runtime — PROTOCOL step 2 sets config from an allowlist so it never does.
+# Normalize fails rather than prune: pruning would also hide a plugin an install wrote.
 PLUGIN_STORE_MARKER = ".install-metadata.json"
 # Directories dropped only under a given parent, for names too generic for SKIP's basename
 # match (a capability may well ship an `output/`). `cron/output/<job-id>/<ts>.md` is the
@@ -175,6 +175,10 @@ def _scrub(o):
                 _scrub(o[k])
 
 
+class InheritedPlugin(Exception):
+    """A plugin store in a profile under test — refused, never pruned."""
+
+
 def normalize_tree(s, d) -> None:
     """The `copy` of normalize.mjs, by its exported name."""
     s, d = Path(s), Path(d)
@@ -182,7 +186,8 @@ def normalize_tree(s, d) -> None:
         if s.name in SKIP or (s.parent.name, s.name) in SKIP_UNDER:
             return
         if s.name == "plugins" and (s / PLUGIN_STORE_MARKER).exists():
-            return
+            raise InheritedPlugin(f"plugin store in {s}: the profile inherited a plugin — set its "
+                                  f"config from the allowlist (PROTOCOL step 2), then re-run")
         d.mkdir(parents=True, exist_ok=True)
         # A skills/ dir with a .bundled_manifest is a harness-managed skill store:
         # snapshot ONLY what the INSTALL materialized (top-level dirs whose SKILL.md
@@ -239,7 +244,11 @@ def main(argv=None) -> int:
     if not Path(src).exists():
         print(f"source {src} does not exist", file=sys.stderr)
         return 1
-    normalize_tree(src, dest)
+    try:
+        normalize_tree(src, dest)
+    except InheritedPlugin as e:
+        print(f"normalize: {e}", file=sys.stderr)
+        return 2
     print(f"normalized {src} -> {dest}")
     return 0
 

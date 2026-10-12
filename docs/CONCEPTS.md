@@ -215,7 +215,8 @@ answers "whose is this, and who wrote it down".
 The list mapping this machine's humans to their bases is `<home>/.aos/kb-principal.yml`.
 `kb init --principal <id>` fills it in when it is missing, and `kb config set principal.id=`
 changes it. An override — `--principal` on any other verb, `AOS_PRINCIPAL_ID` anywhere —
-is used for one call and never saved. Write verbs without a resolved identity error naming
+is used for one call and never saved; on a machine with no identity yet, `kb init` refuses
+an env-only one and asks for a typed `--principal`. Write verbs without a resolved identity error naming
 the file; read-only verbs need none. The onboarding interview collects the id.
 
 ### Curation modes — and why centralized ingestion is a non-goal

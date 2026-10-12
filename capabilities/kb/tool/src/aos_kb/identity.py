@@ -95,6 +95,24 @@ def load_principals() -> list:
     return data if isinstance(data, list) else []
 
 
+def usable_principals() -> list:
+    return [e for e in load_principals()
+            if isinstance(e, dict) and str(e.get("id") or "").strip()]
+
+
+def principals_unusable() -> bool:
+    """The file exists and holds something, but no usable entry: a broken identity, not a
+    missing one. Nothing may overwrite it on the way past."""
+    p = principal_file()
+    if not p.exists():
+        return False
+    try:
+        data = yaml.safe_load(p.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        return True
+    return data not in (None, []) and not usable_principals()
+
+
 def save_principals(entries: list):
     p = principal_file()
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -163,10 +181,12 @@ def init_principal(args, base_name: str) -> tuple[str, bool]:
     typed `--principal`: $AOS_PRINCIPAL_ID is whatever a shell exports, and saving it
     would make that the permanent author. With any entry on file, the file is left alone
     and a typed flag is this call's override, as on every other verb."""
-    entries = [e for e in load_principals()
-               if isinstance(e, dict) and str(e.get("id") or "").strip()]
+    entries = usable_principals()
     typed = typed_principal(args)
     if not entries:
+        if principals_unusable():
+            die(f"{principal_file()} holds no usable identity — fix or remove it, then "
+                f"rerun (nothing was written)")
         if typed is None:
             die(f"no identity in {principal_file()} — run "
                 f"`kb config set principal.id=<you>` (or, on a fresh machine, "
