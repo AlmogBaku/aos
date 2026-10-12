@@ -91,7 +91,9 @@ diff in the user's own repo.
       records that another capability's `uses` now declares moves to that capability:
       re-record this entry without it first, then the other with `--uses-link` (exit 19
       enforces the order). Then EXECUTE the native plan (links usually survive re-render
-      untouched — verify, don't assume); `aos-cap record <id>` with the full updated set
+      untouched — verify, don't assume); a hook whose command or script changed must be
+      re-approved and re-verified per the cheat-sheet — the consent was for the old one.
+      `aos-cap record <id>` with the full updated set
       (start from `aos-cap show` — `record` replaces the entry wholesale, never call it
       with a partial list; keep `--source-root`, `--link` and `--uses-link` records), then
       `aos-cap verify` with no argument, so a link another entry depends on is checked

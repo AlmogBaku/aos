@@ -91,12 +91,12 @@ the registry, routing, grants, the deterministic `kb` tool (an installable uv pa
    (capture), `.kb/state/**` and `profile/**`, seeded by the init templates.
 5. **Onboarding** asks which bases exist and who the user is; the `init` and `adopt` skills
    then write `<home>/.aos/kb-registry.yaml` (machine-local, gitignored — not overlay)
-   and each base's `.kb/base.yml`. The identity file `<home>/.aos/kb-principal.yml` is
-   written by `kb init --principal <id>` or `kb config set principal.id=`; the interview
-   collects this answer. `kb init`
+   and each base's `.kb/base.yml`. The identity file `<home>/.aos/kb-principal.yml` is set
+   by `kb config set principal.id=` — the interview collects this answer — and filled in by
+   `kb init --principal <id>` only when it is missing. `kb init`
    scaffolds by default from a cloned template repo (read-only, unauthenticated, no fork);
    `--templates <local-dir>` skips the network, and a clone failure falls back to the
-   templates shipped in this checkout, announced, never blocking.
+   templates in `<home>/upstream`, announced, never blocking.
 
 ## Contracts to preserve
 

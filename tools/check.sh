@@ -8,13 +8,14 @@ cd "$(dirname "$0")/.."
 if command -v uv >/dev/null 2>&1; then
   uv run --quiet tests/tool/test_kb.py
   uv run --quiet tests/tool/test_cap.py
-  # AOS_PRINCIPAL_ID is pinned because this lints a SHIPPED FIXTURE, and "who is calling"
-  # is not a property of that fixture. Without it the tool synthesizes an identity from the
-  # host — and on a CI runner that is `runner@runnervm….local`, whose `.local` suffix is
-  # exactly what `is_weak_principal` is built to catch. So the check failed on the runner's
-  # hostname while passing on every developer machine that has a git identity: a red build
-  # saying nothing about the fixture. The weak-principal check itself is right and stays.
-  AOS_PRINCIPAL_ID=dana@example.com \
+  # This lints a SHIPPED FIXTURE, so it runs in a fresh, empty aos home: with the default
+  # one it would read the developer's real `~/aos/.aos/kb-registry.yaml` (its
+  # confidence_bar) and identity, and the verdict would depend on whose machine ran it.
+  # Lint is read-only and needs no identity, so none is pinned and any in the shell is
+  # dropped — as is a registry the shell names.
+  LINT_HOME="$(mktemp -d)"
+  trap 'rm -rf "$LINT_HOME"' EXIT
+  env -u AOS_REGISTRY -u AOS_PRINCIPAL_ID AOS_HOME="$LINT_HOME" \
   uv run --quiet --project capabilities/kb/tool kb \
     --base tests/fixtures/example-base lint | tee /tmp/example-base-lint.txt
   grep -q "Critical (0)" /tmp/example-base-lint.txt

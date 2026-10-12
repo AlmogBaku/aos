@@ -143,12 +143,16 @@ whose.
 
 Identity is stored in `<home>/.aos/kb-principal.yml`, machine-local and gitignored. It is a
 **list**, because one person is not one identity — a work address should not author a
-personal base — matched against base names with first-match-wins. `kb init --principal <id>`
-(or `AOS_PRINCIPAL_ID`) writes the file; `kb config set principal.id=` also writes it.
+personal base — matched against base names with first-match-wins. `kb init` fills in a
+missing identity, from the `--principal` typed on it, and `kb config set principal.id=`
+changes it. `AOS_PRINCIPAL_ID`, like `--principal` on every other verb, overrides for one
+call and is never written — not even by `kb init`.
 
 Write verbs with no resolvable identity error, naming the file. Read-only verbs (`kb lint`,
 `kb find`, `kb search`, `kb inbox`) need none. The onboarding interview collects the id and
-writes it; a cron that only runs sync and exec-style jobs needs no identity.
+writes it. `kb sync` commits as the resolved identity too (the sweep of hand-written files,
+a conflict entry): `kb sync --all` reports a base without one as skipped, carries on with
+the rest and exits non-zero.
 
 There is no separate roster. Grant rows name principal ids directly, so the grants table
 **is** the roster — one source instead of two that can disagree.

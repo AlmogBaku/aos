@@ -70,11 +70,11 @@ private remote; only `.aos/` is machine-local.
    and email to commit as, and set them — globally if they're happy with that, otherwise on
    this repo. Never invent one: a synthesized address credits a real stranger, and every
    render and MOD write from here on is a commit. This identity is for the `personal/`
-   repo; kb's identity is separate — set via `kb init --principal <id>` (or
-   `kb config set principal.id=`) into `~/aos/.aos/kb-principal.yml`; write verbs error
-   without it. Offer — don't push — a private remote for backup/sync
-   (`gh repo create aos-personal --private` when `gh` is available; skippable, add one
-   any time). Everything personal (MOD files, rendered skills, private capabilities)
+   repo; kb's identity is separate — `kb config set principal.id=<id>` sets it in
+   `~/aos/.aos/kb-principal.yml` (on a fresh machine `kb init --principal <id>` fills it in
+   instead); write verbs error without it. Offer — don't push — a private remote for
+   backup/sync (`gh repo create aos-personal --private` when `gh` is available; skippable,
+   add one any time). Everything personal (MOD files, rendered skills, private capabilities)
    will live and be auto-committed here.
 
 ## 2. Install the capability-lifecycle capability (inline — the only one)

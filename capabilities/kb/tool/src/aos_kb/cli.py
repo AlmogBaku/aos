@@ -69,8 +69,8 @@ def main_callback(
         help="the human a write belongs to; becomes the git author and the grants "
              "subject (default $AOS_PRINCIPAL_ID, else the first matching entry in "
              "<home>/.aos/kb-principal.yml; a write with neither is an error). An "
-             "override, never written — except by `kb init`, when no entry matches. "
-             "The display name rides $AOS_PRINCIPAL_NAME"),
+             "override, never written — except by `kb init` on a machine with no "
+             "identity yet. The display name rides $AOS_PRINCIPAL_NAME"),
     version: bool = typer.Option(
         False, "--version", callback=version_callback, is_eager=True),
 ):

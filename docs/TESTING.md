@@ -14,10 +14,12 @@ is still the contract, not tool internals. A `Result` adapter gives every assert
 can change without touching test bodies. Each suite keeps exactly one real-subprocess
 class (`InstalledScriptSmokeTest` / `InstalledScriptTest`): CliRunner never leaves the
 process, so it can't prove `[project.scripts]` actually resolves as an installed console
-script — that's the one thing those classes exist to check. `test_cap.py` additionally
-needs a `chdir` helper, because a few of its behaviours (relative `--artifact`, a relative
-capability dir) are genuine functions of the process
-cwd, which an in-process runner inherits rather than isolates. What that suite must cover
+script — that's the one thing those classes exist to check. Both suites also carry a
+`chdir` helper, because a few behaviours are genuine functions of the process cwd, which an
+in-process runner inherits rather than isolates: in `test_cap.py` a relative `--artifact`
+or capability dir, in `test_kb.py` the stray-`.aos/` regression (a cwd under a folder
+carrying one must never become the aos home). Every call gets a fresh `HOME` unless a
+test sets one, so none reads the developer's real `~/aos`. What `test_cap.py` must cover
 — every verb, every failure mode, and the bug behind each regression pin — is indexed in
 `tests/tool/COVERAGE-cap.md`, which is diffable against the file's `def test_*` names.
 Tier 0 then lints the shipped example base (`tests/fixtures/example-base/`

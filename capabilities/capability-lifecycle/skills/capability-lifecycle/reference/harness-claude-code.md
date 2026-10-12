@@ -106,7 +106,8 @@ session, and `/context` shows what is loaded now.
    next matching event with no consent gate — interactive and `claude -p`/SDK runs alike,
    later script edits silently too. The diff gate is the only approval: add the entry by its
    exact command, never a bulk write. Silent disablement: `"disableAllHooks": true` in any
-   scope, or `allowManagedHooksOnly` in managed settings — check neither is set. Verify
+   scope, or `allowManagedHooksOnly` in managed settings. If either is set, stop and tell
+   the user — never change it: either one enables or disables every hook. Verify
    with `/hooks` (lists active hooks) or `claude --debug` (logs invocations); no doctor.
 
 Order matters for one reason worth stating: the diff gate. Claude Code shows every write for

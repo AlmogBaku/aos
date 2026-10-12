@@ -22,6 +22,11 @@ def find_upstream_root() -> Path:
     return find_household() / "upstream"
 
 
+def registry_named(args) -> bool:
+    """Was a registry asked for (`--registry`/$AOS_REGISTRY), rather than defaulted?"""
+    return bool(getattr(args, "registry", None) or os.environ.get("AOS_REGISTRY"))
+
+
 def registry_path(args) -> Path:
     if getattr(args, "registry", None):
         return Path(args.registry).expanduser()

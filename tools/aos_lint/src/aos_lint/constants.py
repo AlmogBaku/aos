@@ -49,8 +49,10 @@ ORIGIN_FRONTMATTER_KEY = ORIGIN_KEY                     # display form
 LEGACY_ORIGIN_FRONTMATTER_KEY = f"x-{KIT_NAME}-origin"  # retired; must not ship
 ORIGIN_JOB_PREFIX = f"{KIT_NAME}:"   # jobs.json entries: origin: aos:<cap>@<ver>
 
-# ARCHITECTURE §3.1 — the user-owned overlay family. Upstream never contains these.
-OVERLAY_BASENAMES = ["MOD.md", "kb-registry.yaml"]
+# Upstream never contains these, each for its own reason: MOD.md is the user-owned overlay
+# family (ARCHITECTURE §3.1); kb's registry is machine-local state, `<home>/.aos/`.
+OVERLAY_BASENAMES = {"MOD.md": "user-owned overlay family (ARCHITECTURE §3.1)",
+                     "kb-registry.yaml": "machine-local state (<home>/.aos/)"}
 # Fixtures simulate the user clone and golden snapshots record the rendered user
 # side, so overlay paths are allowed there (RFC-002) — ARCHITECTURE §3.1's
 # invariant is about *shipped* paths.

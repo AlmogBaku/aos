@@ -69,9 +69,11 @@ expect_files:
   - "home:personal/MOD.md"
   - "home:personal/capabilities/work-tracker/MOD.md"
   # bookkeeping — household-level machine state: the lockfile, and kb's registry (machine-
-  # local since kb 0.8.0, never in personal/)
+  # local since kb 0.8.0, never in personal/) and identity (the bootstrap `kb init
+  # --principal` fills it in on a machine with none)
   - "home:.aos/installs.lock.yaml"
   - "home:.aos/kb-registry.yaml"
+  - "home:.aos/kb-principal.yml"
 
 forbid_texts:
   # the harness owns user context (Hermes: memories/USER.md). aos must not distil the
@@ -97,6 +99,8 @@ forbid_files:
   # the retired capability-level cheat-sheet directory: a path that resolves in the source
   # tree and nowhere beside an installed skill
   - "home:personal/capabilities/capability-lifecycle/harnesses/hermes.md"
+  # the registry left the overlay family in kb 0.8.0: machine state, never in personal/
+  - "home:personal/kb-registry.yaml"
   # capabilities absorbed into capability-lifecycle must leave no separate footprint
   - "home:personal/capabilities/onboarding/CAPABILITY.md"
   - "home:personal/capabilities/importer/CAPABILITY.md"
@@ -142,9 +146,9 @@ sentinels:
   # Its home is the OWNING PROFILE's scripts dir: Hermes 0.21 resolves a job's `--script`
   # against `<HERMES_HOME>/scripts/` of the profile that owns the job and refuses any path
   # outside it ("profiles never share files"). The 2026-07-29 run (Hermes 0.19) read the root
-  # `~/.hermes/scripts/`, as the cheat-sheet's Materialization guide still says; the
-  # 2026-10-12 run put the wrapper in `aos-archiver/scripts/`, where 0.21 reads it, so the
-  # `root:` location was the stale side. A profile path is also snapshot-checkable.
+  # `~/.hermes/scripts/`, as the cheat-sheet's Materialization guide said until 2026-10-12;
+  # the 2026-10-12 run put the wrapper in `aos-archiver/scripts/`, where 0.21 reads it, so
+  # the `root:` location was the stale side. A profile path is also snapshot-checkable.
   - {text: "AOS_HOME=", in_dir: "archiver:scripts"}
   # steward_hour 22:47 → cron expression "47 22 * * *" in the steward's jobs
   - {text: "47 22", in_dir: "steward:cron"}

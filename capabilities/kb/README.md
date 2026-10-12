@@ -10,7 +10,7 @@ markdown, and nothing else. The capability ships:
 - the deterministic **`kb` tool** ([`tool/`](tool/), a `uv`-installed Python CLI; it never
   calls a model — RFC-004's outcome). `kb init` scaffolds by default from a cloned template
   repo (read-only, no fork); `--templates <local-dir>` skips the network, and a clone
-  failure falls back to the templates shipped in this checkout,
+  failure falls back to the templates in `<home>/upstream`,
 - one **Archiver** agent across all bases (cross-base re-routing is its point), on two agent
   schedules plus a script-direct exec sync cron.
 

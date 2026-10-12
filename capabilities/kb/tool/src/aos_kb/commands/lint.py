@@ -24,7 +24,7 @@ from ..constants import UNIVERSAL_FIELDS, RAW_FIELDS, PENDING_FIELDS, PENDING_KI
 from ..frontmatter import slugify, read_frontmatter
 from ..identity import today, is_repo, git, sequencer_state, is_weak_principal, \
     principal_file, resolve_principal
-from ..registry import load_registry, registry_path
+from ..registry import load_registry, registry_path, registry_named
 from ..base import Base, resolve_base
 from .wiki import _link_graph
 
@@ -330,7 +330,9 @@ def _lint_routing(base: Base, global_opts, critical: list, findings: list) -> No
     is a list filter, not a threshold, so the check is an existence test — and it is
     the falsifiable half of the rule the route skill states in prose."""
     # A base linted by path needs no registry (CI has none): the default bar stands in.
-    reg = load_registry(global_opts) if registry_path(global_opts).exists() else {}
+    # One that was NAMED and is missing is a typo, and load_registry says so.
+    reg = load_registry(global_opts) \
+        if registry_named(global_opts) or registry_path(global_opts).exists() else {}
     bar = float(reg.get("confidence_bar", 0.7) or 0.7)
     # Both halves of the capture path: an LLM-routed capture is a violation the moment
     # it is written, not only once it is ingested — checking _raw/ alone would let one

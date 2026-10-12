@@ -65,7 +65,7 @@ can move it).
 
 | Verb | Reads / Writes | What it does |
 |---|---|---|
-| `kb init` | W | scaffold a new base, register it, write the principal file when `--principal` (or `AOS_PRINCIPAL_ID`) is given |
+| `kb init` | W | scaffold a new base, register it; on a machine with no identity yet, save the typed `--principal` as the principal file (never `AOS_PRINCIPAL_ID`) |
 | `kb adopt` | W (registry only) | register an existing tree; zero writes into it |
 | `kb migrate` | W | previous layout → current, with `git mv` so history follows |
 | `kb capture` | W | file content into `.kb/pending/`; `--corrects <path>` links a correction |

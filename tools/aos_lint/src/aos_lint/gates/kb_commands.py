@@ -176,9 +176,13 @@ def main(argv=None) -> int:
                 if not tok.startswith("--"):
                     continue
                 flag = re.sub(r"[.,;:)]+$", "", tok.split("=")[0])
-                if flag not in flag_set and flag not in global_flags:
+                # After the verb only the verb's own flags parse: a global one there is
+                # "No such option", which is how `kb init --principal` shipped broken.
+                if flag not in flag_set:
+                    hint = " (a global option, so it goes before the verb)" \
+                        if flag in global_flags else ""
                     failures.append(f'{rel}: `kb {raw}` — "{flag}" is not an option of '
-                                    f"`kb {verb}`")
+                                    f"`kb {verb}`{hint}")
 
     if failures:
         print(f"kb command check: {len(failures)} failure(s)\n", file=sys.stderr)

@@ -31,11 +31,13 @@ skills right afterwards — registry data belongs in the registry and base struc
 `.kb/base.yml`, not in the overlay.
 
 1. **`principal_id`** — the identity that authors every KB write. Ask for it now and record
-   it in `<home>/.aos/kb-principal.yml` via `kb config set principal.id=<answer>` (or pass it
-   as `--principal` to `kb init`). One person is not one identity, so if they name a work
-   address too, record both — the file is a list matched against base names, first match
-   wins, and a bare `*` belongs last. Write verbs without a resolved identity error naming
-   the file; read-only verbs (lint, find, search) need none.
+   the one identity with `kb config set principal.id=<answer>` — it writes
+   `<home>/.aos/kb-principal.yml` as a catch-all `*`. If they name a work address too, that
+   second, scoped identity is a hand edit of the same file (a list matched against base
+   names, first match wins: the most specific entry first, the `*` last) — a second
+   `config set` would put itself first as another `*` and claim every base. Write verbs
+   without a resolved identity error naming the file; read-only verbs (lint, find, search)
+   need none.
 2. **`existing_kbs`** — "Obsidian vault, a notes git repo, a wiki checkout — paths, if so."
    For each path the `kb-adopt` skill runs next: registration plus a divergence report, and
    no rewrites. Promise that out loud, it is the thing users fear.

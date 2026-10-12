@@ -10,7 +10,8 @@ show it in blame, and no new identity system is invented.
 The principal is `--principal`/$AOS_PRINCIPAL_ID, else the first matching entry in
 <home>/.aos/kb-principal.yml — never guessed. The file is a LIST because one person is
 not one identity — a work address should not author a personal base. First match wins,
-so a bare "*" belongs last.
+so a bare "*" belongs last. `kb init` fills in a MISSING identity, from the flag typed
+on it, and `kb config set principal.id=` changes it; an override is never saved.
 """
 
 import fnmatch
@@ -99,8 +100,8 @@ def save_principals(entries: list):
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(
         "# The humans this machine writes as. First match wins, so a bare `*` belongs\n"
-        "# last. Machine-local and gitignored: `kb init --principal <id>` writes it,\n"
-        "# `kb config set principal.id=<id>` changes it, kb's ONBOARDING.md corrects it.\n"
+        "# last. Machine-local and gitignored: `kb init --principal <id>` fills it in\n"
+        "# when missing, `kb config set principal.id=<id>` changes it.\n"
         + yaml.safe_dump(entries, sort_keys=False, allow_unicode=True),
         encoding="utf-8")
 
@@ -117,6 +118,12 @@ def override_principal(args) -> str | None:
     return pid.strip() if pid and pid.strip() else None
 
 
+def typed_principal(args) -> str | None:
+    """`--principal` alone: what was typed on this command, not what a shell exports."""
+    pid = getattr(args, "principal", None)
+    return pid.strip() if pid and pid.strip() else None
+
+
 def file_principal(base_name: str, entries: list | None = None) -> str | None:
     """The first entry in the principal file whose `bases` globs match."""
     for e in (load_principals() if entries is None else entries):
@@ -130,9 +137,10 @@ def file_principal(base_name: str, entries: list | None = None) -> str | None:
 
 def no_principal(base_name: str):
     die(f"no principal for base {base_name!r}: no --principal, no $AOS_PRINCIPAL_ID, "
-        f"and no matching entry in {principal_file()}. `kb init --principal <id>` "
-        f"writes that file (so does `kb config set principal.id=<id>`); or pass "
-        f"--principal / set AOS_PRINCIPAL_ID")
+        f"and no matching entry in {principal_file()}. Set one with "
+        f"`kb config set principal.id=<id>` (on a fresh machine, "
+        f"`kb init --principal <id>`); or pass --principal / set AOS_PRINCIPAL_ID "
+        f"for one call")
 
 
 def resolve_principal(args, base_name: str, required: bool = True) -> str | None:
@@ -149,19 +157,27 @@ def resolve_principal(args, base_name: str, required: bool = True) -> str | None
     return pid
 
 
-def establish_principal(args, base_name: str) -> str:
-    """`kb init`'s identity, and the one place an override reaches disk: when no file
-    entry answers for this base, the override is appended as a catch-all `*` — last,
-    because the file is first-match-wins and whatever is already there is narrower.
-    With an entry already answering, the override is only an override."""
-    entries = load_principals()
-    override = override_principal(args)
-    found = file_principal(base_name, entries)
-    if found is None:
-        if override is None:
-            no_principal(base_name)
-        save_principals(entries + [{"id": override, "bases": ["*"]}])
-    return override or found
+def init_principal(args, base_name: str) -> tuple[str, bool]:
+    """`kb init`'s identity, and whether init saves it — the one write an identity ever
+    gets outside `kb config set`. Only when there is NO identity at all, and only the
+    typed `--principal`: $AOS_PRINCIPAL_ID is whatever a shell exports, and saving it
+    would make that the permanent author. With any entry on file, the file is left alone
+    and a typed flag is this call's override, as on every other verb."""
+    entries = [e for e in load_principals()
+               if isinstance(e, dict) and str(e.get("id") or "").strip()]
+    typed = typed_principal(args)
+    if not entries:
+        if typed is None:
+            die(f"no identity in {principal_file()} — run "
+                f"`kb config set principal.id=<you>` (or, on a fresh machine, "
+                f"`kb init --principal <you>`). $AOS_PRINCIPAL_ID is a per-call "
+                f"override and is never saved")
+        return typed, True
+    if typed and typed != file_principal(base_name, entries):
+        print(f"note: --principal {typed} authors this init only — the saved identity "
+              f"in {principal_file()} was left unchanged (change it with "
+              f"`kb config set principal.id=<id>`).")
+    return resolve_principal(args, base_name), False
 
 
 def principal_name(args, root: Path, pid: str) -> str:

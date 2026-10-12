@@ -87,7 +87,7 @@ Happy path: one `id\tinstalled_name\tused_by` row per declared skill; `--check` 
 - [ ] test_collision_inside_one_capability — 17; the entry skill's name reached a second time through the prefix ("...in itself")
 - [ ] test_collision_with_a_lockfile_link — 17; a lockfile link attributes the name to another install
 - [ ] test_collision_with_a_skill_already_in_the_harness — 17
-- [ ] test_flat_harness_skill_file_also_collides — 17; Nanobot's `skills/<name>.md` flat form is a claim too
+- [ ] test_flat_harness_skill_file_also_collides — 17; a flat `skills/<name>.md` form is a claim too (every sheet today, HKUDS/nanobot included, is folder-only; this guards a harness that is not)
 - [ ] test_a_skill_merely_MENTIONING_the_origin_key_is_not_claimed_as_ours — **PIN**; 17; the gate used to test `ORIGIN_KEY in text` — a **substring** — so a stranger's skill whose *prose* discussed `metadata.aos.origin` read as aos-installed, and the install overwrote it instead of stopping. Provenance is read as structured frontmatter or it does not claim the entry
 - [ ] test_collision_found_when_cwd_is_outside_the_household — **PIN**; 17; on a real machine the agent's cwd is the harness workspace and no documented invocation passes `--home`. Resolving the household from cwd alone made `--check` skip the household + lockfile sources and still print "clean" — a silent no-op in the gate. The household is `~/aos` by default, so the gate checks it whatever the cwd
 - [ ] test_another_capabilitys_flat_form_link_still_collides — **PIN**; 17; the mirror of the flat-form exemption below: a `.md` link owned by someone **else** is still a claim, so all three comparison sites have to agree on stems
@@ -99,7 +99,7 @@ Happy path: one `id\tinstalled_name\tused_by` row per declared skill; `--check` 
 - [ ] test_non_skill_link_is_not_a_skill_name — 0; a linked *script*'s basename is not a skill name
 - [ ] test_malformed_neighbour_does_not_block_the_check — 0; a broken `CAPABILITY.md` next door must not abort an unrelated install
 - [ ] test_readme_in_a_flat_skills_dir_is_not_a_skill — 0; `README.md` in a flat skills dir is documentation
-- [ ] test_reinstall_over_our_own_flat_form_link_is_clean — 0; Nanobot's flat form records a link whose basename carries `.md`, and it still has to match our own exemption (`.stem`, not `.name`)
+- [ ] test_reinstall_over_our_own_flat_form_link_is_clean — 0; a flat-form harness records a link whose basename carries `.md`, and it still has to match our own exemption (`.stem`, not `.name`)
 - [ ] test_lost_lockfile_does_not_block_reinstall — **PIN**; 0; `.aos/` is machine-local and gitignored. A gate that trusted it alone saw our own installed skills as strangers and refused **every** re-install — turning a recoverable state into a stuck one. Provenance answers when the lockfile cannot
 - [ ] test_a_stranger_still_blocks_when_the_lockfile_is_lost — **PIN**; 17; the other half of that fallback: provenance exempts our renders, not every name in the directory
 - [ ] test_clean_report_names_the_sources_it_could_not_check — **PIN**; 0; a skipped source must never be indistinguishable from an empty one, so the report says `NO HOUSEHOLD RESOLVED` / `NO --harness-skills GIVEN` in as many words

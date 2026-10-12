@@ -15,6 +15,8 @@ Everything the run creates is identifiable and disposable:
   `aos:<capability>:` job, so an unnamed mapping lets an install adopt the operator's own.
 - Cron jobs: the `aos:<capability>:<schedule-id>` name prefix (contract rule).
 - KBs: under `tests/.sandbox/kb/` (gitignored) — never a real KB.
+- Tools: `tests/.sandbox/uv/` — the install's `uv tool install` and removal's
+  `uv tool uninstall` act here, never on the machine's own `aos-kb`/`aos-cap` (step 2).
 - The household: `tests/.sandbox/aos-home/` — `upstream/` (a clone of this repo),
   `personal/` (a git-init'd repo seeded with the fixture overlay at mirrored paths:
   `tests/fixtures/personal/*` copied in, `diff_review` set to `auto-accept` for
@@ -45,51 +47,66 @@ Everything the run creates is identifiable and disposable:
    provider outage and is not one — it cost three abandoned runs on 2026-08-01 before
    `ps -o wchan` named the lock. Copy the lines, then smoke-test with
    `hermes -p aos-test -z "Reply with exactly: READY"` before spending a real install on it.
+   A profile that fails it gets its `.env` fixed — never run a prompt from the default
+   profile instead: nothing pins it to the sandbox.
 
    Also configure a git identity in the seeded `personal/` repo
    (`git -C <sandbox>/aos-home/personal config user.name/user.email` — the fixture persona
    is Dana Fixture): the persist hook commits as the user, and the agent correctly refuses
    to invent an identity.
 
-   **Pin the household and the identity in every profile's `.env`** — `aos-test` before
-   the install, `aos-archiver`/`aos-steward` the moment the install creates them (with the
-   credential lines above) — and export both in the operator shell:
+   **Pin the household, the identity and the tools in every profile's `.env`** —
+   `aos-test` before the install, `aos-archiver`/`aos-steward` the moment the install
+   creates them (with the credential lines above) — and export the same in the operator
+   shell:
 
    ```
    AOS_HOME=<sandbox>/aos-home
    AOS_PRINCIPAL_ID=dana@example.com
+   UV_TOOL_DIR=<sandbox>/uv/tools
+   UV_TOOL_BIN_DIR=<sandbox>/uv/bin
+   PATH=<sandbox>/uv/bin:<the rest of PATH, written out>
    ```
 
    The aos home is `--home`/`AOS_HOME`, else `~/aos` — named, never discovered — so on a
    machine that has a real household, any `kb` or `aos-cap` call without it resolves the
    *real* one. The identity is `--principal`/`AOS_PRINCIPAL_ID` (used per call, never
-   saved), else `<home>/.aos/kb-principal.yml`, which only `kb init` (from `--principal`
-   or this variable) and `kb config set principal.id=` write; with neither, a write verb
-   fails naming that file. Pinning Dana keeps "who ran the e2e" out of a committed
-   snapshot: it is not a property of the install.
+   saved), else `<home>/.aos/kb-principal.yml`. `kb init` fills that file in only when it
+   is missing and only from a typed `--principal`, so the install prompt (step 3) hands the
+   bootstrap `kb init` `--principal dana@example.com`; the variable stays a per-call
+   override. With neither, a write verb fails naming the file. Pinning Dana keeps "who ran
+   the e2e" out of a committed snapshot: it is not a property of the install.
+
+   The `uv` lines keep the tools in the sandbox: `uv tool` is machine-wide by default, so
+   the install's `uv tool install --from <sandbox>/…` would repoint the machine's own
+   `aos-kb`/`aos-cap` at the sandbox clone, and removal's `uv tool uninstall` would delete
+   them. With the two dirs pinned and `<sandbox>/uv/bin` first on PATH, both act on sandbox
+   copies and every later `kb`/`aos-cap` call resolves those. Write PATH out in full — do
+   not count on `$PATH` expanding inside a `.env`. The smoke test also has the profile print
+   `AOS_HOME`, `UV_TOOL_DIR` and its first PATH entry.
 
    The `.env` does not reach everything. Hermes's desktop/dashboard backend ticks every
    profile's cron **without loading that profile's `.env`**, so a scheduled command carries
    `AOS_HOME` itself (kb-init's `sync` row — check the wrapper before its first tick) and
    agent jobs are paused right after the snapshot (step 5). Finish teardown before the
    earliest agent job's hour.
-3. **Install** — tell the agent (`hermes -p aos-test -z "<prompt>"`, falling back to the
-   default profile with the same prompt if the fresh profile has no credentials):
+3. **Install** — tell the agent (`hermes -p aos-test -z "<prompt>"`):
 
    > You are the Hermes harness agent installing from the aos kit. The aos household
    > is at `<sandbox>/aos-home` (not the default `~/aos`; this profile's `.env` sets
    > `AOS_HOME` to it): the kit clone is `aos-home/upstream`, the user's personal repo is
    > `aos-home/personal`. Read `upstream/BOOTSTRAP.md` and follow it exactly. The
    > interviews already ran — the overlay files (`MOD.md`, `capabilities/*/MOD.md`) are
-   > present in `personal/` at mirrored paths, and the base registry is at
-   > `aos-home/.aos/kb-registry.yaml`. Your install home (the "front agent") is the
-   > `aos-test` profile (`~/.hermes/profiles/aos-test`); create each capability agent as
-   > the profile `aos-<agent id>` (`aos-archiver`, `aos-steward`). Profiles outside
-   > `aos-*` belong to another household on this machine: never adopt, modify or count
-   > them — their cron jobs are not this household's schedules. Renders land in
-   > `personal/` and skills are symlinked per the contract. Install: kb (work-tracker
-   > comes later, as its own prompt — see the Day-N step). The lockfile lives at
-   > `aos-home/.aos/installs.lock.yaml` (`aos-cap --home <sandbox>/aos-home`).
+   > present in `personal/` at mirrored paths, the base registry is at
+   > `aos-home/.aos/kb-registry.yaml`, and kb's identity answer is `dana@example.com`:
+   > pass `--principal dana@example.com` on the first `kb init`. Your install home (the
+   > "front agent") is the `aos-test` profile (`~/.hermes/profiles/aos-test`); create each
+   > capability agent as the profile `aos-<agent id>` (`aos-archiver`, `aos-steward`).
+   > Profiles outside `aos-*` belong to another household on this machine: never adopt,
+   > modify or count them — their cron jobs are not this household's schedules. Renders
+   > land in `personal/` and skills are symlinked per the contract. Install: kb
+   > (work-tracker comes later, as its own prompt — see the Day-N step). The lockfile
+   > lives at `aos-home/.aos/installs.lock.yaml` (`aos-cap --home <sandbox>/aos-home`).
 
    The installer gets **no other context** — BOOTSTRAP + the capability-lifecycle
    contract + capability + cheat-sheet + overlay must suffice; that is the test.
@@ -101,9 +118,9 @@ Everything the run creates is identifiable and disposable:
    **Day-N step** (the seam this exists to prove): a SEPARATE, fresh prompt with no
    bootstrap context — `hermes -p aos-test -z "install work-tracker from the aos household
    at <sandbox>/aos-home. Agents go in aos-<agent id> profiles; profiles outside aos-* are
-   another household's — never adopt, modify or count them."` (default-profile fallback
-   as above) — must trigger the materialized `capability-install` skill and complete the
-   install. The second sentence is harness namespace, not install context (see Namespace).
+   another household's — never adopt, modify or count them."` — must trigger the
+   materialized `capability-install` skill and complete the install. The second sentence
+   is harness namespace, not install context (see Namespace).
 
 4. **Check**: `uv run --project tools/aos_lint python -m aos_lint.golden.check --live` runs the structural checks against the
    materialized tree (expectations in `tests/golden/expectations/*.yaml`), plus the
@@ -135,22 +152,13 @@ Everything the run creates is identifiable and disposable:
    (a real `wt-steward` profile carries a job of the very same name) — must route through
    `capability-evolve`: the cron job changes, the change lands in
    `personal/capabilities/work-tracker/MOD.md` (auto-committed by the persist hook), and
-   `aos-cap verify` stays clean. **Note when running via the default-profile fallback:**
-   the fallback agent does not carry the materialized skills in context, so the prompt
-   must name the skill path explicitly (`~/.hermes/profiles/aos-test/skills/
-   capability-evolve/SKILL.md`) — otherwise it edits the cron
-   natively and skips the ledger, which is a fallback artifact, not a skill failure.
-   Capture mode is then the second half of the test: fold the existing change into the
-   ledger and confirm the persist commit.
+   `aos-cap verify` stays clean. Capture mode is then the second half of the test: fold
+   the existing change into the ledger and confirm the persist commit.
 6. **Remove**: tell the agent to remove per the cheat-sheet Removal section (with the
    Day-N step's namespace sentence); verify with `prestate.sh` that `~/.hermes` matches
-   pre-state; `hermes profile delete` the test profiles.
-
-   **The tools are machine-wide, not per-household.** Where a real household already has
-   `aos-kb`/`aos-cap` installed, the install's `uv tool install --from <sandbox>/…`
-   repoints them at the sandbox clone and removal's `uv tool uninstall` deletes them from
-   under it. Back up `~/.local/share/uv/tools/aos-{kb,cap}` before step 3 and restore them
-   (with their `~/.local/bin` links) right after this step.
+   pre-state; `hermes profile delete` the test profiles. Removal's `uv tool uninstall`
+   empties `<sandbox>/uv/` — the machine's own `aos-kb`/`aos-cap`, if any, were never
+   touched (step 2).
 
 ## Judging (agentic, advisory)
 

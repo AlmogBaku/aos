@@ -17,8 +17,8 @@ def check_overlay_paths(ctx) -> None:
         base = rel.rsplit("/", 1)[-1]
         if base in OVERLAY_BASENAMES:
             ctx.report("error", "overlay/shipped", rel,
-                       f'"{base}" is user-owned overlay family — upstream must never contain '
-                       f"it (ARCHITECTURE §3.1)")
+                       f'"{base}" is {OVERLAY_BASENAMES[base]} — upstream must never '
+                       f"contain it")
         if STATE_DIR.rstrip("/") in rel.split("/"):
             ctx.report("error", "overlay/state-dir", rel,
                        f"{STATE_DIR} is machine-local state — never committed")

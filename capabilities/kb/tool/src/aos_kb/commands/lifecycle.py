@@ -18,7 +18,7 @@ from ..constants import VERSION, LAYOUT, TEMPLATE_REPO_URL
 from ..frontmatter import slugify, read_frontmatter, write_frontmatter
 from ..identity import (
     today, die, agent_subject, is_repo, git, is_weak_principal, principal_file,
-    resolve_principal, establish_principal, principal_name,
+    resolve_principal, init_principal, save_principals, principal_name,
 )
 from ..registry import load_registry, save_registry, find_upstream_root
 from ..base import Base, acting
@@ -36,7 +36,7 @@ def _resolve_templates(templates: Optional[str], template_repo: str,
     """Where init's templates come from: --templates (a local dir — skip the network
     step entirely, unchanged from before this repo existed) beats a clone of
     --template/the default TEMPLATE_REPO_URL, which falls back to the tree shipped
-    inside this checkout on any clone failure (no network, bad URL, git not configured
+    in <home>/upstream on any clone failure (no network, bad URL, git not configured
     for the host, ...). The fallback is silent-but-noted, never blocking or prompting —
     the same shape as the `git lfs version` check just below in cmd_init.
 
@@ -54,10 +54,11 @@ def _resolve_templates(templates: Optional[str], template_repo: str,
         tmp_holder.append(tmp)   # keep the TemporaryDirectory alive past this call
         return dst
     tmp.cleanup()
+    fallback = find_upstream_root() / "capabilities/kb/skills/init/templates"
     print(f"note: couldn't clone the template repo ({template_repo}) — "
-          f"falling back to the templates shipped in this checkout "
+          f"falling back to the templates in {fallback} "
           f"(`git lfs version`-style degrade: never blocks, never prompts).")
-    return find_upstream_root() / "capabilities" / "kb" / "skills" / "init" / "templates"
+    return fallback
 
 
 @app.command("init", help="scaffold + register a new base")
@@ -83,13 +84,19 @@ def cmd_init(
              "material — name them with --curator")] = "self",
     curator: Annotated[Optional[str], typer.Option(
         help="principal id, iff --curation designated")] = None,
+    principal: Annotated[Optional[str], typer.Option(
+        help="the global --principal, typed after the verb. Saved to "
+             "<home>/.aos/kb-principal.yml only when no identity exists yet; "
+             "otherwise an override for this init")] = None,
 ):
+    if principal:
+        ctx.obj.principal = principal
     root = Path(path).expanduser().resolve()
     if (root / ".kb" / "base.yml").exists():
         die(f"{root} already has a .kb/base.yml")
     # Before anything touches disk: an init with no identity is refused on an untouched
-    # tree. The principal file is written only once the base exists (below).
-    pid = resolve_principal(ctx.obj, name)
+    # tree. A missing identity is saved only once the base exists (below).
+    pid, save_identity = init_principal(ctx.obj, name)
     tmp_holder = []
     tpl = _resolve_templates(templates, template, tmp_holder)
     if not (tpl / "base.yml").exists():
@@ -194,7 +201,8 @@ def cmd_init(
         reg["default"] = name
     reg.setdefault("confidence_bar", 0.7)
     save_registry(ctx.obj, reg)
-    establish_principal(ctx.obj, name)
+    if save_identity:
+        save_principals([{"id": pid, "bases": ["*"]}])
 
     base.commit("bootstrap", ".", f"base {name} scaffolded (layout {LAYOUT})",
                 agent_subject(ctx.obj), (principal_name(ctx.obj, root, pid), pid))

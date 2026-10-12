@@ -79,7 +79,8 @@ the overlay doctrine, and the Experience rules. Then:
    message — the persist hook), create the symlinks, run the native plan; `kb:`
    zones → draft grant rows into each target KB's `## Grants` table, user approves.
    A capability's tool may write machine-local files under `<home>/.aos/` — kb writes
-   `kb-principal.yml` (on `kb init --principal` or `kb config set principal.id=`) and
+   `kb-principal.yml` (`kb init --principal` fills in a missing one, `kb config set
+   principal.id=` changes it) and
    `kb-registry.yaml` (on `kb init`/`kb adopt`). Do **not** create them yourself: the tool
    owns them, the same way `aos-cap` owns the lockfile. Say they exist in the summary so
    the user is not surprised by files nobody mentioned, and leave them out of `record`

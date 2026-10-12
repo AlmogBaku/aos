@@ -213,9 +213,10 @@ it. So there is nothing to invent and no log to maintain — `git log --format='
 answers "whose is this, and who wrote it down".
 
 The list mapping this machine's humans to their bases is `<home>/.aos/kb-principal.yml`.
-Written by `kb init --principal <id>` or `kb config set principal.id=`; `AOS_PRINCIPAL_ID`
-overrides for one call without touching the file. Write verbs without a resolved identity
-error naming the file; read-only verbs need none. The onboarding interview collects the id.
+`kb init --principal <id>` fills it in when it is missing, and `kb config set principal.id=`
+changes it. An override — `--principal` on any other verb, `AOS_PRINCIPAL_ID` anywhere —
+is used for one call and never saved. Write verbs without a resolved identity error naming
+the file; read-only verbs need none. The onboarding interview collects the id.
 
 ### Curation modes — and why centralized ingestion is a non-goal
 
