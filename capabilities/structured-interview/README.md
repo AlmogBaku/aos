@@ -19,7 +19,8 @@ scheduled run can never guess where to reply. A CLI or desktop session is its ow
 the session id is the conversation id, which is what makes an interview opened by a schedule
 answerable in the session the user actually sees.
 
-One skill, no agent, no schedule of its own: callers bring the trigger. It uses the `kb` command
+One skill, no agent, no schedule of its own: callers bring the trigger. A caller whose own agent
+conducts the interview grants it there with `uses`; the front agent gets it through `used_by`. It uses the `kb` command
 on PATH when configured and degrades to a local completed record when no KB is available.
 
 | Skill | Job |

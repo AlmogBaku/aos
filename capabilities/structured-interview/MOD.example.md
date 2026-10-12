@@ -1,6 +1,6 @@
 ---
 capability: structured-interview
-onboarded_version: 0.1.3
+onboarded_version: 0.1.4
 answers:
   interview_surface: "telegram"
   interview_workspace: "/home/example/interviews"
