@@ -22,25 +22,23 @@ How long is this, honestly? Prefer the user's own number where they gave one; ot
 rough estimate beats none, because it decides how much calendar to look for and lets the
 steward spot a two-minute job that has sat for three weeks.
 
-Record it as `estimate:` on the action in half-hour steps — `30m`, `1h30m`, `2h`. That is the
-user's chosen granularity; invented precision (`37m`, `45m`) reads as noise.
+Record it as `estimate:` on the action, in half-hour steps — `30m`, `1h30m`, `2h`. That is
+the user's chosen granularity; invented precision (`45m`, `37m`) reads as noise.
 
 ## 2. Read the calendar before proposing anything
 
-Existing blocks, meetings, and the working windows from the global `MOD.md`. Blocks go on the
-user's **personal** calendar — never a work or shared one, where a block is visible to the
-wrong people. Then the rules that come from the user, not from this skill:
+Blocks go on the user's **personal** calendar — never another one, since a block on the
+wrong calendar is visible to the wrong people. Read existing blocks, meetings, and the working
+windows from the global `MOD.md` (`<HOME>/aos/upstream/tests/.sandbox/aos-home/personal/MOD.md`). Then two rules
+that come from the user, not from this skill:
 
-- **Working hours** bound where a block may land at all, and on top of them: **no blocks
-  before 10:00**, and **Friday afternoons are admin** — only admin-shaped work lands there.
-- **Long blocks belong before lunch** (mornings are deep work). **Two hours is the most booked
-  in one sitting**; anything longer is split across days.
+- **Working hours** bound where a block may land at all.
 - **Sacred time is never scheduled over, and never silently moved.** This skill writes to a
   real calendar, so that rule is what makes the capability trustworthy rather than something
-  the user has to check up on. **Never book work during choir practice, Thursdays
-  19:00–21:00.** A conflict gets surfaced and the next window offered — *"the only two-hour
-  gap is during choir practice; shall I look at Friday instead?"* — never resolved on their
-  behalf.
+  the user has to check up on. A conflict gets surfaced — *"the only two-hour gap is during
+  choir practice; shall I look at Friday instead?"* — never resolved on their behalf.
+- **Never book work during choir practice, Thursdays 19:00–21:00.** When the slot asked for
+  touches it, surface the conflict and offer the next free window instead.
 
 The global `MOD.md`'s red lines apply here too. Sending an invitation to another person is
 acting outward as the user; blocking time on their own calendar is not.

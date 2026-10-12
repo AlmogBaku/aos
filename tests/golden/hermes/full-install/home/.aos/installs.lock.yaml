@@ -1,7 +1,6 @@
 installs:
   capability-lifecycle:
     artifacts:
-      <HOME>/.local/share/uv/tools/aos-cap/bin/aos-cap: <SHA256>
       ? <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-build/SKILL.md
       : <SHA256>
       ? <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-build/reference/build.md
@@ -75,6 +74,7 @@ installs:
       ? <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-upgrade/SKILL.md
       : <SHA256>
       <HOME>/aos/upstream/tests/.sandbox/aos-home/vendor/anthropic-skills/skills/skill-creator/SKILL.md: <SHA256>
+      <HOME>/aos/upstream/tests/.sandbox/uv/tools/aos-cap/bin/aos-cap: <SHA256>
     config_keys: []
     env_lines: []
     links:
@@ -97,7 +97,6 @@ installs:
   kb:
     artifacts:
       <HOME>/.hermes/profiles/aos-archiver/SOUL.md: <SHA256>
-      <HOME>/.local/share/uv/tools/aos-kb/bin/kb: <SHA256>
       <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb-adopt/SKILL.md: <SHA256>
       <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb-capture/SKILL.md: <SHA256>
       <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb-import/SKILL.md: <SHA256>
@@ -120,10 +119,12 @@ installs:
       <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb/reference/grants.md: <SHA256>
       <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb/reference/lifecycle.md: <SHA256>
       <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb/reference/wiring.md: <SHA256>
+      <HOME>/aos/upstream/tests/.sandbox/uv/tools/aos-kb/bin/kb: <SHA256>
     config_keys:
-    - aos-archiver:timezone
-    - aos-archiver:platform_toolsets
+    - aos-archiver:platform_toolsets.cli
+    - aos-archiver:platform_toolsets.cron
     env_lines:
+    - AOS_HOME
     - AOS_AGENT
     links:
       <HOME>/.hermes/profiles/aos-archiver/skills/kb: <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/kb/skills/kb
@@ -154,10 +155,9 @@ installs:
       <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/work-tracker/skills/wt-steward/SKILL.md: <SHA256>
       <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/work-tracker/skills/wt-update/SKILL.md: <SHA256>
     config_keys:
-    - aos-steward:model.default
-    - aos-steward:model.provider
+    - aos-steward:platform_toolsets.cli
+    - aos-steward:platform_toolsets.cron
     - aos-steward:timezone
-    - aos-steward:platform_toolsets
     env_lines:
     - AOS_AGENT
     links:

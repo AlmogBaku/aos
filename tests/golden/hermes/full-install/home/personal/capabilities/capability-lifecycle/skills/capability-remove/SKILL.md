@@ -41,7 +41,7 @@ contract, and the Experience rules.
    never the capability directory itself and never its `MOD.md` — revertible, the persist
    hook's dated message says why) → marker blocks → config keys → `.env` lines (ask
    first) → agents this capability created and nothing else uses (never an adopted one —
-   contract) → scripts/hooks →
+   contract) → scripts/hooks (revoke each hook's consent record first) →
    its tool (`uv tool uninstall`). A recorded link into `<home>/vendor` is a referenced
    third-party skill: unlink it, and offer to drop the vendor clone only if no other entry
    links into it.

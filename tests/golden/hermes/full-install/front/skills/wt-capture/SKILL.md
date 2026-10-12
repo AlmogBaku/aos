@@ -61,7 +61,7 @@ Frontmatter. The four marked `required` are the ones `kb lint` reports as missin
 seven anyway, since the steward's queries depend on `status` and `since`:
 
 ```yaml
-title: call the dentist        # required — verb-first; deadline in it when there is one
+title: call the dentist        # required
 type: action                   # required
 created: <DATE>            # required
 timestamp: <TIMESTAMP>    # required
@@ -89,17 +89,18 @@ otherwise. Say which you did, because *"blocked 14:00–16:00 tomorrow"* and *"f
 calendar here"* are different promises and the user is entitled to know which one they got.
 
 The user should experience one act, not two. wt-schedule comes back with the time; you
-confirm once, with the time in it.
+confirm once — with the 🦜 below, which for this user replaces naming the time. If scheduling
+hit a conflict or there was no calendar, that is the one thing worth a line after the 🦜.
 
 **How the confirmation reads is the user's call**: confirm every commitment with a single 🦜
-emoji — nothing else, ever. Never echo the commitment back. (When wt-schedule booked a slot,
-the slot is the one thing that may ride along with the 🦜, because it is a promise the user
-needs to see.) Honour it exactly — this is the line they see several times a day, and it is
-the whole surface of an interaction whose other half is silent.
+emoji — nothing else, ever. Never echo the commitment back, not even the scheduled time: the
+🦜 is the whole confirmation. Honour it exactly — this is the line they see several times a
+day, and it is the whole surface of an interaction whose other half is silent.
 
-Page titles are verb-first and short (*"email Sam the deck"*), and anything with a deadline
-gets the deadline in the title (*"send Robin the contract by Fri 17 Oct"*) — that is the part
-worth seeing at a glance. The body still holds the user's own words verbatim.
+**How the commitment itself is phrased** (the page `title`, and any listing of it later):
+verb-first — *"Email Sam the deck"*, not *"Sam has the deck"*. Anything with a deadline gets
+the deadline in the phrasing (*"Submit the CFP by Fri 16 Oct"*), because that is the part
+worth seeing at a glance.
 
 ## When something fails
 

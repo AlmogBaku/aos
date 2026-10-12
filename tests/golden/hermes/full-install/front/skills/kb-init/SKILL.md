@@ -51,10 +51,12 @@ the clone's own history before rendering; `--template <url>` points at a differe
 when a clone fails for any reason — announced, never silent, never blocking.
 
 It renders the templates, git-inits, registers the base in `<HOME>/aos/upstream/tests/.sandbox/aos-home/.aos/kb-registry.yaml`
-(creating it if absent), writes `<HOME>/aos/upstream/tests/.sandbox/aos-home/.aos/kb-principal.yml` when `--principal` (or
-`AOS_PRINCIPAL_ID`) is given, and commits. A write verb with no resolvable identity — neither
-flag nor file — errors, naming the file. Read-only verbs (`kb lint`, `kb find`, etc.) need
-no identity. It **does not** touch the repo's git identity: the user's own identity authors
+(creating it if absent), and commits. On a machine with no identity yet it saves a typed
+`--principal` to `<HOME>/aos/upstream/tests/.sandbox/aos-home/.aos/kb-principal.yml` — never `AOS_PRINCIPAL_ID`; with one saved,
+a typed flag authors this init only and the file is left alone (`kb config set
+principal.id=` changes it). A write verb with no resolvable identity — neither flag nor
+file — errors, naming the file. Read-only verbs (`kb lint`, `kb find`, etc.) need no
+identity. It **does not** touch the repo's git identity: the user's own identity authors
 every write and the acting agent is recorded as committer.
 
 Then apply the interview's zone and type adjustments with `kb config set` (for example

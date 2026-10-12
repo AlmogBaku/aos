@@ -12,6 +12,7 @@ adds your harness's half. Derive it yourself:
 | session branch | a way to copy the conversation into a new session and come back (fork/branch + resume), and what a reopened session reloads by itself — skills, agents, context files |
 | context block | identity/instruction files it actually consumes — never invent filenames |
 | secret | native store (env file, vault, keychain) |
+| hook | its consent mechanism (allowlist, prompt, none) and the check that shows a hook approved and active |
 | introspection | how to enumerate all of the above |
 
 1. Introspect your harness: config layout, skills dirs, scheduler, secret store,

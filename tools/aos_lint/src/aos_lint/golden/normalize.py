@@ -100,7 +100,15 @@ SKIP = {
     # be dropped as a directory.
     "ticker_heartbeat", "ticker_last_success", ".tick.lock", "plugin-update-checks",
     "models_dev_cache.etag", "backups",
+    # …and its plugin/source bookkeeping: `source-checks/<install-id>.json` (the Hermes
+    # checkout's identity, absolute paths included) and the MCP discovery lock.
+    "source-checks", ".mcp-discovery.lock",
 }
+# Hermes's per-profile plugin store, named by the marker it keeps. A memory provider in the
+# copied `config.yaml` (PROTOCOL step 2) installs its plugin's whole source tree here on the
+# first start; nothing an install did. Marker-matched, not a SKIP name: `plugins` is too
+# generic to drop wherever it appears.
+PLUGIN_STORE_MARKER = ".install-metadata.json"
 # Directories dropped only under a given parent, for names too generic for SKIP's basename
 # match (a capability may well ship an `output/`). `cron/output/<job-id>/<ts>.md` is the
 # harness's per-run job log: a sync tick that fired before the snapshot writes one, and
@@ -172,6 +180,8 @@ def normalize_tree(s, d) -> None:
     s, d = Path(s), Path(d)
     if s.is_dir():
         if s.name in SKIP or (s.parent.name, s.name) in SKIP_UNDER:
+            return
+        if s.name == "plugins" and (s / PLUGIN_STORE_MARKER).exists():
             return
         d.mkdir(parents=True, exist_ok=True)
         # A skills/ dir with a .bundled_manifest is a harness-managed skill store:

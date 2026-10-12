@@ -209,4 +209,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   approved it: approve each hook by its exact command, never a profile-wide auto-accept,
   and before the install counts as done confirm every hook is registered and active with
   the harness's own check — its doctor, where it has one. A harness skips an unconsented
-  hook with no more than a log line, so an unverified wall is no wall.
+  hook with no more than a log line, so an unverified wall is no wall. Its script lives
+  outside every walled agent's writable paths and is recorded as an `--artifact`, so
+  `aos-cap verify` flags a rewrite. Removal revokes each hook's consent record before
+  deleting the script.

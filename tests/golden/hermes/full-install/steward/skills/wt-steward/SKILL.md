@@ -57,21 +57,21 @@ This is the hard part, and one line decides it:
 |---|---|
 | extend `expires` · record a stall · reschedule a block **you** created | **drop a commitment** · **change a `due` date** · **nudge a person on their behalf** |
 
+A silent reschedule lands on the user's **personal** calendar, inside working hours, and
+never during choir practice (Thursdays 19:00–21:00) — if the only free window touches it, the
+reschedule stops being silent: report the conflict and offer the next window.
+
 The last one is already a red line in the global `MOD.md` (*"never send messages as me
 without showing me the draft"*). A `due` date is the user's promise to someone else, so
 moving it is their call even when the new date is obviously right.
 
 **Escalate on the pattern, not the event.** One slip is life; three is a bad commitment —
-*"this has moved three times; still want it, or should it go to someday?"* The user's
-threshold is **3** — below it reschedule silently, at it ask:
+*"this has moved three times; still want it, or should it go to someday?"* The threshold is
+an onboarding answer — 3 for this user:
 
 ```
 kb --base commitments find --where 'slipped>=3'
 ```
-
-Rescheduling a block follows the same rules as wt-schedule: personal calendar only, no
-blocks before 10:00, at most two hours per sitting, and **never during choir practice
-(Thursdays 19:00–21:00)** — a reschedule that would land there is surfaced, not made.
 
 ## Applying a change
 

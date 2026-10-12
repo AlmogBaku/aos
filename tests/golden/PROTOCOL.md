@@ -85,6 +85,21 @@ Everything the run creates is identifiable and disposable:
    not count on `$PATH` expanding inside a `.env`. The smoke test also has the profile print
    `AOS_HOME`, `UV_TOOL_DIR` and its first PATH entry.
 
+   **The `.env` PATH line is not enough on its own.** Hermes 0.21's terminal tool takes its
+   env from a login-shell snapshot that sources `~/.profile`/`~/.bashrc`, and a stock
+   `~/.profile` prepends `~/.local/bin` — so the machine's own `kb`/`aos-cap` come first
+   again, and the smoke test prints `~/.local/bin` as the first entry (2026-10-12). Put a
+   `<sandbox>/path.sh` holding `export PATH="<sandbox>/uv/bin:$PATH"` last in every `aos-*`
+   profile's `terminal.shell_init_files`, at the same moments as the `.env` lines:
+
+   ```
+   hermes -p <profile> config set terminal.shell_init_files \
+     '["~/.profile", "~/.bash_profile", "~/.bashrc", "<sandbox>/path.sh"]'
+   ```
+
+   An explicit list replaces the auto-sourced one, so it names the rc files too. Keep
+   `path.sh` outside `<sandbox>/uv/`, which removal empties.
+
    The `.env` does not reach everything. Hermes's desktop/dashboard backend ticks every
    profile's cron **without loading that profile's `.env`**, so a scheduled command carries
    `AOS_HOME` itself (kb-init's `sync` row — check the wrapper before its first tick) and
@@ -159,6 +174,12 @@ Everything the run creates is identifiable and disposable:
    pre-state; `hermes profile delete` the test profiles. Removal's `uv tool uninstall`
    empties `<sandbox>/uv/` — the machine's own `aos-kb`/`aos-cap`, if any, were never
    touched (step 2).
+
+   Where `aos-test` is somebody's profile that the run borrowed, restore it from a
+   `tar -czf` taken before step 2: `hermes profile delete` it, extract with `tar -xpzf`
+   (without `-p` every mode comes back umask-shaped), then remove the tombstone
+   `profiles/.deleted/aos-test` that the delete wrote — until then Hermes reports the
+   restored profile as missing. `tar -dzf` against the archive confirms the restore.
 
 ## Judging (agentic, advisory)
 
