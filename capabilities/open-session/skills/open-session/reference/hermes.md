@@ -3,9 +3,11 @@
 `open_command`:
 
 ```
-<hermes venv>/bin/python <home>/personal/capabilities/open-session/skills/open-session/scripts/open_session.py --profile {profile} --title {title} --prompt-file {prompt_file} {skills} --workdir {workdir}
+<hermes venv>/bin/python <render-dir>/scripts/open_session.py --profile {profile} --title {title} --prompt-file {prompt_file} {skills} --workdir {workdir}
 ```
 
+`<render-dir>` is this skill's pinned render, `<home>/personal/<render-path>/skills/open-session`
+(`renders/open-session` for a personal package, `capabilities/open-session` for a shipped one).
 `<hermes venv>/bin/python` is the interpreter behind the `hermes` launcher (here
 `~/.hermes/hermes-agent/venv/bin/python`): the script imports `hermes_state`, which only that
 interpreter resolves. `{skills}` is one `--skills NAME` per skill, empty for none; `{title}` is one
@@ -17,11 +19,13 @@ chat --in {workdir} -c {title} --create-if-missing --source cli -Q --query-file 
 - `-Q` is a one-shot quiet turn: the reply lands on stdout, `session_id: <id>` on **stderr** (`cli.py:4209`) — the script parses the last such line.
 - `--skills` is a global flag, and Hermes only *warns* on an unknown name unless every name is unknown — hence the on-disk `SKILL.md` check before launch.
 - `-p default` is the root profile home; any other name is `<root>/profiles/<p>`, and its skills live under `<profile home>/skills/<name>`.
+- `-p <profile>` accepts any profile name, not only the one this session runs in.
 - The env scrub drops the cron run's `HERMES_SESSION_*` / `HERMES_CRON_SESSION` / `HERMES_CRON_AUTO_DELIVER_*` bindings, or the new session inherits the cron run's identity.
 - A title the profile already holds would be *resumed*, so the script re-checks it with Hermes' own lookup (`SessionDB.resolve_session_by_title`) and appends a local-clock ` HH:MM` on a hit (` HH:MM:SS` if that minute is taken too); the title it actually used is on stderr as `title: <t>`.
+- `--exact-title`: when set, the script checks the title before launching Hermes; if already held, exits 3 with `title taken` on stderr (no session is created). Exit 3 signals that the caller should not retry with the same title.
 - `display_kind='hidden'` (`hermes_state_messages.py:364`) makes the desktop transcript and the sidebar preview skip the seed while the model still reads it; a failed hide is one `warning:` line, never a failure.
 - The opened session is left unread: `set_session_read(session_id, read=False)` writes the `last_read_at=0.0` watermark (a NULL one counts as *read*, `hermes_state_sessions.py:917`), and `touch_session_activity(..., description=<reply's first line>)` gives the unread row something to preview.
-- Exit codes: 0 opened; 2 a requested skill is missing on disk, or the child failed / printed no `session_id:`; 124 timeout — the session may still exist.
+- Exit codes: 0 opened; 2 a requested skill is missing on disk, or the child failed / printed no `session_id:`; 3 title already held (only with `--exact-title`); 124 timeout — the session may still exist.
 
 Named `hermes.md`, not `harness-hermes.md`: this is a skill compile source, not a
 capability-lifecycle cheat-sheet (which the linter holds to six sections).

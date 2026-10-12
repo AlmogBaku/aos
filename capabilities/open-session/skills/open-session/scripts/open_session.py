@@ -24,17 +24,21 @@ def profile_home(profile: str) -> Path:
         root = Path.home() / ".hermes"
     return root if profile == "default" else root / "profiles" / profile
 
-def fresh_title(home: Path, title: str) -> str:
+def fresh_title(home: Path, title: str, exact: bool = False) -> str:
     """Fresh session per run: `-c --create-if-missing` *resumes* a title it can resolve (exact or
     newest `"<title> #N"`, hermes_state_titles.py:167), so a collision takes a local-clock
-    ` HH:MM` suffix — ` HH:MM:SS` if that minute is taken too."""
+    ` HH:MM` suffix — ` HH:MM:SS` if that minute is taken too.
+    When `exact=True`: if the title is already held, raises ValueError('title taken')."""
     from hermes_state import SessionDB
     candidate = title
     with closing(SessionDB(home / "state.db")) as db:
-        for fmt in ("%H:%M", "%H:%M:%S"):
-            if not db.resolve_session_by_title(candidate):
-                break
-            candidate = f"{title} {datetime.now().strftime(fmt)}"
+        if db.resolve_session_by_title(candidate):
+            if exact:
+                raise ValueError("title taken")
+            for fmt in ("%H:%M", "%H:%M:%S"):
+                candidate = f"{title} {datetime.now().strftime(fmt)}"
+                if not db.resolve_session_by_title(candidate):
+                    break
     return candidate
 
 def polish(home: Path, session_id: str, seed: str, preview: str) -> None:
@@ -59,6 +63,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     for flag in ("--profile", "--title", "--prompt-file"):
         ap.add_argument(flag, required=True)
+    ap.add_argument("--exact-title", action="store_true",
+                    help="Exit 3 with 'title taken' if the title is already held, "
+                         "instead of appending HH:MM.")
     ap.add_argument("--skills", action="append", metavar="NAME", default=[])
     ap.add_argument("--workdir")
     ap.add_argument("--timeout", type=float, default=540.0)
@@ -68,7 +75,11 @@ def main() -> int:
         if not (skill_md := home / "skills" / name / "SKILL.md").exists():
             sys.stderr.write(f"error: skill {name} not found at {skill_md}\n")
             return 2
-    title = fresh_title(home, args.title)
+    try:
+        title = fresh_title(home, args.title, exact=args.exact_title)
+    except ValueError as exc:
+        sys.stderr.write(f"{exc}\n")
+        return 3
     sys.stderr.write(f"title: {title}\n")
 
     env = {k: v for k, v in os.environ.items()
