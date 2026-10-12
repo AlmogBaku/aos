@@ -3,6 +3,7 @@ id: wrong-id
 version: not-semver
 tags: [infra, nonsense]
 provides: speculative-field
+uses: not-a-list
 depends:
   capabilities: [does-not-exist]
   host:

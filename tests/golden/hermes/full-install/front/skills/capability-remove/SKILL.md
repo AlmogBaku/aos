@@ -8,14 +8,14 @@ description: Removes an installed aos capability exactly, walking its lockfile e
   is capability-evolve — and not to retire something upstream, which is capability-contribute.
 metadata:
   aos:
-    origin: capability-lifecycle@0.3.7
+    origin: capability-lifecycle@0.4.0
 ---
 # capability-remove
 
 Not in context yet? Load the `capability-lifecycle` skill first — the map, the
 contract, and the Experience rules.
 
-1. `aos-cap show <id>` → the entry: artifacts and links (including the
+1. `aos-cap show <id>` → the entry: artifacts, `links` and `uses_links` (including the
    capability's tool binary, recorded as an artifact), `schedules_owned`, config keys,
    env variable names, scripts.
 2. Scope: removing the capability entirely, or *from one harness* while it
@@ -29,15 +29,19 @@ contract, and the Experience rules.
    *this* harness's jobs by introspecting the harness, not by reading the lockfile.
    **Whole removal** continues below.
 3. Dependents check: another entry in `aos-cap list` whose manifest
-   `depends.capabilities` names this one → say so; stop unless the user insists (then
-   remove dependents first).
+   `depends.capabilities` or `uses` names this one → say so; stop unless the user insists
+   (then remove dependents first). A dependent's `uses_links` point into this render, so
+   removing it first is what keeps them from dangling.
 4. Un-write per the cheat-sheet's Removal section (load
    the `capability-lifecycle` skill's `reference/harness-<harness-runtime>.md` now), in its
    stated order — typically: jobs →
-   skill symlinks (delete the links; then delete **only** `personal/capabilities/<id>/skills/`
-   **via a commit** — never the capability directory itself and never its `MOD.md` — revertible, the persist
+   skill symlinks (delete the `links` and `uses_links`; then delete **only**
+   `personal/<render-path>/skills/` **via a commit** — `capabilities/<id>` for a shipped
+   package, `renders/<id>` for the user's own, whose `capabilities/<id>/` is its source;
+   never the capability directory itself and never its `MOD.md` — revertible, the persist
    hook's dated message says why) → marker blocks → config keys → `.env` lines (ask
-   first) → agents this capability created and nothing else uses → scripts/hooks →
+   first) → agents this capability created and nothing else uses (never an adopted one —
+   contract) → scripts/hooks →
    its tool (`uv tool uninstall`). A recorded link into `<home>/vendor` is a referenced
    third-party skill: unlink it, and offer to drop the vendor clone only if no other entry
    links into it.

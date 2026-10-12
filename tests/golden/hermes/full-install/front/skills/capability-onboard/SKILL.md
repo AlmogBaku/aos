@@ -9,7 +9,7 @@ description: 'Runs a capability''s onboarding interview — typed questions, bat
   a source change owned by capability-contribute.'
 metadata:
   aos:
-    origin: capability-lifecycle@0.3.7
+    origin: capability-lifecycle@0.4.0
 ---
 # capability-onboard
 

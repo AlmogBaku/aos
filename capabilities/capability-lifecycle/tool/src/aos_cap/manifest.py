@@ -2,7 +2,8 @@
 well-formed. Every check appends to one `errs` list and the whole list is printed
 before exit 12, because an installer fixing a manifest wants every problem at once,
 not the first one. `skill_rows()` is the shape both `skills` and `render` need, and
-`agent_rows()` is its twin for the `agents` verb."""
+`agent_rows()` is its twin for the `agents` verb, and `uses_rows()` gives each `uses` grant
+the name its provider installs the skill under."""
 
 import sys
 from pathlib import Path
@@ -10,7 +11,7 @@ from pathlib import Path
 from .constants import (
     CAPABILITY_TAGS, CRON5, DEGRADED, HOST_FEATURES, HOST_LEVELS, KB_KEYS,
     MANIFEST_KEYS, SCHEDULE_KEYS, SEMVER, SKILL_ENTRY_KEYS, SKILL_NAME_RE,
-    SKILL_PREFIX_RE,
+    SKILL_PREFIX_RE, USES_ENTRY_KEYS,
 )
 from .errors import Exit, fail
 from .frontmatter import frontmatter
@@ -73,6 +74,48 @@ def validated_manifest(cap_dir: Path) -> dict:
         elif shadowed:
             errs.append(f"depends.capabilities: '{dep}' exists in BOTH personal/ and upstream/ "
                         f"— resolve the shadow before installing (never silently preferred)")
+    # `uses` (RFC-009 option 2): one of THIS capability's agents loads a skill another
+    # capability ships. The consumer declares the grant and the installer does the join, so
+    # the provider never has to know its consumers — and its own upgrade can never move a
+    # consumer's link, because that link is recorded under the consumer.
+    uses = data.get("uses")
+    if uses is not None and not isinstance(uses, list):
+        errs.append("uses must be a list of {capability, skill, agents} mappings")
+        uses = []
+    dep_ids = {str(d) for d in (depends.get("capabilities") or [])}
+    seen_uses = set()
+    for u in uses or []:
+        if not isinstance(u, dict):
+            errs.append(f"uses: entry {u!r} must be a mapping")
+            continue
+        for key in u:
+            if key not in USES_ENTRY_KEYS:
+                errs.append(f"uses: unknown key '{key}'")
+        prov, skill, agents = u.get("capability"), u.get("skill"), u.get("agents")
+        where = f"uses[{prov}/{skill}]"
+        if (prov, skill) in seen_uses:
+            errs.append(f"{where}: duplicate entry — merge the agents lists")
+        seen_uses.add((prov, skill))
+        if prov == cap_dir.name:
+            errs.append(f"{where}: a capability scopes its own skills with used_by, not uses")
+        elif str(prov) not in dep_ids:
+            errs.append(f"{where}: '{prov}' must be in depends.capabilities — a used skill's "
+                        f"provider is installed first")
+        else:
+            # Unresolvable or shadowed providers are already reported by the depends loop.
+            p_dir, p_mf, shadowed = resolve_capability(str(prov), cap_dir)
+            if p_dir is not None and not shadowed:
+                p_skills = sorted(e["id"] for e in ((p_mf or {}).get("skills") or [])
+                                  if isinstance(e, dict) and isinstance(e.get("id"), str))
+                if skill not in p_skills:
+                    errs.append(f"{where}: '{prov}' declares no skill '{skill}' "
+                                f"(it declares {p_skills})")
+        if not isinstance(agents, list) or not agents:
+            errs.append(f"{where}: agents must be a non-empty list")
+        else:
+            for a in agents:
+                if a not in agent_names:
+                    errs.append(f"{where}: agent '{a}' is not main or a declared agent")
     if not (cap_dir / "README.md").is_file():
         errs.append("README.md is required")
     if (cap_dir / "ONBOARDING.md").is_file() and not (cap_dir / "MOD.example.md").is_file():
@@ -212,3 +255,22 @@ def agent_rows(cap_dir: Path) -> tuple[dict, list[dict]]:
     prefix = effective_prefix(data, cap_dir.name)
     return data, [{"id": a, "installed_name": installed_name(cap_dir.name, prefix, a)}
                   for a in sorted(declared_agent_ids(cap_dir))]
+
+
+def uses_rows(cap_dir: Path) -> tuple[dict, list[dict]]:
+    """(manifest, [{capability, skill, agents, installed_name}]) — the installer's join.
+
+    Each row is a provider's skill under the name the PROVIDER installs it as, to be linked
+    into every listed agent of this capability and recorded under this capability (the
+    lockfile's `uses_links`). The link target is the provider's own recorded render
+    (`aos-cap show <provider>`), not computed here: this runs before dependencies install."""
+    cap_dir = Path(cap_dir).resolve()
+    data = validated_manifest(cap_dir)
+    rows = []
+    for u in data.get("uses") or []:
+        p_dir, p_mf, _ = resolve_capability(str(u["capability"]), cap_dir)
+        rows.append({"capability": u["capability"], "skill": u["skill"],
+                     "agents": list(u["agents"]),
+                     "installed_name": installed_name(
+                         p_dir.name, effective_prefix(p_mf or {}, p_dir.name), u["skill"])})
+    return data, rows

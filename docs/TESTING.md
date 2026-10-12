@@ -32,7 +32,7 @@ The whole toolchain is Python, in the `tools/aos_lint` package — **`uv` is the
 prerequisite**, and every invocation below is prefixed with
 `uv run --quiet --project tools/aos_lint python -m`.
 
-Runs `aos_lint.cli` (89 checks in 15 code families over the §2/§3/§5 contracts — the
+Runs `aos_lint.cli` (96 checks in 16 code families over the §2/§3/§5 contracts — the
 schema/contract linter, useful any time you're authoring a capability, not just for
 testing), the lint selftest (`aos_lint.selftest` — every contract code must fire
 on a planted-violation fixture, and a code that fires without being listed is also a

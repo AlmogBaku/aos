@@ -37,20 +37,23 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   working tree and compute the exact native command plan — commit nothing, touch no
   harness file), **GATE** (show contents + plan; for re-renders the gate *is* a git diff in
   `personal/` — **stage first, scoped to the capability, so added files are visible**:
-  `git -C <home>/personal add -A -- capabilities/<id>` then
-  `git -C <home>/personal diff --staged -- capabilities/<id>`. A bare `git diff` hides
+  `git -C <home>/personal add -A -- <render-path>` then
+  `git -C <home>/personal diff --staged -- <render-path>`. `<render-path>` is
+  `capabilities/<id>` for a shipped package (its render and MOD live there) and
+  `renders/<id>` for the user's own package — whose `capabilities/<id>/` is the **source**,
+  never restored, cleaned or deleted as if it were a render. A bare `git diff` hides
   untracked files, and a re-render that *adds* a skill or a `reference/` page is the
   commonest upgrade shape), **EXECUTE** (commit the staged render with a dated message,
   create the links, run the native plan). Declined → restore that capability only,
   additions included: `git -C <home>/personal restore --staged --worktree --
-  capabilities/<id>`, then `git -C <home>/personal clean -fd -- capabilities/<id>` as
+  <render-path>`, then `git -C <home>/personal clean -fd -- <render-path>` as
   belt-and-braces (`restore` already removes the staged additions and prunes the
   directories they created; `clean` catches anything staging missed). **Every one of
   these commands is path-scoped** — a bare `add -A` or `reset --hard` would swallow or
   destroy unrelated work elsewhere in `personal/`, including untracked files. One
-  caveat to state out loud before staging: `add -A -- capabilities/<id>` also picks up
+  caveat to state out loud before staging: `add -A -- <render-path>` also picks up
   any *pre-existing untracked* file the user keeps inside that capability's directory,
-  and declining would delete it — check `git status -- capabilities/<id>` first and say
+  and declining would delete it — check `git status -- <render-path>` first and say
   what you found. Nothing touches the harness
   before the gate. Where the harness has a native plan/read-only mode (cheat-sheet
   Primitive mapping, `plan mode` row), STAGE runs inside it and the GATE approval is
@@ -70,14 +73,18 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   the entry wholesale, so a second-harness install must re-record the *combined* set:
   start from `aos-cap show <id>` and add to it, never call `record` with a partial
   list). An entry carries: version, source root, render-file paths + sha256,
-  harness symlinks (`--link` — the tool reads each link's target itself), job ids under
+  harness symlinks (`--link` — the tool reads each link's target itself), the links this
+  capability's `uses` made into its own agents (`--uses-link` — kept apart because `--link`
+  basenames are name claims and these name another capability's skill), job ids under
   `schedules_owned`, config keys, `.env` variable names, scripts; a capability's
   installed tool binary is recorded as an `--artifact` — but **resolve the symlink first**
   (`readlink -f $(command -v <tool>)`): `uv tool install` puts a *link* on PATH, and a symlink
   passed as `--artifact` is refused at exit 16 by design (that flag hashes files; links are
   `--link`'s job). Recording the resolved binary is what lets `verify` notice a stale tool. You
   call verbs (`aos-cap --help`), you never read or write the YAML. No lockfile record,
-  no artifact. If a crash lands between EXECUTE and `record`, everything written
+  no artifact. **One owner per link**: `record` refuses (exit 19) a path another entry
+  already records — re-record that entry without it first. If a crash lands between
+  EXECUTE and `record`, everything written
   carries provenance anyway — re-introspect for the tags and record or remove what you
   find.
 
@@ -86,8 +93,8 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 - **A skill's installed name is computed, and it is single-owner.** `aos-cap skills <cap-dir>`
   gives you the name each skill ships under (`<skill_prefix><id>`; the entry skill keeps the
   capability id). **Gate before you materialize**:
-  `aos-cap --home <home> skills <cap-dir> --check --harness-skills <each skills dir this
-  harness reads>`
+  `aos-cap --home <home> skills <cap-dir> --check --harness-skills <dir> …` — one
+  `--harness-skills` per skills dir this harness reads (the flag repeats; it takes no list)
   — exit 17 means the name is already claimed by another capability in the household, by a
   lockfile-recorded link, or by a skill the harness already has (aos-installed or not).
   Stop and report it; **never rename at install time** — the name belongs to the package, so
@@ -99,7 +106,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   never-rename-here rule. It reads two of three sources and names the third (agents already
   in the harness — no enumeration yet) in capitals.
 - **Skills materialize as pinned renders + symlinks, never copies.** `aos-cap render
-  <cap-dir> <id> --out personal/capabilities/<capability>/skills` does the mechanical half:
+  <cap-dir> <id> --out <home>/personal/<render-path>/skills` does the mechanical half:
   the whole folder travels (`reference/`, `scripts/`, `templates/` — scripts are executed,
   never loaded as context), the render lands under the **installed name**, its frontmatter
   `name` is rewritten to match, and `metadata.aos.origin: <capability>@<version>` is stamped inside
@@ -110,6 +117,30 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   harnesses resolve links only if `<home>/personal` is mounted read-only — the cheat-sheet's
   Materialization guide says how; without the mount, stop and say so (never fall back to
   copying: one canonical render, everywhere).
+- **Declarations decide placement; the briefing never does.** `used_by`,
+  `schedules[].agent`, `uses` and `agents/` say where every skill, job and link lands; the
+  briefing says *how* (toolsets, identity, wiring), never *where*. A briefing that places
+  something the manifest does not declare — "install into a dedicated profile", "link me
+  into every profile that calls me" — is a package defect: stop and report it (the fix is
+  the package's, {{skill: contribute}}). `main` is the harness's front agent — the one the
+  cheat-sheet names, or the disposable front profile a test run designates — and a briefing
+  never turns it into a dedicated profile of its own.
+- **`uses` is the consumer's grant.** Each entry links the provider's existing render into
+  the skills location of every listed agent of *this* capability, under the provider's
+  installed name (`aos-cap manifest` prints it as `uses[].installed_name`; the target is
+  the provider's recorded render, from `aos-cap show <provider>`), recorded under **this**
+  capability with `--uses-link`. The provider's install, upgrade and removal never create,
+  move or delete it. A grant to `main` that the provider's own `used_by: [main]` already
+  serves needs no second link. A harness that scopes skills by config rather than by
+  directory records the grant the way its cheat-sheet records `used_by`.
+- **An agent that already exists is adopted, not re-created — on positive evidence only.**
+  When an agent's computed name is already a harness agent, adopt it only if something shows
+  it is this capability's: the lockfile already has this capability's entry (an upgrade), or
+  the agent holds this capability's skill links or `aos:<capability>:` jobs. Then keep
+  everything it holds — sessions, workspace, identity file — and write `purpose` as its
+  identity only when *creating* the agent. An agent with none of that is **not** evidence,
+  however empty: it may be the user's own, so stop and ask. Removal deletes only agents this
+  entry created (the cheat-sheet says how that is recorded); an adopted agent stays.
 
 - **A `depends.host` feature is a *harness capability*, answered by the cheat-sheet's
   Feature notes table — never by probing the user's live configuration.** ✓ means this
@@ -154,7 +185,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 ## Removal, and how references resolve
 
 - **Removal** walks the lockfile entry backwards; `MOD.md` is never deleted (§3.3), and
-  render deletions in `personal/` happen via a commit (revertible). Verify by
+  render deletions in `personal/` happen via a commit (revertible), under `<render-path>`
+  only. A consumer's `uses_links` go with it; a provider is not removed while another
+  entry's `uses` still names it. Verify by
   re-running introspection until no aos provenance (`metadata.aos.origin`, `aos:` names,
   marker blocks, links into `personal/`) remains.
 - **References resolve by three rules.** Inside a skill's own folder: relative paths

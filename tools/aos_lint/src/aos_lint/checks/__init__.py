@@ -17,12 +17,14 @@ from .secrets import check_secrets
 from .skill_names import check_skill_names
 from .skills import check_skills
 from .structure import check_structure
+from .uses import check_uses_reach
 from .version_bump import check_version_bumps
 
 # The full suite (aos-lint). Order is the .mjs order, which the sort at the end makes
 # cosmetic — kept anyway so a crash report names the same check the JS one would have.
 ALL = [
-    check_manifests, check_skills, check_skill_names, check_agents, check_onboarding,
+    check_manifests, check_skills, check_skill_names, check_uses_reach, check_agents,
+    check_onboarding,
     check_overlay_paths, check_overlay_schemas, check_references,
     check_cheatsheets, check_cross_paths, check_secrets, check_version_bumps,
     check_structure,

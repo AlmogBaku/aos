@@ -4,9 +4,15 @@ Only after Design is approved. Materialize into
 `<home>/personal/capabilities/<id>/` — the user's private repo, where their
 capabilities live until (and unless) they graduate — following the package layout
 every shipped capability uses: `CAPABILITY.md`, `README.md`, `skills/<id>/SKILL.md`
-(the entry skill) plus any further `skills/`, `agents/*.agent.yaml` only if it needs
-its own agent, `ONBOARDING.md` + `MOD.example.md` only as a pair, `kb/` only if it
+(the entry skill) plus any further `skills/`, `agents/*.agent.yaml` for every agent
+Design named, `ONBOARDING.md` + `MOD.example.md` only as a pair, `kb/` only if it
 touches a KB. The persist hook commits it (dated message).
+
+**Every agent is declared, never described.** A piece with its own chat, identity or
+toolset is an agent: write its `agents/<id>.agent.yaml` (`workspace: own`), name it in its
+skills' `used_by` and its schedules' `agent`, and add a `uses` entry for each other
+capability's skill it loads. "Install into a dedicated profile" in a draft briefing means
+this file is missing — the installer places only what the manifest declares.
 
 **Split mechanism from nuance — same discipline as {{skill: import}}, in reverse.**
 Everything personal Intake captured (names, channels, hours, preferences) goes into
@@ -25,12 +31,14 @@ Follow `capability-lifecycle`'s `reference/naming.md` for both halves of authori
 every skill action-oriented and bare (the prefix is applied at install), and place
 knowledge where it will still resolve once installed — only the skill's own folder travels,
 so depth goes in its `reference/`, another skill's knowledge is reached by naming that
-skill, and anything in the household is written from a root. Run the uniqueness gate as the **first** thing after
-`CAPABILITY.md` and before any skill directory: `aos-cap --home <home> skills <package-dir>
---check --harness-skills <the harness's skills dir(s)>`. The verb reads the manifest, so it
-cannot run against an empty directory — writing the manifest first is the ordering, and it is
-still before anything a collision would waste. Exit 17 means the name is taken; rename in the
-package, never at install time. References to other skills or agents are written as slots
+skill, and anything in the household is written from a root. Run the uniqueness gate as soon
+as the package is structurally parseable — `CAPABILITY.md`, `README.md`, every declared
+skill's `SKILL.md` and every schedule's `prompt_ref` exist — and before rendering or
+materializing anything: `aos-cap --home <home> skills <package-dir> --check
+--harness-skills <dir> …` (one flag per skills dir). The verb validates the manifest first, and
+the validator refuses a declaration whose README, skill folders or prompt refs are missing,
+so a gate right after `CAPABILITY.md` alone cannot run. Exit 17 means the name is taken;
+rename in the package, never at install time. References to other skills or agents are written as slots
 (`\{{skill: <id>}}`, `\{{agent: <id>}}`), never as computed names — the forms and the escape are
 in the same file.
 For the skill's own craft — drafting, description triggering, evals — use the
@@ -45,7 +53,9 @@ read-only, so it costs you nothing but the reading.
 Then run the kit linter **against the personal root** —
 `uv run --project <home>/upstream/tools/aos_lint python -m aos_lint.cli --root <home>/personal` (without
 `--root` it lints the kit and reports green on a package it never opened) — the new
-package must add zero errors — and show the user the full file tree plus a one-line summary of each new file.
+package must add zero errors, and every warning it adds is resolved or justified in its
+briefing (`skill/all-main` means a role exists that nothing is scoped to) — and show the
+user the full file tree plus a one-line summary of each new file.
 
 **Then, the contribute question — judgment-gated, never reflexive.** Run the
 generality judgment (capability-lifecycle's overlay reference, "Promote and retire":

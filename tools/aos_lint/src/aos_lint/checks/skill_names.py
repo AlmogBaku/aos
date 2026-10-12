@@ -100,8 +100,12 @@ def _check_authored_names(ctx) -> None:
     # What a slot may resolve to, per capability: declared skills (the manifest is the source,
     # as in slots.py — an undeclared on-disk skill is its own error and must not make a slot
     # resolvable) and declared agents.
+    # The dep roots count too: a personal capability's `{{skill: kb/route}}` names a kit
+    # capability, which is "in this tree" for every purpose the installer cares about.
     declared = {}
-    for cap in ctx.caps:
+    for cap in [*ctx.caps, *(c for r in ctx.dep_roots for c in list_capabilities(r))]:
+        if cap.id in declared:
+            continue
         manifest = read_frontmatter(cap.dir / "CAPABILITY.md").data or {}
         declared[cap.id] = {
             "skill": {e.get("id") for e in (manifest.get("skills") or [])
@@ -122,7 +126,15 @@ def _check_authored_names(ctx) -> None:
         # and AGENTS.md, which describe the kit rather than ship into a harness. cap.rel also
         # keeps the golden snapshots' rendered copies (which correctly hold literals) out.
         scope = f"{cap.rel}/skills/"
-        for file in [f for f in ctx.files if f.startswith(scope) and f.endswith(".md")]:
+        # A schedule's prompt is shipped prose too — the installer substitutes its slots
+        # before `cron create` — so a dangling slot there is the same defect. Only the slot
+        # checks run on it: a prompt naming its own agent literally is not prefix-fragile
+        # the way rendered skill prose is.
+        prompts = {f"{cap.rel}/{s['prompt_ref']}" for s in (read_frontmatter(
+            cap.dir / "CAPABILITY.md").data or {}).get("schedules") or []
+            if isinstance(s, dict) and isinstance(s.get("prompt_ref"), str)}
+        for file in [f for f in ctx.files
+                     if (f.startswith(scope) and f.endswith(".md")) or f in prompts]:
             try:
                 text = (ctx.root / file).read_text(encoding="utf-8")
             except OSError:
@@ -134,7 +146,7 @@ def _check_authored_names(ctx) -> None:
                 if HISTORICAL_NAME_MARKER in line:
                     continue
 
-                if literal_re:
+                if literal_re and file not in prompts:
                     for hit in dict.fromkeys(m.group(1) for m in literal_re.finditer(line)):
                         owner_cap, owner_id, kind = owners[hit]
                         slot = (f"{{{{{kind}: {owner_id}}}}}" if owner_cap == cap.id

@@ -1,6 +1,6 @@
 ---
 id: capability-lifecycle
-version: 0.3.7
+version: 0.4.0
 tags: [infra]
 summary: The capability lifecycle as one capability — install, upgrade, remove, onboard, import, build, contribute, evolve, and review as skills for the front agent; the MOD.md overlay with its promote/retire exit side; the household layout with pinned renders and symlink installs; the per-harness cheat-sheets; and the aos-cap tool that owns the lockfile and computes every skill's installed name.
 skill_prefix: capability-
@@ -208,6 +208,17 @@ merged one. The old `aos:capability-builder@…` marker is replaced by the singl
 mode-boundary block above; `aos:onboarding@…` — the distilled identity block — is
 **removed outright, not renamed** (item 4: the harness owns user context). This is a
 documented walk, not an automated migration — no released users exist yet.
+
+## Upgrading to 0.4.0 — consumer links
+
+0.4.0 adds `uses` (a consumer's agent loading another capability's skill) and one owner per
+lockfile link. **Reinstall the tool first** (`uv cache clean aos-cap`, then `uv tool install
+--force`): a 0.3.x `record` does not know `--uses-link` and drops `uses_links` from any entry
+it rewrites. A household that hand-linked a provider's skill into a consumer's agent has
+that link recorded on the **provider's** entry; once the consumer declares `uses`, move it —
+re-record the provider without it, then record it on the consumer with `--uses-link` (exit
+19 refuses the other order). `capability-upgrade`'s reconcile step finds these: a recorded
+link the provider no longer declares is shown and asked about, never dropped.
 
 ## Removal
 

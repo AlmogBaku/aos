@@ -6,7 +6,9 @@ repo's own capability one-pagers:
 
 - **Scope** — what it does, one paragraph
 - **Depends** — capabilities and host primitives it needs
-- **Skills / agents** — what gets materialized, and why each piece exists
+- **Skills / agents** — what gets materialized, and why each piece exists; for every
+  skill and schedule, the agent that runs it (`main` or a named agent), and every other
+  capability's skill an agent loads (`uses`)
 - **v0.1 acceptance** — what "done" looks like
 - **Open items** — anything Research left unresolved, named explicitly, not buried
 

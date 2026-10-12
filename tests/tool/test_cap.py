@@ -32,6 +32,7 @@ import contextlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -1399,6 +1400,156 @@ class SlotTest(unittest.TestCase):
         r = self.render(cap, "kbc")
         self.assertEqual(r.returncode, 18, r.stdout + r.stderr)
         self.assertFalse((self.out / "kbc").exists(), "a partial render survived")
+
+
+class UsesTest(unittest.TestCase):
+    """`uses` (RFC-009 option 2) — a consumer's agent loading a skill another capability
+    ships. Mirrors `aos_cap.manifest` (validation, `uses_rows`) and the `uses_links` half of
+    `commands/lockfile.py`. The incident behind it: a provider's upgrade re-derived its links
+    from its own `used_by` and moved the consumer's link away, silently, for two weeks."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.home = Path(self.tmp.name) / "home"
+        (self.home / ".aos").mkdir(parents=True)
+        run(["--home", str(self.home), "init"])
+        self.prov = write_cap(self.home, "provcap", ["provcap", "share"], prefix="prov-")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def consumer(self, uses, depends=("provcap",), agents=("scribe",)):
+        cap = write_cap(self.home, "conscap", ["conscap"], root="personal",
+                        agents=agents, depends=depends)
+        mf = cap / "CAPABILITY.md"
+        mf.write_text(mf.read_text().replace("skills:\n", f"uses:\n{uses}skills:\n", 1))
+        return cap
+
+    def manifest(self, cap):
+        return run(["--home", str(self.home), "manifest", str(cap)])
+
+    def cap_cmd(self, *args):
+        return run(["--home", str(self.home), *args])
+
+    def link(self, name, target):
+        link = self.home / "harness" / name / target.name
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(target)
+        return link
+
+    GRANT = "  - {capability: provcap, skill: share, agents: [scribe]}\n"
+
+    # -- manifest ----------------------------------------------------------
+    def test_valid_grant_carries_the_providers_installed_name(self):
+        # Consumer in personal/, provider in upstream/ — the normal household shape.
+        r = self.manifest(self.consumer(self.GRANT))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        row = json.loads(r.stdout)["uses"][0]
+        self.assertEqual(row["installed_name"], "prov-share")   # the PROVIDER's prefix
+        self.assertEqual(row["agents"], ["scribe"])
+
+    def test_provider_must_be_a_dependency(self):
+        r = self.manifest(self.consumer(self.GRANT, depends=()))
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("must be in depends.capabilities", r.stderr)
+
+    def test_a_capability_cannot_use_itself(self):
+        r = self.manifest(self.consumer(
+            "  - {capability: conscap, skill: conscap, agents: [scribe]}\n"))
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("scopes its own skills with used_by", r.stderr)
+
+    def test_skill_must_be_declared_by_the_provider(self):
+        r = self.manifest(self.consumer(
+            "  - {capability: provcap, skill: nosuch, agents: [scribe]}\n"))
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("declares no skill 'nosuch'", r.stderr)
+
+    def test_agents_must_be_main_or_declared_and_non_empty(self):
+        r = self.manifest(self.consumer(
+            "  - {capability: provcap, skill: share, agents: [ghost]}\n"))
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("agent 'ghost' is not main or a declared agent", r.stderr)
+        shutil.rmtree(self.home / "personal")
+        r = self.manifest(self.consumer(
+            "  - {capability: provcap, skill: share, agents: []}\n"))
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("agents must be a non-empty list", r.stderr)
+
+    def test_duplicate_and_unknown_keys_rejected(self):
+        r = self.manifest(self.consumer(
+            self.GRANT + "  - {capability: provcap, skill: share, agents: [main], why: x}\n"))
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("duplicate entry", r.stderr)
+        self.assertIn("unknown key 'why'", r.stderr)
+
+    def test_malformed_shape_is_exit_12_not_a_traceback(self):
+        cap = write_cap(self.home, "conscap", ["conscap"], root="personal")
+        mf = cap / "CAPABILITY.md"
+        mf.write_text(mf.read_text().replace("skills:\n", "uses: not-a-list\nskills:\n", 1))
+        r = self.manifest(cap)
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("uses must be a list", r.stderr)
+
+    # -- lockfile ----------------------------------------------------------
+    def test_uses_link_roundtrip_and_damage_is_drift(self):
+        target = self.prov / "skills" / "share"
+        link = self.link("scribe", target)
+        r = self.cap_cmd("record", "conscap", "--version", "1.0.0", "--uses-link", str(link))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("1 uses links", r.stdout)
+        entry = json.loads(self.cap_cmd("show", "conscap").stdout)
+        self.assertEqual(entry["uses_links"], {str(link): str(target)})
+        self.assertEqual(entry["links"], {})
+        self.assertEqual(self.cap_cmd("verify", "conscap").returncode, 0)
+        link.unlink()
+        v = self.cap_cmd("verify", "conscap")
+        self.assertEqual(v.returncode, 13)
+        self.assertIn("MISSING LINK", v.stdout)
+
+    def test_a_link_has_exactly_one_owner(self):
+        """PIN: the 9/22 shape. The consumer's link sat on the provider's entry, so the
+        provider's re-record decided where it lived. With one owner per link, recording a
+        path another entry holds is refused (19) and the lockfile is left untouched."""
+        link = self.link("scribe", self.prov / "skills" / "share")
+        r = self.cap_cmd("record", "conscap", "--version", "1.0.0", "--uses-link", str(link))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        lock = self.home / ".aos" / "installs.lock.yaml"
+        before = lock.read_text()
+        r = self.cap_cmd("record", "provcap", "--version", "1.0.0", "--link", str(link))
+        self.assertEqual(r.returncode, 19)
+        self.assertIn("LINK_OWNED", r.stderr)
+        self.assertIn("'conscap'", r.stderr)
+        self.assertEqual(lock.read_text(), before)
+        # and the other direction: a provider's own link is never claimable as a used one
+        own = self.link("main", self.prov / "skills" / "provcap")
+        self.assertEqual(self.cap_cmd("record", "provcap", "--version", "1.0.0",
+                                      "--link", str(own)).returncode, 0)
+        r = self.cap_cmd("record", "conscap", "--version", "1.0.0", "--uses-link", str(own))
+        self.assertEqual(r.returncode, 19)
+
+    def test_rerecording_your_own_links_is_not_a_conflict(self):
+        link = self.link("scribe", self.prov / "skills" / "share")
+        for _ in range(2):
+            r = self.cap_cmd("record", "conscap", "--version", "1.0.0", "--uses-link", str(link))
+            self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_one_path_cannot_be_both_kinds(self):
+        link = self.link("scribe", self.prov / "skills" / "share")
+        r = self.cap_cmd("record", "conscap", "--version", "1.0.0",
+                         "--link", str(link), "--uses-link", str(link))
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("both --link and --uses-link", r.stderr)
+
+    def test_a_consumers_uses_link_is_not_a_name_claim(self):
+        """PIN: `links` basenames are name claims. Had the consumer recorded the provider's
+        skill there, the provider's own upgrade gate would report its own skill as taken."""
+        link = self.link("scribe", self.prov / "skills" / "share")
+        link = link.rename(link.parent / "prov-share")
+        self.assertEqual(self.cap_cmd("record", "conscap", "--version", "1.0.0",
+                                      "--uses-link", str(link)).returncode, 0)
+        r = self.cap_cmd("skills", str(self.prov), "--check")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 
 
 class ToolIdentityTest(unittest.TestCase):

@@ -187,7 +187,11 @@ def household_owners(root: Path, exclude_cap: str, namer=capability_skill_names,
 
 
 def lock_link_names(root: Path, capability: Optional[str]) -> dict[str, str]:
-    """Skill-link basenames the lockfile attributes to one capability."""
+    """Skill-link basenames the lockfile attributes to one capability.
+
+    Reads `links` only. A consumer's `uses_links` hold ANOTHER capability's skill under that
+    capability's name, so they are never a claim on the name — counting them would make the
+    provider's own re-install collide with its consumer."""
     path = root / LOCK_REL
     if not path.is_file():
         return {}

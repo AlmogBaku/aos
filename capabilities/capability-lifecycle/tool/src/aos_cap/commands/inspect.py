@@ -12,7 +12,7 @@ import typer
 
 from ..errors import Exit, fail
 from ..household import find_home
-from ..manifest import agent_rows, skill_rows, validated_manifest
+from ..manifest import agent_rows, skill_rows, uses_rows
 from ..names import agent_collisions, effective_prefix, skill_collisions
 
 app = typer.Typer()
@@ -22,7 +22,10 @@ app = typer.Typer()
 def cmd_manifest(
     dir: Annotated[str, typer.Argument(help="capability directory")],
 ) -> None:
-    jsonlib.dump(validated_manifest(Path(dir)), sys.stdout, indent=2, default=str)
+    data, rows = uses_rows(Path(dir))
+    # `uses` rows carry the provider's installed name, so the installer never computes it.
+    out = {**data, "uses": rows} if "uses" in data else data
+    jsonlib.dump(out, sys.stdout, indent=2, default=str)
     print()
 
 

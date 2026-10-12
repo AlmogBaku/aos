@@ -37,8 +37,8 @@ diff in the user's own repo.
       is gone (that is a broken install, not an upgrade). A
       fold that reaches beyond the `{{mod}}` slots is mechanism-shaped — note it for
       the promotion judgment (overlay.md, Promote and retire), end of conversation.
-   b. Name gate: `aos-cap --home <home> skills <dir> --check --harness-skills
-      <each skills dir this harness reads>`. Upstream may have renamed or added a skill, so the installed
+   b. Name gate: `aos-cap --home <home> skills <dir> --check --harness-skills <dir> …`
+      (one `--harness-skills` per skills dir this harness reads). Upstream may have renamed or added a skill, so the installed
       names can differ from the recorded links — a rename means link the new name and drop
       the old one in step d. Exit 17 → stop and report; never rename locally. This
       capability's own links are exempt, so a plain re-render is always clean. If it ships
@@ -47,25 +47,26 @@ diff in the user's own repo.
       two of three sources and names the third (agents already in the harness — no
       enumeration yet) in capitals.
    c. **First, before `--force` touches anything**: `git -C <home>/personal status
-      --porcelain -- capabilities/<id>`. `--force` re-render is `rmtree` then `copytree`, so a
+      --porcelain -- <render-path>` (`capabilities/<id>` for a shipped package,
+      `renders/<id>` for the user's own — contract). `--force` re-render is `rmtree` then `copytree`, so a
       pre-existing **untracked** file of the user's under that directory is gone with no commit
       to recover it from — and `aos-cap verify` cannot warn you, because it is add-blind (an
       extra file inside a recorded render reports `clean`). Name any `??` entry to the user and
       get a decision before proceeding; a tracked file is safe (the diff in step d shows it).
       Then re-render: `aos-cap render <dir> <skill-id> --out
-      <home>/personal/capabilities/<id>/skills --force` per declared skill, then fresh
+      <home>/personal/<render-path>/skills --force` per declared skill, then fresh
       upstream × MOD.md — the same transform as install (`reference/overlay.md`), written
       into `personal/`'s working tree; interview only new or `re_ask` questions. A skill
       whose installed name changed leaves its old render directory behind: delete it in the
       same commit, so the diff shows the rename as one move. Then STAGE any native-plan
       changes per the cheat-sheet (load it now if not in context).
    d. GATE: stage this capability, then diff it — `git -C <home>/personal add
-      -A -- capabilities/<id>` then `git -C <home>/personal diff --staged --
-      capabilities/<id>` — the old render vs the new, per file, **including files the
+      -A -- <render-path>` then `git -C <home>/personal diff --staged --
+      <render-path>` — the old render vs the new, per file, **including files the
       re-render added** (a bare `git diff` hides them) — plus the native plan. Approve
       → commit (dated message). Decline → `git -C <home>/personal restore --staged
-      --worktree -- capabilities/<id>`, then `git -C <home>/personal clean -fd --
-      capabilities/<id>` as belt-and-braces (restore already removes the staged
+      --worktree -- <render-path>`, then `git -C <home>/personal clean -fd --
+      <render-path>` as belt-and-braces (restore already removes the staged
       additions; clean catches anything staging missed), stop. Keep every command
       path-scoped: unscoped staging or resetting would capture — or destroy —
       unrelated work elsewhere in `personal/`. (The untracked-file check is step c's, because
@@ -78,10 +79,21 @@ diff in the user's own repo.
       behind, with the prose describing behaviour the binary does not have. `--force` is what
       makes it re-resolve; the version in the tool's `pyproject.toml` tracks the capability's,
       so a bumped capability is a bumped package.
-   f. EXECUTE the native plan (links usually survive re-render untouched —
-      verify, don't assume); `aos-cap record <id>` with the full updated set (start
-      from `aos-cap show` — `record` replaces the entry wholesale, never call it with
-      a partial list; keep `--source-root` and `--link` records).
+   f. **Reconcile links, then EXECUTE.** Compare the entry's recorded `links` and
+      `uses_links` with what the fresh manifest declares — each skill's `used_by`, each
+      `uses` row — plus any link a MOD statement sanctions (a household rule linking skills
+      into every capability agent, say). Declared but missing → stage it. Recorded but not
+      declared → show it and ask; **never drop or move a link silently** — that is how a
+      provider's upgrade once broke a consumer for weeks. Another entry's `uses_links` into
+      this capability's render are that entry's: never touch them. A link this entry
+      records that another capability's `uses` now declares moves to that capability:
+      re-record this entry without it first, then the other with `--uses-link` (exit 19
+      enforces the order). Then EXECUTE the native plan (links usually survive re-render
+      untouched — verify, don't assume); `aos-cap record <id>` with the full updated set
+      (start from `aos-cap show` — `record` replaces the entry wholesale, never call it
+      with a partial list; keep `--source-root`, `--link` and `--uses-link` records), then
+      `aos-cap verify` with no argument, so a link another entry depends on is checked
+      too.
    g. Retirement pass (overlay.md, Promote and retire): fresh upstream now
       covers a MOD statement — a new interview question over its subject, or the
       behavior baked in → offer to retire it (diff-shown; written only through

@@ -56,6 +56,11 @@ Consequences that bite if you forget them:
   declared skill or agent is a dangling reference — the render fails at exit 18 and CI at
   `skills/ref-dangling` (`agents/ref-dangling` for an agent slot). A leading backslash makes a slot a literal example, unsubstituted
   and unvalidated, which is how the examples in this rule survive being rendered.
+- **A slot names another capability's skill; only `uses` puts it where your agent can load
+  it.** A non-main agent's skills location holds only what is linked into it, so a
+  `\{{skill: kb/route}}` it reads — in its skills or in a schedule prompt it runs — needs
+  `uses: [{capability: kb, skill: route, agents: [<agent>]}]` (`uses/missing`). A file `main`
+  loads too stays silent: main composes through the provider's own `used_by: [main]` link.
 - The `metadata.aos.origin` stamp is added by `aos-cap render` at install and never shipped
   upstream. (`skill/origin-tag`)
 
@@ -139,6 +144,7 @@ Every `skills/<id>/` folder must stand alone as a valid Agent Skills folder:
   `analyze.py`" vs "see `analyze.py` for the algorithm". Forward slashes in every path.
 - `used_by` names only this capability's own agents (or `main`), and every skill declares
   it — an agent never loads a skill it was not given. (`skill/used-by`, `skill/used-by-ref`)
+  Another capability's skill reaches your agent only through `uses`. (`uses/*`)
 
 ## Where knowledge goes — only the skill folder travels
 
