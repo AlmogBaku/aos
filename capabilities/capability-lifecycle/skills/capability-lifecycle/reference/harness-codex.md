@@ -26,6 +26,7 @@ this sheet is only the Codex half.
 | schedule | none | use the capability's declared degraded mode; do not create a system cron as an invisible substitute |
 | secret | no Codex-local store assumed | see Secrets |
 | plan mode | native plan mode when available | use it for read-only planning; otherwise prompt-enforce the gate |
+| session branch | CLI only — `codex fork --last` (in a second terminal) copies the most recent session into a new one; `codex resume <session>` reopens the original | {{skill: build}} hands the user both commands. From the CLI's help; unverified in a live session |
 
 Files Codex consumes for this integration are `~/.codex/skills/*/SKILL.md` and
 `~/.codex/AGENTS.md`. Do not invent Codex-owned files or copy pinned renders.

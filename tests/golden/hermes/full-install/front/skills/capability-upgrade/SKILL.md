@@ -9,7 +9,7 @@ description: Upgrades installed aos capabilities by folding the user's uncapture
   preserves existing personalization rather than adding any.
 metadata:
   aos:
-    origin: capability-lifecycle@0.4.0
+    origin: capability-lifecycle@0.4.1
 ---
 # capability-upgrade
 
