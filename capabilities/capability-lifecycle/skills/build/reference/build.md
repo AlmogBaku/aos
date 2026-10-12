@@ -70,3 +70,12 @@ the ledger search):
   *"kept in personal/ — say 'contribute it' anytime."*
 - **Borderline** → suggest a `promotion-signal` issue instead ("would others want
   X?") — filed only on explicit yes.
+
+## Hand back
+
+Last — after the contribute question, and after the {{skill: install}} flow if the user
+ran it here. One line on what was built, then the way back to what the user was doing when
+the detector fired. Branched session: the exact command back to the original session, and
+what that session must reload to see the new skills, agents or context blocks — both from
+the cheat-sheet's `session branch` row. In place: restate the interrupted work in their
+words and offer to pick it up; add the reload note if something landed in the harness.

@@ -21,7 +21,7 @@ agent, names and hashes never do.
 | `skills/remove/` | lockfile-driven exact removal; MOD.md always survives |
 | `skills/onboard/` | the interview engine (§3.2): a capability's `ONBOARDING.md` → the user's `MOD.md`. Also owns the global bootstrap interview — identity, timezone, sacred time, red lines → the root `MOD.md` |
 | `skills/import/` | wrap → share (§6): inventory the harness, cluster, map to package primitives, split mechanism from nuance, emit `capabilities/<id>-draft/` + `GAP.md`. Read-only on the live setup |
-| `skills/build/` | the MARS building-mode detector (§9) plus intake → research → design → approval → build. Nothing durable gets written without an approved design |
+| `skills/build/` | the MARS building-mode detector (§9) plus intake → research → design → approval → build → hand back — in a branched session where the harness has one (cheat-sheet `session branch` row). Nothing durable gets written without an approved design |
 | `skills/contribute/` | change a capability's shipped source, for everyone — and draft the upstream contribution when the user confirms |
 | `skills/evolve/` | change how an installed capability behaves *for you*, recorded so it survives upgrades; promotes upstream when generally useful (signal-gated, offer-only) |
 | `skills/review/` | review a capability as architecture then as prose: trace the flows and decision points, map units against the resources powering them, diagram it, stress the tree, then check that every documented command exists and every artifact has a reader. Read-only |

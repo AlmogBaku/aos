@@ -144,8 +144,10 @@ Three sharp edges worth knowing before you type:
   your agent stops before building it: *"should we plan this properly?"* Say no and it
   proceeds ad hoc; say yes and **`capability-build`** walks intake → research → design →
   your approval → build, so the thing that lands is a capability rather than a one-off
-  bolted onto your harness. One-off tasks never trigger it, and neither does changing
-  something aos already installed — that's the first bullet above.
+  bolted onto your harness. On a harness that can branch a session (Claude Code's `/branch`),
+  the build runs in the branch and hands you back to your work when it is done. One-off
+  tasks never trigger it, and neither does changing something aos already installed —
+  that's the first bullet above.
 - Not sure a capability is sound? *"review work-tracker"* — **`capability-review`** reads it
   as architecture (flows, decision points, what writes what) before reading it as prose, and
   reports; it fixes nothing.

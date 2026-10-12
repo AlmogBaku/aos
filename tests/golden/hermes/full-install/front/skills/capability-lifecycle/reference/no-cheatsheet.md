@@ -9,6 +9,7 @@ adds your harness's half. Derive it yourself:
 | front agent (`main`) | the assistant the user already talks to |
 | skill | where Agent Skills folders load, **per agent** (`used_by` = per-agent placement) |
 | schedule | native cron/job mechanism |
+| session branch | a way to copy the conversation into a new session and come back (fork/branch + resume), and what a reopened session reloads by itself — skills, agents, context files |
 | context block | identity/instruction files it actually consumes — never invent filenames |
 | secret | native store (env file, vault, keychain) |
 | introspection | how to enumerate all of the above |

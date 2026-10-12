@@ -30,6 +30,7 @@ mutation goes through the `hermes` CLI.
 | context block | `SOUL.md` = identity; `workspace/AGENTS.md` = working-dir instructions | inside the profile dir |
 | secret | `.env` line | see Secrets |
 | plan mode | none native — prompt-enforced | declare "planning — no writes until approval" and hold it; the diff gate is the exit |
+| session branch | none native — `hermes sessions` has no fork; `--resume`/`--continue` reopen a session, never copy one | capability-build continues in place and says so |
 
 Files Hermes consumes — anything else you write is inert: `SOUL.md`,
 `AGENTS.md`/`CLAUDE.md`/`.cursorrules` (per working dir), `memories/MEMORY.md`,
