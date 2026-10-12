@@ -28,18 +28,25 @@ Feedback on a capability that's already installed is a different signal — that
 
 ## If the user agrees: the procedure
 
-**Enter plan mode first** — if your harness has a native plan/read-only mode (your
-cheat-sheet's Primitive mapping, `plan mode` row), enter it now; if not, enforce it as
-prose: no writes anywhere until the Design approval gate. Exit plan mode only at that
-gate. Then copy this checklist and work the stages in order — **stop for the user
-between each**:
+**Branch the session first** — if your harness can branch a conversation (your
+cheat-sheet's Primitive mapping, `session branch` row), hand the user the row's command
+and continue once they are in the branch: every stage below runs there, and the original
+session stays where they left their work. No row, or none native → say so in one line
+and continue in place.
+
+**Then enter plan mode** — if your harness has a native plan/read-only mode (`plan mode`
+row), enter it now; if not, enforce it as prose: no writes anywhere until the Design
+approval gate. Exit plan mode only at that gate. Copy this checklist and work the stages
+in order — **stop for the user between each**:
 
 ```
-- [ ] 1. Intake    — reference/intake.md
-- [ ] 2. Research  — reference/research.md
-- [ ] 3. Design    — reference/design.md — THE approval gate; nothing after this
-                      stage runs until the user explicitly signs off
-- [ ] 4. Build     — reference/build.md
+- [ ] 1. Intake     — reference/intake.md
+- [ ] 2. Research   — reference/research.md
+- [ ] 3. Design     — reference/design.md — THE approval gate; nothing after this
+                       stage runs until the user explicitly signs off
+- [ ] 4. Build      — reference/build.md
+- [ ] 5. Hand back  — reference/build.md, "Hand back": the way back to the interrupted
+                       work, and what must reload to see what was built
 ```
 
 ## Authority

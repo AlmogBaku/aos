@@ -1,6 +1,6 @@
 ---
 id: capability-lifecycle
-version: 0.4.0
+version: 0.4.1
 tags: [infra]
 summary: The capability lifecycle as one capability — install, upgrade, remove, onboard, import, build, contribute, evolve, and review as skills for the front agent; the MOD.md overlay with its promote/retire exit side; the household layout with pinned renders and symlink installs; the per-harness cheat-sheets; and the aos-cap tool that owns the lockfile and computes every skill's installed name.
 skill_prefix: capability-
@@ -191,8 +191,10 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
   overlay answers (through `capability-onboard`, the only MOD.md writer) and syncs the live
   artifact those answers personalize — the §3.3 round-trip, not an install.
 - **Building mode is a procedural mode-switch `main` enforces on itself**, not a
-  materialized agent — no harness here exposes a live conversation-handoff primitive, so
-  the boundary lives in prompt-level instruction, not a process boundary.
+  materialized agent. Where the harness can branch a conversation (cheat-sheet `session
+  branch` row — Claude Code's `/branch`, today) the build runs in the branched session,
+  still as `main`, and hands the user back to the original when done; elsewhere the
+  boundary lives in prompt-level instruction, not a process boundary.
 - **Nothing personal lands in a shippable file** — intake nuance splits into the package's
   interview questions and the user's own MOD.md, exactly the mechanism/nuance split
   `capability-import` performs in reverse.

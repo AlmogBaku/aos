@@ -61,6 +61,7 @@ user asks otherwise.
 | tool on PATH | an ordinary executable | `uv tool install` puts it on PATH like anywhere else; no harness registration needed. Bash is always available |
 | secret | environment, or `env` in `~/.claude/settings.json` | see Secrets — there is no dedicated secret store, which constrains what may be installed |
 | plan mode | **native** (Shift+Tab, or the harness starts in it) | read-only until the user approves. This satisfies capability-build's read-only gate for real rather than by prose |
+| session branch | **native** — `/branch <name>` copies the conversation into a new session and switches into it; the original stays intact | capability-build's branch step: have the user `/rename <work>` if the session is unnamed, then `/branch build-<id>`. Back: `/resume <work>` (bare `/resume` opens the picker). Reload there: skill edits and new skills in a watched dir hot-reload; a new agent, or a skills dir that did not exist at start, needs `/reload-skills`; a new `CLAUDE.md` block needs the session restarted — exit, then `claude --resume <work>` |
 | slash command | `~/.claude/commands/<name>.md` | not an aos primitive. Do not materialize skills as commands: a command is user-invoked by name and is absent from the skill registry, so a skill written as a command never triggers on its own |
 
 Files Claude Code consumes — anything else you write is inert: `CLAUDE.md`/`AGENTS.md`,
@@ -175,6 +176,9 @@ fresh session no longer lists them.
   someone confirms the mechanism. Check the running build, say what you found in the install
   summary, and fix-and-PR this line either way. Never imply the scoping held when you did not
   test it.
+- **Sessions branch natively.** `/branch` is a conversation copy — same cwd, same skills, a
+  new session id — which is what capability-build wants. `EnterWorktree` / `--worktree`
+  isolate files, not the conversation; do not reach for them to branch a session.
 - **Plan mode is native and worth using.** capability-build's read-only gate is enforced
   by the harness here, not by prose — the strongest form of that gate across all sheets.
 - **The diff gate is native too.** Every write is shown for approval, so the contract's
