@@ -32,7 +32,7 @@ Boundaries the skills keep between themselves: `capability-evolve` changes *your
 - The four research-drafted cheat-sheets (hermes e2e-verified; nanoclaw v1+v2, openclaw, nanobot research-drafted).
 - The interview UX: the "interview me, I hate blank pages" flow already proven in Almog's setup, plus the BOOTSTRAP interview of coleam00/second-brain-starter (but re-runnable, never self-deleting). Personalization is hardcoded in `state/SOUL.md` and persona files today — the biggest genuine gap in the live setup.
 - kb's `base` tool packaging + black-box test pattern — the template `aos-cap` mirrors.
-- Anthropic's `skill-creator` skill for generic skill craft — **referenced, never vendored** (Apache-2.0, kept current under `<home>/vendor/`): it owns drafting, description-trigger tuning, evals, packaging; `reference/naming.md` owns aos identity, and aos wins on names.
+- Anthropic's `skill-creator` skill for generic skill craft — **referenced, never vendored** (Apache-2.0, kept current under `<aos_home>/vendor/`): it owns drafting, description-trigger tuning, evals, packaging; `reference/naming.md` owns aos identity, and aos wins on names.
 
 ## Depends
 

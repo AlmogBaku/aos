@@ -34,7 +34,6 @@ What a user's machine actually looks like (after installing two capabilities) �
 │   └── docs/
 ├── personal/                     # ★ USER-OWNED: their ONE private repo — "my aos, as built"
 │   ├── MOD.md                    # global profile (identity, tz, hours, sacred time, red lines)
-│   ├── kb-registry.yaml          # their KBs (work/personal/…)
 │   └── capabilities/
 │       ├── work-tracker/         # personalized twin of upstream/capabilities/work-tracker/
 │       │   ├── MOD.md            # this user's deltas from the shipped defaults
@@ -42,9 +41,10 @@ What a user's machine actually looks like (after installing two capabilities) �
 │       └── my-private-cap/       # private capabilities: full §2.1 package + MOD + render
 └── .aos/                         # machine-local state, outside every repo
     ├── installs.lock.yaml        # what's installed: versions, source roots, links, hashes
-    └── kb-principal.yml          # kb's tool writes this itself on first use: who this
-                                  #   machine's humans are. Machine-local, so it is
-                                  #   recreated rather than carried between machines
+    ├── kb-registry.yaml          # kb's registry of every base — machine-local, not overlay
+    └── kb-principal.yml          # kb's principal list — filled in by `kb init --principal`
+                                  #   when missing, changed by `kb config set principal.id=`;
+                                  #   recreated, not carried
 ```
 
 ★ = the personal root holds the overlay family: upstream never contains those paths; CI rejects them in PRs.
@@ -179,7 +179,7 @@ Skill scoping is the load-bearing row: **`used_by` is what keeps ten capabilitie
 ## 5. What the lockfile knows
 
 ```yaml
-# <home>/.aos/installs.lock.yaml (machine-local, household level — spans source roots)
+# <aos_home>/.aos/installs.lock.yaml (machine-local, household level — spans source roots)
 # One entry per capability, covering every harness it is installed into. `record`
 # replaces an entry wholesale, so a second-harness install re-records the combined set.
 installs:
@@ -198,9 +198,10 @@ installs:
     scripts: []
 ```
 
-Machine-local files a capability's own tool writes (kb's `kb-principal.yml`) are **not**
-recorded: they are not materialized artifacts, so hashing one would report drift the first
-time the tool touched it. Removal offers to delete them instead of walking them backwards.
+Machine-local files a capability's own tool writes (kb's `kb-principal.yml` and
+`kb-registry.yaml`) are **not** recorded: they are not materialized artifacts, so hashing
+one would report drift the first time the tool touched it. Removal offers to delete them
+instead of walking them backwards.
 
 Only *files* carry hashes (`sha256()` refuses a directory); links are recorded as
 path→target and checked structurally — `verify` reports MISSING / NOT A LINK (a copy
