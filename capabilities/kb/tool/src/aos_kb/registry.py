@@ -2,7 +2,7 @@
 
 The aos home is `$AOS_HOME`, else `~/aos` — named, never discovered: a cwd-upward
 search for `.aos/` let any folder carrying one become the household. The registry is
-`--registry`/`$AOS_REGISTRY`, else `<home>/.aos/kb-registry.yaml`, and only `kb init`
+`--registry`/`$AOS_REGISTRY`, else `<aos_home>/.aos/kb-registry.yaml`, and only `kb init`
 and `kb adopt` may create it; every other reader of a missing one is an error that
 names the path."""
 
@@ -13,7 +13,7 @@ import yaml
 
 
 def find_household() -> Path:
-    """The household root: <home>/{upstream,personal,.aos}."""
+    """The household root: <aos_home>/{upstream,personal,.aos}."""
     env = os.environ.get("AOS_HOME")
     return Path(env).expanduser() if env else Path.home() / "aos"
 

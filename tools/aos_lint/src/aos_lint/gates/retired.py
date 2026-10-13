@@ -115,6 +115,10 @@ RETIRED = [
                            "SURVIVES (Plan 00b kept it deliberately, on its own merits); this "
                            "bans the stale justification, not the flag"),
     ("adapters/github", "the shared-KB CI infrastructure is reverted"),
+    # the household placeholder — split so a `git grep` for the retired token finds only
+    # the recorded artifacts allowed above, not this list
+    ("<" "home>", "the placeholder is <aos_home> — the aos home (--home/AOS_HOME, else "
+                  "~/aos); the bare form reads as the user's home directory"),
 ]
 
 # `base <verb>` invocations, and only those. The lookbehind is load-bearing: a bare \b form

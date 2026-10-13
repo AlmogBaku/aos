@@ -17,8 +17,8 @@ Lookup, not narrative. The reasoning is in [design.md](design.md).
 | `_raw/` | `agent:archiver` | source material, flat, immutable once ingested, never expires |
 | `entities/ concepts/ projects/ profile/` | `agent:archiver` (`profile/` is `agent:main`) | wiki pages, current truth only |
 | `.gitattributes` | tool | git-LFS patterns for large binaries |
-| `<home>/.aos/kb-principal.yml` | tool | machine-local, gitignored: the principal list |
-| `<home>/.aos/kb-registry.yaml` | tool | machine-local, gitignored: the registry of every base |
+| `<aos_home>/.aos/kb-principal.yml` | tool | machine-local, gitignored: the principal list |
+| `<aos_home>/.aos/kb-registry.yaml` | tool | machine-local, gitignored: the registry of every base |
 
 ## Page frontmatter
 

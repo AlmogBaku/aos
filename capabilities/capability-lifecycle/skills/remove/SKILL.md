@@ -35,10 +35,10 @@ contract, and the Experience rules.
    hook's dated message says why) → marker blocks → config keys → `.env` lines (ask
    first) → agents this capability created and nothing else uses (never an adopted one —
    contract) → scripts/hooks (revoke each hook's consent record first) →
-   its tool (`uv tool uninstall`). A recorded link into `<home>/vendor` is a referenced
+   its tool (`uv tool uninstall`). A recorded link into `<aos_home>/vendor` is a referenced
    third-party skill: unlink it, and offer to drop the vendor clone only if no other entry
    links into it.
-   **Its machine-local state under `<home>/.aos/` is not in the lockfile, so nothing walks
+   **Its machine-local state under `<aos_home>/.aos/` is not in the lockfile, so nothing walks
    it backwards** — removing kb leaves `kb-principal.yml` and `kb-registry.yaml` behind.
    Offer to delete them, and say what each is: the principal list (who authors writes on
    this machine) and the registry (the list of every base). Both are the user's, not the

@@ -1,6 +1,6 @@
 # weekly-maintain
 
-First get the list of bases: read `$AOS_REGISTRY` (or `<home>/.aos/kb-registry.yaml`) and
+First get the list of bases: read `$AOS_REGISTRY` (or `<aos_home>/.aos/kb-registry.yaml`) and
 take the `name:` of each entry under `kbs:`. **There is no verb that enumerates the registry**,
 so this is the only way — and every command below then carries `--base <name>` explicitly.
 That is not decoration: a bare `kb prune` resolves by walking up from the current directory and

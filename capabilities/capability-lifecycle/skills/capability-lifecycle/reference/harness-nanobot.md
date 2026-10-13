@@ -38,7 +38,7 @@ workspace (default `~/.nanobot/workspace/`); `<workspace>` below means that dire
 |---|---|---|
 | agent | **instance** — its own config, workspace and gateway | `nanobot onboard --config ~/.nanobot-<name>/config.json --workspace ~/.nanobot-<name>/workspace`, then the same `--config` on every later command. One agent per instance: `agents.defaults` is the only agent block, and `spawn` subagents are task workers, not personas |
 | front agent (`main`) | the default instance | `~/.nanobot/config.json` + `~/.nanobot/workspace/` |
-| skill | Agent Skills folder `<workspace>/skills/<installed-name>/SKILL.md` — a **symlink** to the pinned render in `<home>/personal` | the dir name is the identity (no flat `<name>.md` form); the loader follows symlinked dirs. Precedence workspace > Agent Plugin > built-in, and a workspace skill **silently shadows** a same-named one. Loading is progressive: the prompt lists name + description, the model `read_file`s the body, `$<name>` in a message forces it in. **Read wall**: `tools.restrictToWorkspace: true` or any `tools.exec.sandbox` makes `read_file` resolve the link and refuse a target outside the workspace — check both before linking; if either is on, stop and say so (never fall back to copying) |
+| skill | Agent Skills folder `<workspace>/skills/<installed-name>/SKILL.md` — a **symlink** to the pinned render in `<aos_home>/personal` | the dir name is the identity (no flat `<name>.md` form); the loader follows symlinked dirs. Precedence workspace > Agent Plugin > built-in, and a workspace skill **silently shadows** a same-named one. Loading is progressive: the prompt lists name + description, the model `read_file`s the body, `$<name>` in a message forces it in. **Read wall**: `tools.restrictToWorkspace: true` or any `tools.exec.sandbox` makes `read_file` resolve the link and refuse a target outside the workspace — check both before linking; if either is on, stop and say so (never fall back to copying) |
 | schedule | session-bound cron job in `<workspace>/cron/jobs.json` | created only by the agent's `cron` tool from inside a chat session — no CLI. Fires as a turn in that session, and only while `nanobot gateway` runs |
 | context block | bootstrap files, re-read every turn | `AGENTS.md` (instructions, read from the project root — a WebUI chat with another project selected reads that project's instead), `SOUL.md` (voice, persona), `USER.md` (the user). Dream edits `SOUL.md`, `USER.md` and `memory/MEMORY.md`; it never touches `AGENTS.md` |
 | secret | a variable in the gateway's process environment, referenced as `${VAR}` in `config.json` | see Secrets |
@@ -73,7 +73,7 @@ service manager (`gateway install-service`), or a rerun in its terminal (foregro
    there** with positive evidence it is this capability's (contract) → adopt it: no
    `onboard`, no `SOUL.md` write, keep its sessions, memory and workspace.
 2. **Skills**: `aos-cap skills <cap-dir>` gives the installed name; the render lives once
-   at `<home>/personal/<render-path>/skills/<installed-name>/` (contract); per `used_by`,
+   at `<aos_home>/personal/<render-path>/skills/<installed-name>/` (contract); per `used_by`,
    `ln -s <render-dir> <workspace>/skills/<installed-name>` in that agent's instance. Never
    copy. Record each link with `aos-cap record … --link <linkpath>`; a `uses` grant is one
    more link into the grantee's `skills/`, recorded with `--uses-link`. Name gate: pass
@@ -100,8 +100,8 @@ service manager (`gateway install-service`), or a rerun in its terminal (foregro
    `cron(action="list")` in every instance first. **Exec-type entries (`exec:`)** have no
    native form — every user job is an agent turn — so materialize a system crontab line
    with the same command and a `# aos:<cap>:<id>` comment, recorded in the lockfile; a
-   path-form exec runs as `uv run <home>/upstream/<path-and-args>` (personal capabilities:
-   `<home>/personal/…`). Optional surfacing: `… || nanobot trigger <trigger-id> "<msg>"`,
+   path-form exec runs as `uv run <aos_home>/upstream/<path-and-args>` (personal capabilities:
+   `<aos_home>/personal/…`). Optional surfacing: `… || nanobot trigger <trigger-id> "<msg>"`,
    the trigger made once by `/trigger <name>` in the target chat. Check `nanobot gateway
    status` first — jobs never fire while the gateway is down.
 5. **Context blocks** → marker-delimited appends to `AGENTS.md` in the owning instance's
@@ -160,7 +160,7 @@ There is no uninstall command — drive everything from the lockfile entry, in o
    `# aos:<cap>:<id>` line.
 2. Skills: delete every symlink the entry's `links` and `uses_links` list, and drop the
    names from `agents.defaults.disabledSkills` if listed; the render dirs in
-   `<home>/personal/<render-path>/skills/` are deleted via a commit (contract). Never
+   `<aos_home>/personal/<render-path>/skills/` are deleted via a commit (contract). Never
    `capabilities/<id>/` of the user's own package: that is its source.
 3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks.
 4. Config keys: remove each recorded key path from `config.json` (JSON merge, diff gate).

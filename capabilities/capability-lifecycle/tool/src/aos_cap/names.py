@@ -109,13 +109,13 @@ def capability_agent_names(cap_dir: Path) -> set[str]:
 
 
 def _household_of(cap_dir: Path) -> Optional[Path]:
-    """The `<home>/` a capability directory sits inside, or None.
+    """The `<aos_home>/` a capability directory sits inside, or None.
 
     Deliberately NOT `find_home_soft`: that one answers "which household is this
     invocation about", so it reads `--home`, `$AOS_HOME` and the `~/aos` default — any of
     which can name a DIFFERENT household than the package being read. This one answers
     "where does this directory live", which has exactly one honest source: the path
-    itself. A household package lives at `<home>/{upstream,personal}/capabilities/<id>`,
+    itself. A household package lives at `<aos_home>/{upstream,personal}/capabilities/<id>`,
     so the home is the ancestor whose `upstream/` or `personal/` the package is INSIDE.
 
     Anchored that way rather than by looking for a marker, and deliberately not `.aos/`:

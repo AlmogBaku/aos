@@ -13,8 +13,9 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 
 ## The household, and where everything lives
 
-- **The household is the ground truth of where things live** (§3.1): `<home>` (default
-  `~/aos`) contains `upstream/` (the kit clone — pristine, never anything personal, not
+- **The household is the ground truth of where things live** (§3.1): `<aos_home>` — the
+  aos home: `--home`/`AOS_HOME`, else `~/aos` (not your home directory) — contains
+  `upstream/` (the kit clone — pristine, never anything personal, not
   even untracked files), `personal/` (the user's one private git repo: MOD files at
   mirrored capability paths, the pinned renders, their private capabilities), `.aos/`
   (machine state — the lockfile, plus machine-local files a capability's tool writes for
@@ -38,16 +39,16 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   working tree and compute the exact native command plan — commit nothing, touch no
   harness file), **GATE** (show contents + plan; for re-renders the gate *is* a git diff in
   `personal/` — **stage first, scoped to the capability, so added files are visible**:
-  `git -C <home>/personal add -A -- <render-path>` then
-  `git -C <home>/personal diff --staged -- <render-path>`. `<render-path>` is
+  `git -C <aos_home>/personal add -A -- <render-path>` then
+  `git -C <aos_home>/personal diff --staged -- <render-path>`. `<render-path>` is
   `capabilities/<id>` for a shipped package (its render and MOD live there) and
   `renders/<id>` for the user's own package — whose `capabilities/<id>/` is the **source**,
   never restored, cleaned or deleted as if it were a render. A bare `git diff` hides
   untracked files, and a re-render that *adds* a skill or a `reference/` page is the
   commonest upgrade shape), **EXECUTE** (commit the staged render with a dated message,
   create the links, run the native plan). Declined → restore that capability only,
-  additions included: `git -C <home>/personal restore --staged --worktree --
-  <render-path>`, then `git -C <home>/personal clean -fd -- <render-path>` as
+  additions included: `git -C <aos_home>/personal restore --staged --worktree --
+  <render-path>`, then `git -C <aos_home>/personal clean -fd -- <render-path>` as
   belt-and-braces (`restore` already removes the staged additions and prunes the
   directories they created; `clean` catches anything staging missed). **Every one of
   these commands is path-scoped** — a bare `add -A` or `reset --hard` would swallow or
@@ -94,7 +95,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 - **A skill's installed name is computed, and it is single-owner.** `aos-cap skills <cap-dir>`
   gives you the name each skill ships under (`<skill_prefix><id>`; the entry skill keeps the
   capability id). **Gate before you materialize**:
-  `aos-cap --home <home> skills <cap-dir> --check --harness-skills <dir> …` — one
+  `aos-cap --home <aos_home> skills <cap-dir> --check --harness-skills <dir> …` — one
   `--harness-skills` per skills dir this harness reads (the flag repeats; it takes no list)
   — exit 17 means the name is already claimed by another capability in the household, by a
   lockfile-recorded link, or by a skill the harness already has (aos-installed or not).
@@ -102,12 +103,12 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   the fix is upstream ({{skill: contribute}}) or in the user's own package. Full rules:
   the naming rules the `capability-lifecycle` entry skill links.
 - **An agent's name is computed and single-owner too.** Harnesses keep a flat agent namespace
-  as well, so `aos-cap --home <home> agents <cap-dir> --check` gates any capability that
+  as well, so `aos-cap --home <aos_home> agents <cap-dir> --check` gates any capability that
   ships `agents/` — same `<skill_prefix><agent-id>` computation, same exit 17, same
   never-rename-here rule. It reads two of three sources and names the third (agents already
   in the harness — no enumeration yet) in capitals.
 - **Skills materialize as pinned renders + symlinks, never copies.** `aos-cap render
-  <cap-dir> <id> --out <home>/personal/<render-path>/skills` does the mechanical half:
+  <cap-dir> <id> --out <aos_home>/personal/<render-path>/skills` does the mechanical half:
   the whole folder travels (`reference/`, `scripts/`, `templates/` — scripts are executed,
   never loaded as context), the render lands under the **installed name**, its frontmatter
   `name` is rewritten to match, and `metadata.aos.origin: <capability>@<version>` is stamped inside
@@ -115,7 +116,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   intact) — that judgment is yours, the copy is not. Symlink the render into the skills
   location of every agent in its `used_by`, under the same installed name: **dir, frontmatter
   `name`, and link all agree, on every harness — no per-harness renaming.** Container
-  harnesses resolve links only if `<home>/personal` is mounted read-only — the cheat-sheet's
+  harnesses resolve links only if `<aos_home>/personal` is mounted read-only — the cheat-sheet's
   Materialization guide says how; without the mount, stop and say so (never fall back to
   copying: one canonical render, everywhere).
 - **Declarations decide placement; the briefing never does.** `used_by`,
@@ -166,8 +167,8 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   place is what makes the removal walk and the single-owner check enumerable.
   Exec-type entries run the tool the capability's briefing installs (verify
   `uv --version` before wiring); a path-form `exec:` runs as
-  `uv run <home>/upstream/<path-and-args>` (personal capabilities:
-  `<home>/personal/<path-and-args>`). An absent host feature triggers the schedule's
+  `uv run <aos_home>/upstream/<path-and-args>` (personal capabilities:
+  `<aos_home>/personal/<path-and-args>`). An absent host feature triggers the schedule's
   declared degraded mode: `manual` = materialize the prompt as an invocable skill and
   tell the user how to run it · `inline` = append it (inside markers) to an existing
   aos-owned job · `skip` = skip it, say so in the install summary, and record it in
@@ -197,7 +198,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   skill's **installed** name — never a parent-directory path (a source id is
   capability-local and names nothing once installed; lint bans both patterns). Into the
   household (capability sources, cheat-sheets, MOD
-  files): shipped files write a `<home>/…` placeholder; the transform bakes the real
+  files): shipped files write a `<aos_home>/…` placeholder; the transform bakes the real
   household path into renders (same pass as `{{mod}}`), and scheduled commands get
   `--home`/`AOS_HOME` baked the same way. The lifecycle capability's own skills are
   render-stable (no `{{mod}}` slots) and keep the placeholder — resolve it at use time

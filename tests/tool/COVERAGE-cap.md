@@ -30,7 +30,7 @@ keeps the assertion but loses the reason invites a later reader to "simplify" it
 | `agents <dir>` | every agent's **installed** name (`<skill_prefix><agent-id>`, from `agents/*.agent.yaml`); `--json` adds the prefix; `--check` is the same single-owner gate over the agent namespace, against **two** of three sources — and names the third it cannot reach | 0, 12, 15, 17 |
 | `render <dir> <skill> --out` | copy `skills/<id>/` to `<out>/<installed-name>/`, rewrite `name`, stamp `metadata.aos.origin`, resolve the `{{skill:}}`/`{{agent:}}` name slots; mechanical + idempotent | 0, 1, 12, 14, 18 |
 | `home` | print the resolved household root | 0, 15 |
-| `init` | create an empty `<home>/.aos/installs.lock.yaml`; the one verb that may find no `.aos/` | 0, 1, 15 |
+| `init` | create an empty `<aos_home>/.aos/installs.lock.yaml`; the one verb that may find no `.aos/` | 0, 1, 15 |
 | `record <cap> --version` | write one capability's entry: artifact sha256s, link targets (own `--link`, used `--uses-link`), source root, jobs, config keys, env-var names, scripts; refuses a link another entry records | 0, 1, 15, 16, 19 |
 | `rehash <cap>` | re-hash the recorded artifacts in place after an approved evolve | 0, 14, 15, 16 |
 | `verify [<cap>]` | re-hash artifacts and re-read links (own and used) against disk | 0, 13, 14, 15 |

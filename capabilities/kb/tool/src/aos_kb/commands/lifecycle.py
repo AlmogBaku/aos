@@ -37,7 +37,7 @@ def _resolve_templates(templates: Optional[str], template_repo: str,
     """Where init's templates come from: --templates (a local dir — skip the network
     step entirely, unchanged from before this repo existed) beats a clone of
     --template/the default TEMPLATE_REPO_URL, which falls back to the tree shipped
-    in <home>/upstream on any clone failure (no network, bad URL, git not configured
+    in <aos_home>/upstream on any clone failure (no network, bad URL, git not configured
     for the host, ...). The fallback is silent-but-noted, never blocking or prompting —
     the same shape as the `git lfs version` check just below in cmd_init.
 
@@ -87,7 +87,7 @@ def cmd_init(
         help="principal id, iff --curation designated")] = None,
     principal: Annotated[Optional[str], typer.Option(
         help="the global --principal, typed after the verb. Saved to "
-             "<home>/.aos/kb-principal.yml only when no identity exists yet; "
+             "<aos_home>/.aos/kb-principal.yml only when no identity exists yet; "
              "otherwise an override for this init")] = None,
 ):
     if principal:

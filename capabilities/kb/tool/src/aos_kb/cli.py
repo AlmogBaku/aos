@@ -59,7 +59,7 @@ def main_callback(
     registry: Optional[str] = typer.Option(
         None, "--registry",
         help="kb-registry.yaml path (default $AOS_REGISTRY, else "
-             "<home>/.aos/kb-registry.yaml, where <home> is $AOS_HOME, else ~/aos). "
+             "<aos_home>/.aos/kb-registry.yaml, where <aos_home> is $AOS_HOME, else ~/aos). "
              "Only `init` and `adopt` create it; a base given by path needs none"),
     agent: Optional[str] = typer.Option(
         None, "--agent", help="acting subject — the committer of every write "
@@ -68,7 +68,7 @@ def main_callback(
         None, "--principal",
         help="the human a write belongs to; becomes the git author and the grants "
              "subject (default $AOS_PRINCIPAL_ID, else the first matching entry in "
-             "<home>/.aos/kb-principal.yml; a write with neither is an error). An "
+             "<aos_home>/.aos/kb-principal.yml; a write with neither is an error). An "
              "override, never written — except by `kb init` on a machine with no "
              "identity yet. The display name rides $AOS_PRINCIPAL_NAME"),
     version: bool = typer.Option(

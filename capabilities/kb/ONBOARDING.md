@@ -32,7 +32,7 @@ skills right afterwards — registry data belongs in the registry and base struc
 
 1. **`principal_id`** — the identity that authors every KB write. Ask for it now and record
    the one identity with `kb config set principal.id=<answer>` — it writes
-   `<home>/.aos/kb-principal.yml` as a catch-all `*`. If they name a work address too, that
+   `<aos_home>/.aos/kb-principal.yml` as a catch-all `*`. If they name a work address too, that
    second, scoped identity is the user's own edit of the same file — show them the shape (a
    list matched against base names, first match wins: the most specific entry first, the
    `*` last) and never write it yourself; a second `config set` would put itself first as

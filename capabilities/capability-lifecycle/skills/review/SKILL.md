@@ -82,7 +82,7 @@ component graph, resources in subgraphs.
 **Derive the graph from the skills and the tool first, then diff it against any diagram the
 capability already ships — a mismatch is a finding, and the shipped one is usually the stale
 side.** Reading an existing diagram first tells you what someone believed, which is exactly what
-you are testing. For shape only (not content), `<home>/upstream/capabilities/kb/docs/design.md`
+you are testing. For shape only (not content), `<aos_home>/upstream/capabilities/kb/docs/design.md`
 is a worked example.
 
 Drawing is the point, not decoration: a flow you cannot draw is a flow you do not understand yet,
@@ -170,7 +170,7 @@ instead of stopping.
 **b. Every artifact created must name its reader.** The rule the kit already states: *a queue
 file is only justified when the work item has no artifact of its own*. Generalised — if
 nothing reads what you write, delete the writer, not the reader. This is the single most
-repeated defect in the kit's build-gap ledger (`<home>/upstream/docs/BUILD-GAPS.md`).
+repeated defect in the kit's build-gap ledger (`<aos_home>/upstream/docs/BUILD-GAPS.md`).
 
 **c. Verify guardrail claims by reproduction, never by reading.** When prose says the tool
 enforces, refuses, checks or scopes something, prove it on a throwaway fixture. Claims that a

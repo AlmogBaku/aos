@@ -33,7 +33,7 @@ does not exist — the config file is `openclaw.json` (JSON5).
 |---|---|---|
 | agent | **agent** — id + own workspace + per-agent state | `openclaw agents add <name> --workspace ~/.openclaw/workspace-<name>`; identity via `openclaw agents set-identity --agent <id> --from-identity` (reads workspace `IDENTITY.md`) |
 | front agent (`main`) | the reserved `main` agent — cannot be deleted | workspace `~/.openclaw/workspace/` |
-| skill | Agent Skills folder — a **symlink** to the pinned render in `<home>/personal`; identity = frontmatter `name` (lowercase-hyphen), **not** the folder path | link at `<workspace>/skills/<installed-name>` per `used_by`; roots by precedence: `<workspace>/skills` → `<workspace>/.agents/skills` → `~/.agents/skills` → `~/.openclaw/skills` (global). OpenClaw's skill discovery follows symlinked dirs |
+| skill | Agent Skills folder — a **symlink** to the pinned render in `<aos_home>/personal`; identity = frontmatter `name` (lowercase-hyphen), **not** the folder path | link at `<workspace>/skills/<installed-name>` per `used_by`; roots by precedence: `<workspace>/skills` → `<workspace>/.agents/skills` → `~/.agents/skills` → `~/.openclaw/skills` (global). OpenClaw's skill discovery follows symlinked dirs |
 | schedule | Gateway-hosted cron job (fires only while the Gateway runs; jobs persist) | `openclaw cron add …` (see Materialization); store `~/.openclaw/cron/jobs.json` |
 | context block | workspace bootstrap files, auto-injected each session | always: `AGENTS.md`, `SOUL.md`, `USER.md`, `IDENTITY.md`, `TOOLS.md`. **Sub-agent sessions get only `AGENTS.md` + `TOOLS.md`** — capability context for sub-agents goes there |
 | secret | `~/.openclaw/.env` line (+ SecretRef in config) | see Secrets |
@@ -57,14 +57,14 @@ agent's default doesn't already fit the class; never hardcode provider names.
    creation, wire into `main`. Channel routing if the capability needs it:
    `--bind <channel[:account]>`.
 2. **Skills.** `aos-cap skills <cap-dir>` gives the installed name; the render lives once
-   at `<home>/personal/capabilities/<capability>/skills/<installed-name>/` (contract);
+   at `<aos_home>/personal/capabilities/<capability>/skills/<installed-name>/` (contract);
    symlink it into the owning agent's `<workspace>/skills/<installed-name>` per `used_by`
    (`~/.openclaw/skills/` only for genuinely every-agent skills), record each link
    (`aos-cap record … --link`). OpenClaw takes skill identity from frontmatter, not the
    folder; `description` is required. Enumerate existing names for
    the name gate with `openclaw skills list --json`, or pass each root dir below to
    `--harness-skills`. `{baseDir}` resolves skill-local files. Do not route aos skills through
-   `openclaw skills install`/ClawHub — the pinned render in `<home>/personal` is the source.
+   `openclaw skills install`/ClawHub — the pinned render in `<aos_home>/personal` is the source.
 3. **Schedules.** Agent-type entries (`agent` + `prompt_ref`):
 
    ```
@@ -136,7 +136,7 @@ Drive everything from the lockfile entry, in order:
 2. Skills: there is **no `skills uninstall` subcommand** — set
    `skills.entries.<name>.enabled: false` via `openclaw config set` and delete the
    symlink from every root the lockfile's `links` list names; the render dirs in
-   `<home>/personal` are deleted via a commit (contract).
+   `<aos_home>/personal` are deleted via a commit (contract).
 3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks from the
    bootstrap files.
 4. Config keys: `openclaw config unset <key>` per recorded key.

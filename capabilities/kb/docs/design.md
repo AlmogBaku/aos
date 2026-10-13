@@ -141,7 +141,7 @@ and scaffolding a base *overwrote* the repository's git identity. So a shared ba
 express "Alice's agent may write here, Bob's may not", and could not say whose captures were
 whose.
 
-Identity is stored in `<home>/.aos/kb-principal.yml`, machine-local and gitignored. It is a
+Identity is stored in `<aos_home>/.aos/kb-principal.yml`, machine-local and gitignored. It is a
 **list**, because one person is not one identity — a work address should not author a
 personal base — matched against base names with first-match-wins. `kb init` fills in a
 missing identity, from the `--principal` typed on it, and `kb config set principal.id=`

@@ -8,7 +8,7 @@ knowledge it is, committer = the acting agent. Rebase preserves the author, forg
 show it in blame, and no new identity system is invented.
 
 The principal is `--principal`/$AOS_PRINCIPAL_ID, else the first matching entry in
-<home>/.aos/kb-principal.yml — never guessed. The file is a LIST because one person is
+<aos_home>/.aos/kb-principal.yml — never guessed. The file is a LIST because one person is
 not one identity — a work address should not author a personal base. First match wins,
 so a bare "*" belongs last. `kb init` fills in a MISSING identity, from the flag typed
 on it, and `kb config set principal.id=` changes it; an override is never saved.

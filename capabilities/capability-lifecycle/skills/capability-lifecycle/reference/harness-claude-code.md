@@ -53,7 +53,7 @@ user asks otherwise.
 
 | aos concept | Claude Code primitive | Where / how |
 |---|---|---|
-| skill | Agent Skills folder: `skills/<name>/SKILL.md` — a **symlink** to the pinned render in `<home>/personal` | link at `~/.claude/skills/<installed-name>`; `<project>/.claude/skills/` is the project-scope root (same namespace — see Feature notes) |
+| skill | Agent Skills folder: `skills/<name>/SKILL.md` — a **symlink** to the pinned render in `<aos_home>/personal` | link at `~/.claude/skills/<installed-name>`; `<project>/.claude/skills/` is the project-scope root (same namespace — see Feature notes) |
 | agent | subagent definition: `~/.claude/agents/<name>.md` (frontmatter `name`, `description`, optional `tools`, `model` + markdown body = its prompt) | the dir may not exist yet — create it. Invoked by description-match or by name. `tools:` restricts tools (confirmed); whether skills can be scoped per-agent is **unverified** — see Feature notes before relying on `used_by` |
 | front agent (`main`) | the main conversation — not a file you create | it has no definition file to write; give it skills and context blocks instead |
 | schedule | `CronCreate` tool — 5-field cron, local timezone, **`durable: true` or it dies with the session** | record the returned job id in the lockfile; `CronDelete` on removal. Recurring jobs auto-expire after 7 days and fire only while the REPL is idle — see Rule zero. A contract needing an unattended guarantee degrades to `manual` instead |
@@ -75,11 +75,11 @@ Nothing here needs a restart — Claude Code picks up skills and context files o
 session, and `/context` shows what is loaded now.
 
 1. **The tool first**, if the capability ships one: `uv tool install --from
-   <home>/upstream/capabilities/<id>/tool <package>`. Verify `uv --version` before wiring
+   <aos_home>/upstream/capabilities/<id>/tool <package>`. Verify `uv --version` before wiring
    anything that assumes it.
 2. **Skills.** `aos-cap skills <cap-dir>` gives each installed name; `aos-cap render`
    writes the render once to
-   `<home>/personal/capabilities/<id>/skills/<installed-name>/`, then symlink it to
+   `<aos_home>/personal/capabilities/<id>/skills/<installed-name>/`, then symlink it to
    `~/.claude/skills/<installed-name>`. Symlink, never copy — a copy silently stops tracking
    the render, so `verify` goes blind and `upgrade` has two truths.
 3. **Agents**, if the capability declares any: write
@@ -165,7 +165,7 @@ Walk `aos-cap show <id>` backwards; nothing here is inferred from the filesystem
    `durable: true`) may already be gone — that is not drift, but say so rather than reporting a
    deletion that did not happen.
 6. **Last, once nothing else needs to read it**: drop the pinned render under
-   `<home>/personal/capabilities/<id>/` and then the lockfile entry (`aos-cap remove <id>`).
+   `<aos_home>/personal/capabilities/<id>/` and then the lockfile entry (`aos-cap remove <id>`).
    The entry is the list every earlier step walks, so removing it first strands whatever has
    not been undone yet — the job ids especially, which exist nowhere else.
 
@@ -198,4 +198,4 @@ fresh session no longer lists them.
   the link, and `reference/` files travel with it because the whole render directory is
   linked as one unit.
 - **No `.aos/` convention of its own.** Machine state stays where the contract puts it
-  (`<home>/.aos/`), not under `~/.claude/`.
+  (`<aos_home>/.aos/`), not under `~/.claude/`.

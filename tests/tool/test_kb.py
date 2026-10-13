@@ -126,7 +126,7 @@ class BaseToolTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.dir = Path(self.tmp.name)
         self.reg = self.dir / "kb-registry.yaml"
-        # AOS_HOME is pinned: the principal file lives at <home>/.aos/kb-principal.yml,
+        # AOS_HOME is pinned: the principal file lives at <aos_home>/.aos/kb-principal.yml,
         # and the first `kb init` below writes it there.
         self.home = self.dir / "household"
         (self.home / ".aos").mkdir(parents=True)
@@ -933,7 +933,7 @@ class SharedBaseTest(unittest.TestCase):
 
 class PrincipalTest(unittest.TestCase):
     """Identity is `--principal`/`$AOS_PRINCIPAL_ID` — an override, never written to
-    disk — else the first matching entry in `<home>/.aos/kb-principal.yml`. `kb init`
+    disk — else the first matching entry in `<aos_home>/.aos/kb-principal.yml`. `kb init`
     fills in a MISSING identity, from the flag typed on it; `kb config set principal.id=`
     changes it. A write with neither is an error that names the file; a read needs
     neither. Nothing here ever prompts — a cron has no tty and capture latency is sacred."""
@@ -1123,7 +1123,7 @@ class PrincipalTest(unittest.TestCase):
 
 class HomeTest(unittest.TestCase):
     """The aos home is `$AOS_HOME`, else `~/aos` — never discovered from cwd. The registry
-    is `--registry`/`$AOS_REGISTRY`, else `<home>/.aos/kb-registry.yaml`, and only `init`
+    is `--registry`/`$AOS_REGISTRY`, else `<aos_home>/.aos/kb-registry.yaml`, and only `init`
     and `adopt` create it. Every AOS_* variable is unset here unless a test sets it, HOME
     is a directory the test owns, and the cwd is one it controls."""
 
@@ -1327,7 +1327,7 @@ class TemplateCloneTest(unittest.TestCase):
         self.assertIn("bootstrap", log)
 
     def test_a_failed_clone_falls_back_to_local_templates_without_blocking(self):
-        # find_upstream_root() resolves the fallback via <AOS_HOME>/upstream, so a
+        # find_upstream_root() resolves the fallback via <aos_home>/upstream, so a
         # household fixture needs one — a symlink to this real checkout, exactly what
         # a real household's `upstream/` is (the aos kit clone itself).
         (self.home / "upstream").symlink_to(REPO)

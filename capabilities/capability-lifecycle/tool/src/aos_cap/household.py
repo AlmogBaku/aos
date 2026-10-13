@@ -1,4 +1,4 @@
-"""Finding the household root — the `<home>/` that holds `.aos/`, `upstream/` and
+"""Finding the household root — the `<aos_home>/` that holds `.aos/`, `upstream/` and
 `personal/`: `--home`, else `$AOS_HOME`, else `~/aos`. Named, never discovered — a
 cwd-upward search for `.aos/` let any folder carrying one become the household. Two
 flavours, because two kinds of caller need it: a verb that cannot work without one

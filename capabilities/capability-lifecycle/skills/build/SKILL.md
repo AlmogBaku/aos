@@ -59,5 +59,5 @@ in order — **stop for the user between each**:
   every write toward upstream (the contribute question's yes starts a flow whose PR
   still opens only on explicit confirm; never any PR/issue/push without it), and
   anything touching the live harness (out of scope for this skill: Build only ever
-  writes into `<home>/personal/capabilities/<id>/`, same as {{skill: import}}; installing
+  writes into `<aos_home>/personal/capabilities/<id>/`, same as {{skill: import}}; installing
   what gets built is the separate, already-specified install flow).

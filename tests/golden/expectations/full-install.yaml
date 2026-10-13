@@ -115,7 +115,7 @@ forbid_files:
   - "front:skills/wt-format-entry/SKILL.md"
 
 # Third-party skills this capability references rather than ships: linked from
-# <home>/vendor/, never rendered, so no origin tag and no personal/ link target (§2.1).
+# <aos_home>/vendor/, never rendered, so no origin tag and no personal/ link target (§2.1).
 vendored: [skill-creator]
 
 # every materialized SKILL.md under these roots must carry the origin tag
@@ -139,8 +139,8 @@ sentinels:
   # does not contain, so the two assertions do not fight.
   - {text: "aos:capability-lifecycle:mode-boundary", in: "front:SOUL.md"}
   - {text: "aos:capability-lifecycle:concepts", in: "front:SOUL.md"}
-  # the sync wrapper must pin the household — kb-init's `sync` row: `AOS_HOME=<home>`. Since
-  # kb 0.8.0 the registry is `<home>/.aos/kb-registry.yaml` with `<home>` = $AOS_HOME else
+  # the sync wrapper must pin the household — kb-init's `sync` row: `AOS_HOME=<aos_home>`. Since
+  # kb 0.8.0 the registry is `<aos_home>/.aos/kb-registry.yaml` with `<aos_home>` = $AOS_HOME else
   # ~/aos, so a bare `kb sync` syncs whatever household ~/aos is — and the Hermes backend that
   # ticks the job does not load the profile's .env. (It pinned `AOS_REGISTRY` before 0.8.0.)
   # Its home is the OWNING PROFILE's scripts dir: Hermes 0.21 resolves a job's `--script`

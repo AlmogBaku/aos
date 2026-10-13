@@ -19,7 +19,7 @@ this sheet is only the Codex half.
 | aos concept | Codex primitive | Where / how |
 |---|---|---|
 | front agent (`main`) | the current Codex session | shared; no front-agent file is created |
-| skill | Agent Skills folder — a **symlink** to the pinned render in `<home>/personal` | `~/.codex/skills/<installed-name>/` |
+| skill | Agent Skills folder — a **symlink** to the pinned render in `<aos_home>/personal` | `~/.codex/skills/<installed-name>/` |
 | agent | session subagent | ephemeral; no persistent agent definition is materialized |
 | context block | global `AGENTS.md` | `~/.codex/AGENTS.md`; append only inside aos marker pairs |
 | tool on PATH | ordinary executable | `uv tool install` makes capability tools available normally |
@@ -34,7 +34,7 @@ Files Codex consumes for this integration are `~/.codex/skills/*/SKILL.md` and
 ## Materialization guide
 
 1. Render each aos skill under
-   `<home>/personal/capabilities/<capability>/skills/<installed-name>/`.
+   `<aos_home>/personal/capabilities/<capability>/skills/<installed-name>/`.
 2. Symlink the whole directory into `~/.codex/skills/<installed-name>`; never copy it.
    Run the `aos-cap skills --check` name gate against `~/.codex/skills` first.
 3. Append aos-owned context only inside its named marker pair in
@@ -57,7 +57,7 @@ Files Codex consumes for this integration are `~/.codex/skills/*/SKILL.md` and
 - Skills: `rg --files ~/.codex/skills -g SKILL.md`; inspect links with
   `find ~/.codex/skills -maxdepth 1 -type l`.
 - Context: `cat ~/.codex/AGENTS.md`.
-- aos state: `aos-cap --home <home> list`, `show <id>`, and `verify`.
+- aos state: `aos-cap --home <aos_home> list`, `show <id>`, and `verify`.
 
 ## Secrets
 

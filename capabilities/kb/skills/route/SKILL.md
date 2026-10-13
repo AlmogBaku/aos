@@ -14,7 +14,7 @@ here — a wrong-but-cheap landing in a *private* base is corrected by the archi
 pass, and a synchronous question is not.
 
 **Start by reading the registry directly**: `$AOS_REGISTRY`, else
-`<home>/.aos/kb-registry.yaml`. Each entry under `kbs:` carries the `name`, `audience`,
+`<aos_home>/.aos/kb-registry.yaml`. Each entry under `kbs:` carries the `name`, `audience`,
 `purpose`, `tag` and `routing` you need below. There is no verb that lists bases, so reading
 the YAML is the intended method rather than a workaround.
 

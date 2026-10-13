@@ -25,7 +25,7 @@ mutation goes through the `hermes` CLI.
 |---|---|---|
 | agent | **profile** — a full parallel HERMES_HOME (own `config.yaml`, `.env`, `SOUL.md`, `skills/`, `cron/`) | `~/.hermes/profiles/<name>/`; directory-defined, no registry entry. `hermes profile create <name>` — or adopt an existing one that is evidently this capability's (contract); target with `hermes -p <name> …` |
 | front agent (`main`) | the default profile | `~/.hermes/` itself |
-| skill | Agent Skills folder — a **symlink** to the pinned render in `<home>/personal` | link at `~/.hermes/skills/<installed-name>` (main) or `profiles/<p>/skills/<installed-name>` (`aos-cap skills`) — per-profile links are how `used_by` scoping works, and a `uses` grant is one more link into the grantee's `profiles/<p>/skills/`; a profile sees only its own skills dir. Hermes follows symlinks in skills dirs. Name gate: one `--harness-skills` per dir (the flag repeats) |
+| skill | Agent Skills folder — a **symlink** to the pinned render in `<aos_home>/personal` | link at `~/.hermes/skills/<installed-name>` (main) or `profiles/<p>/skills/<installed-name>` (`aos-cap skills`) — per-profile links are how `used_by` scoping works, and a `uses` grant is one more link into the grantee's `profiles/<p>/skills/`; a profile sees only its own skills dir. Hermes follows symlinks in skills dirs. Name gate: one `--harness-skills` per dir (the flag repeats) |
 | schedule | cron job owned by exactly one profile (mapping is by directory, not a field) | `hermes -p <profile> cron create '<cron>' '<prompt>' --name … --skill …` |
 | context block | `SOUL.md` = identity; `workspace/AGENTS.md` = working-dir instructions | inside the profile dir |
 | secret | `.env` line | see Secrets |
@@ -53,7 +53,7 @@ the profile's default doesn't already fit the class; never hardcode provider nam
    no `profile create`, no `SOUL.md` write, keep its `state.db`, sessions, gateway,
    workspace and hand-written identity files; record no `SOUL.md`.
 2. **Skills**: `aos-cap skills <cap-dir>` gives the installed name; the render lives once
-   at `<home>/personal/<render-path>/skills/<installed-name>/` (contract);
+   at `<aos_home>/personal/<render-path>/skills/<installed-name>/` (contract);
    create a symlink per `used_by` — `ln -s <render-dir> ~/.hermes/skills/<installed-name>`
    (main) or into `profiles/<p>/skills/`. Never copy. Record each link with
    `aos-cap record … --link <linkpath>`. Per `uses` row (`aos-cap manifest`): `ln -s
@@ -74,8 +74,8 @@ the profile's default doesn't already fit the class; never hardcode provider nam
    --no-agent --name 'aos:<capability>:<schedule-id>'`; if this Hermes build lacks
    script jobs, a system crontab line with the same command and a `# aos:<cap>:<id>`
    comment is the fallback — record whichever was used in the lockfile). A path-form exec
-   runs as `uv run <home>/upstream/<path-and-args>` (personal capabilities:
-   `<home>/personal/…`). Optionally compose surfacing:
+   runs as `uv run <aos_home>/upstream/<path-and-args>` (personal capabilities:
+   `<aos_home>/personal/…`). Optionally compose surfacing:
    `… || hermes notify …`. Never write an `origin:` field into jobs.json (Hermes uses it
    for chat provenance). Single-owner check = `hermes cron list` across profiles.
 4. **Context blocks** → marker-delimited appends to `SOUL.md` / `workspace/AGENTS.md`.
@@ -126,7 +126,7 @@ Drive everything from the lockfile entry, in order:
 1. Cron jobs: `hermes -p <profile> cron remove <id>` per `schedules_owned` id; then
    delete leftover `cron/output/<id>*`.
 2. Skills: delete every symlink the entry's `links` and `uses_links` list; then delete the
-   render dirs in `<home>/personal/<render-path>/skills/` via a commit (revertible — the
+   render dirs in `<aos_home>/personal/<render-path>/skills/` via a commit (revertible — the
    persist hook's message says why). Never `capabilities/<id>/` of the user's own package:
    that is its source.
 3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks.

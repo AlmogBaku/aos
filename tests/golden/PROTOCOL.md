@@ -78,7 +78,7 @@ Everything the run creates is identifiable and disposable:
    The aos home is `--home`/`AOS_HOME`, else `~/aos` — named, never discovered — so on a
    machine that has a real household, any `kb` or `aos-cap` call without it resolves the
    *real* one. The identity is `--principal`/`AOS_PRINCIPAL_ID` (used per call, never
-   saved), else `<home>/.aos/kb-principal.yml`. `kb init` fills that file in only when it
+   saved), else `<aos_home>/.aos/kb-principal.yml`. `kb init` fills that file in only when it
    is missing and only from a typed `--principal`, so the install prompt (step 3) hands the
    bootstrap `kb init` `--principal dana@example.com`; the variable stays a per-call
    override. With neither, a write verb fails naming the file. Pinning Dana keeps "who ran

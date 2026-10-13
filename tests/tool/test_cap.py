@@ -65,7 +65,7 @@ SKILL_MD = "---\nname: {name}\ndescription: {name}. Use when testing {name}.\n--
 
 def write_cap(home, cap_id, skills, prefix=None, root="upstream", version="1.0.0",
               agents=(), depends=()):
-    """Write a fixture capability under <home>/<root>/capabilities/ and return its dir.
+    """Write a fixture capability under <aos_home>/<root>/capabilities/ and return its dir.
 
     Module-level, taking `home` as a parameter, rather than a method on a shared base
     class: the test classes here are deliberately concrete leaves (CLAUDE.md's note that
@@ -255,7 +255,7 @@ class ManifestTest(unittest.TestCase):
 
 
 class LockfileTest(unittest.TestCase):
-    """The seven verbs that own `<home>/.aos/installs.lock.yaml` — `init record rehash
+    """The seven verbs that own `<aos_home>/.aos/installs.lock.yaml` — `init record rehash
     verify show list remove`. Mirrors `aos_cap.lockfile` + `commands/lockfile.py`."""
 
     def setUp(self):

@@ -67,7 +67,8 @@ Two files have special roles:
 
 ([§3.1](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#31-the-overlay-the-personal-root-mirrored-paths))
 Everything aos touches sits in one directory — the **household**, `~/aos` by default (a
-plain directory, not itself a repo):
+plain directory, not itself a repo). Skills and docs write it as `<aos_home>` — the aos
+home: `--home`/`AOS_HOME`, else `~/aos` (not your home directory):
 
 ```text
 ~/aos/
@@ -212,7 +213,7 @@ Two identities are involved in every write, and git has had the vocabulary all a
 it. So there is nothing to invent and no log to maintain — `git log --format='%an %cn'`
 answers "whose is this, and who wrote it down".
 
-The list mapping this machine's humans to their bases is `<home>/.aos/kb-principal.yml`.
+The list mapping this machine's humans to their bases is `<aos_home>/.aos/kb-principal.yml`.
 `kb init --principal <id>` fills it in when it is missing, and `kb config set principal.id=`
 changes it. An override — `--principal` on any other verb, `AOS_PRINCIPAL_ID` anywhere —
 is used for one call and never saved; on a machine with no identity yet, `kb init` refuses

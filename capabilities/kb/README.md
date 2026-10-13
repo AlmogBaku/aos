@@ -3,14 +3,14 @@
 Knowledge infrastructure (ARCHITECTURE §4). A KB instance is a **base**: a git repo of
 markdown, and nothing else. The capability ships:
 
-- the machine-local registry (`<home>/.aos/kb-registry.yaml`) plus rules-first routing with a
+- the machine-local registry (`<aos_home>/.aos/kb-registry.yaml`) plus rules-first routing with a
   confidence-gated model fallback — shared bases **never** accept model-routed writes,
 - the store itself: an immutable flat `_raw/`, current-truth wiki pages, and one
   tool-managed `.kb/` holding config, the attention window, and the single pending queue,
 - the deterministic **`kb` tool** ([`tool/`](tool/), a `uv`-installed Python CLI; it never
   calls a model — RFC-004's outcome). `kb init` scaffolds by default from a cloned template
   repo (read-only, no fork); `--templates <local-dir>` skips the network, and a clone
-  failure falls back to the templates in `<home>/upstream`,
+  failure falls back to the templates in `<aos_home>/upstream`,
 - one **Archiver** agent across all bases (cross-base re-routing is its point), on two agent
   schedules plus a script-direct exec sync cron.
 

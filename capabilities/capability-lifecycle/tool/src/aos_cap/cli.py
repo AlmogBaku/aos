@@ -11,7 +11,7 @@ lockfile — only the last group is lockfile bookkeeping:
             (mechanical, idempotent)
   home      print the resolved household root
   init/record/rehash/verify/show/list/remove  own the lockfile
-  (<home>/.aos/installs.lock.yaml — the aos household root, e.g. ~/aos)
+  (<aos_home>/.aos/installs.lock.yaml — the aos household root, e.g. ~/aos)
 
 The lockfile is THIS TOOL'S file: agents call verbs, never edit the YAML.
 Exit codes: 0 ok · 1 generic (e.g. init over an existing lockfile) · 12 manifest

@@ -42,9 +42,9 @@ the clone's own history before rendering; `--template <url>` points at a differe
 `--templates <local-dir>` skips the network entirely, which is also the automatic fallback
 when a clone fails for any reason — announced, never silent, never blocking.
 
-It renders the templates, git-inits, registers the base in `<home>/.aos/kb-registry.yaml`
+It renders the templates, git-inits, registers the base in `<aos_home>/.aos/kb-registry.yaml`
 (creating it if absent), and commits. On a machine with no identity yet it saves a typed
-`--principal` to `<home>/.aos/kb-principal.yml` — never `AOS_PRINCIPAL_ID`; with one saved,
+`--principal` to `<aos_home>/.aos/kb-principal.yml` — never `AOS_PRINCIPAL_ID`; with one saved,
 a typed flag authors this init only and the file is left alone (`kb config set
 principal.id=` changes it). A write verb with no resolvable identity — neither flag nor
 file — errors, naming the file. Read-only verbs (`kb lint`, `kb find`, etc.) need no
@@ -66,7 +66,7 @@ exact cron syntax for this harness; what does not vary is *what* to schedule:
 |---|---|---|---|---|
 | `nightly-promote` | `30 23 * * *` | the archiver agent, prompt `agents/archiver/promote.md` | agent job | `AOS_AGENT=agent:archiver` |
 | `weekly-maintain` | `0 7 * * 6` | the archiver agent, prompt `agents/archiver/lint.md` | agent job | `AOS_AGENT=agent:archiver` |
-| `sync` | `*/5 * * * *` | `kb sync --all` | **exec job — no model wakes up** | `AOS_AGENT=agent:archiver`, `AOS_HOME=<home>` |
+| `sync` | `*/5 * * * *` | `kb sync --all` | **exec job — no model wakes up** | `AOS_AGENT=agent:archiver`, `AOS_HOME=<aos_home>` |
 
 **The environment column is not optional, and it is the column people drop.** A cheat-sheet
 puts it in the job's own env, a wrapper script, or an `export` before the command — whichever

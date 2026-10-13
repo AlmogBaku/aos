@@ -5,10 +5,10 @@ parse/validate and the lockfile. **The lockfile is this tool's file — agents c
 never read or write the YAML directly.**
 
 ```
-uv tool install --from <home>/upstream/capabilities/capability-lifecycle/tool aos-cap
+uv tool install --from <aos_home>/upstream/capabilities/capability-lifecycle/tool aos-cap
 # removal:  uv tool uninstall aos-cap
 # zero-install one-off:
-uvx --from <home>/upstream/capabilities/capability-lifecycle/tool aos-cap --help
+uvx --from <aos_home>/upstream/capabilities/capability-lifecycle/tool aos-cap --help
 ```
 
 Verbs: `manifest <dir>` · `skills <dir> [--check] [--harness-skills DIR]× [--json]` ·
@@ -34,8 +34,8 @@ installed name   = the id itself, if the id is the capability id (the entry skil
 ```
 
 `--check` is the install gate. It fails with **17** if any installed name is already
-claimed, looking in three places: every capability under `<home>/upstream` and
-`<home>/personal`, the skill links the lockfile records for *other* capabilities, and each
+claimed, looking in three places: every capability under `<aos_home>/upstream` and
+`<aos_home>/personal`, the skill links the lockfile records for *other* capabilities, and each
 `--harness-skills DIR` (a skills directory the harness itself reads — both `<name>/` dirs
 and flat `<name>.md` files). Links this capability already owns are exempt, so re-installing
 and upgrading are clean. A collision is resolved upstream by renaming the skill — never by
