@@ -63,12 +63,15 @@ happens: [docs/INSTALL.md](docs/INSTALL.md).
 |---|---|
 | [**capability-lifecycle**](capabilities/capability-lifecycle/) | The lifecycle as skills your agent gains: install, upgrade, remove, the interview, wrapping something you already built into a capability, reviewing one. It also draws the line between **operating** and **building** mode, so before your agent makes something durable it stops and offers to plan it properly. |
 | [**kb**](capabilities/kb/) | Where your data lives. Say something worth keeping and it's filed — no form, no questions. Ask later and you get an answer *with sources*, or an honest "not in the KB". Several bases (personal, work), rules deciding what lands where, and a deterministic `kb` tool other capabilities call. |
+| [**open-session**](capabilities/open-session/) | Turns a scheduled job into a conversation. Instead of a cron run ending in a transcript you'd have to go hunting for, the job opens one titled session in your desktop or CLI Recents, seeded with its opening message — and you reply whenever you like. The instruction behind it stays hidden, so the session opens with the agent talking. Any capability's schedule can use it; it owns none of its own. |
 
 **Personal-assistant capabilities, built on those:**
 
 | | |
 |---|---|
 | [**work-tracker**](capabilities/work-tracker/) | *"I need to write the CFP by Friday"* becomes a tracked commitment with time blocked for it, in the same exchange. A nightly steward finds what slipped and asks about it. |
+| [**structured-interview**](capabilities/structured-interview/) | Being interviewed, properly. One question at a time, listening for the thing worth following instead of marching through a questionnaire, and stopping when the objective is met rather than when the list runs out. The record is rewritten after every turn, so you can answer three days later and pick up exactly where you stopped. Other capabilities call it when they need something only you know. |
+| [**ghostwriter**](capabilities/ghostwriter/) | The posts you have the material for and never write. It interviews you, finds the evidence in your KB, drafts, then argues with the draft — every claim pointing at a source, private material flagged rather than quietly laundered — and hands you Blog/LinkedIn/X variants to publish yourself. Twice a week it opens a session and asks you one question. |
 
 > [!NOTE]
 > **Coming next**, mostly more substrate: **agent-comms** (agents talking to each other, with no
