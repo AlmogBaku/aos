@@ -52,6 +52,11 @@ the profile's default doesn't already fit the class; never hardcode provider nam
    capability's (contract: its entry, its skill links or `aos:<capability>:` jobs) → adopt it:
    no `profile create`, no `SOUL.md` write, keep its `state.db`, sessions, gateway,
    workspace and hand-written identity files; record no `SOUL.md`.
+   **Background-only agent** (nobody chats with it — an archiver, a steward; its `purpose`
+   says it never messages anyone or only runs on schedule) → hide it from the Desktop bots
+   roster: in the profile's `profile.yaml` set `ui_meta.hermes-bots.hidden: true`, merging
+   into any existing `ui_meta`, and increment `_ui_meta_revisions.hermes-bots` (start at 1).
+   An agent a person talks to stays visible. Adopting a profile never changes its visibility.
 2. **Skills**: `aos-cap skills <cap-dir>` gives the installed name; the render lives once
    at `<aos_home>/personal/<render-path>/skills/<installed-name>/` (contract);
    create a symlink per `used_by` — `ln -s <render-dir> ~/.hermes/skills/<installed-name>`
