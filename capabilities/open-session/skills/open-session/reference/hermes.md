@@ -6,7 +6,7 @@
 <hermes venv>/bin/python <render-dir>/scripts/open_session.py --profile {profile} --title {title} --prompt-file {prompt_file} {skills} --workdir {workdir}
 ```
 
-`<render-dir>` is this skill's pinned render, `<home>/personal/<render-path>/skills/open-session`
+`<render-dir>` is this skill's pinned render, `<aos_home>/personal/<render-path>/skills/open-session`
 (`renders/open-session` for a personal package, `capabilities/open-session` for a shipped one).
 `<hermes venv>/bin/python` is the interpreter behind the `hermes` launcher (here
 `~/.hermes/hermes-agent/venv/bin/python`): the script imports `hermes_state`, which only that

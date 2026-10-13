@@ -1,6 +1,6 @@
 ---
 id: open-session
-version: 0.2.1
+version: 0.2.2
 tags: [infra]
 summary: An unattended run opens a new, titled, user-visible chat session in the harness seeded with an opening prompt, so the user continues it in their desktop or CLI instead of the job transcript.
 skills:
