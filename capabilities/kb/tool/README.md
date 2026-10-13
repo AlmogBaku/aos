@@ -3,12 +3,12 @@
 Capability-shipped deterministic executor (ARCHITECTURE §2.4; RFC-004's outcome).
 Installed at capability-install time:
 
-    uv tool install --from <home>/upstream/capabilities/kb/tool aos-kb
+    uv tool install --from <aos_home>/upstream/capabilities/kb/tool aos-kb
 
 …which puts the `kb` command on PATH (recorded in the lockfile; removal =
 `uv tool uninstall aos-kb`). Zero-install alternative for one-off use:
 
-    uvx --from <home>/upstream/capabilities/kb/tool kb --help
+    uvx --from <aos_home>/upstream/capabilities/kb/tool kb --help
 
 ## What it refuses to do
 

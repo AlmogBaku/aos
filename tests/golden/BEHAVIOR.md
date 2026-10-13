@@ -5,9 +5,12 @@ sandbox bases. Each step has an observable expected outcome; a step without its
 outcome is a failure. Deterministic steps use the tool directly; agent steps drive the
 installed profiles with `hermes -p <profile> -z`. Transcript → `tests/transcripts/`.
 
-Env for tool steps: `AOS_REGISTRY=<sandbox>/aos-home/personal/kb-registry.yaml`,
-`AOS_AGENT=agent:main`, tool = the installed `kb` command (or `uv run --project
-<sandbox>/aos-home/upstream/capabilities/kb/tool kb`).
+Env for tool steps: `AOS_HOME=<sandbox>/aos-home` (the registry is then
+`<aos_home>/.aos/kb-registry.yaml` — without it every verb resolves `~/aos`),
+`AOS_PRINCIPAL_ID=dana@example.com` (a per-call override; the saved identity came from the
+bootstrap `kb init --principal`), `AOS_AGENT=agent:main`, and PROTOCOL step 2's `UV_TOOL_*`
+and PATH lines, so tool = the sandbox's installed `kb` in `<sandbox>/uv/bin` (or
+`uv run --project <sandbox>/aos-home/upstream/capabilities/kb/tool kb`).
 
 | # | Step | Expected observable outcome |
 |---|---|---|
@@ -23,7 +26,7 @@ Env for tool steps: `AOS_REGISTRY=<sandbox>/aos-home/personal/kb-registry.yaml`,
 | 10 | Commitment path (work-tracker) — the seam this capability exists for: tell the front profile *"I need to find time to write the CFP before Friday"* | **In the same exchange**: an action page under `actions/` with `status: next` and an `estimate:`, AND a real calendar block placed outside sacred time (the `choir` sentinel from the global MOD is respected). Not at midnight. `kb lint`'s grants audit stays clean afterwards — the two grant rows cover `actions/**`, `projects/**` and `index.md` |
 | 11 | Steward pass: drive `hermes -p aos-steward -z` with its nightly prompt against a backlog seeded with one overdue item, one stalled, and one carrying `slipped: 3` | Bookkeeping applied silently (an extended `expires`, a recorded stall, a rescheduled block it created); the `slipped: 3` item is **escalated as a question**, never rewritten; nothing the user is waiting on is touched. On a clean backlog it says one line and delivers nothing. **No ordering relationship with kb's promote** — each runs because it is independently correct, not because one waits for the other |
 | 12 | capability-build trigger probes (plain user messages to a freshly installed aos-test profile — no meta-instructions): (a) "Every weekday at 8:00, send me a one-line weather summary on WhatsApp"; (b) "Create a file called notes.md…"; (c) a recurring ask plus explicit agreement; (d) "change work-tracker's steward hour to 22:00" | (a) the interrupt fires ("should we plan this methodically?") and **zero cron jobs exist afterwards**; (b) no interrupt — the one-off task is just done; (c) the Intake stage begins with the reference doc's question set, nothing durable written; (d) **no interrupt** — that is the overlay round-trip (`capability-evolve`), which is the carve-out the MARS block names explicitly. The SOUL block is what makes (a) fire: push-context, not skill-pull |
-| 13 | Removal per cheat-sheet (PROTOCOL.md step 6) | Profiles/cron/skills gone; lockfile cleared; **base trees under `tests/.sandbox/kb/` untouched** (user data is never deleted); `<home>/.aos/kb-principal.yml` is *offered* for deletion rather than assumed either way; prestate matches |
+| 13 | Removal per cheat-sheet (PROTOCOL.md step 6) | Profiles/cron/skills gone; lockfile cleared; the sandbox's `aos-kb`/`aos-cap` gone from `<sandbox>/uv/`, the machine's own untouched; **base trees under `tests/.sandbox/kb/` untouched** (user data is never deleted); `<aos_home>/.aos/kb-principal.yml` and `<aos_home>/.aos/kb-registry.yaml` are *offered* for deletion rather than assumed either way; prestate matches |
 
 Steps 1, 3, 6, 7 and 8 are deterministic (also covered per-verb by tier-0 — here they prove
 the *installed* wiring). Steps 4–5 and 10–11 are the agentic seam a golden snapshot cannot

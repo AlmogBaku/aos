@@ -18,7 +18,7 @@ import typer
 
 from ..identity import (
     agent_subject, agent_email, is_repo, git, sequencer_state, resolve_principal,
-    principal_name,
+    principal_name, principal_file,
 )
 from ..registry import load_registry
 from ..base import Base, resolve_base
@@ -38,8 +38,8 @@ def _remote_ref_missing(proc) -> bool:
     return "couldn't find remote ref" in s or "no such ref" in s
 
 
-def _sync_one(root: Path, name: str, agent: str = "agent:main",
-              author: tuple[str, str] | None = None, attempts: int = 3) -> int:
+def _sync_one(root: Path, name: str, agent: str, author: tuple[str, str],
+              attempts: int = 3) -> int:
     # Never touch a worktree that is mid-operation. `git add -A` here would stage the
     # conflict-marker versions and commit them, and git then refuses to start another
     # operation over the leftover state — so every later tick fails too, silently,
@@ -64,8 +64,7 @@ def _sync_one(root: Path, name: str, agent: str = "agent:main",
         env = dict(os.environ)
         env["GIT_COMMITTER_NAME"] = agent
         env["GIT_COMMITTER_EMAIL"] = agent_email(agent)
-        env["GIT_AUTHOR_NAME"], env["GIT_AUTHOR_EMAIL"] = (
-            author if author and all(author) else (agent, agent_email(agent)))
+        env["GIT_AUTHOR_NAME"], env["GIT_AUTHOR_EMAIL"] = author
         r = subprocess.run(
             ["git", "commit", "-q", "-m",
              f"sweep: {n} path{'s' if n != 1 else ''} written outside a verb"],
@@ -127,8 +126,8 @@ def cmd_sync(
     no_jitter: Annotated[bool, typer.Option(
         help="skip the pre-fetch stagger (tests, and a one-off manual run)")] = False,
 ):
-    reg = load_registry(ctx.obj)
     if all:
+        reg = load_registry(ctx.obj)    # one base named by path needs no registry
         targets = [k for k in reg["kbs"] if k.get("sync") == "rebase-5min"]
         # Bases the scheduled sweep does not cover are reported, not dropped: an
         # adopted base is always `manual`, so silence here reads as "everything is
@@ -150,7 +149,15 @@ def cmd_sync(
             print(f"{kb.get('name')}: skipped (not a git repo)")
             continue
         name = kb.get("name", root.name)
-        pid = resolve_principal(ctx.obj, name, root)
+        # Sync commits (the sweep, a conflict entry) as the resolved identity. In the
+        # cron's sweep, one base without one is that base's failure, not every later
+        # base's: reported and skipped. A single base named by path still just fails.
+        pid = resolve_principal(ctx.obj, name, required=not all)
+        if pid is None:
+            print(f"{name}: skipped (no identity for this base in {principal_file()} "
+                  f"— `kb config set principal.id=<id>`)", file=sys.stderr)
+            worst = max(worst, 1)
+            continue
         code = _sync_one(root, name, agent,
                          (principal_name(ctx.obj, root, pid), pid))
         worst = max(worst, code)

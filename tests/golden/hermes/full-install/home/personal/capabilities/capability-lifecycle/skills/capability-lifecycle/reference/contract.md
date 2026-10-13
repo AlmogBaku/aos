@@ -17,9 +17,10 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   `~/aos`) contains `upstream/` (the kit clone — pristine, never anything personal, not
   even untracked files), `personal/` (the user's one private git repo: MOD files at
   mirrored capability paths, the pinned renders, their private capabilities), `.aos/`
-  (machine state — the lockfile, plus any machine-local file a capability's tool writes for
-  itself: kb's `kb-principal.yml` is the one today. Machine-local means gitignored and
-  per-machine, so it is recreated by the tool rather than carried between machines), and
+  (machine state — the lockfile, plus machine-local files a capability's tool writes for
+  itself: kb writes `kb-principal.yml` and `kb-registry.yaml` here. Machine-local means
+  gitignored and per-machine, so they are recreated by the tool rather than carried between
+  machines), and
   `vendor/` (third-party skills aos references rather
   than ships — cloned, symlinked, and recorded like anything else, but never rendered and
   never origin-tagged: they are not ours to modify). A capability id resolves against `personal/`
@@ -200,7 +201,15 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   household path into renders (same pass as `{{mod}}`), and scheduled commands get
   `--home`/`AOS_HOME` baked the same way. The lifecycle capability's own skills are
   render-stable (no `{{mod}}` slots) and keep the placeholder — resolve it at use time
-  with `aos-cap --home <path> home` (or bare `aos-cap home` from inside the
-  household; exit 15 when there is none), never by guessing `~/aos`.
+  with `aos-cap --home <path> home` (or bare `aos-cap home`, which defaults to `~/aos`
+  unless `--home`/`AOS_HOME` overrides it; exit 15 when none resolves).
 - Harness-owned files (e.g. Hermes `config.yaml`, `cron/jobs.json`) are touched only
   through the harness's own CLI, per the cheat-sheet.
+- A hook a capability declares runs only once the harness's consent mechanism has
+  approved it: approve each hook by its exact command, never a profile-wide auto-accept,
+  and before the install counts as done confirm every hook is registered and active with
+  the harness's own check — its doctor, where it has one. A harness skips an unconsented
+  hook with no more than a log line, so an unverified wall is no wall. Its script lives
+  outside every walled agent's writable paths and is recorded as an `--artifact`, so
+  `aos-cap verify` flags a rewrite. Removal revokes each hook's consent record before
+  deleting the script.

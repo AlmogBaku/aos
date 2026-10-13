@@ -102,7 +102,7 @@ construction.
 and they live in the capability source rather than in any installed skill. If you are the
 archiver and you were woken by a schedule, your prompt is your procedure: follow it, not this
 map. If you are the front agent and the user asks for one on demand (*"promote the inbox
-now"*), read that prompt from `<home>/upstream/capabilities/kb/agents/archiver/` and follow
+now"*), read that prompt from `<aos_home>/upstream/capabilities/kb/agents/archiver/` and follow
 it as written — do not reconstruct a promote pass from this skill, because the judgment that
 makes promotion safe (default-empty, and what clears the bar) is stated there and nowhere
 else.

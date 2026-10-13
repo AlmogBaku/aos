@@ -2,10 +2,11 @@
 stashed on `ctx.obj` as `GlobalOpts` — and stashed RAW, unresolved. The callback never
 calls `find_home()` itself; it only stores the string the user passed (or None).
 
-That laziness is deliberate and load-bearing: `find_home()` rejects a household with no
-`.aos/` directory, and `init` is the one verb that must accept one — it is what creates
-the directory. An eager callback that resolved `--home` itself would reject a fresh
-clone before `init`'s own body ever ran.
+That laziness is deliberate and load-bearing: `find_home()` (`--home`, else `$AOS_HOME`,
+else `~/aos`) rejects a household with no `.aos/` directory, and `init` is the one verb
+that must accept one — it is what creates the directory, and so it alone refuses the
+`~/aos` default and wants the household named. An eager callback that resolved `--home`
+itself would reject a fresh clone before `init`'s own body ever ran.
 
 `GlobalOpts` keeps the attribute name `home` that `find_home()`/`find_home_soft()`
 already read (they were written against an argparse `Namespace`), so passing a

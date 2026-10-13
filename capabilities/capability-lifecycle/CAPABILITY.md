@@ -1,6 +1,6 @@
 ---
 id: capability-lifecycle
-version: 0.4.2
+version: 0.5.0
 tags: [infra]
 summary: The capability lifecycle as one capability — install, upgrade, remove, onboard, import, build, contribute, evolve, and review as skills for the front agent; the MOD.md overlay with its promote/retire exit side; the household layout with pinned renders and symlink installs; the per-harness cheat-sheets; and the aos-cap tool that owns the lockfile and computes every skill's installed name.
 skill_prefix: capability-
@@ -32,15 +32,17 @@ skills:
 You are reading this at bootstrap, installing the capability that will make every later
 install a skill. This is the only capability `BOOTSTRAP.md` installs inline (the
 chicken-and-egg break); everything else goes through the `capability-install` skill
-afterwards. The household is already in place when you get here (BOOTSTRAP §1):
-`<home>/upstream` this clone, `<home>/personal` the user's private repo, `<home>/.aos`
-machine state, and `<home>/vendor` for third-party skills this capability references.
+afterwards. The household — `<aos_home>`, the aos home: `--home`/`AOS_HOME`, else
+`~/aos` (not your home directory) — is already in place when you get here (BOOTSTRAP
+§1): `<aos_home>/upstream` this clone, `<aos_home>/personal` the user's private repo,
+`<aos_home>/.aos` machine state, and `<aos_home>/vendor` for third-party skills this
+capability references.
 
 ## What you materialize
 
 1. **The `aos-cap` tool first**:
-   `uv tool install --from <home>/upstream/capabilities/capability-lifecycle/tool aos-cap`
-   (`uv` is a hard bootstrap prerequisite). Then `aos-cap --home <home> init` creates
+   `uv tool install --from <aos_home>/upstream/capabilities/capability-lifecycle/tool aos-cap`
+   (`uv` is a hard bootstrap prerequisite). Then `aos-cap --home <aos_home> init` creates
    the lockfile — the tool's file from this moment on; you call verbs, you never edit
    the YAML.
 2. **All ten skills to the front agent** (`used_by: [main]` throughout), per your
@@ -79,10 +81,10 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
      schedule-shaped ask the shortest way and never consult it — so the boundary must be
      push-context, always present. Found the hard way in the first live e2e.
    - `aos:capability-lifecycle:concepts@<ver>` — the vocabulary no harness owns,
-     materialized verbatim (with `<home>` baked to the real household path):
+     materialized verbatim (with `<aos_home>` baked to the real household path):
 
      > aos installs *capabilities* — directories of skills you materialize, not programs
-     > you run. They live in the household (`<home>`): `upstream/` the kit, `personal/`
+     > you run. They live in the household (`<aos_home>`): `upstream/` the kit, `personal/`
      > the user's renders and their `MOD.md` answers. install / upgrade / remove are
      > conversations, never a program — the `capability-lifecycle` skill is the map.
 
@@ -104,9 +106,9 @@ machine state, and `<home>/vendor` for third-party skills this capability refere
      where the harness has a plugin mechanism, use it (`/plugin marketplace add
      anthropics/skills`, then install `skill-creator`).
    - Otherwise: `git clone --depth 1 https://github.com/anthropics/skills
-     <home>/vendor/anthropic-skills` and symlink `skills/skill-creator/` into the front
+     <aos_home>/vendor/anthropic-skills` and symlink `skills/skill-creator/` into the front
      agent's skills dir — never a copy, the same rule our own renders follow. Updating is
-     `git -C <home>/vendor/anthropic-skills pull --ff-only`; the clone's
+     `git -C <aos_home>/vendor/anthropic-skills pull --ff-only`; the clone's
      `git rev-parse HEAD` is its version, so nothing new is recorded in the lockfile
      schema.
    - Record it under **this** capability so `verify` sees drift, `remove` unlinks it, and
@@ -226,7 +228,7 @@ link the provider no longer declares is shown and asked about, never dropped.
 
 `aos-cap show capability-lifecycle` → delete the ten skill symlinks and the
 `skill-creator` link, then the render dirs in `personal/` via a commit → remove the
-`aos:capability-lifecycle:*` context blocks → `<home>/vendor/anthropic-skills` if nothing
+`aos:capability-lifecycle:*` context blocks → `<aos_home>/vendor/anthropic-skills` if nothing
 else uses it → `uv tool uninstall aos-cap` → the lockfile entry is the last thing
 standing. Removing this capability last, after every other capability is removed, is the
 only safe order — the other removals need its skills and its tool.

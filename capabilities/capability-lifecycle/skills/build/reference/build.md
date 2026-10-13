@@ -1,7 +1,7 @@
 # Stage 4 — Build
 
 Only after Design is approved. Materialize into
-`<home>/personal/capabilities/<id>/` — the user's private repo, where their
+`<aos_home>/personal/capabilities/<id>/` — the user's private repo, where their
 capabilities live until (and unless) they graduate — following the package layout
 every shipped capability uses: `CAPABILITY.md`, `README.md`, `skills/<id>/SKILL.md`
 (the entry skill) plus any further `skills/`, `agents/*.agent.yaml` for every agent
@@ -34,7 +34,7 @@ so depth goes in its `reference/`, another skill's knowledge is reached by namin
 skill, and anything in the household is written from a root. Run the uniqueness gate as soon
 as the package is structurally parseable — `CAPABILITY.md`, `README.md`, every declared
 skill's `SKILL.md` and every schedule's `prompt_ref` exist — and before rendering or
-materializing anything: `aos-cap --home <home> skills <package-dir> --check
+materializing anything: `aos-cap --home <aos_home> skills <package-dir> --check
 --harness-skills <dir> …` (one flag per skills dir). The verb validates the manifest first, and
 the validator refuses a declaration whose README, skill folders or prompt refs are missing,
 so a gate right after `CAPABILITY.md` alone cannot run. Exit 17 means the name is taken;
@@ -51,7 +51,7 @@ holds together. That gap is where most of this kit's recorded defects have lived
 read-only, so it costs you nothing but the reading.
 
 Then run the kit linter **against the personal root** —
-`uv run --project <home>/upstream/tools/aos_lint python -m aos_lint.cli --root <home>/personal` (without
+`uv run --project <aos_home>/upstream/tools/aos_lint python -m aos_lint.cli --root <aos_home>/personal` (without
 `--root` it lints the kit and reports green on a package it never opened) — the new
 package must add zero errors, and every warning it adds is resolved or justified in its
 briefing (`skill/all-main` means a role exists that nothing is scoped to) — and show the
@@ -63,7 +63,7 @@ stranger test, dependency test, coherence test, the maintenance-willingness ques
 the ledger search):
 
 - **Clearly generally useful** → ask, once: *"Want to contribute this?"* Yes →
-  duplicate the package onto a branch in `<home>/upstream`, run the self-containment
+  duplicate the package onto a branch in `<aos_home>/upstream`, run the self-containment
   scrub again on the copy, and continue per the {{skill: contribute}} skill's
   contribute reference — the PR opens only on the user's explicit confirm.
 - **Clearly niche** (their org's CRM, their home server) → no prompt; one soft line:

@@ -7,8 +7,9 @@ description: "The aos capability lifecycle's front door. Use when the user asks 
 
 Capabilities are self-describing prompts; **you are the installer**. Judgment is yours;
 bookkeeping is `aos-cap`'s (`aos-cap --help` — the lockfile is its file, never edit
-the YAML). Everything lives in the household `<home>` (default `~/aos`): `upstream/`
-the pristine kit clone, `personal/` the user's private repo (their MOD files, the
+the YAML). Everything lives in the household `<aos_home>` — the aos home:
+`--home`/`AOS_HOME`, else `~/aos` (not your home directory): `upstream/` the pristine
+kit clone, `personal/` the user's private repo (their MOD files, the
 pinned renders harnesses symlink to, their private capabilities), `.aos/` machine
 state. The diff gate is never optional. `MOD.md` states the user's
 personalization — what they changed from the shipped defaults, current state, edited in

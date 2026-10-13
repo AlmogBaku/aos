@@ -1,4 +1,4 @@
-"""The seven verbs that own `<home>/.aos/installs.lock.yaml`: `init` creates it,
+"""The seven verbs that own `<aos_home>/.aos/installs.lock.yaml`: `init` creates it,
 `record` writes one capability's entry (refusing a link another entry already owns), `rehash` refreshes its hashes after an approved
 evolve, `verify` compares it against disk, and `show`/`list`/`remove` read and prune it.
 

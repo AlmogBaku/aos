@@ -18,7 +18,8 @@ from ..constants import VERSION, LAYOUT, TEMPLATE_REPO_URL
 from ..frontmatter import slugify, read_frontmatter, write_frontmatter
 from ..identity import (
     today, die, agent_subject, is_repo, git, is_weak_principal, principal_file,
-    resolve_principal, principal_name,
+    resolve_principal, init_principal, save_principals, principal_name,
+    usable_principals, principals_unusable,
 )
 from ..registry import load_registry, save_registry, find_upstream_root
 from ..base import Base, acting
@@ -36,7 +37,7 @@ def _resolve_templates(templates: Optional[str], template_repo: str,
     """Where init's templates come from: --templates (a local dir — skip the network
     step entirely, unchanged from before this repo existed) beats a clone of
     --template/the default TEMPLATE_REPO_URL, which falls back to the tree shipped
-    inside this checkout on any clone failure (no network, bad URL, git not configured
+    in <aos_home>/upstream on any clone failure (no network, bad URL, git not configured
     for the host, ...). The fallback is silent-but-noted, never blocking or prompting —
     the same shape as the `git lfs version` check just below in cmd_init.
 
@@ -54,10 +55,11 @@ def _resolve_templates(templates: Optional[str], template_repo: str,
         tmp_holder.append(tmp)   # keep the TemporaryDirectory alive past this call
         return dst
     tmp.cleanup()
+    fallback = find_upstream_root() / "capabilities/kb/skills/init/templates"
     print(f"note: couldn't clone the template repo ({template_repo}) — "
-          f"falling back to the templates shipped in this checkout "
+          f"falling back to the templates in {fallback} "
           f"(`git lfs version`-style degrade: never blocks, never prompts).")
-    return find_upstream_root() / "capabilities" / "kb" / "skills" / "init" / "templates"
+    return fallback
 
 
 @app.command("init", help="scaffold + register a new base")
@@ -83,10 +85,19 @@ def cmd_init(
              "material — name them with --curator")] = "self",
     curator: Annotated[Optional[str], typer.Option(
         help="principal id, iff --curation designated")] = None,
+    principal: Annotated[Optional[str], typer.Option(
+        help="the global --principal, typed after the verb. Saved to "
+             "<aos_home>/.aos/kb-principal.yml only when no identity exists yet; "
+             "otherwise an override for this init")] = None,
 ):
+    if principal:
+        ctx.obj.principal = principal
     root = Path(path).expanduser().resolve()
     if (root / ".kb" / "base.yml").exists():
         die(f"{root} already has a .kb/base.yml")
+    # Before anything touches disk: an init with no identity is refused on an untouched
+    # tree. A missing identity is saved only once the base exists (below).
+    pid, save_identity = init_principal(ctx.obj, name)
     tmp_holder = []
     tpl = _resolve_templates(templates, template, tmp_holder)
     if not (tpl / "base.yml").exists():
@@ -125,7 +136,6 @@ def cmd_init(
         render(tpl / "base.README.md", root / "README.md")
 
     base = Base(root)
-    pid = resolve_principal(ctx.obj, name, root)
     render(tpl / "state.yml", base.state_path(pid))
 
     for zone, d in base.zones().items():
@@ -156,19 +166,19 @@ def cmd_init(
     else:
         print("note: git-lfs not installed — large non-text files won't be "
               "LFS-tracked until it is (`git lfs install --local` later).")
-    # The user's own git identity authors every write from here on. We deliberately do
-    # NOT overwrite it with a per-base agent identity: that erased the one attribution
+    # The principal is the git author of every write from here on. We deliberately do
+    # NOT set a per-base agent identity in the repo: that erased the one attribution
     # git gives for free, and on a base two people share it made both of them the same
     # author. The acting agent is recorded as the committer instead.
     if is_weak_principal(pid):
-        print(f"note: writes will be authored by {pid!r}, a synthesized identity — "
+        print(f"note: writes will be authored by {pid!r}, a placeholder identity — "
               f"`kb lint` reports it. Fix it in {principal_file()}, or let kb's "
               f"onboarding interview ask.")
     if remote:
         subprocess.run(["git", "remote", "add", "origin", remote],
                        cwd=root, check=False)
 
-    reg = load_registry(ctx.obj)
+    reg = load_registry(ctx.obj, create=True)
     existing = next((k for k in reg["kbs"] if k.get("name") == name), None)
     if existing:
         # A pre-seeded registry entry (interview ran first) is fine iff it points at
@@ -192,6 +202,10 @@ def cmd_init(
         reg["default"] = name
     reg.setdefault("confidence_bar", 0.7)
     save_registry(ctx.obj, reg)
+    # Checked again just before writing: the template clone ran in between, and an identity
+    # that appeared meanwhile is somebody's — leave it.
+    if save_identity and not usable_principals() and not principals_unusable():
+        save_principals([{"id": pid, "bases": ["*"]}])
 
     base.commit("bootstrap", ".", f"base {name} scaffolded (layout {LAYOUT})",
                 agent_subject(ctx.obj), (principal_name(ctx.obj, root, pid), pid))
@@ -214,7 +228,7 @@ def cmd_adopt(
     root = Path(path).expanduser().resolve()
     if not root.is_dir():
         die(f"{root} is not a directory")
-    reg = load_registry(ctx.obj)
+    reg = load_registry(ctx.obj, create=True)
     if any(Path(k.get("path", "")).expanduser() == root for k in reg["kbs"]):
         die(f"{root} already registered")
     name = name or root.name
@@ -277,6 +291,8 @@ def cmd_migrate(
             "with uncommitted work cannot be reverted cleanly.", 13)
 
     cfg = yaml.safe_load((root / "BASE.yaml").read_text(encoding="utf-8")) or {}
+    # Before the first move: a migration with no identity must fail on an untouched tree.
+    pid = resolve_principal(ctx.obj, cfg.get("name", root.name))
     moved, dropped = [], []
 
     def mv(src: str, dst: str):
@@ -304,7 +320,6 @@ def cmd_migrate(
 
     # 2. state -> one shard per principal. The old flat file is this principal's by
     #    definition: a layout 1 private base had exactly one writer.
-    pid = resolve_principal(ctx.obj, cfg.get("name", root.name), root)
     if (root / "state.yaml").exists():
         mv("state.yaml", f".kb/state/{slugify(pid)}.yml")
     old_shards = root / "state"

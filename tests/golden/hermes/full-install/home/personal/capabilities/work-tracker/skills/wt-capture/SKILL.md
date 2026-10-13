@@ -89,12 +89,18 @@ otherwise. Say which you did, because *"blocked 14:00–16:00 tomorrow"* and *"f
 calendar here"* are different promises and the user is entitled to know which one they got.
 
 The user should experience one act, not two. wt-schedule comes back with the time; you
-confirm once, with the time in it.
+confirm once — with the 🦜 below, which for this user replaces naming the time. If scheduling
+hit a conflict or there was no calendar, that is the one thing worth a line after the 🦜.
 
-**How the confirmation reads is the user's call**: verb-first. Some people want the
-commitment phrased back in full, some want one emoji and nothing else. Honour it exactly —
-this is the line they see several times a day, and it is the whole surface of an interaction
-whose other half is silent.
+**How the confirmation reads is the user's call**: confirm every commitment with a single 🦜
+emoji — nothing else, ever. Never echo the commitment back, not even the scheduled time: the
+🦜 is the whole confirmation. Honour it exactly — this is the line they see several times a
+day, and it is the whole surface of an interaction whose other half is silent.
+
+**How the commitment itself is phrased** (the page `title`, and any listing of it later):
+verb-first — *"Email Sam the deck"*, not *"Sam has the deck"*. Anything with a deadline gets
+the deadline in the phrasing (*"Submit the CFP by Fri 16 Oct"*), because that is the part
+worth seeing at a glance.
 
 ## When something fails
 

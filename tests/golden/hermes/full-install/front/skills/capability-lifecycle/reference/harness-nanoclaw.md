@@ -95,6 +95,16 @@ already fit the class; never hardcode provider names.
    approval-gated — expect a pending approval, not instant effect. Record every field set in
    the lockfile. v1: `container_config` JSON column (example
    `config-examples/mount-allowlist.json`).
+6. **Command hooks.** No consent gate — NanoClaw's Claude provider runs
+   `bypassPermissions`. Write a command hook into
+   `data/v2-sessions/<agent-group-id>/.claude-shared/settings.json` (the container's
+   `~/.claude`; NanoClaw preserves existing entries including its own `PreCompact` hook);
+   fires inside the container, scheduled runs too; script paths must resolve inside
+   (inferred). No `ncl` hook verb; no list/doctor — read the file back to confirm. Silent
+   wall: a path outside `allowedRoots` in `~/.config/nanoclaw/mount-allowlist.json` is
+   dropped at spawn (`Additional mount REJECTED` in `logs/nanoclaw.log`; a missing
+   allowlist file blocks all additional mounts) — add only the specific root needed (never
+   `~` or `/`), `ncl groups restart`, grep for no REJECTED.
 
 ## Introspection guide
 

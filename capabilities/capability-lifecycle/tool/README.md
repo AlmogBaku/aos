@@ -5,10 +5,10 @@ parse/validate and the lockfile. **The lockfile is this tool's file — agents c
 never read or write the YAML directly.**
 
 ```
-uv tool install --from <home>/upstream/capabilities/capability-lifecycle/tool aos-cap
+uv tool install --from <aos_home>/upstream/capabilities/capability-lifecycle/tool aos-cap
 # removal:  uv tool uninstall aos-cap
 # zero-install one-off:
-uvx --from <home>/upstream/capabilities/capability-lifecycle/tool aos-cap --help
+uvx --from <aos_home>/upstream/capabilities/capability-lifecycle/tool aos-cap --help
 ```
 
 Verbs: `manifest <dir>` · `skills <dir> [--check] [--harness-skills DIR]× [--json]` ·
@@ -16,8 +16,7 @@ Verbs: `manifest <dir>` · `skills <dir> [--check] [--harness-skills DIR]× [--j
 `render <dir> <skill-id> --out DIR [--force]` · `init` ·
 `record <cap> --version … --source-root upstream|personal|<org> --artifact …× --link …× --uses-link …× --job …× --config-key …× --env-line …× --script …×` ·
 `rehash <cap>` (refresh recorded hashes in place) · `verify [<cap>]` · `show <cap>` ·
-`list` · `remove <cap>`. Household discovery: `--home` > `$AOS_HOME` > cwd-upward search
-for `.aos/`. Exit codes: 0 ok · 1 generic (init over an existing lockfile) · 12 manifest
+`list` · `remove <cap>`. Household discovery: `--home` > `$AOS_HOME` > `~/aos`. Exit codes: 0 ok · 1 generic (init over an existing lockfile) · 12 manifest
 invalid · 13 drift · 14 no such entry · 15 no home · 16 artifact missing / not a symlink ·
 17 skill- or agent-name collision · 18 unresolvable `{{skill:}}`/`{{agent:}}` slot ·
 19 a link another entry already records.
@@ -35,17 +34,17 @@ installed name   = the id itself, if the id is the capability id (the entry skil
 ```
 
 `--check` is the install gate. It fails with **17** if any installed name is already
-claimed, looking in three places: every capability under `<home>/upstream` and
-`<home>/personal`, the skill links the lockfile records for *other* capabilities, and each
+claimed, looking in three places: every capability under `<aos_home>/upstream` and
+`<aos_home>/personal`, the skill links the lockfile records for *other* capabilities, and each
 `--harness-skills DIR` (a skills directory the harness itself reads — both `<name>/` dirs
 and flat `<name>.md` files). Links this capability already owns are exempt, so re-installing
 and upgrading are clean. A collision is resolved upstream by renaming the skill — never by
 renaming at install time.
 
-The first two sources need a household. It resolves from `--home`, `$AOS_HOME`, or by walking
-up from the capability directory (which is inside one) — but **read the `checked:` lines the
-clean report prints**: a source it could not reach is named in capitals. "Clean" against two
-of three sources is not clean, so pass `--home` and the harness's skills dirs explicitly.
+The first two sources need a household. It resolves from `--home`, `$AOS_HOME`, else `~/aos`
+— but **read the `checked:` lines the clean report prints**: a source it could not reach is
+named in capitals. "Clean" against two of three sources is not clean, so pass `--home` and
+the harness's skills dirs explicitly.
 
 ## Agent names — the same identity, one directory over
 

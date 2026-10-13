@@ -17,8 +17,8 @@ Lookup, not narrative. The reasoning is in [design.md](design.md).
 | `_raw/` | `agent:archiver` | source material, flat, immutable once ingested, never expires |
 | `entities/ concepts/ projects/ profile/` | `agent:archiver` (`profile/` is `agent:main`) | wiki pages, current truth only |
 | `.gitattributes` | tool | git-LFS patterns for large binaries |
-| `<home>/.aos/kb-principal.yml` | tool | machine-local, gitignored: the principal list |
-| `<home>/personal/kb-registry.yaml` | user | the registry of every base — overlay family, never shipped upstream |
+| `<aos_home>/.aos/kb-principal.yml` | tool | machine-local, gitignored: the principal list |
+| `<aos_home>/.aos/kb-registry.yaml` | tool | machine-local, gitignored: the registry of every base |
 
 ## Page frontmatter
 
@@ -65,7 +65,7 @@ can move it).
 
 | Verb | Reads / Writes | What it does |
 |---|---|---|
-| `kb init` | W | scaffold a new base, register it, write the principal file |
+| `kb init` | W | scaffold a new base, register it; on a machine with no identity yet, save the typed `--principal` as the principal file (never `AOS_PRINCIPAL_ID`) |
 | `kb adopt` | W (registry only) | register an existing tree; zero writes into it |
 | `kb migrate` | W | previous layout → current, with `git mv` so history follows |
 | `kb capture` | W | file content into `.kb/pending/`; `--corrects <path>` links a correction |

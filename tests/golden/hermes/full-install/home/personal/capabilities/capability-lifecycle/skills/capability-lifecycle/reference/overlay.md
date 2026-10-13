@@ -12,9 +12,8 @@
 state, not a history.** Typed answers live in its frontmatter; anything the questions
 don't cover is an imperative prose statement in its body ("the steward runs at 22:00, not
 23:00"). The overlay family lives in the personal root at mirrored paths
-(`<home>/personal/MOD.md`, `<home>/personal/capabilities/<id>/MOD.md`,
-`<home>/personal/kb-registry.yaml` — §3.1); upstream never ships, writes, or merges any
-of it. Everything personal is reconstructible from `original × MOD.md`; that
+(`<home>/personal/MOD.md`, `<home>/personal/capabilities/<id>/MOD.md` — §3.1); upstream
+never ships, writes, or merges any of it. Everything personal is reconstructible from `original × MOD.md`; that
 reconstructibility is what makes upgrades safe.
 
 **One statement per subject — edit, never accumulate.** When something changes, find the
@@ -40,7 +39,15 @@ every prior state, with dates, which is exactly why MOD doesn't carry them.
 ## The transform (install and upgrade use the same one)
 
 Original skills × MOD.md → the pinned render in
-`personal/capabilities/<id>/skills/…` (contract: render + symlink, never copies):
+`personal/capabilities/<id>/skills/…` (contract: render + symlink, never copies).
+**Which MOD.md**: `<home>/personal/capabilities/<id>/MOD.md` — except capability-lifecycle's
+own, which is `<home>/personal/MOD.md`, since its interview is the global bootstrap. Never
+look for `personal/capabilities/capability-lifecycle/MOD.md`: nothing writes it.
+**Household rules** — root-MOD statements about how *every* capability installs (what each
+capability agent also gets: links, tools, wiring) — are not woven into one package's prose:
+install and upgrade apply them to each capability's native plan at STAGE, so they show in
+its diff like any other change.
+
 
 - Fill `{{mod: <key>}}` slots from MOD.md frontmatter; weave the prose statements into
   the relevant instructions; leave unfilled slots intact; never edit shipped files.

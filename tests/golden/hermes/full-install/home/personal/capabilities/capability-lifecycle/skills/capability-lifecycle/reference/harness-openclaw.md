@@ -90,6 +90,15 @@ agent's default doesn't already fit the class; never hardcode provider names.
 6. **Per-skill secrets**: `skills.entries.<name>.apiKey` (SecretRef) or its `.env` map.
    Env injection does **not** reach sandboxed execution — skills must declare needs via
    `metadata.openclaw` `requires: {env: […]}` + `primaryEnv`.
+7. **In-process hooks.** Hooks are in-process (`HOOK.md` + `handler.ts`), distinct from
+   `hooks.enabled` HTTP webhook ingress. Copy to `~/.openclaw/hooks/<name>/` (not symlink —
+   see Unverified), then `openclaw hooks enable <name>` (writes
+   `hooks.internal.entries.<name>.enabled = true`). Approval keys on the name, not the code.
+   Never `hooks.internal.enabled: true` alone, `hooks.internal.load.extraDirs`, or
+   `plugins install --link` — each opens selection beyond the one entry. Unselected hooks
+   are skipped silently; `openclaw hooks list --json` (`loadable`, `blockedReason`) is
+   inventory only — confirm the hook's actual side effect. Files are not watched:
+   `openclaw gateway restart` after an upgrade rewrites one.
 
 ## Introspection guide
 
@@ -162,4 +171,6 @@ incidents. Never install a third-party skill without `openclaw skills verify
 warning, not a formality. Prefer `agents.defaults.sandbox.mode: "non-main"`.
 
 Unverified, confirm on the live system: `agents/<agentId>/` leaf layout; the shared
-SQLite state DB filename; whether `agents delete` cleans disk.
+SQLite state DB filename; whether `agents delete` cleans disk; symlinked hook dirs in
+`~/.openclaw/hooks/` — discovery (`loadHookEntriesFromDir`) appears to skip non-directory
+dirents, so a symlinked render may be ignored; copy, or confirm live.

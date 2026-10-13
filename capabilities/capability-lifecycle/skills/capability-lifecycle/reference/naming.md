@@ -92,9 +92,9 @@ rule schedules have (§5.5).
 
 - In the kit, two capabilities computing the same installed name is an error.
   (`skills/installed-collision`)
-- At install, `aos-cap --home <home> skills <cap-dir> --check --harness-skills <dir>…` is
-  the gate. On a harness that installs skills as flat `<name>.md` files (Nanobot), pass the
-  same directory — the gate reads both forms. It
+- At install, `aos-cap --home <aos_home> skills <cap-dir> --check --harness-skills <dir>…` is
+  the gate. If a harness installs skills as flat `<name>.md` files, pass the same directory —
+  the gate reads both forms. It
   checks three places: every capability in the household, the skill links the lockfile
   records for other capabilities, and the skills the harness already has — including ones
   aos never installed. Exit 17 means a collision; the report names the owner.
@@ -107,7 +107,7 @@ rule schedules have (§5.5).
   and says so in capitals when one could not be reached (no household resolved, no
   `--harness-skills` given). "Clean" against two of three sources is not clean — pass
   `--home` and the harness's skills dirs.
-- **Agents get their own gate, same exit code**: `aos-cap --home <home> agents <cap-dir>
+- **Agents get their own gate, same exit code**: `aos-cap --home <aos_home> agents <cap-dir>
   --check` — run it alongside the skills gate for any capability that ships `agents/`. It
   checks **two** of the three sources: the household's other capabilities and the lockfile's
   recorded links. The third — the agents *already in the harness* — is deferred, because
@@ -160,7 +160,7 @@ Three ways to reference something, and they cover every case:
 |---|---|
 | depth for this skill | a plain relative path from SKILL.md — `reference/<topic>.md`, `scripts/check.py` |
 | another skill, or knowledge it owns | name the skill (`capability-lifecycle`), then its own path — the agent loads the skill, and the path resolves inside it (`skill/no-cross-path`) |
-| something in the household | write it from a root — `<home>/upstream/capabilities/<id>/…`, `<home>/personal/…` — which does resolve at runtime |
+| something in the household | write it from a root — `<aos_home>/upstream/capabilities/<id>/…`, `<aos_home>/personal/…` — which does resolve at runtime |
 
 Consequences worth stating, because each one was a real bug:
 

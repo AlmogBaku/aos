@@ -54,11 +54,13 @@ app.add_typer(survey_app, name="import")
 def main_callback(
     ctx: typer.Context,
     base: Optional[str] = typer.Option(
-        None, "--base", help="base name (registry) or path; default: cwd/registry "
-                            "default"),
+        None, "--base", help="base name (registry) or path; default: the base the cwd "
+                            "is inside, else the registry default"),
     registry: Optional[str] = typer.Option(
         None, "--registry",
-        help="kb-registry.yaml path (default: <home>/personal/kb-registry.yaml)"),
+        help="kb-registry.yaml path (default $AOS_REGISTRY, else "
+             "<aos_home>/.aos/kb-registry.yaml, where <aos_home> is $AOS_HOME, else ~/aos). "
+             "Only `init` and `adopt` create it; a base given by path needs none"),
     agent: Optional[str] = typer.Option(
         None, "--agent", help="acting subject — the committer of every write "
                              "(default $AOS_AGENT or agent:main)"),
@@ -66,8 +68,9 @@ def main_callback(
         None, "--principal",
         help="the human a write belongs to; becomes the git author and the grants "
              "subject (default $AOS_PRINCIPAL_ID, else the first matching entry in "
-             "<home>/.aos/kb-principal.yml, else the repo's git identity). The "
-             "display name rides $AOS_PRINCIPAL_NAME"),
+             "<aos_home>/.aos/kb-principal.yml; a write with neither is an error). An "
+             "override, never written — except by `kb init` on a machine with no "
+             "identity yet. The display name rides $AOS_PRINCIPAL_NAME"),
     version: bool = typer.Option(
         False, "--version", callback=version_callback, is_eager=True),
 ):

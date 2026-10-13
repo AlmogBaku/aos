@@ -69,13 +69,12 @@ private remote; only `.aos/` is machine-local.
    no global one either (`git config --global user.email`) → **ask the user** for the name
    and email to commit as, and set them — globally if they're happy with that, otherwise on
    this repo. Never invent one: a synthesized address credits a real stranger, and every
-   render and MOD write from here on is a commit. A *global* identity is also the one kb's
-   tool ends up falling back to for the human principal of every base write — it resolves
-   `$AOS_PRINCIPAL_ID`, then `~/aos/.aos/kb-principal.yml`, then that base repo's own git
-   identity — and with none of the three it synthesizes a weak `<user>@<host>.local`
-   without ever asking. Offer — don't push — a private remote for backup/sync
-   (`gh repo create aos-personal --private` when `gh` is available; skippable, add one
-   any time). Everything personal (MOD files, rendered skills, private capabilities)
+   render and MOD write from here on is a commit. This identity is for the `personal/`
+   repo; kb's identity is separate — `kb config set principal.id=<id>` sets it in
+   `~/aos/.aos/kb-principal.yml` (on a fresh machine `kb init --principal <id>` fills it in
+   instead); write verbs error without it. Offer — don't push — a private remote for
+   backup/sync (`gh repo create aos-personal --private` when `gh` is available; skippable,
+   add one any time). Everything personal (MOD files, rendered skills, private capabilities)
    will live and be auto-committed here.
 
 ## 2. Install the capability-lifecycle capability (inline — the only one)
@@ -120,7 +119,7 @@ The lifecycle skills are live — from here `install <capability>` triggers
    owns user context, `MOD.md` is authoritative. This is the user's first experience of
    aos — take the Experience section seriously here.
 2. **kb**, as an ordinary install — its interview + KB setup (adopt existing KBs / init a
-   fresh one → `~/aos/personal/kb-registry.yaml`).
+   fresh one → `~/aos/.aos/kb-registry.yaml`).
 
 Close per the Experience section: what was installed, where, which schedules, any
 degraded modes — specific and celebratory. Everything after is on demand:

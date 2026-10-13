@@ -83,7 +83,18 @@ the profile's default doesn't already fit the class; never hardcode provider nam
    config). Verify the key exists first with `hermes config get` — a typo'd key silently
    does nothing. Record every key set in the lockfile.
 6. **Native code** (`adapters/hermes/plugins/`): hooks → profile `hooks/`; standalone
-   programs stay standalone; `--script` files → `~/.hermes/scripts/`.
+   programs stay standalone; `--script` files → the owning profile's `scripts/`
+   (`~/.hermes/scripts/` for `main`) — Hermes 0.21 refuses a path outside it.
+7. **Shell hooks** (`hooks:` in the profile `config.yaml`): Hermes runs one only after
+   it is approved, and a desktop, dashboard or cron session cannot prompt, so it skips an
+   unapproved hook with a log warning — `fail_closed` included. Approve each by its exact
+   command: one `approvals` entry (`event`, `command`) in the profile's
+   `shell-hooks-allowlist.json`, or a TTY prompt. Never `hooks_auto_accept` or
+   `--accept-hooks`: both approve every hook the config holds. Then
+   `hermes -p <profile> hooks list` must show each hook allowlisted and
+   `hermes -p <profile> hooks doctor` must pass. Approval keys on the command string, not
+   the script, so after an upgrade rewrites a hook script, doctor's mtime drift is the
+   signal to re-check it. Removal revokes it (Removal, step 7).
 
 ## Introspection guide
 
@@ -124,8 +135,10 @@ Drive everything from the lockfile entry, in order:
 6. Profiles this capability created (its entry records their `SOUL.md`) and used by
    nothing else: `hermes profile delete <name>`. An adopted profile is never deleted —
    no recorded `SOUL.md` means ask.
-7. Recorded `~/.hermes/scripts/` and `hooks/` files: delete.
-8. Remove the lockfile entry; verify per the contract (re-run Introspection).
+7. Shell hooks: `hermes -p <profile> hooks revoke <command>` per hook the entry
+   installed — before its script goes.
+8. Recorded `scripts/` and `hooks/` files of each profile: delete.
+9. Remove the lockfile entry; verify per the contract (re-run Introspection).
 
 ## Feature notes
 

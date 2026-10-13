@@ -50,13 +50,13 @@ What was *said* in the meeting goes to `projects/booking-deal`; the action recor
 that the meeting happened. **This is what makes pruning safe** — an action page is never
 the only copy of anything, so deleting it after `expires` loses nothing.
 
-The rule has a cost, and paying it is `wt-update`'s third step: when a commitment
+The rule has a cost, and paying it is wt-update's third step: when a commitment
 completes, whatever was learned goes to the project page first. Skip that and this becomes
 a claim rather than a fact, and pruning starts losing things.
 
 ## The original statement is immutable; the state fields are the mutable set
 
-An action page is mutable by design — `wt-update` flips `status`, the steward increments
+An action page is mutable by design — wt-update flips `status`, the steward increments
 `slipped`. What never changes is the sentence the user actually said, kept verbatim in the
 body. Rewriting it to something tidier loses the only record of what they committed to, and
 tidier is usually a paraphrase of what you assumed they meant.

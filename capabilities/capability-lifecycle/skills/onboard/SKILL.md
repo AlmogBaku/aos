@@ -56,8 +56,8 @@ secrets:
 <prose nuance under headings; omit headings with nothing under them>
 ```
 
-Location: `<home>/personal/MOD.md` for the global bootstrap (this capability's own
-interview); `<home>/personal/capabilities/<id>/MOD.md` otherwise. Never re-serialize unchanged content — edit the
+Location: `<aos_home>/personal/MOD.md` for the global bootstrap (this capability's own
+interview); `<aos_home>/personal/capabilities/<id>/MOD.md` otherwise. Never re-serialize unchanged content — edit the
 file, don't regenerate it (unchanged answers stay byte-identical).
 
 ## Report

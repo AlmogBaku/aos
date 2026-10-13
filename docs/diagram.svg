@@ -52,12 +52,12 @@
     <text class="box-t" x="860" y="74">MOD.md</text>
     <text class="caption" x="860" y="94">user-owned, in personal/</text>
     <text class="caption" x="860" y="118">global MOD.md</text>
-    <text class="caption" x="860" y="134">kb-registry.yaml</text>
-    <text class="caption" x="860" y="150">capabilities/*/MOD.md</text>
+    <text class="caption" x="860" y="134">capabilities/*/MOD.md</text>
     <text class="caption" x="860" y="182">upstream NEVER</text>
     <text class="caption" x="860" y="196">writes here</text>
     <text class="caption" x="860" y="228">capability-onboard</text>
     <text class="caption" x="860" y="242">writes ONLY here</text>
+    <text class="caption" x="860" y="256">+ .aos/, only via a tool</text>
     <text class="caption" x="860" y="274">survives git pull</text>
     <text class="caption" x="860" y="288">by construction</text>
   </g>
@@ -69,7 +69,7 @@
     <rect class="box cell" x="44"  y="356" width="196" height="54"/><text class="box-t" x="142" y="378">upstream/</text><text class="caption" x="142" y="396">the kit clone · pristine</text>
     <rect class="box cell" x="252" y="356" width="286" height="54"/><text class="box-t" x="395" y="378">personal/</text><text class="caption" x="395" y="396">your repo: MOD.md · pinned renders · your capabilities</text>
     <rect class="box cell" x="550" y="356" width="168" height="54"/><text class="box-t" x="634" y="378">vendor/</text><text class="caption" x="634" y="396">referenced third-party skills</text>
-    <rect class="box cell" x="730" y="356" width="186" height="54"/><text class="box-t" x="823" y="378">.aos/</text><text class="caption" x="823" y="396">machine-local · lockfile · principals</text>
+    <rect class="box cell" x="730" y="356" width="186" height="54"/><text class="box-t" x="823" y="376">.aos/</text><text class="caption" x="823" y="392">machine-local · lockfile</text><text class="caption" x="823" y="404">kb registry · principals</text>
   </g>
 
   <!-- Transform band -->
@@ -82,7 +82,7 @@
     <text class="side" x="0"   y="12">Hermes · <tspan font-style="italic">profiles + cron/jobs.json</tspan></text>
     <text class="side" x="230" y="12">NanoClaw · <tspan font-style="italic">groups + DB tasks</tspan></text>
     <text class="side" x="440" y="12">OpenClaw · <tspan font-style="italic">agents + workspace files</tspan></text>
-    <text class="side" x="0"   y="28">Nanobot · <tspan font-style="italic">agents/*.md + MCP</tspan></text>
+    <text class="side" x="0"   y="28">Nanobot · <tspan font-style="italic">instances + cron tool</tspan></text>
     <text class="side" x="230" y="28">Claude Code · <tspan font-style="italic">skills + CronCreate</tspan></text>
     <text class="side" x="440" y="28" opacity="0.45">OpenCode <tspan font-style="italic">(later)</tspan></text>
   </g>

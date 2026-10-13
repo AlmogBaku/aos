@@ -17,6 +17,7 @@ in-process CliRunner call structurally cannot exercise (it never leaves this pro
 so it never resolves `[project.scripts] kb = ...` or crosses a real process boundary).
 Run: uv run tests/tool/test_kb.py
 """
+import contextlib
 import datetime as _dt
 import os
 import re
@@ -60,6 +61,17 @@ def git_env(extra=None):
     return env
 
 
+def uv_dirs():
+    """uv's cache and interpreter dirs, pinned before a subprocess gets a throwaway HOME —
+    both default to paths under HOME, and losing them means a re-download per call."""
+    if not hasattr(uv_dirs, "cached"):
+        ask = lambda *a: subprocess.run(["uv", *a], capture_output=True,  # noqa: E731
+                                        text=True).stdout.strip()
+        uv_dirs.cached = {"UV_CACHE_DIR": ask("cache", "dir"),
+                          "UV_PYTHON_INSTALL_DIR": ask("python", "dir")}
+    return uv_dirs.cached
+
+
 class Result:
     """Adapts typer's CliRunner Result to the subprocess.CompletedProcess-shaped
     surface (.returncode/.stdout/.stderr) every existing assertion in this file already
@@ -81,13 +93,31 @@ class Result:
         return self._r.stderr
 
 
+@contextlib.contextmanager
+def chdir(path):
+    """`contextlib.chdir` is 3.11+ and this file's floor is 3.10, so: the same thing.
+    CliRunner runs in *this* process and inherits its cwd, and the stray-`.aos/`
+    regression is a function of cwd."""
+    before = os.getcwd()
+    os.chdir(str(path))
+    try:
+        yield
+    finally:
+        os.chdir(before)
+
+
 def run(args, env_extra=None, cwd=None):
     """In-process invocation of the same `app` the installed `kb` script wires to.
-    `cwd` is accepted (never used by any real test — no kb invocation here relies on
-    process cwd; every base is reached via `--base <path>`) only so call sites that
-    still pass it keep working unchanged."""
-    cli_result = _runner.invoke(app, args, env=git_env(env_extra),
-                                catch_exceptions=False)
+
+    HOME is a fresh empty directory for every call unless the caller passes one: the aos
+    home is `$AOS_HOME`, else `~/aos`, so a call that left AOS_HOME unset would otherwise
+    read — or write — the developer's real household. `cwd`, when given, is the process
+    cwd for the duration of the call."""
+    with tempfile.TemporaryDirectory() as home, \
+            (chdir(cwd) if cwd else contextlib.nullcontext()):
+        cli_result = _runner.invoke(app, args,
+                                    env=git_env({"HOME": home, **(env_extra or {})}),
+                                    catch_exceptions=False)
     return Result(cli_result)
 
 
@@ -96,21 +126,20 @@ class BaseToolTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.dir = Path(self.tmp.name)
         self.reg = self.dir / "kb-registry.yaml"
-        # AOS_HOME is not optional in a test: the principal file is machine-local, and
-        # without it the tool would establish an identity in the developer's real
-        # ~/.aos/ on the first verb call.
+        # AOS_HOME is pinned: the principal file lives at <aos_home>/.aos/kb-principal.yml,
+        # and the first `kb init` below writes it there.
         self.home = self.dir / "household"
         (self.home / ".aos").mkdir(parents=True)
-        # The principal is pinned for the same reason GIT_IDENTITY is: on a runner with
-        # no git identity the tool would synthesize <user>@<host>.local, which lint
-        # correctly reports as weak — so a fixture that must lint clean carries one.
+        # The principal is pinned because a write verb with no identity is an error. On a
+        # fresh home `kb init` saves only a typed `--principal`, so setUp types it too.
         self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
                     "AOS_HOME": str(self.home),
                     "AOS_PRINCIPAL_ID": "dana@example.com",
                     "AOS_PRINCIPAL_NAME": "Dana Fixture"}
         self.root = self.dir / "b"
         r = run(["init", "b", "--path", str(self.root), "--purpose", "test base",
-                 "--templates", str(TEMPLATES), "--default"], self.env)
+                 "--templates", str(TEMPLATES), "--default",
+                 "--principal", self.env["AOS_PRINCIPAL_ID"]], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
 
     def tearDown(self):
@@ -785,7 +814,8 @@ class SharedBaseTest(unittest.TestCase):
         self.root = self.dir / "team"
         r = run(["init", "team", "--path", str(self.root), "--audience", "shared",
                  "--purpose", "team base", "--templates", str(TEMPLATES),
-                 "--default"], {**self.env, **self.ALICE})
+                 "--default", "--principal", self.ALICE["AOS_PRINCIPAL_ID"]],
+                {**self.env, **self.ALICE})
         self.assertEqual(r.returncode, 0, r.stderr)
 
     def tearDown(self):
@@ -902,8 +932,11 @@ class SharedBaseTest(unittest.TestCase):
 
 
 class PrincipalTest(unittest.TestCase):
-    """The principal resolves on the first verb call, with no init step, and never
-    prompts — a cron has no tty and capture latency is sacred."""
+    """Identity is `--principal`/`$AOS_PRINCIPAL_ID` — an override, never written to
+    disk — else the first matching entry in `<aos_home>/.aos/kb-principal.yml`. `kb init`
+    fills in a MISSING identity, from the flag typed on it; `kb config set principal.id=`
+    changes it. A write with neither is an error that names the file; a read needs
+    neither. Nothing here ever prompts — a cron has no tty and capture latency is sacred."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -911,21 +944,28 @@ class PrincipalTest(unittest.TestCase):
         self.home = self.dir / "household"
         (self.home / ".aos").mkdir(parents=True)
         self.reg = self.dir / "kb-registry.yaml"
+        # AOS_PRINCIPAL_ID is unset on purpose (None deletes it): every identity in this
+        # class is supplied by the test, never inherited from the shell that ran it.
         self.env = {"AOS_REGISTRY": str(self.reg), "AOS_AGENT": "agent:main",
-                    "AOS_HOME": str(self.home)}
+                    "AOS_HOME": str(self.home), "AOS_PRINCIPAL_ID": None}
         self.pfile = self.home / ".aos" / "kb-principal.yml"
 
     def tearDown(self):
         self.tmp.cleanup()
 
-    def base(self, name, **kw):
+    def base(self, name, principal=None, **kw):
+        """`kb init`. With no `principal`, its identity has to come from the file."""
         root = self.dir / name
-        argv = ["init", name, "--path", str(root), "--templates", str(TEMPLATES)]
+        argv = (["--principal", principal] if principal else []) + \
+            ["init", name, "--path", str(root), "--templates", str(TEMPLATES)]
         for k, v in kw.items():
             argv += [f"--{k.replace('_', '-')}", v]
         r = run(argv, self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
         return root
+
+    def write_pfile(self, entries):
+        self.pfile.write_text(yaml.safe_dump(entries, sort_keys=False))
 
     def author_email(self, root):
         """The principal is what git records as the author, so that is where an
@@ -933,24 +973,102 @@ class PrincipalTest(unittest.TestCase):
         return subprocess.run(["git", "log", "-1", "--pretty=%ae"], cwd=root,
                               capture_output=True, text=True).stdout.strip()
 
-    def test_first_verb_call_writes_the_principal_file_with_no_init_step(self):
-        root = self.base("b")
-        self.pfile.unlink(missing_ok=True)
-        r = run(["--base", str(root), "capture", "--text", "a thought"],
-                {**self.env, "AOS_PRINCIPAL_ID": "alice@personal.dev"})
+    def git_status(self, root):
+        return subprocess.run(["git", "status", "--porcelain"], cwd=root,
+                              capture_output=True, text=True).stdout
+
+    def test_an_override_is_never_written_to_disk(self):
+        """An override that wrote the file would make itself permanent: the next call
+        with no override would silently author as whoever passed one last."""
+        root = self.base("b", principal="dana@example.com")
+        self.pfile.unlink()
+        r = run(["--base", str(root), "--principal", "alice@personal.dev",
+                 "capture", "--text", "via the flag"], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertTrue(self.pfile.exists(), "the first verb call establishes identity")
-        entries = yaml.safe_load(self.pfile.read_text())
-        self.assertIsInstance(entries, list)
-        self.assertEqual(entries[0]["id"], "alice@personal.dev")
+        self.assertEqual(self.author_email(root), "alice@personal.dev")
+        r = run(["--base", str(root), "capture", "--text", "via the env"],
+                {**self.env, "AOS_PRINCIPAL_ID": "bob@personal.example"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.author_email(root), "bob@personal.example")
+        self.assertFalse(self.pfile.exists(), "an override was written to disk")
+
+    def test_a_write_with_no_identity_fails_naming_the_file_and_config_set(self):
+        root = self.base("b", principal="dana@example.com")
+        self.pfile.unlink()
+        # A git identity in the repo (and the suite's GIT_* env) is not a principal:
+        # guessing one from git is exactly what made a stranger's address author writes.
+        subprocess.run(["git", "config", "user.email", "git-says@example.com"],
+                       cwd=root, check=True)
+        r = run(["--base", str(root), "capture", "--text", "whose is this?"], self.env)
+        self.assertNotEqual(r.returncode, 0, r.stdout)
+        self.assertIn(str(self.pfile), r.stderr)
+        # config set is how an identity is set; init only fills one in on a fresh machine
+        self.assertLess(r.stderr.index("kb config set principal.id=<id>"),
+                        r.stderr.index("kb init --principal <id>"), r.stderr)
+        self.assertEqual(list((root / ".kb" / "pending").glob("*.md")), [],
+                         "the capture landed with no identity")
+        self.assertFalse(self.pfile.exists())
+
+    def test_read_only_verbs_run_with_no_identity_and_establish_none(self):
+        """A report is not a reason to establish an identity: `kb lint` on someone else's
+        base must neither fail for want of one nor write one as a side effect of reading."""
+        root = self.base("b", principal="dana@example.com")
+        self.pfile.unlink()
+        for verb in (["lint"], ["inbox"], ["find"], ["search", "anything"]):
+            r = run(["--base", str(root), *verb], self.env)
+            self.assertEqual(r.returncode, 0, f"`kb {verb[0]}`: {r.stderr}")
+            self.assertFalse(self.pfile.exists(), f"`kb {verb[0]}` wrote {self.pfile}")
+
+    def test_kb_init_never_rewrites_a_matching_entry(self):
+        """An entry already answers for this base, so init's override is an override like
+        any other: it authors this call and is not written."""
+        self.write_pfile([{"id": "alice@personal.dev", "bases": ["*"]}])
+        before = self.pfile.read_text()
+        root = self.base("b", principal="override@example.com")
+        self.assertEqual(self.author_email(root), "override@example.com")
+        self.assertEqual(self.pfile.read_text(), before)
+
+    def test_kb_init_with_an_identity_saved_never_writes_it_and_says_so(self):
+        """An identity exists, so init's typed flag is this call's override like on any
+        other verb — even when no entry matches the new base. Saving it would be a second
+        way to change the identity, and a silent one; `kb config set` is the one way."""
+        self.write_pfile([{"id": "alice@acme.example", "bases": ["acme_*"]}])
+        before = self.pfile.read_text()
+        root = self.dir / "home"
+        r = run(["init", "home", "--path", str(root), "--templates", str(TEMPLATES),
+                 "--principal", "alice@personal.example"], self.env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.pfile.read_text(), before)
+        self.assertEqual(self.author_email(root), "alice@personal.example")
+        self.assertIn("left unchanged", r.stdout)
+        self.assertIn("kb config set principal.id=<id>", r.stdout)
+
+    def test_sync_all_skips_a_base_with_no_identity_and_carries_on(self):
+        """`sync --all` is the cron's sweep: one base with no identity is that base's
+        failure, reported, not the end of the sweep for every base after it."""
+        self.write_pfile([{"id": "alice@acme.example", "bases": ["acme_*"]}])
+        home = self.base("home", principal="alice@personal.example", sync="rebase-5min")
+        work = self.base("acme_wiki", sync="rebase-5min")
+        for root in (home, work):
+            (root / "hand-written.md").write_text("outside a verb\n")
+        r = run(["sync", "--all", "--no-jitter"], self.env)
+        self.assertNotEqual(r.returncode, 0, r.stdout)
+        self.assertIn("home: skipped (no identity", r.stderr)
+        self.assertIn("acme_wiki: synced", r.stdout)
+        self.assertEqual(self.author_email(work), "alice@acme.example")
+        self.assertIn("hand-written.md", self.git_status(home))
+        # one base, named: no identity is still the plain error
+        r = run(["--base", str(home), "sync"], self.env)
+        self.assertNotEqual(r.returncode, 0, r.stdout)
+        self.assertIn(str(self.pfile), r.stderr)
 
     def test_env_beats_the_file_and_the_file_is_first_match_wins(self):
-        root_work = self.base("acme_wiki")
-        root_home = self.base("home")
-        self.pfile.write_text(yaml.safe_dump([
+        self.write_pfile([
             {"id": "alice@acme.com", "bases": ["acme_*"]},
             {"id": "alice@personal.dev", "bases": ["*"]},
-        ], sort_keys=False))
+        ])
+        root_work = self.base("acme_wiki")
+        root_home = self.base("home")
         r = run(["--base", str(root_work), "capture", "--text", "at work"], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(self.author_email(root_work), "alice@acme.com")
@@ -962,61 +1080,22 @@ class PrincipalTest(unittest.TestCase):
         self.assertEqual(self.author_email(root_work), "override@example.com")
 
     def test_a_bare_star_last_is_the_catch_all(self):
-        self.pfile.write_text(yaml.safe_dump([{"id": "only@example.com",
-                                               "bases": ["*"]}], sort_keys=False))
+        self.write_pfile([{"id": "only@example.com", "bases": ["*"]}])
         root = self.base("anything")
         r = run(["--base", str(root), "capture", "--text", "x"], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(self.author_email(root), "only@example.com")
 
-    def test_no_git_identity_synthesizes_writes_anyway_and_lint_reports_it(self):
-        root = self.base("b")
-        self.pfile.unlink(missing_ok=True)
-        # The suite injects GIT_* so a CI runner can commit at all; clearing them here
-        # is what actually reproduces "no identity", since they beat `git config`.
-        # `git config --unset` only clears the repo level; the developer's --global
-        # identity (and the suite's own GIT_*) would still answer. Neutralising all
-        # three is what actually reproduces a machine with no identity.
-        bare = {k: "" for k in GIT_IDENTITY}
-        bare.update({"GIT_CONFIG_GLOBAL": os.devnull,
-                     "GIT_CONFIG_SYSTEM": os.devnull})
-        for k in ("user.email", "user.name"):
-            subprocess.run(["git", "config", "--unset", k], cwd=root,
-                           capture_output=True, check=False)
-        r = run(["--base", str(root), "capture", "--text", "still lands"],
-                {**self.env, **bare})
-        self.assertEqual(r.returncode, 0, r.stderr)      # never blocks
-        self.assertNotIn("?", r.stdout.replace("(", ""))  # never prompts
-        entries = yaml.safe_load(self.pfile.read_text())
-        self.assertTrue(entries[0]["id"].endswith(".local"),
-                        f"expected a synthesized id, got {entries[0]['id']!r}")
-        r = run(["--base", str(root), "lint"], {**self.env, **bare})
-        self.assertIn("weak principal", r.stdout)
-
-    def test_a_read_only_verb_never_establishes_an_identity(self):
-        """`kb lint` is report-only, so it must not have machine-state side effects.
-        Linting someone else's base would otherwise create the principal file as a
-        consequence of *reading* — a surprise, and the wrong answer to "whose base is
-        this"."""
-        root = self.base("b")
-        self.pfile.unlink(missing_ok=True)
-        for verb in (["lint"], ["inbox"]):
-            r = run(["--base", str(root), *verb], self.env)
-            self.assertEqual(r.returncode, 0, r.stderr)
-            self.assertFalse(self.pfile.exists(),
-                             f"`kb {verb[0]}` wrote {self.pfile}")
-
     def test_a_placeholder_identity_is_reported_not_accepted_silently(self):
+        self.write_pfile([{"id": "agents@localhost", "bases": ["*"]}])
         root = self.base("b")
-        self.pfile.write_text(yaml.safe_dump([{"id": "agents@localhost",
-                                               "bases": ["*"]}], sort_keys=False))
         r = run(["--base", str(root), "lint"], self.env)
         self.assertIn("weak principal", r.stdout)
 
     def test_no_principals_roster_is_read_from_the_config(self):
         # The template's commented-out roster block is Plan 2's to remove; what matters
         # here is that nothing READS it, so a base carrying one behaves identically.
-        root = self.base("b")
+        root = self.base("b", principal="alice@example.com")
         cfg = root / ".kb" / "base.yml"
         cfg.write_text(cfg.read_text() +
                        "\nprincipals:\n  alice@example.com: user:alice\n")
@@ -1032,7 +1111,7 @@ class PrincipalTest(unittest.TestCase):
     def test_the_grants_table_is_the_roster(self):
         # The roster existed only to translate an email into a grants subject, so the
         # email IS the subject: one source instead of two that can disagree.
-        root = self.base("b")
+        root = self.base("b", principal="alice@example.com")
         agents = root / "AGENTS.md"
         agents.write_text(agents.read_text().replace(
             "| user | `**` |", "| alice@example.com | `**` |", 1))
@@ -1041,6 +1120,156 @@ class PrincipalTest(unittest.TestCase):
                 self.env)
         self.assertIn("GRANTED", r.stdout)
 
+
+class HomeTest(unittest.TestCase):
+    """The aos home is `$AOS_HOME`, else `~/aos` — never discovered from cwd. The registry
+    is `--registry`/`$AOS_REGISTRY`, else `<aos_home>/.aos/kb-registry.yaml`, and only `init`
+    and `adopt` create it. Every AOS_* variable is unset here unless a test sets it, HOME
+    is a directory the test owns, and the cwd is one it controls."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.user = self.dir / "user"               # stands in for ~
+        self.user.mkdir()
+        self.aos = self.user / "aos"                # the default aos home
+        self.elsewhere = self.dir / "elsewhere"     # a cwd under no household at all
+        self.elsewhere.mkdir()
+        self.env = {"HOME": str(self.user), "AOS_HOME": None, "AOS_REGISTRY": None,
+                    "AOS_PRINCIPAL_ID": None, "AOS_AGENT": "agent:main"}
+        self.who = {"AOS_PRINCIPAL_ID": "dana@example.com"}
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def init(self, name, root, registry, purpose="test base", home=None):
+        """A base registered in an EXPLICIT registry, so setting one up never depends on
+        the default resolution under test."""
+        r = run(["--registry", str(registry), "--principal", "dana@example.com", "init",
+                 name, "--path", str(root), "--purpose", purpose,
+                 "--templates", str(TEMPLATES)],
+                {**self.env, **({"AOS_HOME": str(home)} if home else {})},
+                cwd=self.elsewhere)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return root
+
+    def test_a_stray_dot_aos_above_cwd_is_never_the_home(self):
+        """PIN: the home was found by walking up from cwd to the first `.aos/`, so any
+        project folder carrying one became the household — and every verb run from under
+        it read that folder's registry instead of the user's."""
+        (self.aos / ".aos").mkdir(parents=True)
+        self.init("b", self.dir / "real", self.aos / ".aos" / "kb-registry.yaml",
+                  purpose="the real one")
+        stray = self.dir / "project"
+        (stray / ".aos").mkdir(parents=True)
+        self.init("b", self.dir / "decoy", stray / ".aos" / "kb-registry.yaml",
+                  purpose="the decoy")
+        (stray / "personal").mkdir()      # where the old cwd-walk looked for a registry
+        shutil.copy(stray / ".aos" / "kb-registry.yaml",
+                    stray / "personal" / "kb-registry.yaml")
+        deep = stray / "src" / "deep"
+        deep.mkdir(parents=True)
+        r = run(["--base", "b", "config", "get", "purpose"], self.env, cwd=deep)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("the real one", r.stdout)
+
+    def test_a_base_name_with_no_registry_fails_naming_the_expected_path(self):
+        r = run(["--base", "b", "lint"], self.env, cwd=self.elsewhere)
+        self.assertNotEqual(r.returncode, 0, r.stdout)
+        self.assertIn(str(self.aos / ".aos" / "kb-registry.yaml"), r.stderr)
+        self.assertIn("kb init", r.stderr)
+
+    def test_lint_by_path_needs_no_registry(self):
+        """CI lints a shipped fixture by path on a runner with no household at all."""
+        reg = self.dir / "scratch-registry.yaml"
+        root = self.init("b", self.dir / "b", reg)
+        reg.unlink()
+        r = run(["--base", str(root), "lint"], {**self.env, **self.who},
+                cwd=self.elsewhere)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("Critical (0)", r.stdout)
+        self.assertFalse((self.aos / ".aos" / "kb-registry.yaml").exists())
+
+    def test_lint_with_a_named_registry_that_does_not_exist_fails_naming_it(self):
+        """No registry at all is the default bar; a registry you NAMED that is not there
+        is a typo, and linting on as if there were none would hide it."""
+        root = self.init("b", self.dir / "b", self.dir / "scratch-registry.yaml")
+        missing = self.dir / "typo-registry.yaml"
+        for how, argv, env in (("--registry", ["--registry", str(missing)], {}),
+                               ("AOS_REGISTRY", [], {"AOS_REGISTRY": str(missing)})):
+            with self.subTest(how):
+                r = run([*argv, "--base", str(root), "lint"], {**self.env, **env},
+                        cwd=self.elsewhere)
+                self.assertNotEqual(r.returncode, 0, r.stdout)
+                self.assertIn(str(missing), r.stderr)
+
+    def test_sync_by_path_needs_no_registry(self):
+        """Only `sync --all` reads the registry; one base named by path is all there is."""
+        reg = self.dir / "scratch-registry.yaml"
+        root = self.init("b", self.dir / "b", reg)
+        reg.unlink()
+        remote = self.dir / "b.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+        subprocess.run(["git", "remote", "add", "origin", str(remote)], cwd=root,
+                       check=True)
+        r = run(["--base", str(root), "sync"], {**self.env, **self.who},
+                cwd=self.elsewhere)
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+
+    def test_kb_init_with_a_principal_on_a_fresh_home_creates_registry_and_identity(self):
+        """`kb init` fills in a missing identity from the flag typed on it — and the
+        flag is the flag on either side of the verb."""
+        for i, where in enumerate(("before the verb", "after the verb")):
+            with self.subTest(where):
+                home, root = self.dir / f"home{i}", self.dir / f"b{i}"
+                argv = ["init", "b", "--path", str(root), "--templates", str(TEMPLATES)]
+                argv = ["--principal", "dana@example.com", *argv] if i == 0 \
+                    else [*argv, "--principal", "dana@example.com"]
+                r = run(argv, {**self.env, "AOS_HOME": str(home)}, cwd=self.elsewhere)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                reg = yaml.safe_load((home / ".aos" / "kb-registry.yaml").read_text())
+                self.assertEqual([k["name"] for k in reg["kbs"]], ["b"])
+                self.assertEqual(yaml.safe_load((home / ".aos" / "kb-principal.yml")
+                                                .read_text()),
+                                 [{"id": "dana@example.com", "bases": ["*"]}])
+
+    def test_kb_init_never_saves_the_env_principal_on_a_fresh_home(self):
+        """$AOS_PRINCIPAL_ID is a per-call override everywhere, init included: saving it
+        would make whatever a shell happened to export the permanent identity."""
+        root = self.dir / "b"
+        r = run(["init", "b", "--path", str(root), "--templates", str(TEMPLATES)],
+                {**self.env, **self.who}, cwd=self.elsewhere)
+        self.assertNotEqual(r.returncode, 0, r.stdout)
+        self.assertIn("kb init --principal <you>", r.stderr)
+        self.assertFalse((self.aos / ".aos" / "kb-principal.yml").exists())
+        self.assertFalse((self.aos / ".aos" / "kb-registry.yaml").exists())
+        self.assertFalse(root.exists())
+
+    def test_kb_init_never_overwrites_an_unusable_identity_file(self):
+        """A principal file that parses to no usable entry is somebody's broken identity,
+        not a fresh machine: init must stop and name it, never replace it wholesale."""
+        pfile = self.aos / ".aos" / "kb-principal.yml"
+        pfile.parent.mkdir(parents=True, exist_ok=True)
+        pfile.write_text("id: dana@example.com\n", encoding="utf-8")
+        root = self.dir / "b"
+        r = run(["init", "b", "--path", str(root), "--templates", str(TEMPLATES),
+                 "--principal", "eve@example.com"], self.env, cwd=self.elsewhere)
+        self.assertNotEqual(r.returncode, 0, r.stdout)
+        self.assertIn(str(pfile), r.stderr)
+        self.assertEqual(pfile.read_text(encoding="utf-8"), "id: dana@example.com\n")
+        self.assertFalse(root.exists())
+
+    def test_kb_init_with_no_principal_on_a_fresh_home_fails_naming_the_file(self):
+        root = self.dir / "b"
+        r = run(["init", "b", "--path", str(root), "--templates", str(TEMPLATES)],
+                self.env, cwd=self.elsewhere)
+        self.assertNotEqual(r.returncode, 0, r.stdout)
+        self.assertIn(str(self.aos / ".aos" / "kb-principal.yml"), r.stderr)
+        self.assertLess(r.stderr.index("kb config set principal.id=<you>"),
+                        r.stderr.index("kb init --principal <you>"), r.stderr)
+        # Refused before anything was written: no half-scaffolded base, no registry.
+        self.assertFalse(root.exists())
+        self.assertFalse((self.aos / ".aos" / "kb-registry.yaml").exists())
 
 class TemplateCloneTest(unittest.TestCase):
     """`kb init` clones a template repo by default (no fork — a plain, read-only,
@@ -1081,7 +1310,8 @@ class TemplateCloneTest(unittest.TestCase):
     def test_a_successful_clone_renders_identically_to_local_templates(self):
         cloned = self.dir / "cloned"
         r = run(["init", "cloned", "--path", str(cloned), "--purpose", "via clone",
-                 "--template", str(self.bare), "--default"], self.env)
+                 "--template", str(self.bare), "--default",
+                 "--principal", "dana@example.com"], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
         for f in [".kb/base.yml", "AGENTS.md", "index.md", ".gitignore"]:
             self.assertTrue((cloned / f).exists(), f)
@@ -1097,13 +1327,14 @@ class TemplateCloneTest(unittest.TestCase):
         self.assertIn("bootstrap", log)
 
     def test_a_failed_clone_falls_back_to_local_templates_without_blocking(self):
-        # find_upstream_root() resolves the fallback via <AOS_HOME>/upstream, so a
+        # find_upstream_root() resolves the fallback via <aos_home>/upstream, so a
         # household fixture needs one — a symlink to this real checkout, exactly what
         # a real household's `upstream/` is (the aos kit clone itself).
         (self.home / "upstream").symlink_to(REPO)
         root = self.dir / "fallback"
         r = run(["init", "fallback", "--path", str(root), "--purpose", "no network",
-                 "--template", str(self.dir / "does-not-exist.git")], self.env)
+                 "--template", str(self.dir / "does-not-exist.git"),
+                 "--principal", "dana@example.com"], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("falling back", r.stderr + r.stdout)
         self.assertTrue((root / ".kb" / "base.yml").exists())
@@ -1115,7 +1346,8 @@ class TemplateCloneTest(unittest.TestCase):
         root = self.dir / "local"
         r = run(["init", "local", "--path", str(root), "--purpose", "local dir",
                  "--templates", str(TEMPLATES),
-                 "--template", str(self.dir / "unreachable.git")], self.env)
+                 "--template", str(self.dir / "unreachable.git"),
+                 "--principal", "dana@example.com"], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertNotIn("falling back", r.stdout + r.stderr)
         self.assertTrue((root / ".kb" / "base.yml").exists())
@@ -1139,7 +1371,8 @@ class LayoutTest(unittest.TestCase):
                     "AOS_PRINCIPAL_NAME": "Alice Example"}
         self.root = self.dir / "b"
         r = run(["init", "b", "--path", str(self.root), "--purpose", "test base",
-                 "--templates", str(TEMPLATES), "--default"], self.env)
+                 "--templates", str(TEMPLATES), "--default",
+                 "--principal", self.env["AOS_PRINCIPAL_ID"]], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
 
     def tearDown(self):
@@ -1229,7 +1462,8 @@ class QueryTest(unittest.TestCase):
                     "AOS_PRINCIPAL_NAME": "Dana Fixture"}
         self.root = self.dir / "b"
         r = run(["init", "b", "--path", str(self.root), "--purpose", "queries",
-                 "--templates", str(TEMPLATES), "--default"], self.env)
+                 "--templates", str(TEMPLATES), "--default",
+                 "--principal", self.env["AOS_PRINCIPAL_ID"]], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
         d = _dt.date.today()
         self.page("projects/cfp.md", type="project", status="next",
@@ -1389,7 +1623,8 @@ class PendingTest(unittest.TestCase):
                     "AOS_PRINCIPAL_NAME": "Dana Fixture"}
         self.root = self.dir / "b"
         r = run(["init", "b", "--path", str(self.root), "--purpose", "queue",
-                 "--templates", str(TEMPLATES), "--default"], self.env)
+                 "--templates", str(TEMPLATES), "--default",
+                 "--principal", self.env["AOS_PRINCIPAL_ID"]], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
 
     def tearDown(self):
@@ -1555,7 +1790,8 @@ class WriteVerbTest(unittest.TestCase):
                     "AOS_PRINCIPAL_NAME": "Alice Example"}
         self.root = self.dir / "b"
         r = run(["init", "b", "--path", str(self.root), "--purpose", "writes",
-                 "--templates", str(TEMPLATES), "--default"], self.env)
+                 "--templates", str(TEMPLATES), "--default",
+                 "--principal", self.env["AOS_PRINCIPAL_ID"]], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
 
     def tearDown(self):
@@ -1883,8 +2119,8 @@ class CurationTest(unittest.TestCase):
                     "AOS_HOME": str(self.home)}
         self.root = self.dir / "team"
         r = run(["init", "team", "--path", str(self.root), "--audience", "shared",
-                 "--purpose", "curation", "--templates", str(TEMPLATES), "--default"],
-                {**self.env, **self.ALICE})
+                 "--purpose", "curation", "--templates", str(TEMPLATES), "--default",
+                 "--principal", self.ALICE["AOS_PRINCIPAL_ID"]], {**self.env, **self.ALICE})
         self.assertEqual(r.returncode, 0, r.stderr)
 
     def tearDown(self):
@@ -2108,7 +2344,9 @@ class MigrateTest(unittest.TestCase):
         be absent is every complaint ABOUT THE LAYOUT, and the migrate commit itself
         must not be one of the audit's unattributed hits."""
         self.migrate()
-        r = run(["--base", str(self.old), "lint"], self.env)
+        # No registry is named: migrate registers nothing, and a named one that is
+        # missing is an error, not the default confidence bar.
+        r = run(["--base", str(self.old), "lint"], {**self.env, "AOS_REGISTRY": None})
         self.assertEqual(r.returncode, 0, r.stderr)
         for must_not in ("layout", "triage", "not in ['agent', 'human']",
                          "not in ['capture'", "is flat", "orphaned state shard",
@@ -2180,10 +2418,13 @@ class InstalledScriptSmokeTest(unittest.TestCase):
     this is deliberately the sole survivor of the old fully-subprocess suite."""
 
     def run_installed(self, args, env_extra=None):
-        return subprocess.run(["uv", "run", "--quiet", "--project", str(TOOL_DIR),
-                               "kb", *args],
-                              capture_output=True, text=True,
-                              env=git_env(env_extra))
+        # HOME is a throwaway, as in `run()`; uv keeps its real cache and interpreters.
+        with tempfile.TemporaryDirectory() as home:
+            return subprocess.run(["uv", "run", "--quiet", "--project", str(TOOL_DIR),
+                                   "kb", *args],
+                                  capture_output=True, text=True,
+                                  env=git_env({**uv_dirs(), "HOME": home,
+                                               **(env_extra or {})}))
 
     def test_the_installed_script_runs_and_reports_its_version(self):
         r = self.run_installed(["--version"])
@@ -2205,7 +2446,8 @@ class InstalledScriptSmokeTest(unittest.TestCase):
                    "AOS_PRINCIPAL_NAME": "Dana Fixture"}
             r = self.run_installed(
                 ["init", "b", "--path", str(root), "--purpose", "smoke",
-                 "--templates", str(TEMPLATES), "--default"], env)
+                 "--templates", str(TEMPLATES), "--default",
+                 "--principal", "dana@example.com"], env)
             self.assertEqual(r.returncode, 0, r.stderr)
             r = self.run_installed(["--base", str(root), "lint"], env)
             self.assertEqual(r.returncode, 0, r.stderr)
@@ -2236,7 +2478,8 @@ class TemplateSurfaceTest(unittest.TestCase):
         # and this class would assert against the remote rather than the files in this
         # checkout — which is exactly the drift it exists to catch.
         r = run(["init", "b", "--path", str(self.root), "--purpose", "test base",
-                 "--templates", str(TEMPLATES), "--default"], self.env)
+                 "--templates", str(TEMPLATES), "--default",
+                 "--principal", self.env["AOS_PRINCIPAL_ID"]], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
 
     def tearDown(self):
@@ -2326,7 +2569,8 @@ class WorkTrackerZoneTest(unittest.TestCase):
                     "AOS_PRINCIPAL_NAME": "Dana Fixture"}
         self.root = self.dir / "b"
         r = run(["init", "b", "--path", str(self.root), "--purpose", "commitments",
-                 "--templates", str(TEMPLATES), "--default"], self.env)
+                 "--templates", str(TEMPLATES), "--default",
+                 "--principal", self.env["AOS_PRINCIPAL_ID"]], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
 
     def tearDown(self):
@@ -2594,7 +2838,8 @@ class StewardQueryTest(unittest.TestCase):
                     "AOS_PRINCIPAL_NAME": "Dana Fixture"}
         self.root = self.dir / "b"
         r = run(["init", "b", "--path", str(self.root), "--purpose", "commitments",
-                 "--templates", str(TEMPLATES), "--default"], self.env)
+                 "--templates", str(TEMPLATES), "--default",
+                 "--principal", self.env["AOS_PRINCIPAL_ID"]], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.install()
 
@@ -2708,7 +2953,8 @@ class UpdateFlowTest(unittest.TestCase):
                     "AOS_PRINCIPAL_NAME": "Dana Fixture"}
         self.root = self.dir / "b"
         r = run(["init", "b", "--path", str(self.root), "--purpose", "commitments",
-                 "--templates", str(TEMPLATES), "--default"], self.env)
+                 "--templates", str(TEMPLATES), "--default",
+                 "--principal", self.env["AOS_PRINCIPAL_ID"]], self.env)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.install()
 

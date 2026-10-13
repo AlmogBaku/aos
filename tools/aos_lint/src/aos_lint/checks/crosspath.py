@@ -36,13 +36,13 @@ def check_cross_paths(ctx) -> None:
         # in the source tree and nowhere else — the agent goes hunting, which is exactly
         # what a shipped skill must never make it do. Package-level knowledge belongs in a
         # reference/ file of the skill that reads it; package-level *paths* are written from
-        # a household root (`<home>/upstream/…`), which does resolve at runtime.
+        # a household root (`<aos_home>/upstream/…`), which does resolve at runtime.
         for m in PACKAGE_PATH.finditer(text):
             ctx.report("error", "skill/package-path", rel,
                        f'references "{m.group(1)}" — that path exists only in the source '
                        f"package, not beside an installed skill. Put the content in this "
                        f"skill's reference/, name the skill that owns it, or write the path "
-                       f"from a household root (<home>/upstream/…)")
+                       f"from a household root (<aos_home>/upstream/…)")
 
 
 # The same failure from the other side: a bare `reference/<file>` that lives in a

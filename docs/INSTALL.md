@@ -56,18 +56,17 @@ Paste into your agent:
    nuances in prose. Anything marked secret goes to your harness's secret store; only a
    `{store, key}` reference lands in the file.
 5. **Knowledge base setup.** Have a KB already? It gets *adopted* — registered in
-   `kb-registry.yaml` with a report of how it diverges from the kit's methodology,
-   **nothing rewritten**. Starting fresh? `kb init personal` scaffolds one — by default
-   cloning the public template repo, falling back to the templates in your own checkout if
-   there's no network. Migrating a big existing KB wholesale is its own guided flow (the
-   `kb-import` skill) you can run later.
+   `~/aos/.aos/kb-registry.yaml` with a report of how it diverges from the kit's
+   methodology, **nothing rewritten**. Starting fresh?
+   `kb init personal --path <dir> --principal <id>` scaffolds one (and, on a fresh
+   machine, saves `<id>` as who you are) — by default cloning the public template repo,
+   falling back to the templates in `~/aos/upstream` if there's no network. Migrating a
+   big existing KB wholesale is its own guided flow (the `kb-import` skill) you can run
+   later.
    - **On an older base**: `kb migrate --base <name>` carries a layout-1 tree to the
      current layout, `git mv` throughout so `git log --follow` still traces every page.
      Then `uv tool uninstall aos-base` — the old command name would otherwise sit on your
      PATH shadowing the new one, and both would appear to work.
-   - **No git identity configured?** Nothing blocks. The write lands, `kb lint` reports
-     the unattributed commit, and the interview fixes it. Refusing to record your thought
-     because we don't know your email would trade the one thing capture cannot lose.
 6. **kb installs through the new `capability-install` skill.** The agent reads
    the briefing, checks that no skill name it ships is already taken in your harness,
    renders the skills against your MOD.md (committed in `personal/`), and materializes
@@ -114,13 +113,13 @@ installing anyway is fine, silently pretending is not:
 |---|---|---|
 | Your answers & nuances | `~/aos/personal/MOD.md`, `~/aos/personal/capabilities/*/MOD.md` | **you** — upstream never ships or writes these |
 | Your rendered skills (what your harness links to) | `~/aos/personal/capabilities/*/skills/` | **you** — committed by your agent, every upgrade is a reviewable git diff |
-| Your KB registry | `~/aos/personal/kb-registry.yaml` | **you** |
+| Your KB registry | `~/aos/.aos/kb-registry.yaml` | machine state (per-machine, never committed) |
 | Your KBs | wherever you keep them (each base is its own git repo) | **you** |
 | The kit itself | `~/aos/upstream` | upstream — pristine; also the checkout you'd branch from to contribute |
 | Referenced third-party skills | `~/aos/vendor` (e.g. `skill-creator`) | their authors — kept current, never copied into the kit |
 | Skill links / agents / schedules | your harness's own locations (per cheat-sheet; a skill is a symlink to its one committed render in `personal/`, never a copy) | your agent, tracked in the lockfile |
 | Install record | `~/aos/.aos/installs.lock.yaml` (household level) | your agent, machine-local |
-| Who you are, per machine | `~/aos/.aos/kb-principal.yml` — written by the `kb` tool on first use | the tool, machine-local |
+| Who you are, per machine | `~/aos/.aos/kb-principal.yml` — filled in by `kb init --principal` when missing, changed by `kb config set principal.id=` | the tool, machine-local |
 
 Hand-editing materialized artifacts is fine — the agent folds your edits back into
 MOD.md when it notices (see [USAGE.md](USAGE.md)). Everything yours lives in

@@ -1,6 +1,6 @@
 ---
 id: kb
-version: 0.7.3
+version: 0.8.0
 tags: [infra]
 summary: Knowledge infrastructure — a registry of bases, rules-first routing, the deterministic `kb` tool, and one Archiver agent maintaining every base.
 depends:
@@ -66,7 +66,7 @@ the registry, routing, grants, the deterministic `kb` tool (an installable uv pa
 
 0. **The tool — first.** Install the capability's deterministic executor so `kb` is on PATH
    for every agent and every cron:
-   `uv tool install --from <home>/upstream/capabilities/kb/tool aos-kb` (record it in the
+   `uv tool install --from <aos_home>/upstream/capabilities/kb/tool aos-kb` (record it in the
    lockfile; removal is `uv tool uninstall aos-kb`). uv is a bootstrap prerequisite; if it
    later disappears the skills fall back to prose execution and exec schedules to manual
    run-cards.
@@ -90,12 +90,13 @@ the registry, routing, grants, the deterministic `kb` tool (an installable uv pa
    revoked at removal. The front agent additionally gets `_raw/**` + `.kb/pending/**`
    (capture), `.kb/state/**` and `profile/**`, seeded by the init templates.
 5. **Onboarding** asks which bases exist and who the user is; the `init` and `adopt` skills
-   then write the user-owned `kb-registry.yaml` (overlay family — never committed upstream)
-   and each base's `.kb/base.yml`. The tool writes `<home>/.aos/kb-principal.yml` itself on
-   the first verb call; the interview only corrects what detection got wrong. `kb init`
+   then write `<aos_home>/.aos/kb-registry.yaml` (machine-local, gitignored — not overlay)
+   and each base's `.kb/base.yml`. The identity file `<aos_home>/.aos/kb-principal.yml` is set
+   by `kb config set principal.id=` — the interview collects this answer — and filled in by
+   `kb init --principal <id>` only when it is missing. `kb init`
    scaffolds by default from a cloned template repo (read-only, unauthenticated, no fork);
    `--templates <local-dir>` skips the network, and a clone failure falls back to the
-   templates shipped in this checkout, announced, never blocking.
+   templates in `<aos_home>/upstream`, announced, never blocking.
 
 ## Contracts to preserve
 

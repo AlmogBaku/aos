@@ -9,7 +9,7 @@ description: Upgrades installed aos capabilities by folding the user's uncapture
   preserves existing personalization rather than adding any.
 metadata:
   aos:
-    origin: capability-lifecycle@0.4.1
+    origin: capability-lifecycle@0.5.0
 ---
 # capability-upgrade
 
@@ -63,7 +63,9 @@ diff in the user's own repo.
       get a decision before proceeding; a tracked file is safe (the diff in step d shows it).
       Then re-render: `aos-cap render <dir> <skill-id> --out
       <home>/personal/<render-path>/skills --force` per declared skill, then fresh
-      upstream × MOD.md — the same transform as install (`reference/overlay.md`), written
+      upstream × this capability's MOD.md (the `capability-lifecycle` skill's `reference/overlay.md`,
+      Which MOD.md) — the same
+      transform as install, household rules included, written
       into `personal/`'s working tree; interview only new or `re_ask` questions. A skill
       whose installed name changed leaves its old render directory behind: delete it in the
       same commit, so the diff shows the rename as one move. Then STAGE any native-plan
@@ -97,7 +99,9 @@ diff in the user's own repo.
       records that another capability's `uses` now declares moves to that capability:
       re-record this entry without it first, then the other with `--uses-link` (exit 19
       enforces the order). Then EXECUTE the native plan (links usually survive re-render
-      untouched — verify, don't assume); `aos-cap record <id>` with the full updated set
+      untouched — verify, don't assume); a hook whose command or script changed must be
+      re-approved and re-verified per the cheat-sheet — the consent was for the old one.
+      `aos-cap record <id>` with the full updated set
       (start from `aos-cap show` — `record` replaces the entry wholesale, never call it
       with a partial list; keep `--source-root`, `--link` and `--uses-link` records), then
       `aos-cap verify` with no argument, so a link another entry depends on is checked

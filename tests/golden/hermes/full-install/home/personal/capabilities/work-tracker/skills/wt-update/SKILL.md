@@ -37,7 +37,7 @@ attributed commit:
 
 | The user says | Apply |
 |---|---|
-| *"I did that"*, *"finished X"* | `status=done` **and** `expires=<today + retention>` |
+| *"I did that"*, *"finished X"* | `status=done` **and** `expires=<today + 90 days>` |
 | *"I started it"* | `since=<today>` — nothing else |
 | *"still waiting on Robin"* | `status=waiting waiting_on=Robin since=<today>` |
 | *"push that to next week"* | the new `due=` or `block=`, and `slipped` +1 |
@@ -53,7 +53,7 @@ worked on, and a nag that is wrong once gets the whole nightly report ignored.
 
 **Completion needs `expires` as well as `status: done`.** `expires` is the only lifetime rule
 kb has, so a done action without one lives forever — and a list with no exit is the graveyard
-this capability exists to avoid. The retention window is an onboarding answer.
+this capability exists to avoid. The retention window is 90 days — the user's onboarding answer.
 
 **Abandonment is a status, not a deletion.** *"Forget it"* still gets `done` plus a short
 `expires`: the record of having decided not to do something is worth the few weeks it costs,

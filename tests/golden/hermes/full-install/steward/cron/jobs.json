@@ -3,19 +3,20 @@
     {
       "id": "<ID>",
       "name": "aos:work-tracker:nightly-steward",
-      "prompt": "Environment for every shell/tool call in this job: export AOS_HOME=<HOME>/aos/tests/.sandbox/aos-home AOS_AGENT=agent:steward AOS_REGISTRY=<HOME>/aos/tests/.sandbox/aos-home/personal/kb-registry.yaml before running any `kb` command (or prefix each invocation with these three env vars inline).\n\n# nightly-steward\n\nRun the `wt-steward` skill over the commitments base — one base, always private, named in the registry as `commitments`. **One pass per night; never loop.**\n\nClose out per the skill's own report section. `STEWARD: backlog clean.` is only the right output when all five signals AND the backstop are empty; a night with nothing overdue but a commitment stuck waiting still gets a report, never silence.",
+      "prompt": "Acting subject: agent:steward — run every kb command with AOS_AGENT=agent:steward (set in this profile's .env; pass --agent agent:steward if unsure). Household: AOS_HOME=<HOME>/aos/upstream/tests/.sandbox/aos-home.\n\n# nightly-steward\n\n`export AOS_AGENT=agent:steward` before the first `kb` call. Attribution is the enforcement\nsubstrate — the committer of every write is what the weekly grants audit checks — and this\npass runs while nobody is watching, so its edits must be attributable to it rather than to the\nagent the user was last talking to. The tool never refuses on grants, so getting this wrong\nproduces a week of overnight changes indistinguishable from the user's own.\n\nRun the `wt-steward` skill over the commitments base — one base, always private, named in\nthe registry as `commitments`. **One pass per night; never loop.**\n\nClose out per the skill's own report section. `STEWARD: backlog clean.` is only the right\noutput when all five signals AND the backstop are empty; a night with nothing overdue but a\ncommitment stuck waiting still gets a report, never silence.\n\nOn this harness, \"deliver nothing\" means: when the backlog is clean, respond with exactly [SILENT] — that suppresses delivery. Any night with something to report, report it (five lines or fewer, questions last); it is delivered to Dana on WhatsApp.",
       "skills": [
-        "work-tracker",
-        "wt-steward"
+        "wt-steward",
+        "work-tracker"
       ],
-      "skill": "work-tracker",
+      "skill": "wt-steward",
       "model": null,
       "provider": null,
-      "provider_snapshot": null,
-      "model_snapshot": null,
       "base_url": null,
       "script": null,
       "no_agent": false,
+      "monitor_script": null,
+      "monitor_url": null,
+      "monitor_state": null,
       "context_from": null,
       "schedule": {
         "kind": "cron",
@@ -37,7 +38,10 @@
       "last_status": null,
       "last_error": null,
       "last_delivery_error": null,
-      "deliver": "local",
+      "last_delivery_unverified": null,
+      "last_failure": null,
+      "failure_streak": 0,
+      "deliver": "whatsapp:+<ID>",
       "origin": null,
       "enabled_toolsets": null,
       "workdir": null

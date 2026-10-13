@@ -7,8 +7,8 @@ description: "Evolves a capability's SHIPPED SOURCE — for everyone, not one us
 
 Boundary: this skill edits capability *source* — for everyone who uses the package.
 Whose package decides where that is: the user's own capabilities live in
-`<home>/personal/capabilities/<id>/` (theirs — edit directly); upstream-shipped ones
-live in `<home>/upstream/capabilities/<id>/` and are **never silently edited** — changes
+`<aos_home>/personal/capabilities/<id>/` (theirs — edit directly); upstream-shipped ones
+live in `<aos_home>/upstream/capabilities/<id>/` and are **never silently edited** — changes
 to them are contributions, drafted on a branch. Changing how an installed capability
 behaves *for this user* is {{skill: evolve}} — the overlay,
 not the source.

@@ -30,7 +30,7 @@ keeps the assertion but loses the reason invites a later reader to "simplify" it
 | `agents <dir>` | every agent's **installed** name (`<skill_prefix><agent-id>`, from `agents/*.agent.yaml`); `--json` adds the prefix; `--check` is the same single-owner gate over the agent namespace, against **two** of three sources — and names the third it cannot reach | 0, 12, 15, 17 |
 | `render <dir> <skill> --out` | copy `skills/<id>/` to `<out>/<installed-name>/`, rewrite `name`, stamp `metadata.aos.origin`, resolve the `{{skill:}}`/`{{agent:}}` name slots; mechanical + idempotent | 0, 1, 12, 14, 18 |
 | `home` | print the resolved household root | 0, 15 |
-| `init` | create an empty `<home>/.aos/installs.lock.yaml`; the one verb that may find no `.aos/` | 0, 1, 15 |
+| `init` | create an empty `<aos_home>/.aos/installs.lock.yaml`; the one verb that may find no `.aos/` | 0, 1, 15 |
 | `record <cap> --version` | write one capability's entry: artifact sha256s, link targets (own `--link`, used `--uses-link`), source root, jobs, config keys, env-var names, scripts; refuses a link another entry records | 0, 1, 15, 16, 19 |
 | `rehash <cap>` | re-hash the recorded artifacts in place after an approved evolve | 0, 14, 15, 16 |
 | `verify [<cap>]` | re-hash artifacts and re-read links (own and used) against disk | 0, 13, 14, 15 |
@@ -39,8 +39,10 @@ keeps the assertion but loses the reason invites a later reader to "simplify" it
 | `remove <cap>` | drop one entry (after the removal walk) | 0, 14, 15 |
 | `--version` | `aos-cap <version>`, eager, before subcommand dispatch | 0 |
 
-Global, and it goes **before** the verb: `--home` (else `$AOS_HOME`, else a cwd-upward
-`.aos/` search — and for `skills --check`, also a search upward from the capability dir).
+Global, and it goes **before** the verb: `--home` (else `$AOS_HOME`, else `~/aos` — never
+searched for, from the cwd or anywhere else). `init` alone refuses the default and wants the
+household named; `skills`/`agents --check` read a `~/aos` with no `.aos/` as "no household
+resolved", while an explicit home with no `.aos/` is exit 15 for every verb.
 
 ## `manifest` — 10
 
@@ -85,9 +87,9 @@ Happy path: one `id\tinstalled_name\tused_by` row per declared skill; `--check` 
 - [ ] test_collision_inside_one_capability — 17; the entry skill's name reached a second time through the prefix ("...in itself")
 - [ ] test_collision_with_a_lockfile_link — 17; a lockfile link attributes the name to another install
 - [ ] test_collision_with_a_skill_already_in_the_harness — 17
-- [ ] test_flat_harness_skill_file_also_collides — 17; Nanobot's `skills/<name>.md` flat form is a claim too
+- [ ] test_flat_harness_skill_file_also_collides — 17; a flat `skills/<name>.md` form is a claim too (every sheet today, HKUDS/nanobot included, is folder-only; this guards a harness that is not)
 - [ ] test_a_skill_merely_MENTIONING_the_origin_key_is_not_claimed_as_ours — **PIN**; 17; the gate used to test `ORIGIN_KEY in text` — a **substring** — so a stranger's skill whose *prose* discussed `metadata.aos.origin` read as aos-installed, and the install overwrote it instead of stopping. Provenance is read as structured frontmatter or it does not claim the entry
-- [ ] test_collision_found_when_cwd_is_outside_the_household — **PIN**; 17; on a real machine the agent's cwd is the harness workspace and no documented invocation passes `--home`. Resolving the household from cwd alone made `--check` skip the household + lockfile sources and still print "clean" — a silent no-op in the gate. Discovery now also walks up from the capability dir
+- [ ] test_collision_found_when_cwd_is_outside_the_household — **PIN**; 17; on a real machine the agent's cwd is the harness workspace and no documented invocation passes `--home`. Resolving the household from cwd alone made `--check` skip the household + lockfile sources and still print "clean" — a silent no-op in the gate. The household is `~/aos` by default, so the gate checks it whatever the cwd
 - [ ] test_another_capabilitys_flat_form_link_still_collides — **PIN**; 17; the mirror of the flat-form exemption below: a `.md` link owned by someone **else** is still a claim, so all three comparison sites have to agree on stems
 
 ### the gate says yes, for the right reason — 10
@@ -97,11 +99,11 @@ Happy path: one `id\tinstalled_name\tused_by` row per declared skill; `--check` 
 - [ ] test_non_skill_link_is_not_a_skill_name — 0; a linked *script*'s basename is not a skill name
 - [ ] test_malformed_neighbour_does_not_block_the_check — 0; a broken `CAPABILITY.md` next door must not abort an unrelated install
 - [ ] test_readme_in_a_flat_skills_dir_is_not_a_skill — 0; `README.md` in a flat skills dir is documentation
-- [ ] test_reinstall_over_our_own_flat_form_link_is_clean — 0; Nanobot's flat form records a link whose basename carries `.md`, and it still has to match our own exemption (`.stem`, not `.name`)
+- [ ] test_reinstall_over_our_own_flat_form_link_is_clean — 0; a flat-form harness records a link whose basename carries `.md`, and it still has to match our own exemption (`.stem`, not `.name`)
 - [ ] test_lost_lockfile_does_not_block_reinstall — **PIN**; 0; `.aos/` is machine-local and gitignored. A gate that trusted it alone saw our own installed skills as strangers and refused **every** re-install — turning a recoverable state into a stuck one. Provenance answers when the lockfile cannot
 - [ ] test_a_stranger_still_blocks_when_the_lockfile_is_lost — **PIN**; 17; the other half of that fallback: provenance exempts our renders, not every name in the directory
-- [ ] test_clean_report_names_the_sources_it_could_not_check
-- [ ] test_a_dot_aos_without_capability_roots_is_not_a_household — PIN: `find_home_soft` accepts any ancestor with a `.aos/`, and `~/.aos/` exists on every machine that has installed aos, so linting a bare kit clone claimed it checked a household holding zero capabilities — **PIN**; 0; a skipped source must never be indistinguishable from an empty one, so the report says `NO HOUSEHOLD RESOLVED` / `NO --harness-skills GIVEN` in as many words
+- [ ] test_clean_report_names_the_sources_it_could_not_check — **PIN**; 0; a skipped source must never be indistinguishable from an empty one, so the report says `NO HOUSEHOLD RESOLVED` / `NO --harness-skills GIVEN` in as many words
+- [ ] test_a_dot_aos_without_capability_roots_is_not_a_household — **PIN**; 0; a `.aos/` is not proof of a household — `~/aos/.aos/` exists as soon as `aos-cap init` has run, before anything is cloned beside it — so checking a kit clone claimed it checked a household holding zero capabilities. A root with no `upstream/`/`personal/` capabilities is reported as NOT checked
 - [ ] test_clean_report_names_the_sources_it_did_check — 0; and names the household + the harness dir count when it did
 
 ### bad input — 1
@@ -207,7 +209,7 @@ Happy path: `init` writes `version: 1` + `installs:`; `record` reports
 - [ ] test_init_creates_empty_lockfile — 0
 - [ ] test_init_creates_aos_dir_on_fresh_clone — 0; `init` is the one verb that may find no `.aos/` — it creates it
 - [ ] test_init_over_existing_lockfile_errors — 1; "already exists"
-- [ ] test_init_requires_explicit_clone — 15; `init` creates state, so the household must be named (`--home`/`AOS_HOME`) — never discovered from cwd
+- [ ] test_init_requires_explicit_clone — 15; `init` creates state, so the household must be named (`--home`/`AOS_HOME`) — never defaulted to `~/aos`, even when one is there
 
 ### `record` — 9
 
@@ -238,13 +240,17 @@ Happy path: `init` writes `version: 1` + `installs:`; `record` reports
 - [ ] test_show_unknown_capability — 14
 - [ ] test_list_and_remove — 0; `list` shows name + version, `remove` drops the entry
 
-## the household — 5
+## the household — 6
+
+`run()` hands every call a fresh empty HOME and pops `AOS_HOME`, so no test can resolve the
+developer's real `~/aos`; the tests below set HOME on purpose.
 
 - [ ] test_home_verb_prints_resolved_root — 0 + 15; the resolved root on stdout, exit 15 where none resolves
-- [ ] test_discovery_walks_up_from_cwd — 0; `.aos/` found from a nested cwd
-- [ ] test_env_override_wins_over_cwd — 0; `$AOS_HOME` beats discovery
-- [ ] test_no_clone_found_errors — 15; the message names `.aos`
+- [ ] test_the_default_is_tilde_aos_never_a_dot_aos_above_cwd — **PIN**; 0; the household was the first `.aos/` found walking up from the cwd, so any project folder carrying one became the household for every verb run beneath it. With a stray `.aos/` above the cwd, `home` prints `~/aos`
+- [ ] test_env_override_wins_over_the_default — 0; `$AOS_HOME` beats `~/aos`
+- [ ] test_no_clone_found_errors — 15; `~/aos` with no `.aos/`, and the message names the path it looked at
 - [ ] test_explicit_home_without_state_dir_errors — 15; an explicit `--home` with no `.aos/` is an error, not a fresh start (only `init` may create it)
+- [ ] test_aos_home_without_dot_aos_exits_15_for_strict_and_soft_verbs — **PIN**; 15; the collision gate skipped an `$AOS_HOME` with no `.aos/` silently and went looking elsewhere, so it could report "clean" against a household nobody named. An explicit home is never a fallthrough: `list` and `skills --check` both exit 15
 
 ## tool identity — 3
 

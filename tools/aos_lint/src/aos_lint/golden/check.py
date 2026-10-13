@@ -27,10 +27,10 @@ def live_roots(exp):
     roots = {
         "front": home / ".hermes" / "profiles" / "aos-test",
         "home": REPO_ROOT / "tests" / ".sandbox" / "aos-home",
-        # The harness ROOT, for the shared dirs a profile does not own: `--script` files land in
-        # ~/.hermes/scripts/ per the cheat-sheet's Materialization guide, which is the only place
-        # Hermes reads them from. Snapshot mode has no equivalent — the root is outside every
-        # profile tree — so a `root:` reference is live-only by construction.
+        # The harness ROOT, for the dirs no aos-* profile owns (`main`'s ~/.hermes/scripts/; a
+        # profile's own `--script` files live in its scripts/ — the cheat-sheet's Materialization
+        # guide). Snapshot mode has no equivalent — the root is outside every profile tree — so
+        # a `root:` reference is live-only by construction.
         "root": home / ".hermes",
     }
     for a in exp.get("agents") or []:

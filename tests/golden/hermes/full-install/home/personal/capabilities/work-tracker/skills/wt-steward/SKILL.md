@@ -57,13 +57,17 @@ This is the hard part, and one line decides it:
 |---|---|
 | extend `expires` · record a stall · reschedule a block **you** created | **drop a commitment** · **change a `due` date** · **nudge a person on their behalf** |
 
+A silent reschedule lands on the user's **personal** calendar, inside working hours, and
+never during choir practice (Thursdays 19:00–21:00) — if the only free window touches it, the
+reschedule stops being silent: report the conflict and offer the next window.
+
 The last one is already a red line in the global `MOD.md` (*"never send messages as me
 without showing me the draft"*). A `due` date is the user's promise to someone else, so
 moving it is their call even when the new date is obviously right.
 
 **Escalate on the pattern, not the event.** One slip is life; three is a bad commitment —
 *"this has moved three times; still want it, or should it go to someday?"* The threshold is
-an onboarding answer, default 3:
+an onboarding answer — 3 for this user:
 
 ```
 kb --base commitments find --where 'slipped>=3'

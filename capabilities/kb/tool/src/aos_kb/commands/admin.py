@@ -35,8 +35,8 @@ def cmd_grants(ctx: typer.Context,
 def cmd_config(ctx: typer.Context, op: Literal["get", "set"],
                assignment: Annotated[str, typer.Argument(metavar="key[=value]")]):
     """get/set, with principal.* routed to the machine-local file and everything else to
-    .kb/base.yml. This is what replaces the init step: the tool establishes itself on
-    first use, and config is how you correct it afterwards."""
+    .kb/base.yml. `kb init --principal` fills in a missing principal file; config is
+    how you change it."""
     if op == "set" and "=" not in assignment:
         die("config set takes key=value")
     key, _, value = assignment.partition("=")

@@ -43,11 +43,11 @@ def version_callback(value: bool):
 def acting_in(opts):
     """`resolve_base(opts)` immediately followed by `acting(opts, base)` — the shape
     every write verb with no validation of its own between the two collapses to.
-    A verb that must validate its arguments BEFORE establishing an identity (e.g.
+    A verb that must validate its arguments BEFORE resolving an identity (e.g.
     `pending add` checking --kind/--waits-on, `commit` checking --verb) keeps the two
-    calls apart on purpose: `acting()` calls `resolve_principal()`, which persists the
-    principal file on first use, and a doomed call dying on bad input must not have
-    that side effect."""
+    calls apart on purpose: `acting()` fails a write with no identity, and a call with
+    bad input should be told about the input. Either way, `acting()` comes before the
+    verb's first write, so a refusal leaves the tree untouched."""
     base = resolve_base(opts)
     agent, author, grants_subject = acting(opts, base)
     return base, agent, author, grants_subject

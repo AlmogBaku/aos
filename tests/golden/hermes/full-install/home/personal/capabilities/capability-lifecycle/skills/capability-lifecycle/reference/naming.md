@@ -93,8 +93,8 @@ rule schedules have (§5.5).
 - In the kit, two capabilities computing the same installed name is an error.
   (`skills/installed-collision`)
 - At install, `aos-cap --home <home> skills <cap-dir> --check --harness-skills <dir>…` is
-  the gate. On a harness that installs skills as flat `<name>.md` files (Nanobot), pass the
-  same directory — the gate reads both forms. It
+  the gate. If a harness installs skills as flat `<name>.md` files, pass the same directory —
+  the gate reads both forms. It
   checks three places: every capability in the household, the skill links the lockfile
   records for other capabilities, and the skills the harness already has — including ones
   aos never installed. Exit 17 means a collision; the report names the owner.

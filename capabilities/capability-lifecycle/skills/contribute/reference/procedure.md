@@ -16,9 +16,9 @@ feedback already supply the context), keep the rest, sized down:
   is written as a slot — `\{{skill: <id>}}` — never as a computed name), and
   `aos-cap skills --check` before any
   new skill is written, `skill-creator` for the craft if present (lint
-  the tree you actually wrote: `--root <home>/personal` for the user's own packages): the
+  the tree you actually wrote: `--root <aos_home>/personal` for the user's own packages): the
   user's own package → the change lands in `personal/capabilities/<id>/`;
-  upstream-shipped → the change lands on a branch in `<home>/upstream` and continues
+  upstream-shipped → the change lands on a branch in `<aos_home>/upstream` and continues
   per the contribution mechanics the {{skill: contribute}} skill links. Bump
   the capability's `version` per semver
   either way. The running install doesn't change until the already-specified

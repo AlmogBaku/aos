@@ -12,16 +12,17 @@ adds your harness's half. Derive it yourself:
 | session branch | a way to copy the conversation into a new session and come back (fork/branch + resume), and what a reopened session reloads by itself — skills, agents, context files |
 | context block | identity/instruction files it actually consumes — never invent filenames |
 | secret | native store (env file, vault, keychain) |
+| hook | its consent mechanism (allowlist, prompt, none) and the check that shows a hook approved and active |
 | introspection | how to enumerate all of the above |
 
 1. Introspect your harness: config layout, skills dirs, scheduler, secret store,
    agent primitive — read its docs and CLI help, list what already exists.
 2. Draft
-   `<home>/upstream/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`
+   `<aos_home>/upstream/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`
    answering §5.2's six sections (Primitive mapping, Materialization guide, Introspection
    guide, Secrets, Removal, Feature notes — the Hermes sheet the entry skill links is
    the reference shape). Keep it lean: your harness's half only. Write it **on a
-   branch** (`git -C <home>/upstream switch -c cheatsheet-<harness>`): a cheat-sheet is
+   branch** (`git -C <aos_home>/upstream switch -c cheatsheet-<harness>`): a cheat-sheet is
    generic knowledge, not personalization — the clone stays pristine on `main`, and the
    draft is born contribution-shaped. **The branch may already exist**, because step 5 switches
    back to `main` when the operation ends and the next operation routes here again: `switch -c`
@@ -30,7 +31,7 @@ adds your harness's half. Derive it yourself:
    soon as one operation has finished; re-drafting it from scratch is the failure mode this
    note exists to prevent.
 3. Diff gate: show the user the full draft before writing it — then **commit it
-   on the branch** (`git -C <home>/upstream add capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<h>.md`
+   on the branch** (`git -C <aos_home>/upstream add capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<h>.md`
    + commit). Uncommitted, it would follow you back to `main` as an untracked file in a
    clone that must hold nothing but upstream's own content — and it would fail the
    contribution preflight's clean-status check.
@@ -38,7 +39,7 @@ adds your harness's half. Derive it yourself:
    branch — do not switch away yet, or the file you are following disappears), telling
    the user the mappings are self-authored and unverified.
 5. **When the operation is done, switch the clone back to `main`**
-   (`git -C <home>/upstream switch main`): the branch keeps the draft, and a clone left
+   (`git -C <aos_home>/upstream switch main`): the branch keeps the draft, and a clone left
    on a feature branch stops receiving upstream changes (the upgrader skips the pull
    there by design). After a verified install, it is a ready-made contribution (§5.2): *offer* to open the
-   PR per `<home>/upstream/CONTRIBUTING.md` — and only on the user's explicit yes.
+   PR per `<aos_home>/upstream/CONTRIBUTING.md` — and only on the user's explicit yes.

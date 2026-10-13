@@ -7,8 +7,11 @@ A principal is a human, and git already models this: author = the person whose
 knowledge it is, committer = the acting agent. Rebase preserves the author, forges
 show it in blame, and no new identity system is invented.
 
-The principal file is a LIST because one person is not one identity — a work address
-should not author a personal base. First match wins, so a bare "*" belongs last.
+The principal is `--principal`/$AOS_PRINCIPAL_ID, else the first matching entry in
+<aos_home>/.aos/kb-principal.yml — never guessed. The file is a LIST because one person is
+not one identity — a work address should not author a personal base. First match wins,
+so a bare "*" belongs last. `kb init` fills in a MISSING identity, from the flag typed
+on it, and `kb config set principal.id=` changes it; an override is never saved.
 """
 
 import fnmatch
@@ -81,9 +84,7 @@ WEAK_PRINCIPAL_MARKERS = ("agents@localhost", "noreply@", "@localhost")
 
 
 def principal_file() -> Path:
-    home = find_household()
-    return (home / ".aos" / "kb-principal.yml") if home else \
-        Path.home() / ".aos" / "kb-principal.yml"
+    return find_household() / ".aos" / "kb-principal.yml"
 
 
 def load_principals() -> list:
@@ -94,24 +95,33 @@ def load_principals() -> list:
     return data if isinstance(data, list) else []
 
 
+def usable_principals() -> list:
+    return [e for e in load_principals()
+            if isinstance(e, dict) and str(e.get("id") or "").strip()]
+
+
+def principals_unusable() -> bool:
+    """The file exists and holds something, but no usable entry: a broken identity, not a
+    missing one. Nothing may overwrite it on the way past."""
+    p = principal_file()
+    if not p.exists():
+        return False
+    try:
+        data = yaml.safe_load(p.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        return True
+    return data not in (None, []) and not usable_principals()
+
+
 def save_principals(entries: list):
     p = principal_file()
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(
         "# The humans this machine writes as. First match wins, so a bare `*` belongs\n"
-        "# last. Machine-local and gitignored: `kb` writes it on the first verb call\n"
-        "# and kb's ONBOARDING.md fixes what detection got wrong.\n"
+        "# last. Machine-local and gitignored: `kb init --principal <id>` fills it in\n"
+        "# when missing, `kb config set principal.id=<id>` changes it.\n"
         + yaml.safe_dump(entries, sort_keys=False, allow_unicode=True),
         encoding="utf-8")
-
-
-def synthesize_principal() -> str:
-    import getpass
-    import socket
-    user = re.sub(r"[^a-z0-9._-]+", "-", getpass.getuser().lower()) or "user"
-    host = re.sub(r"[^a-z0-9.-]+", "-", socket.gethostname().split(".")[0].lower()) \
-        or "localhost"
-    return f"{user}@{host}.local"
 
 
 def is_weak_principal(pid: str) -> bool:
@@ -120,44 +130,74 @@ def is_weak_principal(pid: str) -> bool:
         or any(m in pid for m in WEAK_PRINCIPAL_MARKERS)
 
 
-def resolve_principal(args, base_name: str, root: Path = None,
-                      persist: bool = True) -> str:
-    """$AOS_PRINCIPAL_ID -> first matching file entry -> git config user.email ->
-    synthesized. Written once, reused. NEVER prompts and never blocks: this runs
-    under a 5-second capture budget and under a cron with no tty. A weak value is
-    lint's finding, not an error.
+def override_principal(args) -> str | None:
+    """`--principal`, else $AOS_PRINCIPAL_ID: used for this call, never written."""
+    pid = getattr(args, "principal", None) or os.environ.get("AOS_PRINCIPAL_ID")
+    return pid.strip() if pid and pid.strip() else None
 
-    `persist=False` for the read-only verbs. A report is not a reason to establish an
-    identity: `kb lint` on someone else's base would otherwise create
-    <home>/.aos/kb-principal.yml as a side effect of reading, which is both a
-    surprise and a wrong answer to "whose base is this".
-    """
-    entries = load_principals()
-    env = getattr(args, "principal", None) or os.environ.get("AOS_PRINCIPAL_ID")
-    if env and env.strip():
-        env = env.strip()
-        # Seeded on the way past when there is no file yet: "established on first use"
-        # has to mean the first use, whatever supplied the identity. An existing file
-        # is left alone — env is an override, and an override that rewrote the file
-        # would make itself permanent.
-        if persist and not entries:
-            save_principals([{"id": env, "bases": ["*"]}])
-        return env
-    for e in entries:
-        if not isinstance(e, dict) or not e.get("id"):
+
+def typed_principal(args) -> str | None:
+    """`--principal` alone: what was typed on this command, not what a shell exports."""
+    pid = getattr(args, "principal", None)
+    return pid.strip() if pid and pid.strip() else None
+
+
+def file_principal(base_name: str, entries: list | None = None) -> str | None:
+    """The first entry in the principal file whose `bases` globs match."""
+    for e in (load_principals() if entries is None else entries):
+        if not isinstance(e, dict) or not str(e.get("id") or "").strip():
             continue
         for pat in (e.get("bases") or ["*"]):
             if fnmatch.fnmatch(base_name, str(pat)):
                 return str(e["id"]).strip()
-    pid = ""
-    if root is not None:
-        pid = git(root, "config", "user.email").stdout.strip()
-    if not pid:
-        pid = synthesize_principal()
-    if persist:
-        entries.append({"id": pid, "bases": ["*"]})
-        save_principals(entries)
+    return None
+
+
+def no_principal(base_name: str):
+    die(f"no principal for base {base_name!r}: no --principal, no $AOS_PRINCIPAL_ID, "
+        f"and no matching entry in {principal_file()}. Set one with "
+        f"`kb config set principal.id=<id>` (on a fresh machine, "
+        f"`kb init --principal <id>`); or pass --principal / set AOS_PRINCIPAL_ID "
+        f"for one call")
+
+
+def resolve_principal(args, base_name: str, required: bool = True) -> str | None:
+    """The override -> the first matching file entry -> nothing. Never guessed and never
+    prompted for: this runs under a 5-second capture budget and under a cron with no tty.
+    A guess (git's user.email, a synthesized user@host) authors writes as whoever the
+    machine happens to say, so a write with no identity is an error naming the file.
+
+    `required=False` for the read-only verbs, which run with no identity at all (None):
+    `kb lint` on someone else's base has no business needing one."""
+    pid = override_principal(args) or file_principal(base_name)
+    if pid is None and required:
+        no_principal(base_name)
     return pid
+
+
+def init_principal(args, base_name: str) -> tuple[str, bool]:
+    """`kb init`'s identity, and whether init saves it — the one write an identity ever
+    gets outside `kb config set`. Only when there is NO identity at all, and only the
+    typed `--principal`: $AOS_PRINCIPAL_ID is whatever a shell exports, and saving it
+    would make that the permanent author. With any entry on file, the file is left alone
+    and a typed flag is this call's override, as on every other verb."""
+    entries = usable_principals()
+    typed = typed_principal(args)
+    if not entries:
+        if principals_unusable():
+            die(f"{principal_file()} holds no usable identity — fix or remove it, then "
+                f"rerun (nothing was written)")
+        if typed is None:
+            die(f"no identity in {principal_file()} — run "
+                f"`kb config set principal.id=<you>` (or, on a fresh machine, "
+                f"`kb init --principal <you>`). $AOS_PRINCIPAL_ID is a per-call "
+                f"override and is never saved")
+        return typed, True
+    if typed and typed != file_principal(base_name, entries):
+        print(f"note: --principal {typed} authors this init only — the saved identity "
+              f"in {principal_file()} was left unchanged (change it with "
+              f"`kb config set principal.id=<id>`).")
+    return resolve_principal(args, base_name), False
 
 
 def principal_name(args, root: Path, pid: str) -> str:

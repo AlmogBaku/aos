@@ -65,7 +65,7 @@ SKILL_MD = "---\nname: {name}\ndescription: {name}. Use when testing {name}.\n--
 
 def write_cap(home, cap_id, skills, prefix=None, root="upstream", version="1.0.0",
               agents=(), depends=()):
-    """Write a fixture capability under <home>/<root>/capabilities/ and return its dir.
+    """Write a fixture capability under <aos_home>/<root>/capabilities/ and return its dir.
 
     Module-level, taking `home` as a parameter, rather than a method on a shared base
     class: the test classes here are deliberately concrete leaves (CLAUDE.md's note that
@@ -123,10 +123,9 @@ def chdir(path):
     """`contextlib.chdir` is 3.11+ and this file's floor is 3.10, so: the same thing.
 
     Needed because CliRunner runs in *this* process and therefore inherits its cwd —
-    unlike the subprocess era, where `cwd=` was free. Several behaviours here are genuine
-    functions of the process cwd (the upward `.aos/` search, a relative `--artifact`, a
-    relative capability dir), and `find_home_soft`'s comment records what relying on cwd
-    alone once cost: `--check` skipped sources and still reported "clean".
+    unlike the subprocess era, where `cwd=` was free. Some behaviours here are genuine
+    functions of the process cwd (a relative `--artifact`, a relative capability dir),
+    and one is pinned as NOT being one: the household never comes from the cwd.
 
     Deliberately not `CliRunner.isolated_filesystem()`: that makes its own temp dir, and
     every test below needs the household it built, not a fresh empty one."""
@@ -141,13 +140,14 @@ def chdir(path):
 def run(args, env_extra=None, cwd=None):
     """In-process invocation of the same `app` the installed `aos-cap` script wires to.
 
-    `AOS_HOME` is popped for every call: the household is an explicit argument of every
-    test (via `--home`, `$AOS_HOME` set on purpose, or a cwd the test controls), and a
-    developer with the variable exported would otherwise silently redirect the ones that
-    assert discovery. `cwd`, when given, is applied for the duration of the call."""
-    env = {"AOS_HOME": None}
-    env.update(env_extra or {})
-    with (chdir(cwd) if cwd else contextlib.nullcontext()):
+    `AOS_HOME` is popped and HOME is a fresh empty directory for every call, unless the
+    test sets either on purpose: the household is `--home`, else `$AOS_HOME`, else
+    `~/aos`, so an inherited AOS_HOME would redirect the tests that assert resolution, and
+    an inherited HOME would point the rest at the developer's real `~/aos`. `cwd`, when
+    given, is applied for the duration of the call."""
+    with tempfile.TemporaryDirectory() as home, \
+            (chdir(cwd) if cwd else contextlib.nullcontext()):
+        env = {"AOS_HOME": None, "HOME": home, **(env_extra or {})}
         return Result(_runner.invoke(app, list(args), env=env, catch_exceptions=False))
 
 
@@ -255,7 +255,7 @@ class ManifestTest(unittest.TestCase):
 
 
 class LockfileTest(unittest.TestCase):
-    """The seven verbs that own `<home>/.aos/installs.lock.yaml` — `init record rehash
+    """The seven verbs that own `<aos_home>/.aos/installs.lock.yaml` — `init record rehash
     verify show list remove`. Mirrors `aos_cap.lockfile` + `commands/lockfile.py`."""
 
     def setUp(self):
@@ -508,11 +508,9 @@ class LockfileTest(unittest.TestCase):
 
 
 class HouseholdTest(unittest.TestCase):
-    """Resolving the household root: `home`, the cwd-upward `.aos/` search, `--home`,
-    `$AOS_HOME` — the exit-15 family. Mirrors `aos_cap.household`.
-
-    This is where the cwd-sensitive tests live, and cwd is the one thing an in-process
-    CliRunner does not isolate for free (see the `chdir` helper)."""
+    """Resolving the household root: `home`, `--home`, `$AOS_HOME`, the `~/aos` default —
+    the exit-15 family. Mirrors `aos_cap.household`. Nothing is discovered from the cwd,
+    and the cwd-sensitive tests here run from cwds chosen to prove it (see `chdir`)."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -521,6 +519,10 @@ class HouseholdTest(unittest.TestCase):
         (self.home / ".aos").mkdir(parents=True)
         self.artifact = self.home / "artifact-one.md"
         self.artifact.write_text("alpha\n")
+        # A HOME of the test's own, for the `~/aos` default: `run()` otherwise hands every
+        # call a fresh empty one.
+        self.user = self.dir / "user"
+        self.user.mkdir()
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -540,13 +542,16 @@ class HouseholdTest(unittest.TestCase):
         d.mkdir()
         return d
 
+    def as_user(self, **extra):
+        return {"HOME": str(self.user), **extra}
+
     # -- home --------------------------------------------------------------
     def test_home_verb_prints_resolved_root(self):
         self.seed_lockfile()
         r = run(["--home", str(self.home), "home"])
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(r.stdout.strip(), str(self.home))
-        r = run(["home"], cwd=str(self.bare("nohome")))
+        r = run(["home"], env_extra=self.as_user())      # no ~/aos at all
         self.assertEqual(r.returncode, 15)
 
     def test_explicit_home_without_state_dir_errors(self):
@@ -557,41 +562,65 @@ class HouseholdTest(unittest.TestCase):
         self.assertEqual(r.returncode, 15)
 
     def test_init_requires_explicit_clone(self):
-        # `init` creates state, so the household is named rather than discovered.
-        r = run(["init"], cwd=str(self.bare("bare-init")))
+        # `init` creates state, so the household is named rather than defaulted — even
+        # with a `~/aos` right there to default to.
+        (self.user / "aos").mkdir()
+        r = run(["init"], env_extra=self.as_user())
         self.assertEqual(r.returncode, 15)
         self.assertIn("--home", r.stderr)
+        self.assertFalse((self.user / "aos" / ".aos").exists())
 
-    # -- discovery ---------------------------------------------------------
-    def test_discovery_walks_up_from_cwd(self):
-        self.seed_lockfile()
-        nested = self.home / "upstream" / "capabilities"
-        nested.mkdir(parents=True, exist_ok=True)
-        r = run(["list"], cwd=str(nested))
+    # -- the default -------------------------------------------------------
+    def test_the_default_is_tilde_aos_never_a_dot_aos_above_cwd(self):
+        """PIN: the household was the first `.aos/` found walking up from the cwd, so any
+        project folder carrying one became the household for every verb run beneath it."""
+        (self.user / "aos" / ".aos").mkdir(parents=True)
+        stray = self.dir / "project"
+        (stray / ".aos").mkdir(parents=True)
+        deep = stray / "src" / "deep"
+        deep.mkdir(parents=True)
+        r = run(["home"], env_extra=self.as_user(), cwd=str(deep))
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("democap", r.stdout)
+        self.assertEqual(r.stdout.strip(), str(self.user / "aos"))
 
     def test_no_clone_found_errors(self):
-        r = run(["list"], cwd=str(self.bare("elsewhere")))
+        r = run(["list"], env_extra=self.as_user())
         self.assertEqual(r.returncode, 15)
-        self.assertIn(".aos", r.stderr)
+        self.assertIn(f"no .aos/ directory under {self.user / 'aos'}", r.stderr)
 
-    def test_env_override_wins_over_cwd(self):
+    def test_env_override_wins_over_the_default(self):
         self.seed_lockfile()
-        r = run(["list"], env_extra={"AOS_HOME": str(self.home)},
-                cwd=str(self.bare("elsewhere2")))
+        (self.user / "aos" / ".aos").mkdir(parents=True)  # a household the default names
+        r = run(["list"], env_extra=self.as_user(AOS_HOME=str(self.home)))
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("democap", r.stdout)
+
+    def test_aos_home_without_dot_aos_exits_15_for_strict_and_soft_verbs(self):
+        """PIN: the collision gate skipped an `$AOS_HOME` with no `.aos/` silently and went
+        looking elsewhere — so it could report "clean" against a household nobody named.
+        An explicit home is never a fallthrough, for the gate or for anything else."""
+        cap = self.cap("democap", ["democap"])        # inside a real household, too
+        (self.user / "aos" / ".aos").mkdir(parents=True)
+        env = self.as_user(AOS_HOME=str(self.bare("not-a-household")))
+        r = run(["list"], env_extra=env)
+        self.assertEqual(r.returncode, 15, r.stdout + r.stderr)
+        r = run(["skills", str(cap), "--check"], env_extra=env)
+        self.assertEqual(r.returncode, 15, r.stdout + r.stderr)
+        self.assertIn("not-a-household", r.stderr)
 
     def test_collision_found_when_cwd_is_outside_the_household(self):
         """PIN: on a real machine the agent's cwd is the harness workspace, not the
         household, and no documented invocation passes --home. Resolving from cwd alone
         made `--check` skip the household and lockfile sources and still say "clean" — a
-        silent no-op in the one gate that stops an overwrite. Discovery therefore also
-        walks up from the capability directory, the one path every caller supplies."""
-        self.cap("othercap", ["othercap", "sort"], prefix="democap-", root="personal")
-        cap = self.cap("democap", ["democap", "sort"])
-        r = run(["skills", str(cap), "--check"], cwd=str(self.bare("elsewhere3")))
+        silent no-op in the one gate that stops an overwrite. The household is `~/aos` by
+        default, so the gate checks it whatever the cwd."""
+        household = self.user / "aos"
+        (household / ".aos").mkdir(parents=True)
+        write_cap(household, "othercap", ["othercap", "sort"], prefix="democap-",
+                  root="personal")
+        cap = write_cap(household, "democap", ["democap", "sort"])
+        r = run(["skills", str(cap), "--check"], env_extra=self.as_user(),
+                cwd=str(self.bare("elsewhere3")))
         self.assertEqual(r.returncode, 17, r.stdout + r.stderr)
         self.assertIn("othercap", r.stderr)
 
@@ -727,7 +756,7 @@ class SkillNameTest(unittest.TestCase):
     def test_flat_harness_skill_file_also_collides(self):
         harness = self.home / "harness" / "skills"
         harness.mkdir(parents=True)
-        (harness / "democap-sort.md").write_text("flat form (Nanobot)\n")
+        (harness / "democap-sort.md").write_text("flat form\n")
         cap = self.cap("democap", ["democap", "sort"])
         self.assertEqual(self.skills(cap, "--check", "--harness-skills",
                                      str(harness)).returncode, 17)
@@ -810,8 +839,8 @@ class SkillNameTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
 
     def test_reinstall_over_our_own_flat_form_link_is_clean(self):
-        """Nanobot installs skills as skills/<name>.md, so the lockfile records a link
-        whose basename carries .md — it still has to match our own exemption."""
+        """A harness that installs skills as skills/<name>.md records a link whose
+        basename carries .md — it still has to match our own exemption."""
         harness = self.home / "harness" / "skills"
         harness.mkdir(parents=True)
         (harness / "democap-sort.md").write_text("flat form\n")
@@ -848,28 +877,26 @@ class SkillNameTest(unittest.TestCase):
             "skills:\n  - id: lonecap\n    used_by: [main]\n---\nbody\n")
         (lone / "README.md").write_text("# lonecap\n")
         (lone / "skills" / "lonecap" / "SKILL.md").write_text(SKILL_MD.format(name="lonecap"))
-        r = run(["skills", str(lone), "--check"], cwd=str(Path(self.tmp.name) / "lone"))
+        r = run(["skills", str(lone), "--check"])    # no --home, and no ~/aos either
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("NO HOUSEHOLD RESOLVED", r.stdout)
         self.assertIn("NO --harness-skills GIVEN", r.stdout)
 
     def test_a_dot_aos_without_capability_roots_is_not_a_household(self):
-        """PIN: `find_home_soft` accepts any ancestor holding a `.aos/`, and `~/.aos/`
-        exists on every machine that has ever installed aos. So linting a bare kit clone
-        printed "checked: household /home/you" after consulting a household with zero
-        capabilities in it — a clean-looking gate that checked nothing. The report must
-        say the source was skipped, which is the same discipline as the test above."""
-        # The real shape: a `.aos/` at some ancestor (here `bare/`), and the capability
-        # sitting in a plain clone BELOW it — `bare/clone/capabilities/<id>`, not
-        # `bare/{upstream,personal}/capabilities/<id>`. That is a kit checkout on a machine
-        # whose home already has a household, which is every contributor's machine.
-        bare = Path(self.tmp.name) / "bare"
-        (bare / ".aos").mkdir(parents=True)
-        cap = write_cap(bare, "lonecap", ["lonecap"], root="clone")
-        r = run(["skills", str(cap), "--check"])
+        """PIN: a resolved root holding a `.aos/` is not proof of a household — `~/aos/.aos/`
+        exists as soon as `aos-cap init` has run, before anything is cloned beside it. So
+        checking a kit clone printed "checked: household ~/aos" after consulting a
+        household with zero capabilities in it — a clean-looking gate that checked
+        nothing. The report must say the source was skipped, which is the same discipline
+        as the test above."""
+        user = Path(self.tmp.name) / "user"
+        (user / "aos" / ".aos").mkdir(parents=True)
+        # The capability sits in a plain kit clone, not under ~/aos/{upstream,personal}/.
+        cap = write_cap(Path(self.tmp.name) / "work", "lonecap", ["lonecap"], root="clone")
+        r = run(["skills", str(cap), "--check"], env_extra={"HOME": str(user)})
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("NOT checked", r.stdout)
-        self.assertNotIn(f"checked: household {bare} (", r.stdout)
+        self.assertIn(f"{user / 'aos'} HOLDS A .aos/ BUT NO upstream/ OR personal/", r.stdout)
+        self.assertNotIn(f"checked: household {user / 'aos'} (", r.stdout)
 
     def test_clean_report_names_the_sources_it_did_check(self):
         harness = self.home / "harness" / "skills"
@@ -1598,12 +1625,22 @@ class InstalledScriptTest(unittest.TestCase):
     in-process — this is deliberately the sole subprocess survivor."""
 
     def run_installed(self, args, env_extra=None):
+        # The same throwaway HOME as `run()`; uv keeps its real cache and interpreters,
+        # which otherwise default to paths under HOME and would re-download per call.
         env = dict(os.environ)
         env.pop("AOS_HOME", None)
-        env.update(env_extra or {})
-        return subprocess.run(["uv", "run", "--quiet", "--project", str(TOOL_DIR),
-                               "aos-cap", *args],
-                              capture_output=True, text=True, env=env)
+        env.update({"UV_CACHE_DIR": self.uv_dir("cache"),
+                    "UV_PYTHON_INSTALL_DIR": self.uv_dir("python")})
+        with tempfile.TemporaryDirectory() as home:
+            env.update({"HOME": home, **(env_extra or {})})
+            return subprocess.run(["uv", "run", "--quiet", "--project", str(TOOL_DIR),
+                                   "aos-cap", *args],
+                                  capture_output=True, text=True, env=env)
+
+    @staticmethod
+    def uv_dir(kind):
+        return subprocess.run(["uv", kind, "dir"], capture_output=True,
+                              text=True).stdout.strip()
 
     def test_the_installed_script_runs_and_reports_its_version(self):
         r = self.run_installed(["--version"])

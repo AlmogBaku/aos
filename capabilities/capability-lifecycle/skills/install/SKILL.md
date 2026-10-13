@@ -31,7 +31,7 @@ the overlay doctrine, and the Experience rules. Then:
    supported-but-unconfigured channel → install, and say what they still need to set up;
    `preferred` unsupported → note each schedule's declared degraded mode for recording.
 5. **Name gate**, before anything is written:
-   `aos-cap --home <home> skills <dir> --check --harness-skills <dir> …` — one
+   `aos-cap --home <aos_home> skills <dir> --check --harness-skills <dir> …` — one
    `--harness-skills` per skills dir this harness reads, per the cheat-sheet's Primitive
    mapping. Read its `checked:` lines —
    a source it could not reach is named in capitals, and "clean" against two of three
@@ -40,29 +40,29 @@ the overlay doctrine, and the Experience rules. Then:
    user's own source), never by renaming here. Clean → the printed installed names are
    what every later step uses (the `capability-lifecycle` skill's `reference/naming.md`).
    In the same breath, if the capability ships `agents/`:
-   `aos-cap --home <home> agents <dir> --check` — agents land in a flat per-harness
+   `aos-cap --home <aos_home> agents <dir> --check` — agents land in a flat per-harness
    namespace too, so the same exit 17 and the same rule (fix the package, never rename
    here). It checks two of three sources; the third — agents already in the harness — has
    no enumeration yet and says so in capitals, so glance at what the harness already has.
 6. Interview, iff the capability ships ONBOARDING.md — run it per the
    `capability-lifecycle` skill's `reference/overlay.md` (batched, typed validation, secrets → store per the
-   cheat-sheet's Secrets section) → write `<home>/personal/capabilities/<id>/MOD.md`
-   (capability-lifecycle's own: `<home>/personal/MOD.md` — the `capability-lifecycle` skill's
+   cheat-sheet's Secrets section) → write `<aos_home>/personal/capabilities/<id>/MOD.md`
+   (capability-lifecycle's own: `<aos_home>/personal/MOD.md` — the `capability-lifecycle` skill's
    `reference/overlay.md`, Which MOD.md).
 7. Render, then transform: `aos-cap render <dir> <skill-id> --out
-   <home>/personal/<render-path>/skills` per declared skill — `<render-path>` is
+   <aos_home>/personal/<render-path>/skills` per declared skill — `<render-path>` is
    `capabilities/<id>` for a shipped package and `renders/<id>` for the user's own (whose
    `capabilities/<id>/` is the source; `render` refuses an output inside its source) —
    mechanical: installed name, frontmatter `name`, `metadata.aos.origin`. Then the
    transform per the `capability-lifecycle` skill's `reference/overlay.md`, against this
    capability's MOD.md (Which MOD.md): fill `{{mod}}` slots, weave its prose statements,
-   bake `<home>`.
+   bake `<aos_home>`.
    Source files stay untouched.
 8. **STAGE** per the cheat-sheet's Materialization guide: the render sits in
    `personal/`'s working tree (uncommitted) plus the exact native command plan —
    agents (an existing one is adopted only on positive evidence it is this capability's,
    never re-created; none → stop and ask — contract), skill symlinks (the installed name → the render, per `used_by`; container
-   harness → verify the `<home>/personal` mount per the cheat-sheet), `uses` links (per
+   harness → verify the `<aos_home>/personal` mount per the cheat-sheet), `uses` links (per
    row: the provider's recorded render from `aos-cap show <provider>` → each listed agent's
    skills location, under `installed_name`; a path another entry or a stranger holds →
    stop), schedules
@@ -78,10 +78,12 @@ the overlay doctrine, and the Experience rules. Then:
 10. **EXECUTE** the approved plan: commit the render in `personal/` (dated
    message — the persist hook), create the symlinks, run the native plan; `kb:`
    zones → draft grant rows into each target KB's `## Grants` table, user approves.
-   A capability's tool may write its own machine-local file under `<home>/.aos/` on first
-   use — kb's `kb-principal.yml` is the one today. Do **not** create it yourself: the tool
-   owns it, the same way `aos-cap` owns the lockfile. Say it exists in the summary so
-   the user is not surprised by a file nobody mentioned, and leave it out of `record`
+   A capability's tool may write machine-local files under `<aos_home>/.aos/` — kb writes
+   `kb-principal.yml` (`kb init --principal` fills in a missing one, `kb config set
+   principal.id=` changes it) and
+   `kb-registry.yaml` (on `kb init`/`kb adopt`). Do **not** create them yourself: the tool
+   owns them, the same way `aos-cap` owns the lockfile. Say they exist in the summary so
+   the user is not surprised by files nobody mentioned, and leave them out of `record`
    (machine-local state is not a materialized artifact — hashing it would report drift the
    first time the tool touched it).
 11. `aos-cap record <id> --version <v> --source-root <root> --artifact
@@ -97,5 +99,7 @@ the overlay doctrine, and the Experience rules. Then:
 12. `aos-cap verify <id>` — exit 13 means what you just recorded does not match what is
     on disk (a link that is a copy, a missed render, a hash taken before the transform).
     Fix it now: you still know what you wrote, and the next person to find out would be
-    {{skill: upgrade}}, months from now.
+    {{skill: upgrade}}, months from now. Hooks get the same check from the harness side:
+    each one consented and active per the cheat-sheet (its doctor, where the harness has
+    one) — a hook the harness skips fails silently.
 13. Celebrate specifically: what, where, which schedules, degraded modes in effect.

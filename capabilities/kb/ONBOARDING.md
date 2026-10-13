@@ -30,13 +30,15 @@ channels) and structure design (zones, types) are collected by the `kb-init` and
 skills right afterwards — registry data belongs in the registry and base structure in
 `.kb/base.yml`, not in the overlay.
 
-1. **`principal_id`** — the tool already wrote `<home>/.aos/kb-principal.yml` on its first
-   verb call, detected from `git config user.email` or synthesized. Show them what it found
-   and ask if it is right: *"writes will be attributed to `<detected>` — is that the address
-   you want your knowledge under?"* One person is not one identity, so if they name a work
-   address too, record both — the file is a list matched against base names, first match
-   wins, and a bare `*` belongs last. This is the only place the asking happens: the tool
-   never prompts, because capture must not wait on a tty a cron does not have.
+1. **`principal_id`** — the identity that authors every KB write. Ask for it now and record
+   the one identity with `kb config set principal.id=<answer>` — it writes
+   `<aos_home>/.aos/kb-principal.yml` as a catch-all `*`. If they name a work address too, that
+   second, scoped identity is the user's own edit of the same file — show them the shape (a
+   list matched against base names, first match wins: the most specific entry first, the
+   `*` last) and never write it yourself; a second `config set` would put itself first as
+   another `*` and claim every base. Write verbs
+   without a resolved identity error naming the file; read-only verbs (lint, find, search)
+   need none.
 2. **`existing_kbs`** — "Obsidian vault, a notes git repo, a wiki checkout — paths, if so."
    For each path the `kb-adopt` skill runs next: registration plus a divergence report, and
    no rewrites. Promise that out loud, it is the thing users fear.

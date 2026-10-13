@@ -28,7 +28,7 @@ PRs need an accepted issue first. Show the draft; file only on explicit yes.
 
 ## The PR path
 
-1. **Preflight**: `git -C <home>/upstream status` clean, on `main`; canonical remote
+1. **Preflight**: `git -C <aos_home>/upstream status` clean, on `main`; canonical remote
    reachable (`upstream` remote, or `origin` on a plain clone); a PR-capable remote
    available — the user's public fork, or canonical itself with push rights. Neither
    and a PR is the goal → *offer* `gh repo fork --remote` (one command — but a fork
@@ -44,7 +44,7 @@ PRs need an accepted issue first. Show the draft; file only on explicit yes.
    not a tool): promoted content is genericized. No real names, companies,
    relationships; no actual KB content; `ONBOARDING.md` ships *questions*,
    `MOD.example.md` ships invented placeholders. When in doubt, redact.
-5. **Gate** (run from `<home>/upstream`): `bash tools/check.sh` green; bump the
+5. **Gate** (run from `<aos_home>/upstream`): `bash tools/check.sh` green; bump the
    capability's `CAPABILITY.md` `version` and confirm with
    `uv run --project tools/aos_lint python -m aos_lint.cli --base <canonical-remote>/main`
    — on a fork,

@@ -11,7 +11,7 @@ lockfile — only the last group is lockfile bookkeeping:
             (mechanical, idempotent)
   home      print the resolved household root
   init/record/rehash/verify/show/list/remove  own the lockfile
-  (<home>/.aos/installs.lock.yaml — the aos household root, e.g. ~/aos)
+  (<aos_home>/.aos/installs.lock.yaml — the aos household root, e.g. ~/aos)
 
 The lockfile is THIS TOOL'S file: agents call verbs, never edit the YAML.
 Exit codes: 0 ok · 1 generic (e.g. init over an existing lockfile) · 12 manifest
@@ -46,8 +46,8 @@ app.add_typer(lockfile_app)
 def main_callback(
     ctx: typer.Context,
     home: Optional[str] = typer.Option(
-        None, "--home", help="household root, e.g. ~/aos (else $AOS_HOME, else a "
-                             "cwd-upward .aos/ search)"),
+        None, "--home", help="household root (else $AOS_HOME, else ~/aos; never "
+                             "searched for). `init` alone requires it named"),
     version: bool = typer.Option(
         False, "--version", callback=version_callback, is_eager=True),
 ):

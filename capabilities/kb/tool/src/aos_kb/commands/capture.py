@@ -251,9 +251,9 @@ def cmd_inbox(
     while that agent holds write access to shared knowledge. `--all` is the
     designated-curator (and CI) path."""
     base = resolve_base(ctx.obj)
-    # Read-only, so it resolves without establishing: see resolve_principal's `persist`.
+    # Read-only, so it runs with no identity too: with none, nothing here is "yours".
     principal = resolve_principal(ctx.obj, base.cfg.get("name", base.root.name),
-                                 base.root, persist=False)
+                                 required=False)
     where = parse_where(where)
     # The designated curator's whole job is reading everyone's raw material, so it needs
     # no flag. `--all` survives for the CI path, but it stops being silent about it.
