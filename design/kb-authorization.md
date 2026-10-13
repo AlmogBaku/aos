@@ -43,7 +43,7 @@ Every moving part, what it physically is, where it lives, who executes it.
 
 | # | Component | What it physically is | Lives in | Executed / consumed by |
 |---|---|---|---|---|
-| 1 | `kb-registry.yaml` | A machine-local YAML file (§4.1). Data, not code. | `<home>/.aos/kb-registry.yaml` — machine-local, gitignored, not overlay. Only `kb init`/`kb adopt` create it; missing → error. | Read by the router skill on every routed write; written by `kb init`/`kb adopt`. |
+| 1 | `kb-registry.yaml` | A machine-local YAML file (§4.1). Data, not code. | `<aos_home>/.aos/kb-registry.yaml` — machine-local, gitignored, not overlay. Only `kb init`/`kb adopt` create it; missing → error. | Read by the router skill on every routed write; written by `kb init`/`kb adopt`. |
 | 2 | **Router** | A skill — `capabilities/kb/skills/route/SKILL.md`. Steps 1–2 and 4 of §4.2 are deterministic — executed via the `base` tool (grants lookup, registry parse, capture write); step 3 is one cheap LLM call. There is **no router daemon**. | Kit repo (skill); runs inside whatever agent is performing the capture. | The writing agent, inline in the capture path. |
 | 3 | **Authz check** | A verb of the `kb` tool (`kb grants check` — so non-routed direct writes can call it too). A table lookup, nothing more; refusals recorded via `base refuse`. | Kit repo — `capabilities/kb/tool/`. | The writing agent, immediately before any KB write. |
 | 4 | **Zone/grant table** | A machine-readable markdown table inside each KB's `AGENTS.md` (§4.4 "maintainer-zone table", evolved — format in §2.2 below). Human-first, lint-parsed. | **Each KB repo**, in its `AGENTS.md`. | Read by the router skill / `base grants check` and lint; appended by install-time zone registration; the user edits it freely. |
@@ -107,7 +107,7 @@ flowchart TB
 ### 2.1 Registry entries — `kb-registry.yaml` (normative base §4.1, extensions proposed)
 
 ```yaml
-# kb-registry.yaml — machine-local in <home>/.aos/; upstream never writes it
+# kb-registry.yaml — machine-local in <aos_home>/.aos/; upstream never writes it
 default: personal                # uncertain captures land in THIS KB's inbox
 confidence_bar: 0.7              # (proposed) global LLM-routing threshold; RFC-006 tunes
 

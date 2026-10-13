@@ -179,7 +179,7 @@ Skill scoping is the load-bearing row: **`used_by` is what keeps ten capabilitie
 ## 5. What the lockfile knows
 
 ```yaml
-# <home>/.aos/installs.lock.yaml (machine-local, household level — spans source roots)
+# <aos_home>/.aos/installs.lock.yaml (machine-local, household level — spans source roots)
 # One entry per capability, covering every harness it is installed into. `record`
 # replaces an entry wholesale, so a second-harness install re-records the combined set.
 installs:
