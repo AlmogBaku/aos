@@ -21,14 +21,15 @@ Rows tagged **PIN** are regression pins for real bugs that shipped. Their one-li
 is the point of the row — a rewrite that drops one re-opens the bug, and a rewrite that
 keeps the assertion but loses the reason invites a later reader to "simplify" it away.
 
-## The surface: 12 verbs + `--version`
+## The surface: 13 verbs + `--version`
 
 | verb | promises | exits |
 |---|---|---|
 | `manifest <dir>` | parse + validate a `CAPABILITY.md` (§2.2), emit it as JSON on stdout; each `uses` row carries the provider's `installed_name` | 0, 12 |
 | `skills <dir>` | every skill's **installed** name (`<prefix><id>`, entry skill verbatim); `--json` adds the prefix; `--check` **is** the collision gate and names the sources it consulted | 0, 12, 15, 17, 1 |
 | `agents <dir>` | every agent's **installed** name (`<skill_prefix><agent-id>`, from `agents/*.agent.yaml`); `--json` adds the prefix; `--check` is the same single-owner gate over the agent namespace, against **two** of three sources — and names the third it cannot reach | 0, 12, 15, 17 |
-| `render <dir> <skill> --out` | copy `skills/<id>/` to `<out>/<installed-name>/`, rewrite `name`, stamp `metadata.aos.origin`, resolve the `{{skill:}}`/`{{agent:}}` name slots; mechanical + idempotent | 0, 1, 12, 14, 18 |
+| `render <dir> <skill> --out` | copy `skills/<id>/` to `<out>/<installed-name>/`, rewrite `name`, stamp `metadata.aos.origin`, resolve the `{{skill:}}`/`{{agent:}}` name slots; a skill carrying `reference/harness-*.md` keeps only the recorded harness's sheet; mechanical + idempotent | 0, 1, 12, 14, 18, 20 |
+| `harness set <runtime>` · `harness show` | write / print `<aos_home>/.aos/harness.yml` `{harness, sheet, cli}` | 0, 1, 15, 20 |
 | `home` | print the resolved household root | 0, 15 |
 | `init` | create an empty `<aos_home>/.aos/installs.lock.yaml`; the one verb that may find no `.aos/` | 0, 1, 15 |
 | `record <cap> --version` | write one capability's entry: artifact sha256s, link targets (own `--link`, used `--uses-link`), source root, jobs, config keys, env-var names, scripts; refuses a link another entry records | 0, 1, 15, 16, 19 |
@@ -55,8 +56,9 @@ Happy path: a valid package prints its frontmatter as JSON with `id` and `versio
 - [ ] test_manifest_unknown_key_rejected — 12; rule of two: an undeclared key is an error, and the message names it
 - [ ] test_manifest_bad_version_rejected — 12; version must be MAJOR.MINOR.PATCH
 - [ ] test_manifest_undeclared_skill_dir_rejected — 12; an on-disk `skills/<id>/SKILL.md` nobody declared would still install
-- [ ] test_manifest_schedule_and_depends_rules — 12; one invocation reports **all** four problems (missing dependency, schedule `id`, `prompt_ref` for the agent form, required `degraded`) — an installer fixing a manifest wants every error at once, not the first
-- [ ] test_manifest_malformed_shapes_exit_12 — 12; `depends:`/`schedules:` of the wrong YAML *shape* is a clean error, never a traceback
+- [ ] test_manifest_cron_and_depends_rules — 12; one invocation reports **all** four problems (missing dependency, cron job `id`, `prompt_ref` for the agent form, required `degraded`) — an installer fixing a manifest wants every error at once, not the first
+- [ ] test_manifest_cron_entry_needs_expr — 12; a `cron` entry's expression field is `expr` (ALM-51: `cron` is the aos term)
+- [ ] test_manifest_malformed_shapes_exit_12 — 12; `depends:`/`cron:` of the wrong YAML *shape* is a clean error, never a traceback
 - [ ] test_manifest_scalar_frontmatter_exit_12 — 12; frontmatter that is a scalar, not a mapping, likewise
 
 ## `skills` — the installed name and the collision gate — 30
@@ -202,7 +204,7 @@ an unresolvable one is exit **18**.
 ## the lockfile — `init record rehash verify show list remove` — 21
 
 Happy path: `init` writes `version: 1` + `installs:`; `record` reports
-`N artifacts, N links, N schedules`; `verify` prints `clean: N entries verified`.
+`N artifacts, N links, N cron jobs`; `verify` prints `clean: N entries verified`.
 
 ### `init` — 4
 
@@ -287,3 +289,15 @@ consumer's jobs failed silently for two weeks.
 - [ ] test_rerecording_your_own_links_is_not_a_conflict — 0; the guard looks only at **other** entries
 - [ ] test_one_path_cannot_be_both_kinds — 1; a link is an own skill or a used one, never both
 - [ ] test_a_consumers_uses_link_is_not_a_name_claim — **PIN**; 0; `links` basenames are name claims, so a consumer holding the provider's skill there would make the provider's own `skills --check` report its own skill as taken
+
+## `harness` — the household's harness record and the one-sheet render (**20**)
+
+`harness set <runtime>` writes `<aos_home>/.aos/harness.yml` `{harness, sheet, cli}`; `show` prints it.
+`render` of a skill whose `reference/` carries `harness-*.md` keeps only the recorded one.
+
+- [ ] test_set_records_harness_sheet_and_absolute_cli — 0; `cli` is the absolute path `command -v` finds for the first word of the sheet's `mapping.session.open`
+- [ ] test_set_without_the_cli_on_path_records_none_and_says_so — 0; `cli: null` and a note, never a guessed path
+- [ ] test_set_rejects_a_bad_runtime_id — 1
+- [ ] test_show_without_a_record_exits_20 — 20
+- [ ] test_render_keeps_only_the_recorded_sheet — 0; the other sheets are gone, every other reference file stays
+- [ ] test_render_of_a_sheet_carrying_skill_needs_a_record — 20; no render lands

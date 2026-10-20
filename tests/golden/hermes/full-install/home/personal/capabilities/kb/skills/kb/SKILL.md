@@ -9,7 +9,7 @@ description: Explains how the user's knowledge bases are laid out and which kb s
   base for a write already in hand (that is kb-route).
 metadata:
   aos:
-    origin: kb@0.8.0
+    origin: kb@0.8.1
 ---
 # kb — the base system in one page
 
@@ -108,7 +108,7 @@ construction.
 *agent prompts* — `agents/archiver/promote.md` (the nightly promote) and
 `agents/archiver/lint.md` (the weekly maintenance) — which the archiver agent is woken with,
 and they live in the capability source rather than in any installed skill. If you are the
-archiver and you were woken by a schedule, your prompt is your procedure: follow it, not this
+archiver and you were woken by a cron job, your prompt is your procedure: follow it, not this
 map. If you are the front agent and the user asks for one on demand (*"promote the inbox
 now"*), read that prompt from `<HOME>/aos/upstream/tests/.sandbox/aos-home/upstream/capabilities/kb/agents/archiver/` and follow
 it as written — do not reconstruct a promote pass from this skill, because the judgment that
@@ -123,11 +123,11 @@ else.
 - Ask first: any page in a **shared** base, zone or type changes (`.kb/base.yml` is
   owner-approved), anything under `profile/`, and flipping `verified`.
 - **Destroys things — never on your own initiative:** `kb prune` runs from the weekly
-  schedule, which dry-runs it first; if you are running it because a user asked, dry-run it
+  cron job, which dry-runs it first; if you are running it because a user asked, dry-run it
   and show them the list. `kb archive` has no scheduled owner at all — it is a judgment that
   a page stopped mattering, so it is the user's call and you propose it, with the reason you
   would put in `--reason`.
 
 Deeper: [reference/lifecycle.md](reference/lifecycle.md) (page schema, current truth,
 trust) · [reference/grants.md](reference/grants.md) (the one ACL) ·
-[reference/wiring.md](reference/wiring.md) (schedules and degraded modes).
+[reference/wiring.md](reference/wiring.md) (cron jobs and degraded modes).

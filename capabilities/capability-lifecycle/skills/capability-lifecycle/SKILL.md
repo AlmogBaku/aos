@@ -11,11 +11,11 @@ the YAML). Everything lives in the household `<aos_home>` — the aos home:
 `--home`/`AOS_HOME`, else `~/aos` (not your home directory): `upstream/` the pristine
 kit clone, `personal/` the user's private repo (their MOD files, the
 pinned renders harnesses symlink to, their private capabilities), `.aos/` machine
-state. The diff gate is never optional. `MOD.md` states the user's
-personalization — what they changed from the shipped defaults, current state, edited in
-place: you re-apply it, you never overwrite it — and you never write anything
-to upstream (PR, issue, +1, push, fork, remote branch) without the user's explicit
-approval. The full rules:
+state (the lockfile; `harness.yml`, the household's harness — `aos-cap harness show`).
+The diff gate is never optional. `MOD.md` states the user's personalization — what they
+changed from the shipped defaults, current state, edited in place: you re-apply it, you
+never overwrite it — and you never write anything to upstream (PR, issue, +1, push, fork,
+remote branch) without the user's explicit approval. The full rules:
 `reference/contract.md`. The overlay doctrine (interviews, transform, capture,
 promote/retire, persist): `reference/overlay.md`. Naming, installed skill names, and the
 uniqueness gate: `reference/naming.md` — read it before authoring or installing anything
@@ -36,12 +36,12 @@ backslash-escaped slot stays literal, which is how this sentence survives its ow
 | "promote my tweak" / "this should be for everyone" | {{skill: evolve}} classifies, then hands to {{skill: contribute}} |
 | "review/audit <capability>" · before contributing · "something looks wrong here" | {{skill: review}} — read-only, architecture first |
 | "what's installed?" | `aos-cap list` |
-| your harness's mapping | `reference/harness-<harness-runtime>.md` — an aid, not a gate: loaded per operation, never standing context; none → `reference/no-cheatsheet.md` |
+| your harness's mapping | `reference/harness-<harness-runtime>.md` — frontmatter `mapping` (one row per aos concept and `depends.host` word) plus the harness's judgment; an aid, not a gate: loaded per operation, never standing context; none → `reference/no-cheatsheet.md` |
 
 Manifest quick facts: CAPABILITY.md frontmatter is strict-typed (`aos-cap manifest <dir>` parses and validates it — its
-errors name the field and rule); the fields are `id · version · tags · summary · depends · schedules · skills · skill_prefix · kb · uses`, `x-*`
-reserved for extensions; the prose below the frontmatter is the installer's
-briefing, never runtime context. A skill's id is capability-local — the name it installs
+errors name the field and rule); the fields are `id · version · tags · summary · depends · cron · skills · skill_prefix · kb · uses`
+(a `cron` entry: `id · expr · agent · prompt_ref · exec · degraded`), `x-*` reserved for
+extensions; the prose below the frontmatter is the installer's briefing, never runtime context. A skill's id is capability-local — the name it installs
 under is `aos-cap skills <dir>`'s answer, and it is single-owner across the whole harness;
 an agent's works the same way, from the same prefix, via `aos-cap agents <dir>`
 (`reference/naming.md`).
@@ -54,5 +54,5 @@ it buys the user — then proceed; the diff gate is the safety net, not repeated
 prompts. Batch questions; if you can infer it, don't ask. Set expectations before slow
 steps ("installing the tool takes a minute"). Show the gate as a payoff: each artifact →
 what it does for you. Close with a specific, celebratory summary — what was installed,
-where, which schedules, any degraded modes — never a vague "done." User-facing lines are
+where, which cron jobs, any degraded modes — never a vague "done." User-facing lines are
 warm prose; your internal steps stay silent.

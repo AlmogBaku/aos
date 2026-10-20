@@ -20,7 +20,7 @@ def check_uses_reach(ctx) -> None:
                 if file.startswith(scope) and file.endswith(".md"):
                     reach.setdefault(file, set()).update(
                         str(a) for a in (entry.get("used_by") or []))
-        for sched in manifest.get("schedules") or []:
+        for sched in manifest.get("cron") or []:
             if isinstance(sched, dict) and isinstance(sched.get("prompt_ref"), str) \
                     and sched.get("agent"):
                 reach.setdefault(f"{cap.rel}/{sched['prompt_ref']}", set()).add(

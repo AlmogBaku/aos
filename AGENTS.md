@@ -26,6 +26,7 @@ harness, personalize via an interview, and survive upgrades.
 | `kb` | infra | knowledge infrastructure + the `kb` tool |
 | `work-tracker` | usecase | commitments, built on kb |
 | `capability-lifecycle` | infra | ten lifecycle skills + the `aos-cap` tool |
+| `session` | infra | one skill + the `aos-session` tool — open or continue the person's session |
 
 Hermes is e2e-verified. NanoClaw, OpenClaw, Nanobot, Claude Code have research-drafted
 cheat-sheets.
@@ -38,7 +39,7 @@ prefix `uv run --quiet --project tools/aos_lint python -m`.
 | | Command |
 |---|---|
 | everything CI runs | `bash tools/check.sh` |
-| tier 0 — tool suites | `uv run tests/tool/test_kb.py` · `uv run tests/tool/test_cap.py` |
+| tier 0 — tool suites | `uv run tests/tool/test_kb.py` · `uv run tests/tool/test_cap.py` · `uv run tests/tool/test_session.py` |
 | tier 1 — lint | `aos_lint.cli` · `aos_lint.selftest` |
 | tier 1 — gates | `aos_lint.gates.{retired,coverage,kb_commands,privacy}` |
 | tier 2 — goldens | `aos_lint.golden.check` |
@@ -65,7 +66,7 @@ overlay contract (inviolable)**, §4 KB, §5 install, §7 build order, **§8 dec
 | Path | What |
 |---|---|
 | `capabilities/<id>/` | built capabilities (§2.1); each has an entry skill named after itself, depth in a sibling `reference/` one level deep |
-| `.../reference/harness-<runtime>.md` | per-harness cheat-sheets — reference files of the entry skill, so they travel with the render |
+| `.../reference/harness-<runtime>.md` | per-harness cheat-sheets — schema-checked `mapping` frontmatter + markdown; reference files of the entry skill, so the recorded harness's travels with the render |
 | `BOOTSTRAP.md` | the agent-facing install sequence; both entry paths clone first |
 | `docs/` | `CONCEPTS` (model) · `INSTALL`/`USAGE` (human) · `TESTING` · **`BUILD-GAPS`** (spec-gap ledger) · `DOGFOOD` |
 | `tools/aos_lint/` | the whole repo-side toolchain: `checks/`, `gates/`, test-only `golden/` |
@@ -75,7 +76,7 @@ overlay contract (inviolable)**, §4 KB, §5 install, §7 build order, **§8 dec
 rather than mirroring it. `constants.py` owns `KIT_NAME`, so the RFC-001 rename is one file.
 
 **Stay inside your own namespace.** In whatever harness you install into, you own only what you
-created: `aos-*` profiles/agents, `aos:<capability>:<schedule-id>` crons, and the skill and
+created: `aos-*` profiles/agents, `aos:<capability>:<cron-id>` cron jobs, and the skill and
 agent links `aos-cap skills`/`agents` names. The rest of that harness's root — `~/.hermes`,
 `~/.claude`, `~/.openclaw`, the checkout root, per its cheat-sheet — is somebody's live setup.
 A KB is written only under `tests/.sandbox/`; a real KB, anyone's at any path, never.
@@ -85,7 +86,7 @@ A KB is written only under `tests/.sandbox/`; a real KB, anyone's at any path, n
 
 - **The overlay family** (`MOD.md`) is user-owned. Upstream never ships, writes or merges
   those paths; do not create them here. `.aos/` is machine-local, gitignored — `kb-registry.yaml`
-  lives there, not in `personal/`.
+  and `harness.yml` live there, not in `personal/`.
 - **Rule of two** — a manifest field exists only once two in-repo capabilities need it
   machine-read. §2.2 lists what was deliberately left out; don't helpfully add it.
 - **Extra fields: the word is `metadata`.** In an *external* schema (`SKILL.md`) our extensions
@@ -109,7 +110,7 @@ A KB is written only under `tests/.sandbox/`; a real KB, anyone's at any path, n
   runtime face.
 - **KB safety** — `audience: shared` KBs never accept LLM-routed writes. Capture latency is
   sacred: routing is never a synchronous prompt.
-- **Single-owner schedules** — each `schedules[]` entry runs in exactly one harness at a time.
+- **Single-owner cron jobs** — each `cron[]` entry runs in exactly one harness at a time.
 
 ## Changing a decision
 

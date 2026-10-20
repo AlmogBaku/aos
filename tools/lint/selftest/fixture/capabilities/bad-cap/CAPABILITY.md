@@ -9,15 +9,15 @@ depends:
   host:
     teleportation: required
     cron: sometimes
-schedules:
+cron:
   - id: dup
-    cron: "0 23 * * *"
+    expr: "0 23 * * *"
     agent: nobody
     prompt_ref: missing/prompt.md
     degraded: explode
     retries: 3
   - id: dup
-    cron: "whenever"
+    expr: "whenever"
     agent: main
     prompt_ref: missing/prompt.md
     degraded: manual

@@ -11,24 +11,42 @@ Changing a value here therefore changes what CI enforces, which is the point."""
 import re
 from pathlib import Path
 
-VERSION = "0.5.1"                       # tracks the capability-lifecycle version
+VERSION = "0.6.0"                       # tracks the capability-lifecycle version
 LOCK_REL = Path(".aos") / "installs.lock.yaml"
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 CRON5 = re.compile(r"^\S+\s+\S+\s+\S+\s+\S+\s+\S+$")
 
 # The kit-side lint imports these (aos_lint.constants re-exports them) — one definition.
-MANIFEST_KEYS = {"id", "version", "tags", "summary", "depends", "schedules", "skills", "kb",
+MANIFEST_KEYS = {"id", "version", "tags", "summary", "depends", "cron", "skills", "kb",
                  "skill_prefix", "uses"}
 CAPABILITY_TAGS = {"infra", "usecase"}
 HOST_FEATURES = {"cron", "messaging.inbound", "messaging.outbound", "voice.stt",
-                 "voice.tts", "calendar.read", "calendar.write", "email", "secrets-store"}
+                 "voice.tts", "calendar.read", "calendar.write", "email", "secret"}
 HOST_LEVELS = {"required", "preferred", "optional"}
-SCHEDULE_KEYS = {"id", "cron", "agent", "prompt_ref", "exec", "degraded"}
+CRON_KEYS = {"id", "expr", "agent", "prompt_ref", "exec", "degraded"}
 DEGRADED = {"manual", "skip", "inline"}
 SKILL_ENTRY_KEYS = {"id", "used_by"}
 # RFC-009 option 2: a consumer grants one of ITS agents a skill another capability ships.
 USES_ENTRY_KEYS = {"capability", "skill", "agents"}
 KB_KEYS = {"writes", "zones"}
+
+# The cheat-sheet frontmatter (§5.2): one per harness, `reference/harness-<runtime>.md` of the
+# lifecycle entry skill. The installer reads it as guidance; `aos-session` reads
+# `mapping.session` at run time; the lint checks every sheet against these sets.
+CHEATSHEET_KEYS = {"harness", "status", "source", "rules", "files", "mapping"}
+CHEATSHEET_STATUS = {"verified", "research-drafted"}
+# Ten aos concepts, plus every `depends.host` word that is not already one of them, so a new
+# host word forces a row on every sheet (cron and secret answer their own word).
+CHEATSHEET_CONCEPTS = ("agent", "main", "skill", "cron", "context_block", "secret", "config",
+                       "hook", "session", "plan_mode")
+CHEATSHEET_ROWS = CHEATSHEET_CONCEPTS + tuple(sorted(HOST_FEATURES - set(CHEATSHEET_CONCEPTS)))
+# A row is either `primitive:` (the harness has it) or `support:` one of these.
+CHEATSHEET_SUPPORT = {"via", "none", "unknown"}
+# What `aos-session` reads from `mapping.session`: two command templates, the regex that finds
+# the new session id on stderr, and the stderr regex that means the session is gone.
+SESSION_KEYS = ("open", "continue", "id", "missing")
+SESSION_PLACEHOLDERS = ("<profile>", "<title>", "<file>", "<session_id>", "<workdir>", "<skills>")
+HARNESS_REL = Path(".aos") / "harness.yml"
 
 # Agent Skills spec (agentskills.io/specification): the shipped `name` is what a harness
 # keys on, so these limits bind the INSTALLED name, not the capability-local id.

@@ -1,6 +1,6 @@
 ---
 id: capability-lifecycle
-version: 0.5.1
+version: 0.6.0
 tags: [infra]
 summary: The capability lifecycle as one capability — install, upgrade, remove, onboard, import, build, contribute, evolve, and review as skills for the front agent; the MOD.md overlay with its promote/retire exit side; the household layout with pinned renders and symlink installs; the per-harness cheat-sheets; and the aos-cap tool that owns the lockfile and computes every skill's installed name.
 skill_prefix: capability-
@@ -44,11 +44,12 @@ capability references.
    `uv tool install --from <aos_home>/upstream/capabilities/capability-lifecycle/tool aos-cap`
    (`uv` is a hard bootstrap prerequisite). Then `aos-cap --home <aos_home> init` creates
    the lockfile — the tool's file from this moment on; you call verbs, you never edit
-   the YAML.
+   the YAML — and `aos-cap --home <aos_home> harness set <harness-runtime>` records the
+   harness hosting you in `.aos/harness.yml` (render needs it: exit 20 without).
 2. **All ten skills to the front agent** (`used_by: [main]` throughout), per your
-   cheat-sheet (the entry skill's `reference/harness-<harness-runtime>.md`; none for your
-   harness → its `reference/no-cheatsheet.md`). The skills are
-   `{{mod}}`-slot-free, so the render is purely mechanical — `aos-cap render` does it,
+   cheat-sheet (the entry skill's `reference/harness-<harness-runtime>.md` — the only sheet
+   the render keeps; none for your harness → its `reference/no-cheatsheet.md`). The skills
+   are `{{mod}}`-slot-free, so the render is purely mechanical — `aos-cap render` does it,
    one skill at a time, into `personal/capabilities/capability-lifecycle/skills/…`
    (committed), plus symlinks into the front agent's skills dir. Read
    `reference/contract.md` in full before this step (household resolution, installed
@@ -71,14 +72,14 @@ capability references.
      > request, stop and follow the `capability-build` skill — say what you noticed
      > and ask "Hey, should we plan it methodically?" first. Proceed ad hoc only if
      > the user declines. One-off tasks are unaffected, and so is changing something
-     > aos already installed (a schedule, a threshold, a preference) — that is
+     > aos already installed (a cron job, a threshold, a preference) — that is
      > `capability-evolve`, not building.
 
      The carve-out earns its place: without it the block fires on "change my steward hour",
      which is the overlay round-trip, not a new automation — found in the 0.3.0 e2e.
      This block is the detector's teeth. A skill description is pull-context (consulted
      only when the model thinks to), but a harness with a native cron tool will satisfy a
-     schedule-shaped ask the shortest way and never consult it — so the boundary must be
+     cron-shaped ask the shortest way and never consult it — so the boundary must be
      push-context, always present. Found the hard way in the first live e2e.
    - `aos:capability-lifecycle:concepts@<ver>` — the vocabulary no harness owns,
      materialized verbatim (with `<aos_home>` baked to the real household path):
@@ -122,7 +123,7 @@ capability references.
      an aid, exactly as a cheat-sheet is.
    - It is **not** a render: no `{{mod}}` slots, no `metadata.aos.origin` stamp (it is not ours
      to tag), and it does not live under `personal/capabilities/`.
-6. Nothing else: no agents, no schedules, no KB zones.
+6. Nothing else: no agents, no cron jobs, no KB zones.
 
 ## Why it is shaped this way
 
@@ -161,11 +162,13 @@ capability references.
   agentic even though the copy is not: the commit is the render's lockfile, upgrades review
   as a git diff, and rollback is `git revert`. Harnesses symlink to the one canonical
   render — never copies.
-- The cheat-sheets live here because these skills are their only consumer; each is lean —
-  the harness half only — and points back at `reference/contract.md` for the aos half.
+- The cheat-sheets live here because these skills are their main consumer (`aos-session`
+  reads the recorded one's `mapping.session`); each is lean — a schema-checked `mapping`
+  frontmatter plus the harness half's judgment — and points back at `reference/contract.md`
+  for the aos half.
 - `aos-cap` is deterministic bookkeeping only (§2.4): manifest parse/validate, installed
-  names and the collision gate, the mechanical render, and the lockfile verbs. Judgment
-  stays with you; hashes and names never do.
+  names and the collision gate, the mechanical render, the harness record, and the lockfile
+  verbs. Judgment stays with you; hashes and names never do.
 
 ## Contracts to preserve
 
@@ -193,10 +196,10 @@ capability references.
   overlay answers (through `capability-onboard`, the only MOD.md writer) and syncs the live
   artifact those answers personalize — the §3.3 round-trip, not an install.
 - **Building mode is a procedural mode-switch `main` enforces on itself**, not a
-  materialized agent. Where the harness can branch a conversation (cheat-sheet `session
-  branch` row — Claude Code's `/branch`, today) the build runs in the branched session,
-  still as `main`, and hands the user back to the original when done; elsewhere the
-  boundary lives in prompt-level instruction, not a process boundary.
+  materialized agent. Where the harness can branch a conversation (cheat-sheet
+  `mapping.session`, its `branch` — Claude Code's `/branch`, today) the build runs in the
+  branched session, still as `main`, and hands the user back to the original when done;
+  elsewhere the boundary lives in prompt-level instruction, not a process boundary.
 - **Nothing personal lands in a shippable file** — intake nuance splits into the package's
   interview questions and the user's own MOD.md, exactly the mechanism/nuance split
   `capability-import` performs in reverse.

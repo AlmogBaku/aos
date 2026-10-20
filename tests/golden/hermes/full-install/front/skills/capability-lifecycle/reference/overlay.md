@@ -12,7 +12,7 @@
 state, not a history.** Typed answers live in its frontmatter; anything the questions
 don't cover is an imperative prose statement in its body ("the steward runs at 22:00, not
 23:00"). The overlay family lives in the personal root at mirrored paths
-(`<home>/personal/MOD.md`, `<home>/personal/capabilities/<id>/MOD.md` — §3.1); upstream
+(`<aos_home>/personal/MOD.md`, `<aos_home>/personal/capabilities/<id>/MOD.md` — §3.1); upstream
 never ships, writes, or merges any of it. Everything personal is reconstructible from `original × MOD.md`; that
 reconstructibility is what makes upgrades safe.
 
@@ -40,8 +40,8 @@ every prior state, with dates, which is exactly why MOD doesn't carry them.
 
 Original skills × MOD.md → the pinned render in
 `personal/capabilities/<id>/skills/…` (contract: render + symlink, never copies).
-**Which MOD.md**: `<home>/personal/capabilities/<id>/MOD.md` — except capability-lifecycle's
-own, which is `<home>/personal/MOD.md`, since its interview is the global bootstrap. Never
+**Which MOD.md**: `<aos_home>/personal/capabilities/<id>/MOD.md` — except capability-lifecycle's
+own, which is `<aos_home>/personal/MOD.md`, since its interview is the global bootstrap. Never
 look for `personal/capabilities/capability-lifecycle/MOD.md`: nothing writes it.
 **Household rules** — root-MOD statements about how *every* capability installs (what each
 capability agent also gets: links, tools, wiring) — are not woven into one package's prose:
@@ -51,7 +51,7 @@ its diff like any other change.
 
 - Fill `{{mod: <key>}}` slots from MOD.md frontmatter; weave the prose statements into
   the relevant instructions; leave unfilled slots intact; never edit shipped files.
-- Bake `<home>/…` placeholders to the absolute household path (and `--home`/`AOS_HOME`
+- Bake `<aos_home>/…` placeholders to the absolute household path (and `--home`/`AOS_HOME`
   into scheduled commands).
 - **Resolve the skill and agent names the user's own words carry.** The deterministic half
   is already done — `aos-cap render` substituted every `{{skill: …}}` / `{{agent: …}}` slot

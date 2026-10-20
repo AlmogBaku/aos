@@ -9,7 +9,7 @@ description: Upgrades installed aos capabilities by folding the user's uncapture
   preserves existing personalization rather than adding any.
 metadata:
   aos:
-    origin: capability-lifecycle@0.5.0
+    origin: capability-lifecycle@0.6.0
 ---
 # capability-upgrade
 
@@ -21,16 +21,16 @@ The current install is a drift source, never a merge input; the review gate is a
 diff in the user's own repo.
 
 1. Scope: the named capability, else every entry in `aos-cap list`.
-2. Kit-wide: pull `<home>/upstream` from the canonical remote (`git pull
+2. Kit-wide: pull `<aos_home>/upstream` from the canonical remote (`git pull
    upstream main` when an `upstream` remote exists, else `git pull`) — it cannot touch
    `personal/`, a different repo. On a non-`main` branch (a contributor dogfooding a
    change, or a self-drafted cheat-sheet branch): skip the pull, say so, name the
    branch, and say how to resume upstream updates
-   (`git -C <home>/upstream switch main`). A capability
+   (`git -C <aos_home>/upstream switch main`). A capability
    needs work when its manifest version (`aos-cap manifest`) ≠ its lockfile version.
    Migration note: overlay files found *inside* the clone (a pre-household install) →
    offer the one-time move into `personal/` before anything else. Referenced third-party
-   skills come along: for each recorded link into `<home>/vendor`, `git -C <vendor-clone>
+   skills come along: for each recorded link into `<aos_home>/vendor`, `git -C <vendor-clone>
    pull --ff-only` (or the harness's plugin update), then re-`record` so the hashes match.
    Offline or a dirty clone → say so and continue; a stale reference is never a blocker.
 3. Per capability needing work:
@@ -45,16 +45,16 @@ diff in the user's own repo.
       is gone (that is a broken install, not an upgrade). A
       fold that reaches beyond the `{{mod}}` slots is mechanism-shaped — note it for
       the promotion judgment (overlay.md, Promote and retire), end of conversation.
-   b. Name gate: `aos-cap --home <home> skills <dir> --check --harness-skills <dir> …`
+   b. Name gate: `aos-cap --home <aos_home> skills <dir> --check --harness-skills <dir> …`
       (one `--harness-skills` per skills dir this harness reads). Upstream may have renamed or added a skill, so the installed
       names can differ from the recorded links — a rename means link the new name and drop
       the old one in step d. Exit 17 → stop and report; never rename locally. This
       capability's own links are exempt, so a plain re-render is always clean. If it ships
-      `agents/`, gate those too in the same breath: `aos-cap --home <home> agents <dir>
+      `agents/`, gate those too in the same breath: `aos-cap --home <aos_home> agents <dir>
       --check` — same flat namespace, same exit 17, same never-rename-locally. It checks
       two of three sources and names the third (agents already in the harness — no
       enumeration yet) in capitals.
-   c. **First, before `--force` touches anything**: `git -C <home>/personal status
+   c. **First, before `--force` touches anything**: `git -C <aos_home>/personal status
       --porcelain -- <render-path>` (`capabilities/<id>` for a shipped package,
       `renders/<id>` for the user's own — contract). `--force` re-render is `rmtree` then `copytree`, so a
       pre-existing **untracked** file of the user's under that directory is gone with no commit
@@ -62,7 +62,8 @@ diff in the user's own repo.
       extra file inside a recorded render reports `clean`). Name any `??` entry to the user and
       get a decision before proceeding; a tracked file is safe (the diff in step d shows it).
       Then re-render: `aos-cap render <dir> <skill-id> --out
-      <home>/personal/<render-path>/skills --force` per declared skill, then fresh
+      <aos_home>/personal/<render-path>/skills --force` per declared skill (exit 20 → no
+      harness recorded: `aos-cap --home <aos_home> harness set <harness-runtime>`), then fresh
       upstream × this capability's MOD.md (the `capability-lifecycle` skill's `reference/overlay.md`,
       Which MOD.md) — the same
       transform as install, household rules included, written
@@ -70,12 +71,12 @@ diff in the user's own repo.
       whose installed name changed leaves its old render directory behind: delete it in the
       same commit, so the diff shows the rename as one move. Then STAGE any native-plan
       changes per the cheat-sheet (load it now if not in context).
-   d. GATE: stage this capability, then diff it — `git -C <home>/personal add
-      -A -- <render-path>` then `git -C <home>/personal diff --staged --
+   d. GATE: stage this capability, then diff it — `git -C <aos_home>/personal add
+      -A -- <render-path>` then `git -C <aos_home>/personal diff --staged --
       <render-path>` — the old render vs the new, per file, **including files the
       re-render added** (a bare `git diff` hides them) — plus the native plan. Approve
-      → commit (dated message). Decline → `git -C <home>/personal restore --staged
-      --worktree -- <render-path>`, then `git -C <home>/personal clean -fd --
+      → commit (dated message). Decline → `git -C <aos_home>/personal restore --staged
+      --worktree -- <render-path>`, then `git -C <aos_home>/personal clean -fd --
       <render-path>` as belt-and-braces (restore already removes the staged
       additions; clean catches anything staging missed), stop. Keep every command
       path-scoped: unscoped staging or resetting would capture — or destroy —

@@ -5,7 +5,7 @@ file exists rather than the strings being inlined: `KIT_NAME` is a placeholder u
 picks the real name, and when it does, this file plus a grep is the change.
 
 What this file does NOT own: the SCHEMA vocabulary. `MANIFEST_KEYS`, `CAPABILITY_TAGS`,
-`HOST_FEATURES`, `HOST_LEVELS`, `SCHEDULE_KEYS`, `DEGRADED`, `SKILL_ENTRY_KEYS`, `KB_KEYS`,
+`HOST_FEATURES`, `HOST_LEVELS`, `CRON_KEYS`, `DEGRADED`, the `CHEATSHEET_*` sets, `SKILL_ENTRY_KEYS`, `KB_KEYS`,
 `USES_ENTRY_KEYS`,
 the name regexes, the slot regexes and `ORIGIN_PATH` are re-exported from
 `aos_cap.constants` — the SHIPPED tool's. The .mjs version carried its own copies and a
@@ -16,7 +16,13 @@ now one definition and the lint imports it.
 
 from aos_cap.constants import (  # noqa: F401  (re-exported vocabulary)
     CAPABILITY_TAGS,
+    CHEATSHEET_CONCEPTS,
+    CHEATSHEET_KEYS,
+    CHEATSHEET_ROWS,
+    CHEATSHEET_STATUS,
+    CHEATSHEET_SUPPORT,
     CRON5,
+    CRON_KEYS,
     DEGRADED,
     HOST_FEATURES,
     HOST_LEVELS,
@@ -25,8 +31,8 @@ from aos_cap.constants import (  # noqa: F401  (re-exported vocabulary)
     ORIGIN_KEY,
     ORIGIN_PATH,
     RESERVED_NAME_WORDS,
-    SCHEDULE_KEYS,
     SEMVER,
+    SESSION_KEYS,
     SKILL_ENTRY_KEYS,
     SKILL_NAME_MAX,
     SKILL_NAME_RE,
@@ -99,14 +105,14 @@ CHEATSHEET_SECTIONS = [
 # The vocabulary sets above arrive from aos_cap as SETS; the lint prints several of them in
 # error messages, where a set's iteration order would make the message unstable. These are
 # the ordered forms the messages use, and they are asserted to cover the same members.
-MANIFEST_KEYS_ORDERED = ["id", "version", "tags", "summary", "depends", "schedules",
+MANIFEST_KEYS_ORDERED = ["id", "version", "tags", "summary", "depends", "cron",
                          "skills", "kb", "skill_prefix", "uses"]
 CAPABILITY_TAGS_ORDERED = ["infra", "usecase"]
 HOST_FEATURES_ORDERED = ["cron", "messaging.inbound", "messaging.outbound", "voice.stt",
                          "voice.tts", "calendar.read", "calendar.write", "email",
-                         "secrets-store"]
+                         "secret"]
 HOST_LEVELS_ORDERED = ["required", "preferred", "optional"]
-SCHEDULE_KEYS_ORDERED = ["id", "cron", "agent", "prompt_ref", "exec", "degraded"]
+CRON_KEYS_ORDERED = ["id", "expr", "agent", "prompt_ref", "exec", "degraded"]
 DEGRADED_MODES = ["manual", "skip", "inline"]
 SKILL_ENTRY_KEYS_ORDERED = ["id", "used_by"]
 KB_KEYS_ORDERED = ["writes", "zones"]
@@ -120,7 +126,7 @@ for _ordered, _canonical, _what in [
     (CAPABILITY_TAGS_ORDERED, CAPABILITY_TAGS, "CAPABILITY_TAGS"),
     (HOST_FEATURES_ORDERED, HOST_FEATURES, "HOST_FEATURES"),
     (HOST_LEVELS_ORDERED, HOST_LEVELS, "HOST_LEVELS"),
-    (SCHEDULE_KEYS_ORDERED, SCHEDULE_KEYS, "SCHEDULE_KEYS"),
+    (CRON_KEYS_ORDERED, CRON_KEYS, "CRON_KEYS"),
     (DEGRADED_MODES, DEGRADED, "DEGRADED"),
     (SKILL_ENTRY_KEYS_ORDERED, SKILL_ENTRY_KEYS, "SKILL_ENTRY_KEYS"),
     (KB_KEYS_ORDERED, KB_KEYS, "KB_KEYS"),

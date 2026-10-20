@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .constants import (
     CAPABILITY_TAGS, CRON5, DEGRADED, HOST_FEATURES, HOST_LEVELS, KB_KEYS,
-    MANIFEST_KEYS, SCHEDULE_KEYS, SEMVER, SKILL_ENTRY_KEYS, SKILL_NAME_RE,
+    CRON_KEYS, MANIFEST_KEYS, SEMVER, SKILL_ENTRY_KEYS, SKILL_NAME_RE,
     SKILL_PREFIX_RE, USES_ENTRY_KEYS,
 )
 from .errors import Exit, fail
@@ -120,42 +120,42 @@ def validated_manifest(cap_dir: Path) -> dict:
         errs.append("README.md is required")
     if (cap_dir / "ONBOARDING.md").is_file() and not (cap_dir / "MOD.example.md").is_file():
         errs.append("ONBOARDING.md without MOD.example.md (presence-paired)")
-    seen_sched = set()
-    for s in data.get("schedules") or []:
+    seen_cron = set()
+    for s in data.get("cron") or []:
         if not isinstance(s, dict):
-            errs.append(f"schedules: entry {s!r} must be a mapping")
+            errs.append(f"cron: entry {s!r} must be a mapping")
             continue
         for key in s:
-            if key not in SCHEDULE_KEYS:
-                errs.append(f"schedules[{s.get('id')}]: unknown key '{key}'")
+            if key not in CRON_KEYS:
+                errs.append(f"cron[{s.get('id')}]: unknown key '{key}'")
         sid = s.get("id")
-        if sid in seen_sched:
-            errs.append(f"schedules: duplicate id '{sid}'")
-        seen_sched.add(sid)
-        if not CRON5.match(str(s.get("cron", ""))):
-            errs.append(f"schedules[{sid}]: cron '{s.get('cron')}' is not 5-field")
+        if sid in seen_cron:
+            errs.append(f"cron: duplicate id '{sid}'")
+        seen_cron.add(sid)
+        if not CRON5.match(str(s.get("expr", ""))):
+            errs.append(f"cron[{sid}]: expr '{s.get('expr')}' is not 5-field")
         if sid is None:
-            errs.append("schedules: every entry requires an id")
+            errs.append("cron: every entry requires an id")
         has_exec = "exec" in s
         has_agent = "agent" in s or "prompt_ref" in s
         if has_exec == has_agent:
-            errs.append(f"schedules[{sid}]: exactly one of exec | agent+prompt_ref")
+            errs.append(f"cron[{sid}]: exactly one of exec | agent+prompt_ref")
         if has_agent:
             if s.get("agent") not in agent_names:
-                errs.append(f"schedules[{sid}]: agent '{s.get('agent')}' is not main or a declared agent")
+                errs.append(f"cron[{sid}]: agent '{s.get('agent')}' is not main or a declared agent")
             pref = s.get("prompt_ref")
             if not pref:
-                errs.append(f"schedules[{sid}]: agent form requires prompt_ref")
+                errs.append(f"cron[{sid}]: agent form requires prompt_ref")
             elif not (cap_dir / str(pref)).is_file():
-                errs.append(f"schedules[{sid}]: prompt_ref '{pref}' does not resolve in the capability")
+                errs.append(f"cron[{sid}]: prompt_ref '{pref}' does not resolve in the capability")
         if has_exec:
             first = str(s.get("exec", "")).split()[0] if str(s.get("exec", "")).strip() else ""
             if "/" in first and not (cap_dir / first).is_file():
-                errs.append(f"schedules[{sid}]: exec path '{first}' does not resolve in the capability")
+                errs.append(f"cron[{sid}]: exec path '{first}' does not resolve in the capability")
         if s.get("degraded") is None:
-            errs.append(f"schedules[{sid}]: degraded is required (manual|skip|inline)")
+            errs.append(f"cron[{sid}]: degraded is required (manual|skip|inline)")
         elif s["degraded"] not in DEGRADED:
-            errs.append(f"schedules[{sid}]: degraded '{s['degraded']}' not in {sorted(DEGRADED)}")
+            errs.append(f"cron[{sid}]: degraded '{s['degraded']}' not in {sorted(DEGRADED)}")
 
     # Absent or empty means "default to the capability id" (§2.2), so only a non-empty
     # value is held to the format.

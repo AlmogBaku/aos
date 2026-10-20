@@ -22,6 +22,7 @@ class Exit(IntEnum):
     NAME_COLLISION = 17
     SLOT_UNRESOLVABLE = 18
     LINK_OWNED = 19
+    NO_HARNESS = 20
 
 
 def fail(code: Exit, msg: str) -> NoReturn:

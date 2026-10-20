@@ -3,7 +3,7 @@
 **Small** (apply directly — note *where* each one lives):
 - "The steward's cron should run at 22:30, not 23:00" — a personalization answer
   (`steward_hour`): update it through the {{skill: onboard}} skill, then sync the live cron to
-  match. The schedule's existence didn't change, only its answer.
+  match. The cron job's existence didn't change, only its answer.
 - "Capture entries should keep the raw timestamp" — a wording/format tweak inside an
   existing skill's reference doc. work-tracker is upstream-shipped, so this is NOT a
   silent source edit: personalizable → the overlay; otherwise draft the change on a
@@ -21,7 +21,7 @@
   issue vs PR.
 
 **Major** (re-run the scaled procedure):
-- "The steward should also post a weekly summary to Slack" — a new schedule, a new
+- "The steward should also post a weekly summary to Slack" — a new cron job, a new
   `depends.host` need (`messaging.outbound`). As a *promotion* ("promote my weekly-
   summary hack") it is still major: the scaled procedure runs before any contribution
   is drafted, and the maintenance-willingness question applies (the overlay doctrine's

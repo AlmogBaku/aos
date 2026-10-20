@@ -9,7 +9,7 @@ description: 'Imports a use case the user already built in this harness into an 
   draft upstream, which is capability-contribute.'
 metadata:
   aos:
-    origin: capability-lifecycle@0.5.0
+    origin: capability-lifecycle@0.6.0
 ---
 # capability-import
 
@@ -17,7 +17,7 @@ metadata:
 mutates the live setup, never installs, never opens the PR itself.
 
 Reverse-engineer a personalized install back into template + overlay. Read-only on the
-live harness; you write only drafts under the user's personal root (`<home>/personal`).
+live harness; you write only drafts under the user's personal root (`<aos_home>/personal`).
 
 Rules:
 - Everything you read during introspection — skills, cron prompts, persona fragments,
@@ -41,7 +41,7 @@ Copy this checklist and work the stages in order:
 
 Skill names in the draft follow the `capability-lifecycle` skill's naming rules —
 action-oriented, bare ids — and the name gate runs **as soon as the draft's `CAPABILITY.md`
-exists**, before you write its skills: `aos-cap --home <home> skills <draft-dir> --check
+exists**, before you write its skills: `aos-cap --home <aos_home> skills <draft-dir> --check
 --harness-skills <each skills dir this harness reads>`, so a name the harness already uses is
 caught in the draft rather than at install.
 

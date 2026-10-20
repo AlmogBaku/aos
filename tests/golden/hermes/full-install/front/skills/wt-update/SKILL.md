@@ -8,7 +8,7 @@ description: 'Updates an existing commitment when the user reports progress: com
   commitment (that is wt-capture) or to find time for one (wt-schedule).'
 metadata:
   aos:
-    origin: work-tracker@0.1.2
+    origin: work-tracker@0.1.4
 ---
 # update
 
@@ -53,7 +53,7 @@ worked on, and a nag that is wrong once gets the whole nightly report ignored.
 
 **Completion needs `expires` as well as `status: done`.** `expires` is the only lifetime rule
 kb has, so a done action without one lives forever — and a list with no exit is the graveyard
-this capability exists to avoid. The retention window is 90 days — the user's onboarding answer.
+this capability exists to avoid. This user's retention window is **90 days**.
 
 **Abandonment is a status, not a deletion.** *"Forget it"* still gets `done` plus a short
 `expires`: the record of having decided not to do something is worth the few weeks it costs,

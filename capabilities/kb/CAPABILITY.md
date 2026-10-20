@@ -1,6 +1,6 @@
 ---
 id: kb
-version: 0.8.0
+version: 0.8.1
 tags: [infra]
 summary: Knowledge infrastructure — a registry of bases, rules-first routing, the deterministic `kb` tool, and one Archiver agent maintaining every base.
 depends:
@@ -21,19 +21,19 @@ skills:
     used_by: [main]
   - id: import
     used_by: [main]
-schedules:
+cron:
   - id: nightly-promote
-    cron: "30 23 * * *"
+    expr: "30 23 * * *"
     agent: archiver
     prompt_ref: agents/archiver/promote.md
     degraded: manual
   - id: weekly-maintain
-    cron: "0 7 * * 6"
+    expr: "0 7 * * 6"
     agent: archiver
     prompt_ref: agents/archiver/lint.md
     degraded: manual
   - id: sync
-    cron: "*/5 * * * *"
+    expr: "*/5 * * * *"
     exec: kb sync --all
     degraded: manual
 kb:
@@ -68,7 +68,7 @@ the registry, routing, grants, the deterministic `kb` tool (an installable uv pa
    for every agent and every cron:
    `uv tool install --from <aos_home>/upstream/capabilities/kb/tool aos-kb` (record it in the
    lockfile; removal is `uv tool uninstall aos-kb`). uv is a bootstrap prerequisite; if it
-   later disappears the skills fall back to prose execution and exec schedules to manual
+   later disappears the skills fall back to prose execution and exec cron jobs to manual
    run-cards.
 1. **Skills** per `used_by`. The `kb` entry skill goes to the front agent **and** the
    archiver — it carries the map, and the tool is on PATH for both. The other six are
@@ -79,7 +79,7 @@ the registry, routing, grants, the deterministic `kb` tool (an installable uv pa
    for all bases — cross-base re-routing is its point. It must have **no messaging tools**,
    enforced through harness tool configuration rather than instructions. Its prompt bodies
    live in `agents/archiver/`.
-3. **Schedules — in the same session as any base, never deferred.** `nightly-promote` and
+3. **Cron jobs — in the same session as any base, never deferred.** `nightly-promote` and
    `weekly-maintain` are agent jobs on the archiver. **`sync` is an exec job**: wire the
    harness cron to run `kb sync --all` directly — no model wakes up — optionally composing
    the harness's notifier around it (`… || notify`). All degrade to `manual` run-cards

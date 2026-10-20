@@ -12,7 +12,7 @@ below. If this page and the spec ever disagree, the spec wins (and that's a bug 
 
 The layering borrows Brad Frost's atomic design
 ([§1.2](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#12-mental-model-atomic-design)):
-**skills** are the atoms, **infra capabilities** (kb, capability-lifecycle) the molecules,
+**skills** are the atoms, **infra capabilities** (kb, capability-lifecycle, session) the molecules,
 **use-case capabilities** (work-tracker) the organisms. The kit ships **templates** —
 generic structure, personalization slots empty. Your harness runs **pages** — the same
 capability instantiated with *your* answers. The transform between template and page is
@@ -21,7 +21,7 @@ where the whole product lives.
 ## Capability
 
 *A distro package for your agent* ([§2](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#2-the-capability-package)).
-Installing one does many things — places skills, creates an agent, registers schedules,
+Installing one does many things — places skills, creates an agent, registers cron jobs,
 sometimes installs a tool — and, like a good package, it **declares** all of it so the
 installer can perform, record, and reverse it.
 
@@ -33,14 +33,14 @@ A capability is a directory composing five building blocks
 | Skills | knowledge agents load on demand | `skills/<skill>/SKILL.md` — portable [Agent Skills](https://agentskills.io) folders |
 | Agents | personas that run scheduled/delegated work | `agents/<name>.agent.yaml` + prompt bodies in `agents/<name>/` |
 | Tools | deterministic executables (no LLM inside) | e.g. [`capabilities/kb/tool/`](../capabilities/kb/tool/) |
-| Crons | schedules, agent-type or script-direct | `schedules[]` in the manifest |
+| Cron jobs | timed jobs, agent-type or script-direct | `cron[]` in the manifest |
 | Patches | harness modifications, when unavoidable | `adapters/<harness>/` |
 
 Two files have special roles:
 
 - **`CAPABILITY.md` is the installer's briefing** — typed frontmatter (machine-checked)
   plus prose the installing LLM reads for judgment ("create the steward *before* its
-  schedule", "this must run before kb's promote"). Consumed at install, never loaded at
+  cron job", "this must run before kb's promote"). Consumed at install, never loaded at
   runtime.
 - **The entry skill is the runtime face** — every capability ships one skill named after
   itself (`skills/<id>/SKILL.md`): a short map of where things live and which skill/verb
@@ -75,7 +75,7 @@ home: `--home`/`AOS_HOME`, else `~/aos` (not your home directory):
 ├── upstream/    # the kit clone — pristine; nothing personal ever lands here
 ├── personal/    # your ONE private repo: answers, rendered skills, private capabilities
 ├── vendor/      # third-party skills the kit references rather than ships (on demand)
-└── .aos/        # machine-local state: the lockfile, the kb principal list
+└── .aos/        # machine-local state: the lockfile, the harness record, the kb principal list
 ```
 
 The words worth keeping: `upstream/` (and any future org root) is a **distribution**;
@@ -305,18 +305,20 @@ flowchart TD
 There is no installer program — and after bootstrap, not even a bootstrap file: the
 **capability-lifecycle** capability puts install/upgrade/remove/evolve into your harness
 as skills. [`BOOTSTRAP.md`](../BOOTSTRAP.md) only welcomes you, checks prerequisites,
-and installs that one capability; its skills do the rest, loading your harness runtime's
-cheat-sheet at the steps that need it. Four mechanisms keep it honest:
+and installs that one capability (recording your harness runtime with `aos-cap harness
+set`); its skills do the rest, loading that harness's cheat-sheet at the steps that need
+it. Four mechanisms keep it honest:
 
 - **Cheat-sheets, not adapters.** Per-harness support is one lean doc
-  (`capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`) teaching the mapping (agent → Hermes profile,
-  schedule → `hermes cron create`, secret → `.env`). Knowledge, not glue code — a new
-  harness costs one document, and even that is an aid, not a gate: without one, the
-  agent derives the mapping itself per BOOTSTRAP.
+  (`capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`):
+  a schema-checked `mapping` frontmatter (agent → Hermes profile, cron → `hermes cron
+  create`, secret → `.env`, session → the command that opens one) plus the judgment around
+  it. Knowledge, not glue code — a new harness costs one document, and even that is an aid,
+  not a gate: without one, the agent derives the mapping itself per BOOTSTRAP.
 - **The diff gate.** Every write is shown to you in full before it lands. Never
   optional.
 - **The lockfile.** Everything materialized is recorded in `.aos/installs.lock.yaml`
-  (paths, hashes, links, owned schedule ids) — written and verified by the `aos-cap` tool,
+  (paths, hashes, links, owned cron job ids) — written and verified by the `aos-cap` tool,
   never by the model. Removal walks it backwards; no record, no artifact. And your
   `MOD.md` *states what you changed*: upgrades re-apply it to fresh upstream, and the evolve skill
   writes your changes into it so they survive.
@@ -330,7 +332,7 @@ your harness's plugin mechanism) and links to it — recorded like anything else
 is exact. It's best-effort: no network, no `skill-creator`, no drama.
 
 If a host feature is missing (no cron, no `uv`), the capability **degrades, declared**:
-schedules become invocable run-cards, tools fall back to prose procedures — each
+cron jobs become invocable run-cards, tools fall back to prose procedures — each
 capability names its degraded modes up front. "Missing" means the *harness* can't express
 the feature, read off the cheat-sheet — a channel it supports but you haven't paired yet is
 a setup note, not a refused install.
@@ -358,7 +360,7 @@ is. When building reveals the spec is wrong, the spec gets fixed — the
 | Term | Meaning |
 |---|---|
 | **harness** | The agent product you already run (Hermes, NanoClaw, OpenClaw, …) |
-| **harness runtime** | The program hosting your agent — names its cheat-sheet (see BOOTSTRAP.md) |
+| **harness runtime** | The program hosting your agent — names its cheat-sheet; recorded once in `.aos/harness.yml` by `aos-cap harness set` (see BOOTSTRAP.md) |
 | **household** | `~/aos` — the one directory aos lives in: `upstream/`, `personal/`, `vendor/`, `.aos/` |
 | **distribution / instance** | `upstream/` (and future org roots) ship capabilities; `personal/` is *your* instance of them |
 | **capability** | An installable directory of skills/agents/tools/crons/patches |
@@ -370,7 +372,7 @@ is. When building reveals the spec is wrong, the spec gets fixed — the
 | **render (pinned)** | A capability's files with your `MOD.md` applied, committed in `personal/`; your harness symlinks to it |
 | **vendor** | `~/aos/vendor` — third-party skills the kit references and keeps current, never copies into itself |
 | **context block** | A marked (`aos:<capability>:<block-id>@<version>`) passage aos maintains inside an agent's own file |
-| **cheat-sheet** | `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md` — the harness half of the mapping, loaded per operation |
+| **cheat-sheet** | `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md` — the harness half of the mapping (frontmatter `mapping` + markdown), loaded per operation |
 | **lockfile** | `.aos/installs.lock.yaml` — the honest record of what was installed |
 | **diff gate** | You see every write before it happens; never optional |
 | **degraded mode** | A capability's declared behavior when a host feature is absent |

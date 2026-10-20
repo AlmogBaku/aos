@@ -37,7 +37,8 @@ Paste into your agent:
    offered, never required).
 3. **The lifecycle capability installs itself.** One inline install puts the whole
    lifecycle — install, upgrade, remove, onboard, import, build, contribute, evolve — plus
-   the `aos-cap` tool into your harness. From here on, "install X" is a skill, and the lockfile
+   the `aos-cap` tool into your harness, after recording which harness you run
+   (`~/aos/.aos/harness.yml`). From here on, "install X" is a skill, and the lockfile
    (`~/aos/.aos/installs.lock.yaml`, the record of everything materialized) is written by
    the tool, never by hand. Two things ride along:
    - **Two blocks on your own agent.** aos adds two marked passages to your front agent's
@@ -71,7 +72,7 @@ Paste into your agent:
    the briefing, checks that no skill name it ships is already taken in your harness,
    renders the skills against your MOD.md (committed in `personal/`), and materializes
    them per the cheat-sheet — renders linked into the right agents, the archiver agent
-   created, its schedules registered, kb's `kb` tool installed
+   created, its cron jobs registered, kb's `kb` tool installed
    (`uv tool install --from ~/aos/upstream/capabilities/kb/tool aos-kb`).
 7. **Done.** The agent tells you what was installed, where, and any degraded modes in
    effect — specifically, not vaguely.
@@ -117,8 +118,9 @@ installing anyway is fine, silently pretending is not:
 | Your KBs | wherever you keep them (each base is its own git repo) | **you** |
 | The kit itself | `~/aos/upstream` | upstream — pristine; also the checkout you'd branch from to contribute |
 | Referenced third-party skills | `~/aos/vendor` (e.g. `skill-creator`) | their authors — kept current, never copied into the kit |
-| Skill links / agents / schedules | your harness's own locations (per cheat-sheet; a skill is a symlink to its one committed render in `personal/`, never a copy) | your agent, tracked in the lockfile |
+| Skill links / agents / cron jobs | your harness's own locations (per cheat-sheet; a skill is a symlink to its one committed render in `personal/`, never a copy) | your agent, tracked in the lockfile |
 | Install record | `~/aos/.aos/installs.lock.yaml` (household level) | your agent, machine-local |
+| Which harness you run | `~/aos/.aos/harness.yml` — written by `aos-cap harness set` | the tool, machine-local |
 | Who you are, per machine | `~/aos/.aos/kb-principal.yml` — filled in by `kb init --principal` when missing, changed by `kb config set principal.id=` | the tool, machine-local |
 
 Hand-editing materialized artifacts is fine — the agent folds your edits back into

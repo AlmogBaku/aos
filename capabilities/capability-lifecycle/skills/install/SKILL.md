@@ -1,6 +1,6 @@
 ---
 name: install
-description: "Installs an aos capability into this harness: reads its briefing, gates the skill names it would claim, renders it against the user's MOD.md, and materializes agents, symlinks, schedules and context blocks behind a diff gate. Use when the user says \"install\" or \"set up\" and names a capability, offers a capability directory or CAPABILITY.md to install, or when another install needs a missing dependency installed first. Do NOT use to re-render an already-installed capability against fresher upstream — that is capability-upgrade — and not to change how an installed one behaves, which is capability-evolve. The interview it runs mid-install belongs to capability-onboard."
+description: "Installs an aos capability into this harness: reads its briefing, gates the skill names it would claim, renders it against the user's MOD.md, and materializes agents, symlinks, cron jobs and context blocks behind a diff gate. Use when the user says \"install\" or \"set up\" and names a capability, offers a capability directory or CAPABILITY.md to install, or when another install needs a missing dependency installed first. Do NOT use to re-render an already-installed capability against fresher upstream — that is capability-upgrade — and not to change how an installed one behaves, which is capability-evolve. The interview it runs mid-install belongs to capability-onboard."
 ---
 
 # capability-install
@@ -23,17 +23,19 @@ the overlay doctrine, and the Experience rules. Then:
    announce briefly ("work-tracker needs kb — setting that up first"), install it first,
    its interview included. Every `uses` provider is a dependency, so it is installed by now;
    its `uses[].installed_name` comes from the manifest JSON.
-4. Load your cheat-sheet **now** — it travels with the `capability-lifecycle`
-   skill as `reference/harness-<harness-runtime>.md` (load that skill, then read the file;
-   your harness runtime is the program hosting you). Feature notes first, and read them as
-   what the *harness* can express, not as what the user has wired today (contract): a
-   `required` feature the table marks unsupported → friendly stop with the reason; a
-   supported-but-unconfigured channel → install, and say what they still need to set up;
-   `preferred` unsupported → note each schedule's declared degraded mode for recording.
+4. Your harness: `aos-cap --home <aos_home> harness show` (exit 20 → none recorded:
+   `aos-cap --home <aos_home> harness set <harness-runtime>`, the runtime being the program
+   hosting you). Load its cheat-sheet **now** — it travels with the `capability-lifecycle`
+   skill as `reference/harness-<harness-runtime>.md` (load that skill, then read the file).
+   The `depends.host` rows (`mapping.<word>`) first, read as what the *harness* can express,
+   not as what the user has wired today (contract): a `required` feature at `support: none`
+   → friendly stop with the reason; a supported-but-unconfigured channel → install, and say
+   what they still need to set up; `preferred` unsupported → note each cron job's declared
+   degraded mode for recording.
 5. **Name gate**, before anything is written:
    `aos-cap --home <aos_home> skills <dir> --check --harness-skills <dir> …` — one
-   `--harness-skills` per skills dir this harness reads, per the cheat-sheet's Primitive
-   mapping. Read its `checked:` lines —
+   `--harness-skills` per skills dir this harness reads, per the cheat-sheet's
+   `mapping.skill`. Read its `checked:` lines —
    a source it could not reach is named in capitals, and "clean" against two of three
    sources is not clean. Exit 17 → stop and report which name is
    taken and by whom; a collision is fixed in the package ({{skill: contribute}}, or the
@@ -65,14 +67,14 @@ the overlay doctrine, and the Experience rules. Then:
    harness → verify the `<aos_home>/personal` mount per the cheat-sheet), `uses` links (per
    row: the provider's recorded render from `aos-cap show <provider>` → each listed agent's
    skills location, under `installed_name`; a path another entry or a stranger holds →
-   stop), schedules
-   (`aos:<cap>:<schedule-id>`, single-owner check first), context blocks (markers), config
+   stop), cron jobs
+   (`aos:<cap>:<cron-id>`, single-owner check first), context blocks (markers), config
    keys, the capability's own tool install line — plus whatever the root MOD's household
    rules add to each agent this install creates or adopts (the `capability-lifecycle` skill's
    `reference/overlay.md`). Touch
    no harness file yet.
    Second-harness install: stage links + native plan only (the render already exists);
-   schedules stay with their current owner unless the user reassigns.
+   cron jobs stay with their current owner unless the user reassigns.
 9. **GATE**: show the full plan, payoff-framed — each artifact → what it does
    for the user. Wait (unless the root MOD.md says auto-accept).
 10. **EXECUTE** the approved plan: commit the render in `personal/` (dated
@@ -88,6 +90,7 @@ the overlay doctrine, and the Experience rules. Then:
    first time the tool touched it).
 11. `aos-cap record <id> --version <v> --source-root <root> --artifact
     <render-file>… --link <symlink>… --uses-link <symlink>… --job <id>… --config-key <k>…`
+    (`--job` ids land in `cron_owned`)
     — `uses` links go to `--uses-link`, never `--link` (exit 19: one owner per link) — `<root>` is
     whichever root step 1 resolved the capability dir in (`upstream` for shipped
     capabilities, `personal` for the user's own); render files go to `--artifact`
@@ -102,4 +105,4 @@ the overlay doctrine, and the Experience rules. Then:
     {{skill: upgrade}}, months from now. Hooks get the same check from the harness side:
     each one consented and active per the cheat-sheet (its doctor, where the harness has
     one) — a hook the harness skips fails silently.
-13. Celebrate specifically: what, where, which schedules, degraded modes in effect.
+13. Celebrate specifically: what, where, which cron jobs, degraded modes in effect.

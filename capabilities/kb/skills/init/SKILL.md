@@ -1,11 +1,11 @@
 ---
 name: init
-description: "Creates a new knowledge base: interviews the user for purpose, zones, types and curation, scaffolds the tree, registers it, and wires the maintenance schedules. Use when the user wants a fresh base ('create a work base', 'set me up a knowledge base', 'kb init personal'), including during bootstrap when none exists yet. Do NOT use when a knowledge tree already exists on disk — registering that in place is kb-adopt, and transforming another KB's content into a base is kb-import."
+description: "Creates a new knowledge base: interviews the user for purpose, zones, types and curation, scaffolds the tree, registers it, and wires the maintenance cron jobs. Use when the user wants a fresh base ('create a work base', 'set me up a knowledge base', 'kb init personal'), including during bootstrap when none exists yet. Do NOT use when a knowledge tree already exists on disk — registering that in place is kb-adopt, and transforming another KB's content into a base is kb-import."
 ---
 
 # init
 
-**Init is not done until the schedules exist** (or their degraded run-cards do). An
+**Init is not done until the cron jobs exist** (or their degraded run-cards do). An
 unscheduled base means an undrained queue and an unenforced contract, which is worse than
 no base at all.
 
@@ -57,10 +57,10 @@ the matching directories. Show the user the diff. A hand-edit of `.kb/base.yml` 
 but leaves the tree uncommitted, which lint reports as a finding — so follow one with
 `kb commit --verb config --path .kb/base.yml --summary "<what changed>"`.
 
-## 3. Schedules
+## 3. Cron jobs
 
-Three jobs, and init is not finished until all three exist. The harness cheat-sheet gives the
-exact cron syntax for this harness; what does not vary is *what* to schedule:
+Three jobs, and init is not finished until all three exist. The harness cheat-sheet's `mapping.cron`
+gives the exact command for this harness; what does not vary is *what* to schedule:
 
 | id | when | runs | as | environment |
 |---|---|---|---|---|
@@ -90,4 +90,4 @@ archiver to promote overnight"), and tell the user, because nothing will run the
 
 `kb lint` must report **zero Critical and zero Findings** on the fresh tree (Info lines are
 fine — they are observations, not defects). Report back: the tree, the grants, the registry
-entry, and the schedules or their degraded modes.
+entry, and the cron jobs or their degraded modes.

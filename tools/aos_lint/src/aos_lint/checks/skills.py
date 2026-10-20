@@ -135,12 +135,12 @@ def check_skills(ctx) -> None:
 
         # §2.2: a multi-skill capability scoping everything to main is the degenerate case the
         # linter questions — but only where an alternative EXISTED. A capability with no agents
-        # and no schedules has no role to scope to, so "is that deliberate?" is unanswerable
+        # and no cron jobs has no role to scope to, so "is that deliberate?" is unanswerable
         # rather than unanswered, and a warning nobody can act on is one people learn to ignore.
         # (capability-lifecycle is the case: install/upgrade/remove are all things the user asks
         # the front agent.) A capability that LATER declares an agent and forgets to scope a
         # skill to it fires this again, which is the signal worth keeping.
-        has_roles = bool(agents) or bool(manifest.get("schedules") or [])
+        has_roles = bool(agents) or bool(manifest.get("cron") or [])
         all_used_by = [u for e in declared.values() for u in (e.get("used_by") or [])]
         if (has_roles and len(declared) > 1 and all_used_by
                 and all(u == MAIN_AGENT for u in all_used_by)):
@@ -206,8 +206,13 @@ def _check_reference_depth(ctx, cap) -> None:
                            f"hang directly off SKILL.md, or it gets read only in part (name "
                            f"the SKILL instead, and let it link both)")
         lines = text.split("\n")
+        # A reference file may open with a frontmatter (the cheat-sheets do, §5.2); the
+        # Contents block belongs at the top of the BODY a partial read sees after it.
+        body = lines
+        if lines and lines[0] == "---" and "---" in lines[1:]:
+            body = lines[lines[1:].index("---") + 2:]
         if (len(lines) > REFERENCE_TOC_LINES
-                and not any(_CONTENTS_RE.match(line) for line in lines[:15])):
+                and not any(_CONTENTS_RE.match(line) for line in body[:15])):
             ctx.report("warn", "skill/reference-toc", file,
                        f'{len(lines)} lines with no "## Contents" block — a partial read must '
                        f"still show the file's scope")

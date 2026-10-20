@@ -13,7 +13,7 @@ Everything the run creates is identifiable and disposable:
   install prompts. The computed agent names (`kb-archiver`, `wt-steward`) can be a real
   profile on a dogfooding machine, and the contract *adopts* a profile that carries an
   `aos:<capability>:` job, so an unnamed mapping lets an install adopt the operator's own.
-- Cron jobs: the `aos:<capability>:<schedule-id>` name prefix (contract rule).
+- Cron jobs: the `aos:<capability>:<cron-id>` name prefix (contract rule).
 - KBs: under `tests/.sandbox/kb/` (gitignored) — never a real KB.
 - Tools: `tests/.sandbox/uv/` — the install's `uv tool install` and removal's
   `uv tool uninstall` act here, never on the machine's own `aos-kb`/`aos-cap` (step 2).
@@ -166,7 +166,7 @@ Everything the run creates is identifiable and disposable:
    it leaves un-normalized values that the next real run silently flips back). Record which
    files came in that way, here or in the transcript. `aos_lint.golden.check` asserts the snapshot equals
    what the normalizer produces, which catches the second mistake but not the first. Anything
-   an agent *decided* — placement, links, schedules, context blocks — only a live run can
+   an agent *decided* — placement, links, cron jobs, context blocks — only a live run can
    attest.
 
    Done this way on 2026-07-25 for the nine `capability-lifecycle` skills, to carry two prose

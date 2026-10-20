@@ -9,7 +9,7 @@ description: Answers questions about the user's own commitments by querying thei
   to find time for one (wt-schedule), or to report progress on one (wt-update).
 metadata:
   aos:
-    origin: work-tracker@0.1.2
+    origin: work-tracker@0.1.4
 ---
 # work-tracker — the map
 

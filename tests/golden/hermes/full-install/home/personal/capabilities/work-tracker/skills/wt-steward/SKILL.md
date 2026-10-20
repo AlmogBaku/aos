@@ -2,12 +2,12 @@
 name: wt-steward
 description: 'Maintains an existing commitments backlog: overdue, about to expire,
   stalled, and repeatedly-rescheduled commitments, and someday items gone cold. Use
-  when the nightly schedule fires or the user asks to review or tidy their backlog
+  when the nightly cron job fires or the user asks to review or tidy their backlog
   (''review my backlog'', ''what''s gone stale on my list''). Does not capture or
   schedule new work — that happens when the user speaks, through wt-capture and wt-schedule.'
 metadata:
   aos:
-    origin: work-tracker@0.1.2
+    origin: work-tracker@0.1.4
 ---
 # steward
 
@@ -31,9 +31,9 @@ comparison — a bare `<` is shell redirection.
 |---|---|---|
 | overdue | `--where status=next --where 'due<today'` | re-date, raise, or propose dropping |
 | about to expire | `--where 'expires<today+7d'` | extend, or let it go |
-| stalled | `--where status=waiting --where 'since<today-14d'` | worth a nudge? |
+| stalled | `--where status=waiting --where 'since<today-14d'` (follow-up cadence: 14 days) | worth a nudge? |
 | block passed, nothing moved | `--where status=next --where 'block<today'` | **reschedule silently, `slipped++`** |
-| someday gone cold | `--where status=someday --where 'since<today-90d'` | still someday, now, or never? |
+| someday gone cold | `--where status=someday --where 'since<today-90d'` (90 days) | still someday, now, or never? |
 
 Plus one **backstop**, which is not a pipeline stage:
 
@@ -57,17 +57,14 @@ This is the hard part, and one line decides it:
 |---|---|
 | extend `expires` · record a stall · reschedule a block **you** created | **drop a commitment** · **change a `due` date** · **nudge a person on their behalf** |
 
-A silent reschedule lands on the user's **personal** calendar, inside working hours, and
-never during choir practice (Thursdays 19:00–21:00) — if the only free window touches it, the
-reschedule stops being silent: report the conflict and offer the next window.
-
 The last one is already a red line in the global `MOD.md` (*"never send messages as me
 without showing me the draft"*). A `due` date is the user's promise to someone else, so
 moving it is their call even when the new date is obviously right.
 
 **Escalate on the pattern, not the event.** One slip is life; three is a bad commitment —
 *"this has moved three times; still want it, or should it go to someday?"* The threshold is
-an onboarding answer — 3 for this user:
+this user's onboarding answer — **3** (below it, reschedule silently; at it, ask whether the
+thing still matters):
 
 ```
 kb --base commitments find --where 'slipped>=3'
@@ -112,6 +109,11 @@ commitment is rotting is worse than no job at all.
 
 Nothing overdue, stalled, cold or slipping, and the backstop empty → output exactly
 `STEWARD: backlog clean.` and deliver nothing.
+
+A rescheduled block never lands in choir practice (Thursdays 19:00–21:00) and always goes on
+the **personal** calendar — sacred time is honoured here exactly as in wt-schedule.
+
+Name commitments verb-first, with the deadline in the phrasing where there is one.
 
 Otherwise, five lines or fewer, mechanical: what you rescheduled, what you extended, what
 needs the user's decision, and the backstop count if it was not zero. Questions go last,

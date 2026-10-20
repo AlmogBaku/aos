@@ -5,17 +5,19 @@ How a capability proves it works (implements RFC-002).
 ## Tier 0 — capability tool tests (blocking)
 
 `bash tools/check.sh` first runs the capability tool suites — kb's `kb`
-(`uv run tests/tool/test_kb.py`) and capability-lifecycle's `aos-cap`
-(`uv run tests/tool/test_cap.py`). Both invoke their tool's `cli:app` in-process via
-typer's `CliRunner` (fast: kb's ~210 tests run in ~30s, aos-cap's ~110 in ~1s), asserting
+(`uv run tests/tool/test_kb.py`), capability-lifecycle's `aos-cap`
+(`uv run tests/tool/test_cap.py`) and session's `aos-session`
+(`uv run tests/tool/test_session.py`, against a fake harness CLI). All three invoke their
+tool's `cli:app` in-process via typer's `CliRunner` (fast: kb's ~220 tests run in ~30s,
+aos-cap's ~135 and aos-session's ~20 in ~2s each), asserting
 on the same stdout/stderr/exit-code surface a real invocation produces — the report text
 is still the contract, not tool internals. A `Result` adapter gives every assertion the
 `.returncode`/`.stdout`/`.stderr` shape a subprocess result has, so the invocation layer
 can change without touching test bodies. Each suite keeps exactly one real-subprocess
 class (`InstalledScriptSmokeTest` / `InstalledScriptTest`): CliRunner never leaves the
 process, so it can't prove `[project.scripts]` actually resolves as an installed console
-script — that's the one thing those classes exist to check. Both suites also carry a
-`chdir` helper, because a few behaviours are genuine functions of the process cwd, which an
+script — that's the one thing those classes exist to check. kb's and aos-cap's suites also
+carry a `chdir` helper, because a few behaviours are genuine functions of the process cwd, which an
 in-process runner inherits rather than isolates: in `test_cap.py` a relative `--artifact`
 or capability dir, in `test_kb.py` the stray-`.aos/` regression (a cwd under a folder
 carrying one must never become the aos home). Every call gets a fresh `HOME` unless a
@@ -34,7 +36,7 @@ The whole toolchain is Python, in the `tools/aos_lint` package — **`uv` is the
 prerequisite**, and every invocation below is prefixed with
 `uv run --quiet --project tools/aos_lint python -m`.
 
-Runs `aos_lint.cli` (96 checks in 16 code families over the §2/§3/§5 contracts — the
+Runs `aos_lint.cli` (97 checks in 16 code families over the §2/§3/§5 contracts — the
 schema/contract linter, useful any time you're authoring a capability, not just for
 testing), the lint selftest (`aos_lint.selftest` — every contract code must fire
 on a planted-violation fixture, and a code that fires without being listed is also a

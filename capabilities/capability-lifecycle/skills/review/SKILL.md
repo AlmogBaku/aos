@@ -69,7 +69,7 @@ does not declare (a profile, an agent, a link) — the installer follows declara
 ## 3. Diagram it **[A]**
 
 Draw it when there is **more than one moving part** — several skills, or an agent, or a
-schedule, or a tool. Skip it for a single-skill capability with nothing else: a two-box diagram
+cron job, or a tool. Skip it for a single-skill capability with nothing else: a two-box diagram
 carries no information, and shipping one teaches the reader that these diagrams are decoration —
 the write-only artifact 6b exists to catch. The judgment is whether *relationships* matter here,
 not how many files there are.
@@ -114,7 +114,7 @@ Walk the decision tree adversarially and look for:
 - what happens on retry, on partial completion, and on a step that returns nothing.
 
 Then check soundness against whichever standing invariants this capability actually touches —
-skip the rest rather than padding: capture latency is sacred, grants default to deny, a schedule
+skip the rest rather than padding: capture latency is sacred, grants default to deny, a cron job
 has exactly one owner, one lifetime rule (`expires:`) and no second, and **attribution is the
 enforcement substrate** — every write is its own commit with the human as author and the acting
 agent as committer, so anything that lets a write reach git unattributed, or under the wrong

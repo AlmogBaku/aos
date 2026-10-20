@@ -3,7 +3,7 @@
 For every instruction, name, and value: *would a stranger installing this want exactly
 this?*
 
-- **Mechanism** → skeleton: flows, formats, schedule existence, safety rules, zone
+- **Mechanism** → skeleton: flows, formats, cron job existence, safety rules, zone
   structure.
 - **Nuance** → draft MOD.md: names, goals, phrasing preferences, specific hours, channel
   ids, tuned thresholds. Where nuance filled a structural slot, leave `{{mod: <slot>}}`

@@ -119,6 +119,12 @@ RETIRED = [
     # the recorded artifacts allowed above, not this list
     ("<" "home>", "the placeholder is <aos_home> — the aos home (--home/AOS_HOME, else "
                   "~/aos); the bare form reads as the user's home directory"),
+    # `cron` is the aos word for a timed job (ALM-51): the manifest key, the lockfile field
+    # and the host-feature word all moved. Split like the placeholder above so this list is
+    # not itself a hit.
+    ("schedules" ":", "the manifest key is cron: (each entry's expression field is expr:)"),
+    ("schedules" "_owned", "the lockfile field is cron_owned"),
+    ("secrets" "-store", "the depends.host word is secret"),
 ]
 
 # `base <verb>` invocations, and only those. The lookbehind is load-bearing: a bare \b form
@@ -333,7 +339,29 @@ def _sibling_named(desc, cap) -> bool:
     # accepting it let "Does not need any configuration — kb works out of the box." pass while
     # discriminating nothing. The entry skill is the one exception: its id IS the capability id,
     # so it can only point at the narrower skills, which the filter below leaves it able to do.
-    return any(str(n) in desc for n in names if n != cap.id)
+    if any(str(n) in desc for n in names if n != cap.id):
+        return True
+    # A capability whose only skill is its entry skill has no sibling to point at; its
+    # negative clause discriminates by naming another capability's skill instead (where the
+    # work goes when it is not this one).
+    if [str(n) for n in names] == [cap.id]:
+        return any(str(n) in desc for n in _kit_skill_names() if n != cap.id)
+    return False
+
+
+def _kit_skill_names() -> list[str]:
+    names = []
+    for other in list_capabilities():
+        manifest = read_frontmatter(other.dir / "CAPABILITY.md").data or {}
+        declared = manifest.get("skill_prefix")
+        prefix = (declared if isinstance(declared, str) and declared.strip()
+                  else f"{other.id}-")
+        for s in manifest.get("skills") or []:
+            sid = s.get("id") if isinstance(s, dict) else None
+            if sid:
+                names.append(sid if sid == other.id or str(sid).startswith(prefix)
+                             else f"{prefix}{sid}")
+    return names
 
 
 if __name__ == "__main__":

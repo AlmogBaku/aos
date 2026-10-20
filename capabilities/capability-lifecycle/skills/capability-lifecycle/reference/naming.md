@@ -58,7 +58,7 @@ Consequences that bite if you forget them:
   and unvalidated, which is how the examples in this rule survive being rendered.
 - **A slot names another capability's skill; only `uses` puts it where your agent can load
   it.** A non-main agent's skills location holds only what is linked into it, so a
-  `\{{skill: kb/route}}` it reads — in its skills or in a schedule prompt it runs — needs
+  `\{{skill: kb/route}}` it reads — in its skills or in a cron prompt it runs — needs
   `uses: [{capability: kb, skill: route, agents: [<agent>]}]` (`uses/missing`). A file `main`
   loads too stays silent: main composes through the provider's own `used_by: [main]` link.
 - The `metadata.aos.origin` stamp is added by `aos-cap render` at install and never shipped
@@ -88,7 +88,7 @@ answer, and adding `agent_prefix` reflexively skips the conversation it should h
 
 Harnesses keep **one flat skill namespace**, and a second flat one for agents. Two skills —
 or two agents — with one name is a silent override, so both names are single-owner: the same
-rule schedules have (§5.5).
+rule cron jobs have (§5.5).
 
 - In the kit, two capabilities computing the same installed name is an error.
   (`skills/installed-collision`)

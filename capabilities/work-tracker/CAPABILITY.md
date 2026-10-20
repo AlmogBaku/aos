@@ -1,6 +1,6 @@
 ---
 id: work-tracker
-version: 0.1.3
+version: 0.1.4
 tags: [usecase]
 summary: Commitments the user must keep themselves — captured as they speak, scheduled immediately, maintained nightly, and completed with an exit.
 depends:
@@ -23,9 +23,9 @@ skills:
     used_by: [main]
   - id: steward
     used_by: [steward]
-schedules:
+cron:
   - id: nightly-steward
-    cron: "0 23 * * *"
+    expr: "0 23 * * *"
     agent: steward
     prompt_ref: agents/steward/nightly-steward.md
     degraded: manual
@@ -59,11 +59,11 @@ the CFP"* is a commitment, which becomes a page. Same content words, different s
    the steward — it carries the map and the authority rules both need. `wt-capture`,
    `wt-schedule` and `wt-update` are the front agent's conversational paths. `wt-steward` is
    the steward's judgment skill, and it stays a real loadable skill rather than folding into
-   the schedule prompt because the user triggers it ad hoc (*"tidy my backlog"*), not only
+   the cron prompt because the user triggers it ad hoc (*"tidy my backlog"*), not only
    nightly.
 2. **The steward agent** (`agents/steward.agent.yaml`), per the cheat-sheet. Its prompt body
    is `agents/steward/nightly-steward.md`.
-3. **One schedule.** `nightly-steward` defaults to 23:00; the user's `steward_hour` answer
+3. **One cron job.** `nightly-steward` defaults to 23:00; the user's `steward_hour` answer
    overrides the cron at materialization. Degrades to `manual` without cron.
 4. **Base changes — four of them, and all four are load-bearing.** See below.
 5. **The `actions/` zone contract.** Copy `kb/zones/actions.AGENTS.md.tmpl` to
@@ -137,8 +137,8 @@ maintenance rather than capture.
 
 ## Degraded paths, which are real rather than theoretical
 
-- **No calendar** (`calendar.write` is `⚠ via skill` on Hermes — present only if a calendar
-  skill is installed): actions, statuses, deadlines and the whole steward pass still work.
+- **No calendar** (Hermes's `mapping.calendar.write` is `support: via` — present only if a
+  calendar skill is installed): actions, statuses, deadlines and the whole steward pass still work.
   There are no blocks. `wt-schedule` must **say so** rather than silently doing nothing, and
   an unscheduled action is found by the steward's `--without block` backstop rather than lost.
 - **No cron**: `nightly-steward` becomes an invocable run-card. The user asks for it.

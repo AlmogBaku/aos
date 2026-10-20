@@ -172,7 +172,7 @@ flowchart TB
         arch["archiver agent"]
         tool["kb tool (deterministic, no model)"]
     end
-    subgraph sched["schedules"]
+    subgraph sched["cron jobs"]
         n["nightly-promote (archiver)"]
         w["weekly-maintain (archiver)"]
         s["sync (exec — no model wakes up)"]
@@ -196,7 +196,7 @@ The division of labour is the point. **The tool is judgment-free by contract**: 
 agent, files and exit codes as the interface. **Skills are judgment**: which base, which
 page, whether this is worth keeping. **Agents are roles**: the archiver is a librarian, and
 its most valuable behaviour is cross-base, which is why there is one of it rather than one
-per base. **Schedules are when**, and the one with no model in it (`sync`) is an exec job
+per base. **Cron jobs are when**, and the one with no model in it (`sync`) is an exec job
 precisely so that nothing wakes up to move bytes between machines.
 
 Every one of those boundaries exists so that the deterministic part can be tested without a

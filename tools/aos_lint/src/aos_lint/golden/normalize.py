@@ -103,6 +103,9 @@ SKIP = {
     # …and its plugin/source bookkeeping: `source-checks/<install-id>.json` (the Hermes
     # checkout's identity, absolute paths included) and the MCP discovery lock.
     "source-checks", ".mcp-discovery.lock",
+    # Hermes 0.22's per-profile runtime state: the `.env` writer's lock, the projects index
+    # (SQLite) and the provider model-list cache — written at start, never by an install.
+    ".env.lock", "projects.db", "provider_models_cache.json",
 }
 # Hermes's per-profile plugin store, named by the marker it keeps. One in an `aos-*` profile
 # means the profile inherited a plugin (a memory provider, say) that could reach somebody's

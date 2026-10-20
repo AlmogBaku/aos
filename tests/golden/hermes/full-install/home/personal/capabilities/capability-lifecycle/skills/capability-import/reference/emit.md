@@ -1,7 +1,7 @@
 # Stage 5 — Emit
 
 Write under the user's personal root — every path below is relative to
-`<home>/personal/capabilities/<id>-draft/`:
+`<aos_home>/personal/capabilities/<id>-draft/`:
 
 - the directory itself — full §2.1 skeleton: `CAPABILITY.md`, `README.md` (support
   matrix: this harness only, this user as runner), `skills/`, `agents/`, `ONBOARDING.md`,

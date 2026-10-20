@@ -151,7 +151,9 @@ House rules the linter can't fully check:
 ## Contributing a harness cheat-sheet
 
 One document adds a harness: `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`
-(flat, named for the harness runtime, lowercase — `hermes.md`, `nanoclaw.md`, …) with the six sections of
+(flat, named for the harness runtime, lowercase — `harness-hermes.md`, `harness-nanoclaw.md`, …):
+a frontmatter (`harness`, `status`, `source`, `rules`, `files`, and a `mapping` row for every
+aos concept and `depends.host` word — lint `cheatsheet/key` checks it) plus the six sections of
 [spec §5.2](https://github.com/AlmogBaku/aos/blob/spec/ARCHITECTURE.md#52-cheat-sheets-the-adapter-is-knowledge-not-code)
 (primitive mapping, materialization, introspection, secrets, removal, feature notes).
 [`reference/harness-hermes.md`](capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md) is the reference. Keep it lean: the shared aos
@@ -163,7 +165,7 @@ correct install.
 Your own agent may have already drafted one mid-install (BOOTSTRAP's no-cheat-sheet
 path) — a self-drafted sheet verified by a real install is a ready-made PR. A merged
 sheet is not "supported" until someone e2e-runs the harness (spec §5.3's support-matrix
-honesty); until then it ships marked research-drafted.
+honesty); until then it ships `status: research-drafted`.
 
 ## Changing a decision
 

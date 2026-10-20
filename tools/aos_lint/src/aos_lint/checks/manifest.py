@@ -3,7 +3,7 @@ import re
 from ..constants import (
     CAPABILITY_TAGS_ORDERED, DEGRADED_MODES, DEPENDS_KEYS, HOST_FEATURES_ORDERED,
     HOST_LEVELS_ORDERED, KB_KEYS_ORDERED, KB_ZONE_KEYS, MAIN_AGENT, MANIFEST_KEYS_ORDERED,
-    SCHEDULE_KEYS_ORDERED, SKILL_ENTRY_KEYS_ORDERED, USES_ENTRY_KEYS_ORDERED,
+    CRON_KEYS_ORDERED, SKILL_ENTRY_KEYS_ORDERED, USES_ENTRY_KEYS_ORDERED,
 )
 from ..frontmatter import read_frontmatter
 from .agents import agent_names
@@ -46,7 +46,7 @@ def check_manifests(ctx) -> None:
 
         _check_depends(ctx, data.get("depends"), file)
         agents = agent_names(cap)
-        _check_schedules(ctx, data.get("schedules"), cap, file, agents)
+        _check_cron(ctx, data.get("cron"), cap, file, agents)
         _check_skills_bijection(ctx, data.get("skills"), cap, file)
         _check_kb(ctx, data.get("kb"), cap, file, agents)
         _check_uses(ctx, data, cap, file, agents)
@@ -101,31 +101,31 @@ def _check_depends(ctx, depends, file) -> None:
                        f"{{{', '.join(HOST_LEVELS_ORDERED)}}}")
 
 
-def _check_schedules(ctx, schedules, cap, file, agents) -> None:
-    if schedules is None:
+def _check_cron(ctx, jobs, cap, file, agents) -> None:
+    if jobs is None:
         return
     seen = set()
-    for s in schedules:
+    for s in jobs:
         s = s if isinstance(s, dict) else {}
         sid = s.get("id")
         for key in s:
-            if key not in SCHEDULE_KEYS_ORDERED:
-                ctx.report("error", "schedules/unknown-key", file,
-                           f'schedule "{_u(sid)}": unknown key "{key}"')
+            if key not in CRON_KEYS_ORDERED:
+                ctx.report("error", "cron/unknown-key", file,
+                           f'cron job "{_u(sid)}": unknown key "{key}"')
         if not sid or sid in seen:
-            ctx.report("error", "schedules/id", file,
-                       f'schedule id "{_u(sid)}" missing or duplicate')
+            ctx.report("error", "cron/id", file,
+                       f'cron job id "{_u(sid)}" missing or duplicate')
         seen.add(sid)
-        if not CRON.match(_js_str(s.get("cron"))):
-            ctx.report("error", "schedules/cron", file,
-                       f'schedule "{_u(sid)}": cron "{_u(s.get("cron"))}" is not a 5-field '
+        if not CRON.match(_js_str(s.get("expr"))):
+            ctx.report("error", "cron/expr", file,
+                       f'cron job "{_u(sid)}": expr "{_u(s.get("expr"))}" is not a 5-field '
                        f"expression")
         # §2.2: exec (mechanical, deterministic-only) XOR agent+prompt_ref (judgment).
         has_exec = s.get("exec") is not None
         has_agent = s.get("agent") is not None or s.get("prompt_ref") is not None
         if has_exec and has_agent:
-            ctx.report("error", "schedules/exec-xor-agent", file,
-                       f'schedule "{_u(sid)}": exec and agent/prompt_ref are mutually '
+            ctx.report("error", "cron/exec-xor-agent", file,
+                       f'cron job "{_u(sid)}": exec and agent/prompt_ref are mutually '
                        f"exclusive")
         elif has_exec:
             # First token: a capability-relative path (must resolve) or a bare command
@@ -133,22 +133,22 @@ def _check_schedules(ctx, schedules, cap, file, agents) -> None:
             # documents the install; the cheat-sheet wires the degraded form).
             exec_tok = _js_str(s.get("exec")).split(" ")[0]
             if "/" in exec_tok and not (cap.dir / exec_tok).exists():
-                ctx.report("error", "schedules/exec-ref", file,
-                           f'schedule "{_u(sid)}": exec "{exec_tok}" does not resolve inside '
+                ctx.report("error", "cron/exec-ref", file,
+                           f'cron job "{_u(sid)}": exec "{exec_tok}" does not resolve inside '
                            f"the capability")
         else:
             if s.get("agent") != MAIN_AGENT and s.get("agent") not in agents:
-                ctx.report("error", "schedules/agent", file,
-                           f'schedule "{_u(sid)}": agent "{_u(s.get("agent"))}" is neither '
+                ctx.report("error", "cron/agent", file,
+                           f'cron job "{_u(sid)}": agent "{_u(s.get("agent"))}" is neither '
                            f'"{MAIN_AGENT}" nor a declared agents/*.agent.yaml name')
             prompt_ref = s.get("prompt_ref")
             if not prompt_ref or not (cap.dir / str(prompt_ref)).exists():
-                ctx.report("error", "schedules/prompt-ref", file,
-                           f'schedule "{_u(sid)}": prompt_ref "{_u(prompt_ref)}" does not '
+                ctx.report("error", "cron/prompt-ref", file,
+                           f'cron job "{_u(sid)}": prompt_ref "{_u(prompt_ref)}" does not '
                            f"resolve inside the capability")
         if s.get("degraded") not in DEGRADED_MODES:
-            ctx.report("error", "schedules/degraded", file,
-                       f'schedule "{_u(sid)}": degraded "{_u(s.get("degraded"))}" must be one '
+            ctx.report("error", "cron/degraded", file,
+                       f'cron job "{_u(sid)}": degraded "{_u(s.get("degraded"))}" must be one '
                        f"of {{{', '.join(DEGRADED_MODES)}}}")
 
 
