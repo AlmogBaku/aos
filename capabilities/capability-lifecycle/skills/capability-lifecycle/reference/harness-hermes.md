@@ -45,9 +45,9 @@ mapping:
     continue: hermes -p <profile> chat --resume <session_id> -Q --query-file <file>
     id: {stderr: '^session_id: (\S+)$'}
     missing: {stderr: '^Session not found'}
+    busy: {stderr: '^hermes-refusal-reason: SESSION_NOT_OWNED'}
     scrub_env: [HERMES_SESSION_*, HERMES_CRON_SESSION, HERMES_UI_SESSION_ID, HERMES_CRON_AUTO_DELIVER_*]
     branch: {support: none, instead: continue in place and say so}
-    unverified: [unread marking of a continued session]
   plan_mode:
     support: none
     instead: prompt-enforced — declare "planning — no writes until approval" and hold it; the diff gate is the exit
@@ -97,7 +97,8 @@ the judgment the rows cannot carry.
   `--continue` reopen a session, never copy one — {{skill: build}} continues in place and says so.
 - **Session** (`mapping.session`): `chat -c <title> --create-if-missing` reopens a title that
   exists, so a caller that wants a new session puts the time in the title. A session created from
-  the CLI carries no read watermark and counts as read.
+  the CLI carries no read watermark and counts as read; a continued session that was read turns
+  unread. While a turn runs, a second writer is refused (`mapping.session.busy`).
 - **Files** (`files`): anything else you write is inert. Do not invent filenames (no
   `persona.md`); persona content goes in `SOUL.md`.
 

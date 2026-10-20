@@ -16,3 +16,7 @@ ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
 LEFTOVER_RE = re.compile(r"<[a-z_]+>")
 TITLE_MAX = 90                          # Hermes refuses > 100; the " HH:MM" suffix needs room
 DEFAULT_TIMEOUT = 540.0
+# A session another turn is writing to refuses a second writer (the sheet's `busy` pattern):
+# notify retries the continue this often, for this long, before it fails.
+BUSY_RETRY = 30.0
+BUSY_WAIT = 600.0

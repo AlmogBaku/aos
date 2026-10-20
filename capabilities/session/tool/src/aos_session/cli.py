@@ -6,13 +6,14 @@ a failure exits non-zero with the reason, and the caller decides what follows.
 
   open    one new titled session with an opening prompt; the title ends with the local time,
           because a harness may reopen a title that exists
-  notify  continue a known session; open a new one only when the harness reports it gone
+  notify  continue a known session — waiting while the harness reports it busy — and open a
+          new one only when the harness reports it gone
 
 Exit codes: 0 ok · 1 the harness command failed · 2 bad input, no household or no harness
 record · 4 not supported on this harness · 124 timeout.
 """
 
-import re
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Optional
@@ -21,7 +22,7 @@ import typer
 
 from . import harness as hz
 from . import runner
-from .constants import DEFAULT_TIMEOUT, ID_RE, TITLE_MAX, VERSION
+from .constants import BUSY_RETRY, BUSY_WAIT, DEFAULT_TIMEOUT, ID_RE, TITLE_MAX, VERSION
 from .errors import Exit, fail
 
 app = typer.Typer(rich_markup_mode=None, add_completion=False, help=__doc__.split("\n\n")[0])
@@ -120,13 +121,22 @@ def cmd_notify(
     cmd = runner.argv(h, hz.step(h, "continue"),
                       {"<profile>": profile, "<session_id>": session, "<file>": prompt,
                        "<workdir>": workdir or str(Path.cwd())})
-    ran = runner.run(h, cmd, timeout, session)
+    busy = hz.pattern(h, "busy") if "busy" in h.session else None
+    deadline = time.monotonic() + BUSY_WAIT
+    while True:
+        ran = runner.run(h, cmd, timeout, session)
+        waiting = ran.code != 0 and busy is not None and bool(busy.search(ran.stderr))
+        if not waiting or time.monotonic() >= deadline:
+            break
+        time.sleep(BUSY_RETRY)
     if ran.code == 0:
         print(f"Added to session {session} in profile {profile}.")
         if ran.stdout.strip():
             print()
             print(ran.stdout.rstrip())
         return
+    if waiting:
+        runner.failure(ran, f"continue {session}: still busy after {BUSY_WAIT:.0f}s")
     if not hz.pattern(h, "missing").search(ran.stderr):
         runner.failure(ran, f"continue {session}")
     titled = _titled(title)

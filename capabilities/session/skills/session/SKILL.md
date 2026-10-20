@@ -27,8 +27,9 @@ aos-session open --profile <agent> --title "<2–5 word subject> · <YYYY-MM-DD>
 aos-session notify --profile <agent> --session <id> --prompt-file <file> --title "<title>"
 ```
 
-Adds the prompt as a new turn in session `<id>`. Only when the harness reports that session gone
-does it open a new one under `--title`.
+Adds the prompt as a new turn in session `<id>`. While the harness reports it busy (another turn
+is running), it retries every 30 s for up to 10 minutes. Only when the harness reports that session
+gone does it open a new one under `--title`.
 
 ## Report
 

@@ -17,6 +17,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import yaml
 from typer.testing import CliRunner
@@ -39,6 +40,10 @@ if "--resume" in argv:
         print("Session not found: " + argv[argv.index("--resume") + 1], file=sys.stderr); sys.exit(1)
     if mode == "fail":
         print("upstream API error", file=sys.stderr); sys.exit(1)
+    if mode in ("busy", "busy-once"):
+        tries = sum(1 for _ in open(os.environ["FAKE_LOG"]))
+        if mode == "busy" or tries == 1:
+            print("hermes-refusal-reason: SESSION_NOT_OWNED", file=sys.stderr); sys.exit(1)
     print("turn added"); sys.exit(0)
 mode = os.environ.get("FAKE_OPEN", "ok")
 if mode == "sleep":
@@ -60,6 +65,7 @@ mapping:
     continue: fakeharness -p <profile> chat --resume <session_id> -Q --query-file <file>
     id: {stderr: '^session_id: (\S+)$'}
     missing: {stderr: '^Session not found'}
+    busy: {stderr: '^hermes-refusal-reason: SESSION_NOT_OWNED'}
     scrub_env: [FAKE_SECRET_*]
 ---
 # Fake
@@ -167,6 +173,24 @@ class SessionTest(unittest.TestCase):
         self.assertRegex(r.stdout, r'^Session s-old1 is gone; opened "Dana approved \d\d:\d\d" '
                                    r"\(session s-new1\)")
         self.assertEqual(len(self.calls()), 2)
+
+    @mock.patch("aos_session.cli.BUSY_RETRY", 0.01)
+    @mock.patch("aos_session.cli.BUSY_WAIT", 5.0)
+    def test_notify_waits_while_the_session_is_busy_then_adds_the_turn(self):
+        r = self.notify(FAKE_CONTINUE="busy-once")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertTrue(r.stdout.startswith("Added to session s-old1"))
+        self.assertEqual(len(self.calls()), 2)
+        self.assertTrue(all("--resume" in c["argv"] for c in self.calls()))
+
+    @mock.patch("aos_session.cli.BUSY_RETRY", 0.01)
+    @mock.patch("aos_session.cli.BUSY_WAIT", 0.1)
+    def test_notify_still_busy_after_the_wait_exits_1_and_opens_nothing(self):
+        r = self.notify(FAKE_CONTINUE="busy")
+        self.assertEqual(r.returncode, 1)
+        self.assertTrue(r.stdout.startswith("[CRON_FAILURE]"), r.stdout)
+        self.assertIn("still busy", r.stdout)
+        self.assertTrue(all("--resume" in c["argv"] for c in self.calls()))
 
     def test_notify_other_failure_exits_1_and_opens_no_stray_session(self):
         r = self.notify(FAKE_CONTINUE="fail")
