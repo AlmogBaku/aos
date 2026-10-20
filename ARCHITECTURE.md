@@ -133,7 +133,7 @@ capabilities/<id>/
   adapters/<harness>/        # only harness-specific overrides & native code (incl. plugins/)
 ```
 
-**Normative:** every `skills/<id>/` folder MUST be a valid Agent Skills folder on its own — a harness with nothing but skill support can still consume the atoms. Everything outside `skills/` and `adapters/` MUST be harness-neutral (the capability-lifecycle capability's per-harness cheat-sheets are the sanctioned exception — *knowledge*, §5.2, never code; they live as `reference/harness-<runtime>.md` files of the entry skill that reads them, so they travel with the render and resolve from an installed skill). If a capability's `adapters/` content outweighs its neutral core, the linter flags it: that is a sign the "neutral" design is fictional and the capability should say so honestly in its support matrix.
+**Normative:** every `skills/<id>/` folder MUST be a valid Agent Skills folder on its own — a harness with nothing but skill support can still consume the atoms. Everything outside `skills/` and `adapters/` MUST be harness-neutral (the capability-lifecycle capability's per-harness cheat-sheets are the sanctioned exception — *knowledge* with schema-checked frontmatter (§5.2), never code; they live as `reference/harness-<runtime>.md` files of the entry skill that reads them, so they travel with the render and resolve from an installed skill). If a capability's `adapters/` content outweighs its neutral core, the linter flags it: that is a sign the "neutral" design is fictional and the capability should say so honestly in its support matrix.
 
 **Skill packaging (normative, per the Agent Skills best-practices):** a SKILL.md body stays under 500 lines; anything deeper moves to files the skill references **one level deep** (no reference chains); deterministic assets — templates, scripts — ship *inside* the skill directory (scripts are **executed, never loaded into context**); descriptions are third-person and carry concrete triggers (activities, literal user phrases, proper nouns). Skills state their one load-bearing invariant up front, and mark each section's authority explicitly: may auto-fix, report-only, or ask-first. **A skill's id is capability-local; the name it *installs* under is the shipped identity** — computed, never authored: `<skill_prefix><id>`, where `skill_prefix` is the capability's declared prefix (§2.2) or its id, and the entry skill installs verbatim. Harnesses keep **one flat skill namespace**, so that installed name must be **self-descriptive out of context and globally unique**: a generic verb (`install`, `update`) says nothing next to thirty other skills, and two capabilities claiming one name is a silent override. Ids name actions (`install`, `drain`); agents (§2.3) name roles (`archiver`). Enforced deterministically at both ends — kit-side lint on the computed name, and an install-time gate (§5.4) against the household, the lockfile, and the skills the harness already has. A collision is resolved in the package, **never by renaming at install time**. And **in-capability cross-skill references are authored as slots, never as a name or a relative path.** A reference resolves by name at runtime, and that name is computed — so shipped prose writes `{{skill: <id>}}` (or `{{skill: <cap>/<id>}}` for another capability's, `{{agent: <id>}}` for an agent) and the render substitutes the computed installed name. Neither of the two obvious alternatives is a reference: a bare id names nothing once installed, and a hardcoded installed name rots silently the moment a `skill_prefix` changes — a whole family of references left pointing at nothing, with no error anywhere. A slot naming no declared skill or agent fails the render deterministically and fails kit-side lint. A **leading backslash** escapes a slot as a literal example (`\{{skill: <id>}}`), which is what lets the documents that teach this rule survive being rendered by it. Relative paths stay inside the skill's own folder, which the whole-folder render keeps intact; a reference into a *sibling* reference file gets read only in part.
 
@@ -160,14 +160,14 @@ depends:
     cron: preferred            # preferred ⇒ install proceeds degraded if absent (§5.5)
     calendar.write: preferred
 
-schedules:
+cron:
   - id: nightly-steward
-    cron: "0 23 * * *"         # neutral cron; installing LLM translates per cheat-sheet
+    expr: "0 23 * * *"         # neutral cron expression; installing LLM translates per cheat-sheet
     agent: steward             # judgment work: an agent wakes with a prompt…
     prompt_ref: agents/steward/nightly-steward.md   # prompt bodies co-locate with their agent (§2.1)
     degraded: manual           # manual | skip | inline — behavior when host has no cron
   - id: sync                   # (kb's, shown here for the exec shape)
-    cron: "*/5 * * * *"
+    expr: "*/5 * * * *"
     exec: kb sync --all        # …or mechanical work: the harness cron runs a
     degraded: manual           # program directly. `exec` and `agent`+`prompt_ref` are mutually
                                # exclusive per entry (lint-enforced). A bare command is provided
@@ -176,7 +176,7 @@ schedules:
                                # deterministic-only — they never call an LLM (§2.4); failures
                                # surface via files/exit codes, not by summoning an agent.
                                # An exec entry names no agent, so the job is HOSTED BY the
-                               # agent that owns the capability's other schedules (the front
+                               # agent that owns the capability's other cron entries (the front
                                # agent when it declares none): nothing but the scheduler runs
                                # it, and a capability's jobs staying in one place is what
                                # keeps the removal walk and §5.5's single-owner check
@@ -238,7 +238,7 @@ No provider names, no effort/permission fields, no harness-specific tuning in th
 
 ### 2.4 Harness-native code: capabilities ship software
 
-Some capabilities are not prompts-plus-conventions — they are, in meaningful part, **code**. The flagship example is the **permission gate** (§7, build 9): per-group/per-user/per-task access control over inbound messaging (in one live Hermes WhatsApp deployment: some groups open to everyone but only for a specific task, some groups restricted to specific users, everything else blocked by default). Several collaborators have independently built or patched exactly this — which is the argument for packaging it.
+Some capabilities are not prompts-plus-conventions — they are, in meaningful part, **code**. The flagship example is the **permission gate** (§7, build 8): per-group/per-user/per-task access control over inbound messaging (in one live Hermes WhatsApp deployment: some groups open to everyone but only for a specific task, some groups restricted to specific users, everything else blocked by default). Several collaborators have independently built or patched exactly this — which is the argument for packaging it.
 
 The contract:
 
@@ -248,13 +248,14 @@ The contract:
 - **Capability tools — the canonical deterministic executor.** A capability whose skills contain deterministic checklists (schema validation, glob matching, table lookups, index maintenance) SHOULD ship them as one bundled tool rather than prose-executing them per skill — as entry-skill `scripts/` (the minimal form, run via the ecosystem's zero-install runner) or, once it outgrows a single file, as an **installable package under `capabilities/<id>/tool/`** whose install step the briefing documents (e.g. `uv tool install --from <aos_home>/upstream/capabilities/kb/tool` → a real command on PATH; recorded in the lockfile, uninstalled at removal): prose-executed glob math is what LLMs fumble silently, and one discoverable `--help` beats five checklists. The boundary is absolute: **the tool performs deterministic operations only — it never calls an LLM and never invokes an agent.** The dependency arrow points one way (skills call the tool); the tool reports back through exit codes, stdout, and files — files are the async message bus (a conflict becomes a review-queue block, not a callback). Per-harness variance is **composition at install time** — the cheat-sheet tells the installing LLM how to wire the cron line, env, and an optional notify wrapper around the call — never a plugin API inside the tool. There is deliberately no kit-level helper tool (RFC-004): tools belong to capabilities.
 
   A corollary the build phase made concrete: **where a contract is mechanically decidable, its one implementation belongs in the tool, and everything else imports it.** `capability-lifecycle`'s tool owns the computation of every installed name (§2.1, §5.5), the collision gates, the manifest schema and the mechanical render; the kit's own linter *calls* those functions rather than reimplementing them. Two implementations of one rule is the failure this closes — they agree until they quietly do not, and the disagreement surfaces as a name that installs differently than CI predicted. The rule reads the same in both places because it is the same code.
+  **A further corollary: a capability's tool may read the installed cheat-sheet's frontmatter at run time (§5.2)** — the per-harness knowledge stays data in the sheet, never code in the tool.
 - The capability's README carries a **support matrix** — the honesty rule: a capability claims a harness only if someone actually runs it there, and marks each harness `hook` / `patched` / `unsupported` so users know what they're installing.
 
 No portable hook contract exists in v0.1, deliberately: the ecosystems' hook models are incompatible (§1.3), and an abstraction over them today would be fiction.
 
 ### 2.5 The capability lifecycle: briefing, then building blocks
 
-A capability is the composition of **five building blocks** around one use case or infrastructure need: **skills** (knowledge agents load), **agents** (personas that run scheduled or delegated work), **tools/scripts** (deterministic executables, §2.4), **crons** (schedules, agent-type or exec-type), and **patches** (harness modifications, §2.4). The capability directory is how they ship together; after installation, only the building blocks exist in the harness.
+A capability is the composition of **five building blocks** around one use case or infrastructure need: **skills** (knowledge agents load), **agents** (personas that run scheduled or delegated work), **tools/scripts** (deterministic executables, §2.4), **crons** (timed jobs, agent-type or exec-type), and **patches** (harness modifications, §2.4). The capability directory is how they ship together; after installation, only the building blocks exist in the harness.
 
 Two lifecycle roles follow:
 
@@ -438,13 +439,13 @@ Principle (inherited from the capture-inbox pattern that already runs in product
 
 ### 4.3 Authorization: routing's twin
 
-A misroute across a privacy boundary is not a bug, it is a trust-terminating event — a personal health note synthesized into a KB colleagues pull. Routing therefore sits on top of an **access-control layer**, and it is the same shape as the inter-agent permission gate (§7, build 9): **subjects** (agents, capabilities) × **objects** (KBs, zones) × **verbs** (read, write, route-into).
+A misroute across a privacy boundary is not a bug, it is a trust-terminating event — a personal health note synthesized into a KB colleagues pull. Routing therefore sits on top of an **access-control layer**, and it is the same shape as the inter-agent permission gate (§7, build 8): **subjects** (agents, capabilities) × **objects** (KBs, zones) × **verbs** (read, write, route-into).
 
 Normative rules in v0.1:
 
 - **`audience: shared` KBs accept LLM-routed writes never** — rule-matched or explicitly tagged writes only. The classifier may only choose among `private` KBs.
 - Zone ownership (the maintainer-zone table each KB's `AGENTS.md` carries — §4.4) is authorization data: a capability's declared `kb.zones` are grants, appended at install time, revoked at removal.
-- The **permission-gate capability** (build 9, §7) implements this same model at the messaging/tool-call layer — one live implementation already exists (the Hermes WhatsApp gate). This section defines the shared vocabulary so KB routing and inbound gating don't grow two incompatible ACLs.
+- The **permission-gate capability** (build 8, §7) implements this same model at the messaging/tool-call layer — one live implementation already exists (the Hermes WhatsApp gate). This section defines the shared vocabulary so KB routing and inbound gating don't grow two incompatible ACLs.
 
 ### 4.4 The base engine: store, curation, state
 
@@ -475,7 +476,7 @@ The install is then a conversation the harness agent has with the capability's d
 
 ```mermaid
 flowchart LR
-    CAP["Capability<br/>neutral declarations<br/>(skills · agents · schedules · zones)"] --> LLM(("harness LLM<br/>installs"))
+    CAP["Capability<br/>neutral declarations<br/>(skills · agents · crons · zones)"] --> LLM(("harness LLM<br/>installs"))
     MOD["MOD.md<br/>your nuances"] --> LLM
     CS["cheat-sheet<br/>capability-lifecycle entry skill<br/>reference/harness-&lt;harness-runtime&gt;.md<br/>(knowledge, not code)"] --> LLM
     LLM --> H1["<b>Hermes</b><br/>profile · cron/jobs.json<br/>· AGENTS.md block"]
@@ -489,14 +490,20 @@ flowchart LR
 
 ### 5.2 Cheat-sheets: the adapter is knowledge, not code
 
-`capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md` is the kit's per-harness knowledge artifact — the *cheat-sheet*, shipped inside the capability that uses it. The **harness runtime** is the agent program hosting the install, and the file is named after it: Hermes → `harnesses/hermes.md` · NanoClaw → `harnesses/nanoclaw.md` · OpenClaw → `harnesses/openclaw.md` · Nanobot → `harnesses/nanobot.md` · Claude Code → `harnesses/claude-code.md` · OpenCode → `harnesses/opencode.md` (paths relative to the capability). (The kit itself has no runtime — §1.1; `<harness-runtime>` always names the harness's.) Required sections (a contract of *content*, not an API):
+`capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md` is the kit's per-harness knowledge artifact — the *cheat-sheet*, shipped inside the capability that uses it. The **harness runtime** is the agent program hosting the install, and the file is named after it: Hermes → `reference/harness-hermes.md` · NanoClaw → `reference/harness-nanoclaw.md` · OpenClaw → `reference/harness-openclaw.md` · Nanobot → `reference/harness-nanobot.md` · Claude Code → `reference/harness-claude-code.md` · OpenCode → `reference/harness-opencode.md` (paths relative to the entry skill). (The kit itself has no runtime — §1.1; `<harness-runtime>` always names the harness's.)
 
-- **Primitive mapping** — what "agent" means here (Hermes: profile · NanoClaw: group · OpenClaw: agent + workspace · Claude Code: sub-agent), what "schedule" means, what "context block" means, what "plan mode" means (the read-only staging mode STAGE→GATE→EXECUTE and §9 ride — native where the harness has one, prompt-enforced where it doesn't), with file locations and formats.
+The household's active harness is recorded once: `aos-cap harness set <runtime>` writes `{harness, sheet, cli}` to `<aos_home>/.aos/harness.yml` (machine-local, §3.1); the lifecycle render ships only that harness's sheet.
+
+Each sheet is markdown with a schema-checked frontmatter — content for the installer plus a machine-readable record a capability tool can query at run time (§2.4). Frontmatter keys: `harness`, `status` (verified | research-drafted), `source` (what it was checked against), `rules`, `files`, `mapping`. `mapping` carries exactly 17 rows: the ten aos concepts (`agent`, `main`, `skill`, `cron`, `context_block`, `secret`, `config`, `hook`, `session`, `plan_mode`) and the seven `depends.host` words that are not already a concept (`messaging.inbound`, `messaging.outbound`, `voice.stt`, `voice.tts`, `calendar.read`, `calendar.write`, `email`); `cron` and `secret` each answer their own host word. A row has `primitive` (+ `where`, + only the verb one template can hold) or `support: via | none | unknown` (`via` names what to install; `unknown` on a `required` host word asks the person, never refuses). Degraded wiring derives from the mapping: a `manual` cron entry becomes a prompt-invocable skill placed at `mapping.skill.where.agent` of the owning agent; `inline` folds into `mapping.cron.edit`, or recreates the job when `edit` is `support: none`.
+
+Required body sections:
+
+- **Primitive mapping** — what "agent" means here (Hermes: profile · NanoClaw: group · OpenClaw: agent + workspace · Claude Code: sub-agent), what "cron" means, what "context block" means, what "plan mode" means (the read-only staging mode STAGE→GATE→EXECUTE and §9 ride — native where the harness has one, prompt-enforced where it doesn't), with file locations and formats. The mapping table is the frontmatter's `mapping` block; prose stays.
 - **Materialization guide** — where each artifact kind is written and how (the §5.3 table, in prose the LLM can follow).
 - **Introspection guide** — how to enumerate what already exists on this harness (powers the importer, §6).
 - **Secrets** — the native store and how references resolve.
 - **Removal** — how to cleanly take a capability back out.
-- **Feature notes** — which `depends.host` features exist here, and the degraded-mode translation when they don't.
+- **Feature notes** — which `depends.host` features exist here, and the degraded-mode translation when they don't. The feature table is the frontmatter's `mapping` block; prose stays.
 
 Three rules govern how the cheat-sheet is used:
 
@@ -512,7 +519,7 @@ The **installed name** (§2.1) is the same string in all four columns, and it is
 
 A `depends.host` entry states what the **harness can express**, not what the user has configured today — the cheat-sheet's Feature notes table is the answer, and probing live configuration is not. A supported-but-unwired channel installs (and the user is told what to set up); `required` stops an install only when the harness cannot express the feature at all. Reading it the other way turns §5.5's degraded modes into dead vocabulary, and refuses installs that would have worked.
 
-The `depends.host` vocabulary is fixed and enumerated: `cron`, `messaging.inbound`, `messaging.outbound`, `voice.stt`, `voice.tts`, `calendar.read`, `calendar.write`, `email`, `secrets-store`. Adding a word requires updating every cheat-sheet — deliberate friction that keeps the neutral surface small.
+The `depends.host` vocabulary is fixed and enumerated: `cron`, `messaging.inbound`, `messaging.outbound`, `voice.stt`, `voice.tts`, `calendar.read`, `calendar.write`, `email`, `secret`. Adding a word requires updating every cheat-sheet — deliberate friction that keeps the neutral surface small.
 
 ### 5.3 What the cheat-sheets direct the LLM to write
 
@@ -522,11 +529,11 @@ The `depends.host` vocabulary is fixed and enumerated: `cron`, `messaging.inboun
 |---|---|---|---|---|
 | skill | symlink `~/.hermes/skills/<installed-name>` or `profiles/<p>/skills/<installed-name>` per `used_by` → the pinned render | symlink workspace `skills/<installed-name>` → pinned render (per-agent workspaces = `used_by` scoping) | symlink checkout `.claude/skills/<installed-name>` → pinned render (requires the `~/aos/personal` ro mount); also the slash-command namespace; per-group scoping via the group config `skills` field | symlink workspace `skills/<installed-name>` → pinned render + each agent's `skills:` list |
 | agent | profile dir `~/.hermes/profiles/<name>/` (directory-defined — `hermes profile create`; no `config.yaml` registry entry exists) | `openclaw agents add` — agent dir + own workspace (`SOUL.md`, `AGENTS.md`…) | agent group (per-group container): `ncl groups create` (v2) / registered via the main agent (v1) | `agents/<id>.md` (frontmatter + body-as-instructions) |
-| schedule | cron job via `hermes cron create` in the owning profile's home — provenance = `aos:<cap>:<id>` name prefix + job id in the lockfile (never a hand-written `jobs.json` field: the file is scheduler-owned and its `origin` key already means chat provenance) | `openclaw cron add` (Gateway-hosted; `cron/jobs.json` store) | `ncl tasks create` (DB-sweep task, v2) / `scheduled_tasks` via the main agent (v1) | `createScheduledTask` runtime tool (DB-backed; no config-file form) |
+| cron | cron job via `hermes cron create` in the owning profile's home — provenance = `aos:<cap>:<id>` name prefix + job id in the lockfile (never a hand-written `jobs.json` field: the file is scheduler-owned and its `origin` key already means chat provenance) | `openclaw cron add` (Gateway-hosted; `cron/jobs.json` store) | `ncl tasks create` (DB-sweep task, v2) / `scheduled_tasks` via the main agent (v1) | `createScheduledTask` runtime tool (DB-backed; no config-file form) |
 | context block | profile `SOUL.md` (identity) / `workspace/AGENTS.md` (working-dir instructions), inside `<!-- aos:… -->` markers | workspace bootstrap files (`AGENTS.md`, `SOUL.md`, …; sub-agents receive only `AGENTS.md`+`TOOLS.md`) | `instructions.prepend.md` → composed `CLAUDE.md` (v2) / group `CLAUDE.md` (v1) | the agent md body (no auto-loaded context file exists) |
 | secret | `.env` (root or profile — `auth.json` is Hermes's own provider-credential state, never written by installs) | global `~/.openclaw/.env` (+ SecretRef; workspace `.env` blocks credentials) | checkout `.env` (+ OneCLI vault, v2) | `nanobot.env` + the config `env:` map |
 
-Every artifact written during install is tagged with its origin (a frontmatter key, a marker comment, or — where the file is harness-owned, like Hermes `jobs.json` — a name prefix plus the lockfile record) so `doctor`, `remove`, and the round-trip (§3.3) can attribute it. The NanoClaw (one sheet covering v1 and v2), OpenClaw, and Nanobot cheat-sheets ship **research-drafted** — a shipped sheet is not a verified harness; the support-matrix rule below governs. Claude Code and OpenCode cheat-sheets are explicitly **later** (until then the capability-lifecycle no-cheat-sheet reference covers them): when they land, the Claude Code one points the LLM at the native plugin/marketplace machinery (userConfig, plugin data dirs) rather than rebuilding it.
+Every artifact written during install is tagged with its origin (a frontmatter key, a marker comment, or — where the file is harness-owned, like Hermes `jobs.json` — a name prefix plus the lockfile record) so `doctor`, `remove`, and the round-trip (§3.3) can attribute it. The NanoClaw (one sheet covering v1 and v2), OpenClaw, and Nanobot cheat-sheets ship **research-drafted** — a shipped sheet is not a verified harness; the support-matrix rule below governs. Claude Code and Codex sheets ship research-drafted; OpenCode is later (until then the capability-lifecycle no-cheat-sheet reference covers it).
 
 **Support matrix rule:** a capability lists a harness in its README support matrix only if someone runs it there. Honesty over abstraction.
 
@@ -538,7 +545,7 @@ The installer being an LLM does not relax the discipline — it is *why* the dis
 - Everything materialized is **recorded** in `<aos_home>/.aos/installs.lock.yaml` — at household level, spanning source roots (capability, version, source root, artifact paths, links, hashes).
 - Every skill name is **gated before anything is written** (§2.1): the installer computes each installed name and refuses to proceed if one is already claimed — by another capability in the household, by a link the lockfile records, or by a skill the harness already has, aos-installed or not. The gate is deterministic (a tool verb, exit code 17), because "is this name taken" is not a judgment call.
 - Upgrade rollback is `git revert` in `personal/` — the pinned-render history is the primary safety net.
-- **Declarations decide placement.** `used_by`, `schedules[].agent`, `uses` and `agents/` say where every skill, job and link lands; the briefing says *how*, never *where*. A briefing that places something the manifest does not declare is a package defect and the install stops. Every lockfile link has exactly one owner: recording a path another entry already holds is refused.
+- **Declarations decide placement.** `used_by`, `cron[].agent`, `uses` and `agents/` say where every skill, job and link lands; the briefing says *how*, never *where*. A briefing that places something the manifest does not declare is a package defect and the install stops. Every lockfile link has exactly one owner: recording a path another entry already holds is refused.
 - `aos-cap verify` reports drift (lockfile hash ≠ on-disk artifact) and link damage (missing, re-targeted, dangling, or replaced by a copy); the deferred `doctor` verb (RFC-004) will add degraded installs, orphaned artifacts, and patch/version mismatches (§2.4).
 
 What is *not* open: prose-driven mutation of live configs with no lockfile, no diff, and no revertible history — hand-mutated harness configs accumulate `.bak` graveyards. The bookkeeping is carried by a capability tool: **the lockfile is `aos-cap`'s file** (capability-lifecycle) — agents call verbs, never edit the YAML. That is RFC-004's named reopen path, taken; the RFC's no-kit-level-tool decision stands.
@@ -551,7 +558,7 @@ A missing `preferred`/`optional` host feature does not block install. Per-schedu
 
 **Agent names are the same hazard in a different directory.** Harnesses keep agents in a flat per-harness namespace too — Hermes `~/.hermes/profiles/<name>/`, Claude Code `~/.claude/agents/<name>.md` — so two capabilities shipping `archiver` override each other exactly as two skills would. An agent's installed name is therefore computed from the same declared `skill_prefix` (§2.2), gated before it is created, and single-owner on the same terms. One prefix governs both namespaces: a separate `agent_prefix` field stays out until two in-repo capabilities need divergent prefixes machine-read (rule of two, §2.2). The gate reads the household's other capabilities and the lockfile's recorded links; enumerating the agents a harness *already* has is a different command per harness (`hermes profile list`, `ls ~/.claude/agents/`, …), so where that source is not consulted the gate must **say which source it skipped** — a clean result against two of three sources is not clean.
 
-**Single-owner rule for schedules (normative):** a capability may be installed into several harnesses from one household, but each of its `schedules[]` entries runs in **exactly one** harness at a time. The lockfile's `schedules_owned` lists the ids the capability owns; *which* harness runs them is established by the installing agent's cross-agent introspection before it creates a job (a per-harness owner field would be a lockfile schema change — rule of two applies). Two harnesses running the same nightly drain against the same KB is a one-writer violation waiting to fire; the installing agent must ask (or reassign) when a second install would duplicate a schedule, and `doctor` flags duplicates.
+**Single-owner rule for crons (normative):** a capability may be installed into several harnesses from one household, but each of its `cron[]` entries runs in **exactly one** harness at a time. The lockfile's `cron_owned` lists the ids the capability owns; *which* harness runs them is established by the installing agent's cross-agent introspection before it creates a job (a per-harness owner field would be a lockfile schema change — rule of two applies). Two harnesses running the same nightly drain against the same KB is a one-writer violation waiting to fire; the installing agent must ask (or reassign) when a second install would duplicate a cron, and `doctor` flags duplicates.
 
 ---
 
@@ -567,7 +574,7 @@ The skill then drives your harness agent (which already knows its own setup, and
 
 1. **Inventory** — the harness agent, guided by its cheat-sheet's introspection section, enumerates skills, cron entries, profiles/groups, workspace files, plugins.
 2. **Cluster** — the LLM groups artifacts into candidate use cases ("these two skills + this cron + this persona fragment = trip planning").
-3. **Map** — each artifact to its package primitive: skill → `skills/`, cron entry → `schedules[]` (prompt extracted to `prompt_ref`), profile → `agents/*.agent.yaml`, persona fragment → context block, KB conventions the use case relies on (directory structures, entry formats) → `kb/` zone templates + `kb.zones` declarations. **Inline secrets are flagged and never copied.**
+3. **Map** — each artifact to its package primitive: skill → `skills/`, cron entry → `cron[]` (prompt extracted to `prompt_ref`), profile → `agents/*.agent.yaml`, persona fragment → context block, KB conventions the use case relies on (directory structures, entry formats) → `kb/` zone templates + `kb.zones` declarations. **Inline secrets are flagged and never copied.**
 4. **Split generic from personal** — the inverse of the install transform: reusable mechanism goes into the package skeleton; user nuance goes into a draft `MOD.md`. This split is the importer's hardest judgment and its core value.
 5. **Emit** — `<aos_home>/personal/capabilities/<id>-draft/` + draft `MOD.md` + `GAP.md` (hardcoded paths, harness-only APIs, unmappable pieces, flagged secrets). The importer **never installs and never opens PRs itself** — output is a reviewable draft the author cleans up and submits.
 
@@ -577,19 +584,20 @@ Acceptance fixtures: the maintainers' existing Hermes-built trip-planning and sc
 
 ## 7. Reference capabilities & build order
 
-Nine capabilities ship as v0.1's reference set (one-page specs in `capabilities/`). Order is chosen so each step exercises exactly one new seam; a step is done when the seam holds:
+Ten capabilities ship as v0.1's reference set (one-page specs in `capabilities/`). Order is chosen so each step exercises exactly one new seam; a step is done when the seam holds:
 
 | # | Capability | Tags | New seam it proves |
 |---|---|---|---|
 | 1 | **kb** | infra | The whole neutral contract + first cheat-sheet, Hermes (registry, router, base engine: store/curation/state, `kb` tool, Archiver agent, entry skill) |
 | 2 | **capability-lifecycle** | infra | The lifecycle itself as one capability: install/upgrade/remove/onboard/import/build/contribute/evolve/review materialized into the harness as ten skills, the MOD.md overlay operationalized, the lockfile and installed skill names tool-owned (`aos-cap`), cheat-sheets shipped in-capability, and the MARS mode boundary (§9) as a block on the front agent's identity file |
-| 3 | **work-tracker** | usecase | First vertical composing on kb + schedules; first real routing traffic; and `calendar.write` with declared degraded modes, since scheduling a commitment is what the capability is *for* |
-| 4 | **ptt-mode** | infra | `voice.*` host vocabulary (wraps existing TTS/PTT pieces) |
-| 5 | **interviewing** | infra | Capability-depends-on-capability (consumes ptt-mode optionally) |
-| 6 | **news-tracker** | usecase | Nothing new — the "boring port" proving the contract is cheap to use |
-| 7 | **permission-gate** | infra | Capabilities-ship-code: `adapters/*/plugins/`, hook-vs-patch, the §4.3 ACL model enforced |
-| 8 | **router** | infra | Front-door persona dispatch (fixes "multiple-personality disorder"); adopt-native-router vs kit-provided per harness |
-| 9 | **agent-comms** | infra | The side doors: agent→agent envelope, the glass-box rule (no dark channels), loop/budget guards |
+| 3 | **work-tracker** | usecase | First vertical composing on kb + crons; first real routing traffic; and `calendar.write` with declared degraded modes, since scheduling a commitment is what the capability is *for* |
+| 4 | **session** | infra | A capability tool that reaches the harness through its recorded CLI (`aos-session open|notify`), driven by the cheat-sheet `mapping.session` row, with no harness name in its code |
+| 5 | **ptt-mode** | infra | `voice.*` host vocabulary (wraps existing TTS/PTT pieces) |
+| 6 | **interviewing** | infra | Capability-depends-on-capability (consumes ptt-mode optionally) |
+| 7 | **news-tracker** | usecase | Nothing new — the "boring port" proving the contract is cheap to use |
+| 8 | **permission-gate** | infra | Capabilities-ship-code: `adapters/*/plugins/`, hook-vs-patch, the §4.3 ACL model enforced |
+| 9 | **router** | infra | Front-door persona dispatch (fixes "multiple-personality disorder"); adopt-native-router vs kit-provided per harness |
+| 10 | **agent-comms** | infra | The side doors: agent→agent envelope, the glass-box rule (no dark channels), loop/budget guards |
 
 > **Amendment (2026-07-29).** This table had ten rows. **`time-blocking` is absorbed into
 > `work-tracker`** rather than deferred: finding time for a commitment is not a separate
@@ -617,7 +625,7 @@ kb and capability-lifecycle are built together: the installer needs the intervie
 | Skill packaging | ≤500-line SKILL.md, one-level references, assets bundled in skills (scripts executed, never loaded), trigger-rich third-person descriptions | §2.1 |
 | Skill and agent identity | An id is capability-local; the *installed* name (`<skill_prefix><id>`, entry skill verbatim) is the shipped identity — computed, globally unique, single-owner per harness, gated deterministically before every install. **Agents share the same prefix and the same rule**, in their own flat namespace. Skills name actions, agents name roles | §2.1, §2.2, §2.3, §5.4, §5.5 |
 | References are slots | Shipped prose never writes a computed name: it writes `{{skill: <id>}}` / `{{agent: <id>}}` and the render substitutes. A hardcoded name rots on a prefix change with no error; a bare id names nothing once installed. A dangling slot fails the render and CI; a backslash escapes an example | §2.1, §2.5 |
-| Schedules | `exec:` (mechanical, deterministic-only) xor `agent`+`prompt_ref` (judgment) per entry | §2.2 |
+| Crons | `exec:` (mechanical, deterministic-only) xor `agent`+`prompt_ref` (judgment) per entry; manifest key `cron:`, expression field `expr:`, lockfile `cron_owned` | §2.2, §5.5 |
 | Capability format | Agent Skills superset + minimal manifest as `CAPABILITY.md` (md + typed frontmatter — one format everywhere), rule-of-two growth | §2 |
 | Layering | One package kind + tags; harness code is an adapter concern | §1.2, §2.4 |
 | Overlay | `MOD.md` at mirrored paths in the `personal/` root (the household layout), markdown + typed frontmatter, inviolable invariant; renders pinned (tracked) beside the MOD files | §3.1 |
@@ -632,6 +640,10 @@ kb and capability-lifecycle are built together: the installer needs the intervie
 | Importer | First-class in v0.1; drafts only, never installs | §6 |
 | Concept name | "capability" (a capability *contains* skills; "skill"/"plugin"/"recipe" are ecosystem-reserved) | §1.2 |
 | Building-mode enforcement | A conversational mode-switch `main` enforces on itself via skill instructions, gated by an explicit user-approved design before anything durable is written — not a separate materialized agent/profile; no harness in scope exposes a live conversation-handoff primitive | §9 |
+| `cron` as the aos term | `cron` is the one word for a timed job throughout the manifest, lockfile, and lint vocabulary; no harness says "schedule". Decided ALM-51 | §2.2, §5.5 |
+| Structured cheat-sheets | Each sheet is markdown with schema-checked frontmatter (keys `harness`, `status`, `source`, `rules`, `files`, `mapping`); `mapping` carries exactly 17 rows (10 concepts + 7 host words); body keeps six sections; the Primitive-mapping and Feature-notes tables live in `mapping`. Decided ALM-51 | §5.2 |
+| Session capability | `session` infra capability with `aos-session open\|notify`; reads `mapping.session` at run time; no harness name in its code; `open` suffixes title with local time; `notify` continues session A or opens a new session only on the `missing` text; any other failure exits non-zero; no fallback. Decided ALM-51 | §7 |
+| Harness record | The household's active harness is recorded once via `aos-cap harness set <runtime>` → `<aos_home>/.aos/harness.yml`; `cli` = absolute launcher path so hooks need no PATH; the lifecycle render ships only that harness's sheet. Decided ALM-51 | §3.1, §5.2 |
 
 ### Open — RFCs (group decides)
 
@@ -678,7 +690,7 @@ The same capability evolves capabilities that already exist: feedback is classif
 
 | Problem (§1.3) | Mechanism | § |
 |---|---|---|
-| A. Share the horizontals | Infrastructure capabilities (kb, capability-lifecycle, ptt-mode…) in the shared repo | §2, §7 |
+| A. Share the horizontals | Infrastructure capabilities (kb, capability-lifecycle, session, ptt-mode…) in the shared repo | §2, §7 |
 | B. Share the verticals | The capability package: Agent Skills core + manifest + onboarding + overlay slots | §2 |
 | C. Cross-harness portability | Portable skill core + per-harness cheat-sheets read by the installing LLM + support-matrix honesty | §5 |
 | D. Preserve personalization | The `personal/` root (MOD files + pinned renders), inviolable invariant, round-trip | §3.1, §3.3 |
@@ -696,7 +708,8 @@ The same capability evolves capabilities that already exist: feedback is classif
 | 4 | **Round-trip discipline** — user edits to rendered installs don't make it back to MOD.md, overlay rots | Uncommitted changes lingering in `personal/` (`git status`) and `aos-cap verify` drift trending up over weeks of live use | Route all tweaks through `capability-evolve`; the persist hook makes an unfolded edit visible as an uncommitted diff rather than silent drift |
 | 5 | **Spec-before-use** — contracts here that no build validates | Every § names its consuming build step (§7); a § no reference capability exercises by build 9 gets cut | Rule-of-two applies to the spec itself |
 | 6b | **Skill-name collision** — two capabilities (or a capability and something the harness already had) claim one installed name; the loser is silently overridden, with no error and no diff | Deterministic gate before every install (§5.4, exit 17) across the household, the lockfile, and the harness's own skills; kit-side lint on the computed name | Names are computed from `skill_prefix` (§2.2), so a whole family renames in one field; worst case a capability is renamed upstream |
-| 6 | **Duplicate schedules across harnesses** — the same job installed twice violates one-writer | `doctor` duplicate-schedule check across the lockfile | Single-owner rule (§5.5); worst case, schedules become explicitly harness-pinned in MOD.md |
+| 6 | **Duplicate crons across harnesses** — the same job installed twice violates one-writer | `doctor` duplicate-schedule check across the lockfile | Single-owner rule (§5.5); worst case, crons become explicitly harness-pinned in MOD.md |
 | 7 | **File-retrieval ceiling** — structure + BM25 degrade on bases past ~10K pages | Dogfood: recall quality on the largest live base; complaints of missed hits with confirmed on-disk answers | Rebuildable derived caches in `.base/` (gitignored, delete-and-lose-nothing) — never a store that outranks the files (§4.4) |
 | 8 | **Authorization read-surface leaks** — a grant honored on the write path but not by search/list/graph surfaces | e2e probes leakage explicitly (ungranted reads via every surface), not just happy-path routing | Any surface that reads a base must consult grants; a surface that can't is documented as such in the capability README |
 | 9 | **Symlink/mount fragility** — a harness doesn't follow symlinked skill dirs, or a container can't see `personal/`, so installs silently degrade or break | Per-harness e2e: install, confirm the harness loads the linked skill, and `aos-cap verify` reports no link damage. Hermes is verified; OpenClaw/NanoClaw/Nanobot are research-drafted claims | No silent fallback: the contract bans copies (one canonical render), so a harness that cannot follow links is documented as unsupported in its cheat-sheet and support matrix until the mount/link path works. Introducing a copy mode would need a lockfile field and a `verify` mode — an RFC-level change, not an install-time improvisation |
+| 10 | **Harness CLI changes** — a new harness version moves or renames the session command recorded in `harness.yml`; `aos-session` calls a stale path and fails silently | `aos_lint` cheat-sheet validation catches a stale key; `aos-cap harness set` re-records on every lifecycle upgrade; `aos-session` non-zero exits surface the failure | Re-run `aos-cap harness set <runtime>` — one frontmatter-line update to `harness.yml`; no capability re-install required |

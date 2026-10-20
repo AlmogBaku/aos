@@ -45,7 +45,7 @@ sequenceDiagram
     U->>H: approve
     H->>HA: [D] commit pinned render in personal/ · create symlinks · write native injections, origin-tagged
     H->>HA: [A] register KB zones (append grant rows to target KB's AGENTS.md table)
-    H->>L: [D] aos-cap record — artifacts + hashes + schedules_owned (single-owner rule)
+    H->>L: [D] aos-cap record — artifacts + hashes + cron_owned (single-owner rule)
     H->>U: installed — degraded modes listed if any
 ```
 
