@@ -1,8 +1,7 @@
-"""`harness` — record which harness this household installs into, once.
+"""`harness` — record which harness `aos-session` drives for this household, once.
 
 `<aos_home>/.aos/harness.yml` is machine-local state written only through this tool (§3.1).
-Two readers: `render`, which ships only that harness's cheat-sheet in the lifecycle skill,
-and `aos-session`, which reads `mapping.session` from the recorded `sheet` and runs the
+Its reader is `aos-session`, which reads `mapping.session` from the recorded `sheet` and runs the
 recorded `cli` — an absolute path, so a caller with a reduced PATH (a desktop hook) still
 reaches the harness. The `cli` is resolved here, from the first word of the kit sheet's
 `mapping.session.open`; a harness CLI that moves is fixed by running `harness set` again."""

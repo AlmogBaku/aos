@@ -62,8 +62,7 @@ diff in the user's own repo.
       extra file inside a recorded render reports `clean`). Name any `??` entry to the user and
       get a decision before proceeding; a tracked file is safe (the diff in step d shows it).
       Then re-render: `aos-cap render <dir> <skill-id> --out
-      <aos_home>/personal/<render-path>/skills --force` per declared skill (exit 20 → no
-      harness recorded: `aos-cap --home <aos_home> harness set <harness-runtime>`), then fresh
+      <aos_home>/personal/<render-path>/skills --force` per declared skill, then fresh
       upstream × this capability's MOD.md (the `capability-lifecycle` skill's `reference/overlay.md`,
       Which MOD.md) — the same
       transform as install, household rules included, written

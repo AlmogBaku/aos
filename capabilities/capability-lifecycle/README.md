@@ -25,7 +25,7 @@ agent, names and hashes never do.
 | `skills/contribute/` | change a capability's shipped source, for everyone — and draft the upstream contribution when the user confirms |
 | `skills/evolve/` | change how an installed capability behaves *for you*, recorded so it survives upgrades; promotes upstream when generally useful (signal-gated, offer-only) |
 | `skills/review/` | review a capability as architecture then as prose: trace the flows and decision points, map units against the resources powering them, diagram it, stress the tree, then check that every documented command exists and every artifact has a reader. Read-only |
-| `skills/capability-lifecycle/reference/harness-<runtime>.md` | the per-harness cheat-sheets (hermes · nanoclaw v1+v2 · openclaw · nanobot · claude-code · codex) — a schema-checked `mapping` frontmatter plus markdown; reference files of the skill that reads them, so the recorded harness's sheet travels with the render |
+| `skills/capability-lifecycle/reference/harness-<runtime>.md` | the per-harness cheat-sheets (hermes · nanoclaw v1+v2 · openclaw · nanobot · claude-code · codex) — a schema-checked `mapping` frontmatter plus markdown; reference files of the skill that reads them, so every sheet travels with the render |
 | `tool/` | `aos-cap` — deterministic manifest, installed-name, harness-record and lockfile verbs |
 
 Installed skill names are computed, not authored: the ids above are capability-local, and

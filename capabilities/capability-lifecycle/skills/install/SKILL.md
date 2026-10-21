@@ -23,9 +23,10 @@ the overlay doctrine, and the Experience rules. Then:
    announce briefly ("work-tracker needs kb — setting that up first"), install it first,
    its interview included. Every `uses` provider is a dependency, so it is installed by now;
    its `uses[].installed_name` comes from the manifest JSON.
-4. Your harness: `aos-cap --home <aos_home> harness show` (exit 20 → none recorded:
-   `aos-cap --home <aos_home> harness set <harness-runtime>`, the runtime being the program
-   hosting you). Load its cheat-sheet **now** — it travels with the `capability-lifecycle`
+4. Your harness is the program hosting you. When `aos-cap --home <aos_home> harness show`
+   exits 20 (none recorded), record it: `aos-cap --home <aos_home> harness set <harness-runtime>`;
+   a household that records another harness keeps it (the one `aos-session` drives). Load your
+   harness's cheat-sheet **now** — it travels with the `capability-lifecycle`
    skill as `reference/harness-<harness-runtime>.md` (load that skill, then read the file).
    The `depends.host` rows (`mapping.<word>`) first, read as what the *harness* can express,
    not as what the user has wired today (contract): a `required` feature at `support: none`

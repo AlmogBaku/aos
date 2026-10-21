@@ -1216,8 +1216,8 @@ class RenderTest(unittest.TestCase):
 
 
 class HarnessTest(unittest.TestCase):
-    """`harness set|show` — the one record of which harness this household installs into,
-    and the render rule that ships only that harness's cheat-sheet."""
+    """`harness set|show` — the record of the harness `aos-session` drives — and the render,
+    which ships every cheat-sheet and needs no record."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -1268,26 +1268,18 @@ class HarnessTest(unittest.TestCase):
         self.assertEqual(r.returncode, 20)
         self.assertIn("harness set", r.stderr)
 
-    def test_render_keeps_only_the_recorded_sheet(self):
+    def test_render_keeps_every_sheet_and_needs_no_record(self):
+        # One household can serve several harnesses (Hermes and Claude Code read the same
+        # renders), so the render ships every sheet; only aos-session reads the record.
         cap = write_cap(self.home, "democap", ["democap"])
         ref = cap / "skills" / "democap" / "reference"
         ref.mkdir()
         for name in ("harness-a.md", "harness-b.md", "no-cheatsheet.md", "contract.md"):
             (ref / name).write_text(f"# {name}\n")
-        self.assertEqual(self.harness("set", "a", "--source", str(self.sheet)).returncode, 0)
         r = run(["--home", str(self.home), "render", str(cap), "democap", "--out", str(self.out)])
         self.assertEqual(r.returncode, 0, r.stderr)
         kept = sorted(p.name for p in (self.out / "democap" / "reference").iterdir())
-        self.assertEqual(kept, ["contract.md", "harness-a.md", "no-cheatsheet.md"])
-
-    def test_render_of_a_sheet_carrying_skill_needs_a_record(self):
-        cap = write_cap(self.home, "democap", ["democap"])
-        ref = cap / "skills" / "democap" / "reference"
-        ref.mkdir()
-        (ref / "harness-a.md").write_text("# a\n")
-        r = run(["--home", str(self.home), "render", str(cap), "democap", "--out", str(self.out)])
-        self.assertEqual(r.returncode, 20, r.stdout + r.stderr)
-        self.assertFalse((self.out / "democap").exists())
+        self.assertEqual(kept, ["contract.md", "harness-a.md", "harness-b.md", "no-cheatsheet.md"])
 
 
 class SlotTest(unittest.TestCase):

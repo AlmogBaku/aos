@@ -66,7 +66,7 @@ overlay contract (inviolable)**, §4 KB, §5 install, §7 build order, **§8 dec
 | Path | What |
 |---|---|
 | `capabilities/<id>/` | built capabilities (§2.1); each has an entry skill named after itself, depth in a sibling `reference/` one level deep |
-| `.../reference/harness-<runtime>.md` | per-harness cheat-sheets — schema-checked `mapping` frontmatter + markdown; reference files of the entry skill, so the recorded harness's travels with the render |
+| `.../reference/harness-<runtime>.md` | per-harness cheat-sheets — schema-checked `mapping` frontmatter + markdown; reference files of the entry skill, so every sheet travels with the render |
 | `BOOTSTRAP.md` | the agent-facing install sequence; both entry paths clone first |
 | `docs/` | `CONCEPTS` (model) · `INSTALL`/`USAGE` (human) · `TESTING` · **`BUILD-GAPS`** (spec-gap ledger) · `DOGFOOD` |
 | `tools/aos_lint/` | the whole repo-side toolchain: `checks/`, `gates/`, test-only `golden/` |

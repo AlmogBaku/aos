@@ -13,12 +13,10 @@ from typing import Annotated
 import typer
 import yaml
 
-from ..constants import HARNESS_REL, LEGACY_ORIGIN_KEY
+from ..constants import LEGACY_ORIGIN_KEY
 from ..errors import Exit, fail
-from ..household import find_home_soft
 from ..manifest import skill_rows
 from ..slots import resolve_tree
-from .harness import harness_record
 
 app = typer.Typer()
 
@@ -70,7 +68,6 @@ def stamp_render(path: Path, name: str, origin: str) -> None:
 @app.command("render", help="copy one skill to its installed name, resolving its "
                             "{{skill:}}/{{agent:}} name slots (idempotent)")
 def cmd_render(
-    ctx: typer.Context,
     dir: Annotated[str, typer.Argument(help="capability directory")],
     skill: Annotated[str, typer.Argument(help="capability-local skill id")],
     out: Annotated[str, typer.Option(
@@ -85,19 +82,6 @@ def cmd_render(
         fail(Exit.NO_ENTRY, f"{cap_dir.name}: no declared skill '{skill}'")
     src = cap_dir / "skills" / skill
     dest = Path(out).expanduser() / row["installed_name"]
-    # A skill that carries per-harness cheat-sheets ships only the household's own (the
-    # others are context no agent on this machine should read). That needs the record.
-    sheets = sorted((src / "reference").glob("harness-*.md"))
-    keep = None
-    if sheets:
-        home = find_home_soft(ctx.obj)
-        record = harness_record(home) if home else None
-        if record is None:
-            fail(Exit.NO_HARNESS,
-                 f"{cap_dir.name}:{skill} carries per-harness cheat-sheets and no harness is "
-                 f"recorded{f' at {home / HARNESS_REL}' if home else ''} — run "
-                 f"`aos-cap harness set <runtime>` first")
-        keep = f"harness-{record['harness']}.md"
     # `--out` must never point inside the package being rendered. Two distinct failures
     # live here, and a capability that `capability-build` or `capability-import` wrote hits
     # them on its FIRST upgrade, because it lives in `personal/capabilities/<id>/` — which
@@ -132,10 +116,6 @@ def cmd_render(
     if dest.exists():
         shutil.rmtree(dest)
     shutil.copytree(src, dest)
-    if keep is not None:
-        for p in sorted((dest / "reference").glob("harness-*.md")):
-            if p.name != keep:
-                p.unlink()
     stamp_render(dest / "SKILL.md", row["installed_name"],
                  f"{cap_dir.name}@{data.get('version')}")
     # Computed names, applied to prose (§2.5). A `{{mod:}}` slot survives — the agentic

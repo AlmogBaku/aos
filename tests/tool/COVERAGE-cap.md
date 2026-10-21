@@ -28,7 +28,7 @@ keeps the assertion but loses the reason invites a later reader to "simplify" it
 | `manifest <dir>` | parse + validate a `CAPABILITY.md` (§2.2), emit it as JSON on stdout; each `uses` row carries the provider's `installed_name` | 0, 12 |
 | `skills <dir>` | every skill's **installed** name (`<prefix><id>`, entry skill verbatim); `--json` adds the prefix; `--check` **is** the collision gate and names the sources it consulted | 0, 12, 15, 17, 1 |
 | `agents <dir>` | every agent's **installed** name (`<skill_prefix><agent-id>`, from `agents/*.agent.yaml`); `--json` adds the prefix; `--check` is the same single-owner gate over the agent namespace, against **two** of three sources — and names the third it cannot reach | 0, 12, 15, 17 |
-| `render <dir> <skill> --out` | copy `skills/<id>/` to `<out>/<installed-name>/`, rewrite `name`, stamp `metadata.aos.origin`, resolve the `{{skill:}}`/`{{agent:}}` name slots; a skill carrying `reference/harness-*.md` keeps only the recorded harness's sheet; mechanical + idempotent | 0, 1, 12, 14, 18, 20 |
+| `render <dir> <skill> --out` | copy `skills/<id>/` to `<out>/<installed-name>/`, rewrite `name`, stamp `metadata.aos.origin`, resolve the `{{skill:}}`/`{{agent:}}` name slots; mechanical + idempotent | 0, 1, 12, 14, 18 |
 | `harness set <runtime>` · `harness show` | write / print `<aos_home>/.aos/harness.yml` `{harness, sheet, cli}` | 0, 1, 15, 20 |
 | `home` | print the resolved household root | 0, 15 |
 | `init` | create an empty `<aos_home>/.aos/installs.lock.yaml`; the one verb that may find no `.aos/` | 0, 1, 15 |
@@ -293,11 +293,10 @@ consumer's jobs failed silently for two weeks.
 ## `harness` — the household's harness record and the one-sheet render (**20**)
 
 `harness set <runtime>` writes `<aos_home>/.aos/harness.yml` `{harness, sheet, cli}`; `show` prints it.
-`render` of a skill whose `reference/` carries `harness-*.md` keeps only the recorded one.
+`render` ships every `harness-*.md` and needs no record: one household can serve several harnesses.
 
 - [ ] test_set_records_harness_sheet_and_absolute_cli — 0; `cli` is the absolute path `command -v` finds for the first word of the sheet's `mapping.session.open`
 - [ ] test_set_without_the_cli_on_path_records_none_and_says_so — 0; `cli: null` and a note, never a guessed path
 - [ ] test_set_rejects_a_bad_runtime_id — 1
 - [ ] test_show_without_a_record_exits_20 — 20
-- [ ] test_render_keeps_only_the_recorded_sheet — 0; the other sheets are gone, every other reference file stays
-- [ ] test_render_of_a_sheet_carrying_skill_needs_a_record — 20; no render lands
+- [ ] test_render_keeps_every_sheet_and_needs_no_record — 0; every sheet and reference file stays, with no `harness.yml`

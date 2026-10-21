@@ -43,7 +43,17 @@ installs:
       : <SHA256>
       ? <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/contract.md
       : <SHA256>
+      ? <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-claude-code.md
+      : <SHA256>
+      ? <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-codex.md
+      : <SHA256>
       ? <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md
+      : <SHA256>
+      ? <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanobot.md
+      : <SHA256>
+      ? <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-nanoclaw.md
+      : <SHA256>
+      ? <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-openclaw.md
       : <SHA256>
       ? <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/naming.md
       : <SHA256>

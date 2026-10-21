@@ -45,7 +45,7 @@ capability references.
    (`uv` is a hard bootstrap prerequisite). Then `aos-cap --home <aos_home> init` creates
    the lockfile — the tool's file from this moment on; you call verbs, you never edit
    the YAML — and `aos-cap --home <aos_home> harness set <harness-runtime>` records the
-   harness hosting you in `.aos/harness.yml` (render needs it: exit 20 without).
+   harness hosting you in `.aos/harness.yml` (`aos-session` reads it).
 2. **All ten skills to the front agent** (`used_by: [main]` throughout), per your
    cheat-sheet (the entry skill's `reference/harness-<harness-runtime>.md` — the only sheet
    the render keeps; none for your harness → its `reference/no-cheatsheet.md`). The skills

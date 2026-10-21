@@ -111,8 +111,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 - **Skills materialize as pinned renders + symlinks, never copies.** `aos-cap render
   <cap-dir> <id> --out <aos_home>/personal/<render-path>/skills` does the mechanical half:
   the whole folder travels (`reference/`, `scripts/`, `templates/` — scripts are executed,
-  never loaded as context; of the cheat-sheets only the recorded harness's
-  `harness-<runtime>.md` — none recorded → exit 20), the render lands under the **installed
+  never loaded as context; every `harness-<runtime>.md` cheat-sheet), the render lands under the **installed
   name**, its frontmatter `name` is rewritten to match, and `metadata.aos.origin: <capability>@<version>` is stamped inside
   the frontmatter block. Then you fill `{{mod: …}}` slots in the render (leave unfilled slots
   intact) — that judgment is yours, the copy is not. Symlink the render into the skills

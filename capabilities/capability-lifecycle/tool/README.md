@@ -24,10 +24,9 @@ invalid · 13 drift · 14 no such entry · 15 no home · 16 artifact missing / n
 ## The harness record
 
 `harness set <runtime>` writes `<aos_home>/.aos/harness.yml` — `{harness, sheet, cli}` — once per
-household (machine-local, written only through this tool). `render` reads it: a skill whose
-`reference/` carries `harness-*.md` cheat-sheets ships only `harness-<runtime>.md` (exit **20** when
-nothing is recorded), because the other sheets are context no agent on this machine should read.
-`aos-session` reads it too: `sheet` is where `mapping.session` lives, and `cli` is the absolute path
+household (machine-local, written only through this tool); `harness show` exits **20** when nothing
+is recorded. `render` ships every cheat-sheet: one household can serve several harnesses.
+`aos-session` reads the record: `sheet` is where `mapping.session` lives, and `cli` is the absolute path
 of the harness launcher, resolved here from the first word of the kit sheet's `mapping.session.open`,
 so a caller with a reduced PATH still reaches the harness. Run `harness set` again if it moves.
 
