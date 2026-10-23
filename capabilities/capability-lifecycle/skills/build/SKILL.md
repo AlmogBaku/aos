@@ -29,14 +29,14 @@ Feedback on a capability that's already installed is a different signal — that
 ## If the user agrees: the procedure
 
 **Branch the session first** — if your harness can branch a conversation (your
-cheat-sheet's Primitive mapping, `session branch` row), hand the user the row's command
+cheat-sheet's `mapping.session`, its `branch`), hand the user its command
 and continue once they are in the branch: every stage below runs there, and the original
-session stays where they left their work. No row, or none native → say so in one line
-and continue in place.
+session stays where they left their work. No `branch`, or `support: none` → say so in one
+line and continue in place.
 
-**Then enter plan mode** — if your harness has a native plan/read-only mode (`plan mode`
-row), enter it now; if not, enforce it as prose: no writes anywhere until the Design
-approval gate. Exit plan mode only at that gate. Copy this checklist and work the stages
+**Then enter plan mode** — if your harness has a native plan/read-only mode
+(`mapping.plan_mode`), enter it now; if not, enforce it as prose: no writes anywhere until
+the Design approval gate. Exit plan mode only at that gate. Copy this checklist and work the stages
 in order — **stop for the user between each**:
 
 ```

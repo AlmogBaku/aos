@@ -1,0 +1,3 @@
+harness: hermes
+sheet: <HOME>/aos/upstream/tests/.sandbox/aos-home/personal/capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-hermes.md
+cli: <HOME>/.local/bin/hermes

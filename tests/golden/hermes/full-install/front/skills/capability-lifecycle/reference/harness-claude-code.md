@@ -1,3 +1,63 @@
+---
+harness: claude-code
+status: research-drafted
+source: "code.claude.com/docs; <DATE> research"
+rules:
+  - the scheduler fires only while the REPL is idle; cron jobs restore on --resume/--continue, not on cold start; one-shot jobs whose time has passed are not restored on resume
+files: [CLAUDE.md, AGENTS.md, skills/*/SKILL.md, agents/*.md, commands/*.md, settings.json,
+        settings.local.json, .mcp.json, plugins/]
+mapping:
+  agent:
+    primitive: subagent definition file — frontmatter name + description + optional tools + markdown body
+    where: ~/.claude/agents/<name>.md
+  main:
+    primitive: the main conversation — no definition file; give it skills and context blocks instead
+    where: ~/.claude/
+  skill:
+    primitive: Agent Skills folder — a symlink to the pinned render in <aos_home>/personal
+    where: {user: ~/.claude/skills/<installed-name>, project: <project>/.claude/skills/<installed-name>}
+  cron:
+    primitive: CronCreate tool — 5-field cron, local timezone; restores on --resume/--continue not on cold start
+    where: .claude/scheduled_tasks.json
+    create: "CronCreate(cron_expression='<expr>', prompt='<prompt>', recurring=<bool>)"
+    unverified: [persistence semantics, 7-day recurring expiry, Desktop scheduled tasks path]
+    note: "research <DATE>: no durable parameter; tasks restore on --resume/--continue; one-shot jobs whose time has passed are not restored on resume; backgrounding carries /loop tasks into a bg session; .claude/scheduled_tasks.json documented only with feature-flag fetching off; Desktop scheduled tasks and cloud routines exist for unattended runs (code.claude.com/docs/en/scheduled-tasks)"
+  context_block:
+    primitive: CLAUDE.md (user or project scope) or AGENTS.md — auto-loaded every session
+    where: {user: ~/.claude/CLAUDE.md, project: <project>/CLAUDE.md}
+  secret:
+    primitive: process environment or env block in settings.json — no dedicated secret store
+    where: {env_block: ~/.claude/settings.json, process: shell profile}
+    note: "settings.json may be committed if project-scoped — never write secret values into it"
+  config:
+    primitive: keys in settings.json
+    where: {user: ~/.claude/settings.json, local: ~/.claude/settings.local.json, project: <project>/.claude/settings.json}
+    set: "write to settings.json directly (no CLI config-set command)"
+  hook:
+    primitive: hooks entries in settings.json (any scope)
+    consent: "add the entry by its exact command via the diff gate — no bulk write"
+    check: /hooks in-session or claude --debug
+    revoke: remove the entry from settings.json
+  session:
+    support: unknown
+    note: "research <DATE>: open via `claude --bg --name <title> <prompt>` (listed in the resume picker as bg; full id via `claude agents --json`); continue via `claude -p --resume <session_id> <prompt>`; `claude -p` sessions are hidden from the picker — not template-shaped yet (code.claude.com/docs/en/sessions, /agent-view, /headless)"
+  plan_mode:
+    primitive: native (Shift+Tab toggle, or harness starts in it)
+  calendar.read:
+    support: unknown
+  calendar.write:
+    support: unknown
+  email:
+    support: unknown
+  messaging.inbound:
+    support: unknown
+  messaging.outbound:
+    support: unknown
+  voice.stt:
+    support: unknown
+  voice.tts:
+    support: unknown
+---
 # Claude Code cheat-sheet
 
 ## Contents
@@ -21,130 +81,117 @@ half.
 > turned out wrong. Claude Code ships frequently, so treat a mapping that disagrees with
 > what you observe as the sheet being stale, not the harness being wrong.
 
-**Rule zero: the scheduler is real but session-bound, and the default does not persist.**
-Claude Code has 5-field cron (`CronCreate`/`CronList`/`CronDelete` tools, local timezone), so
-`schedules[]` maps — but three properties make it unlike every other harness's cron, and an aos
-schedule needs all three handled:
-
-1. **`durable: true` is required.** The default is in-memory: the job dies with the session and
-   nothing is written to disk, so an aos schedule that omits it silently disappears on the next
-   restart. Durable jobs land in `.claude/scheduled_tasks.json`.
-2. **Recurring jobs auto-expire after 7 days.** They fire one final time and delete themselves.
-   No aos schedule survives a week unattended, so tell the user plainly: this is a renewable
-   schedule, not a standing one.
-3. **Jobs fire only while the REPL is idle**, never mid-query and never with the app closed.
-   A nightly 23:30 promote will not run on a machine that is asleep or a session that is busy;
-   missed one-shot durable tasks are surfaced for catch-up, missed recurring ones are simply lost.
-
-So record the job id from `CronCreate` in the lockfile (that is what `remove` deletes with
-`CronDelete`), and **say in the install summary that the schedule expires in 7 days and needs
-the app running.** If the capability's contract genuinely needs an unattended guarantee — kb's
-5-minute `sync`, say — that is a `manual` degrade with an honest explanation, not a cron job
-that looks wired and quietly stops. Never reach for a system `crontab`: it is outside the
-harness and invisible to `verify` and `remove`.
+**Rule zero** (`rules`): the scheduler fires only while the REPL is idle; cron jobs restore
+on `--resume`/`--continue`, not on cold start; one-shot jobs whose time has passed are not
+restored on resume. The why: `CronCreate` takes a 5-field expression, the prompt, and
+whether the job recurs — there is no `durable` parameter. Jobs are written to
+`.claude/scheduled_tasks.json` (documented only with feature-flag fetching off) and are
+restored when you resume the session; cold starts and unattended runs do not fire them. A
+one-shot job whose scheduled time has already passed is silently dropped on resume. The
+7-day recurring expiry cited in earlier research is unverified against the current build —
+mark any cron job needing long-term persistence as unverified in the install summary and
+ask the user to confirm. Backgrounding carries `/loop` tasks into the background session.
+For a guarantee stronger than idle-REPL, use Desktop scheduled tasks or cloud routines
+(`code.claude.com/docs/en/scheduled-tasks`).
 
 
 ## Primitive mapping
 
-Two scopes, and the choice matters for every row below: **user scope** `~/.claude/` (all
-projects) and **project scope** `<project>/.claude/` (one repo, and committable). aos
+The frontmatter's `mapping` is the glossary: each aos concept and each `depends.host` word →
+the Claude Code primitive, where it lives, and the one command a template can hold. What
+follows is the judgment the rows cannot carry.
+
+Two scopes, and the choice matters for every row below: **user scope** `~/.claude/`
+(all projects) and **project scope** `<project>/.claude/` (one repo, committable). aos
 installs to user scope by default — capabilities are the user's, not one repo's — unless the
 user asks otherwise.
 
-| aos concept | Claude Code primitive | Where / how |
-|---|---|---|
-| skill | Agent Skills folder: `skills/<name>/SKILL.md` — a **symlink** to the pinned render in `<home>/personal` | link at `~/.claude/skills/<installed-name>`; `<project>/.claude/skills/` is the project-scope root (same namespace — see Feature notes) |
-| agent | subagent definition: `~/.claude/agents/<name>.md` (frontmatter `name`, `description`, optional `tools`, `model` + markdown body = its prompt) | the dir may not exist yet — create it. Invoked by description-match or by name. `tools:` restricts tools (confirmed); whether skills can be scoped per-agent is **unverified** — see Feature notes before relying on `used_by` |
-| front agent (`main`) | the main conversation — not a file you create | it has no definition file to write; give it skills and context blocks instead |
-| schedule | `CronCreate` tool — 5-field cron, local timezone, **`durable: true` or it dies with the session** | record the returned job id in the lockfile; `CronDelete` on removal. Recurring jobs auto-expire after 7 days and fire only while the REPL is idle — see Rule zero. A contract needing an unattended guarantee degrades to `manual` instead |
-| context block | `~/.claude/CLAUDE.md` (user scope) or `<project>/CLAUDE.md`; `AGENTS.md` is read as an equivalent | auto-loaded every session — this is real push-context, so the MARS mode boundary lands here properly. Append inside aos markers only |
-| tool on PATH | an ordinary executable | `uv tool install` puts it on PATH like anywhere else; no harness registration needed. Bash is always available |
-| secret | environment, or `env` in `~/.claude/settings.json` | see Secrets — there is no dedicated secret store, which constrains what may be installed |
-| plan mode | **native** (Shift+Tab, or the harness starts in it) | read-only until the user approves. This satisfies capability-build's read-only gate for real rather than by prose |
-| session branch | **native** — `/branch <name>` copies the conversation into a new session and switches into it; the original stays intact | capability-build's branch step: have the user `/rename <work>` if the session is unnamed, then `/branch build-<id>`. Back: `/resume <work>` (bare `/resume` opens the picker). Reload there: skill edits and new skills in a watched dir hot-reload; a new agent, or a skills dir that did not exist at start, needs `/reload-skills`; a new `CLAUDE.md` block needs the session restarted — exit, then `claude --resume <work>` |
-| slash command | `~/.claude/commands/<name>.md` | not an aos primitive. Do not materialize skills as commands: a command is user-invoked by name and is absent from the skill registry, so a skill written as a command never triggers on its own |
+- **Agent** (`mapping.agent`): the `tools:` frontmatter key restricts tools (confirmed) —
+  this is how you enforce "no messaging tools". Whether skills can be scoped per-agent the
+  way Hermes's per-agent dirs do is **unverified on this harness**: a skill in
+  `~/.claude/skills/` is reachable by the main conversation at minimum. Do not promise
+  `used_by` scoping for safety on Claude Code until someone confirms the mechanism and
+  updates this row. Invoked by description-match or by name.
+- **Skill** (`mapping.skill`): user-scope and project-scope skills share one flat namespace
+  and must be globally unique across both plus installed plugins (`plugin:skill`). The name
+  gate must check both roots and all installed plugins. Skills are symlink-friendly: the
+  folder is read through the link, and `reference/` files travel with it.
+- **Session branch** (`mapping.session`): `/branch <name>` copies the conversation into a
+  new session and switches into it; the original stays intact. `EnterWorktree`/`--worktree`
+  isolate files, not the conversation — do not reach for them to branch a session.
+- **Files** (`files`): anything else you write is inert. Do not invent filenames. The slash
+  command dir (`commands/`) is not an aos primitive — never materialize skills as commands;
+  a command is user-invoked by name and absent from the skill registry.
 
-Files Claude Code consumes — anything else you write is inert: `CLAUDE.md`/`AGENTS.md`,
-`skills/*/SKILL.md`, `agents/*.md`, `commands/*.md`, `settings.json` and
-`settings.local.json`, `.mcp.json`, and `plugins/` (marketplace-managed).
+`model_class` mapping: only set the model when the harness's default doesn't already fit
+the class; never hardcode provider names.
 
 
 ## Materialization guide
 
 Nothing here needs a restart — Claude Code picks up skills and context files on the next
-session, and `/context` shows what is loaded now.
+session; `/context` shows what is loaded now.
 
 1. **The tool first**, if the capability ships one: `uv tool install --from
-   <home>/upstream/capabilities/<id>/tool <package>`. Verify `uv --version` before wiring
-   anything that assumes it.
+   <aos_home>/upstream/capabilities/<id>/tool <package>`. Verify `uv --version` before
+   wiring anything that assumes it.
 2. **Skills.** `aos-cap skills <cap-dir>` gives each installed name; `aos-cap render`
    writes the render once to
-   `<home>/personal/capabilities/<id>/skills/<installed-name>/`, then symlink it to
+   `<aos_home>/personal/capabilities/<id>/skills/<installed-name>/`, then symlink it to
    `~/.claude/skills/<installed-name>`. Symlink, never copy — a copy silently stops tracking
-   the render, so `verify` goes blind and `upgrade` has two truths.
-3. **Agents**, if the capability declares any: write
-   `~/.claude/agents/<name>.md` — frontmatter `name` + `description` (+ `tools` to
-   restrict, which is how you enforce "no messaging tools"), and the agent's prompt body
-   from `agents/<name>/*.md`. `workspace: shared` ⇒ no new agent; fold into the main
-   conversation instead.
-4. **Schedules — wire them, with Rule zero's three caveats.** `CronCreate` with the manifest's
-   cron expression, the prompt from `prompt_ref`, `recurring: true`, and **`durable: true`** —
-   without that last one the job is gone at the next restart. Record the returned job id in the
-   lockfile so `remove` can `CronDelete` it. Then tell the user the two things they cannot see:
-   it expires in 7 days, and it only fires while the app is open and idle. Where the capability's
-   contract needs a guarantee stronger than that, take the declared degrade (`manual` =
-   materialize the prompt as an invocable skill and name the trigger in plain words) and say why
-   in the summary — a job that looks wired and quietly stops is worse than one the user knows to
-   run.
+   the render.
+3. **Agents**, if the capability declares any: write `mapping.agent.where` — frontmatter
+   `name` + `description` (+ `tools` to restrict), and the agent's prompt body from
+   `agents/<name>/*.md`. `workspace: shared` ⇒ no new agent; fold into the main
+   conversation.
+4. **Cron jobs — wire them with Rule zero's caveats.** `CronCreate` per `mapping.cron.create`
+   with the manifest's cron expression (`expr:`), the prompt from `prompt_ref`, and
+   `recurring: true` for recurring jobs. Record the returned job id in the lockfile so
+   `remove` can `CronDelete` it. Tell the user what they cannot see: the job only fires while
+   the app is open and idle, it restores on resume but not on cold start, and one-shot jobs
+   whose time has passed are not restored. Where the capability's contract needs a guarantee
+   stronger than that, take the declared degrade (`manual` = materialize the prompt as an
+   invocable skill and name the trigger in plain words) and say why in the summary.
 5. **Context blocks** inside the marker pair, appended to `~/.claude/CLAUDE.md` (or
    `AGENTS.md` if that is what the user keeps). Blank line before, trailing newline after —
    an identity file ending mid-marker corrupts the next capability's append.
 6. **Onboarding** last, through capability-onboard, so the interview's answers reach
    `MOD.md` before anything reads them.
-7. **Shell hooks.** Hooks in any settings scope (`~/.claude/settings.json`,
-   `.claude/settings.json`, `settings.local.json`, plugin `hooks/hooks.json`) run on the
-   next matching event with no consent gate — interactive and `claude -p`/SDK runs alike,
-   later script edits silently too. The diff gate is the only approval: add the entry by its
-   exact command, never a bulk write. Silent disablement: `"disableAllHooks": true` in any
-   scope, or `allowManagedHooksOnly` in managed settings. If either is set, stop and tell
-   the user — never change it: either one enables or disables every hook. Verify
-   with `/hooks` (lists active hooks) or `claude --debug` (logs invocations); no doctor.
+7. **Shell hooks.** Hooks in any settings scope run on the next matching event with no
+   consent gate — interactive and `claude -p`/SDK runs alike, and later script edits silently
+   too. The diff gate is the only approval: add the entry by its exact command per
+   `mapping.hook.consent`, never a bulk write. `"disableAllHooks": true` and
+   `allowManagedHooksOnly` in managed settings each disable every hook in scope — if either
+   is set, stop and tell the user; never change them. Verify with `mapping.hook.check`.
 
-Order matters for one reason worth stating: the diff gate. Claude Code shows every write for
-approval, so batch related edits rather than dribbling them — a user approving fifteen
-one-line edits stops reading by the fourth.
+Order matters for the diff gate: Claude Code shows every write for approval, so batch
+related edits rather than dribbling them.
 
 
 ## Introspection guide
 
-- **What is installed:** `aos-cap list` / `aos-cap show <id>` is the authority, as always.
-  The harness side is `ls -la ~/.claude/skills/` — the symlink targets tell you which
-  renders are ours at a glance, and a *regular directory* where a symlink belongs is the
-  drift `verify` cares about most.
-- **What is loaded right now:** `/context` in-session. A skill that exists on disk but is
-  absent there is a name or frontmatter problem — check that the folder name equals
-  frontmatter `name`.
-- **Available skills:** the skill registry is built from `~/.claude/skills/`,
-  `<project>/.claude/skills/`, and installed plugins. Plugin skills appear namespaced
-  (`plugin:skill`), which is why an aos installed name must still be globally unique
-  (the naming rules the entry skill links) — the flat namespace is shared with them.
-- **Agents:** `ls ~/.claude/agents/`. There is no verb that lists them in-session.
-- **Settings actually in effect:** `~/.claude/settings.json` merged with
-  `settings.local.json` merged with project settings; the local file wins. Read all three
-  before concluding a key is unset.
+- **What is installed:** `aos-cap list` / `aos-cap show <id>` is the authority.
+  The harness side is `ls -la ~/.claude/skills/` — symlink targets tell you which
+  renders are ours, and a regular directory where a symlink belongs is the drift `verify`
+  cares about most.
+- **What is loaded right now:** `/context` in-session. A skill absent there is a name or
+  frontmatter problem — check that the folder name equals frontmatter `name`.
+- **Available skills:** `~/.claude/skills/`, `<project>/.claude/skills/`, and installed
+  plugins. Plugin skills appear namespaced (`plugin:skill`).
+- **Agents:** `ls ~/.claude/agents/`. No in-session listing verb.
+- **Settings in effect:** `~/.claude/settings.json` merged with `settings.local.json`
+  merged with project settings; the local file wins. Read all three before concluding a key
+  is unset.
 
 
 ## Secrets
 
-**There is no secret store.** The options are the process environment or an `env` block in
-`settings.json` — and `settings.json` is a plain file the user may well commit if it is the
-project-scoped one.
+**There is no secret store** (`mapping.secret`). The options are the process environment or
+an `env` block in `settings.json` — and `settings.json` is a plain file the user may commit
+if it is the project-scoped one.
 
-Consequences, and they are hard limits rather than preferences:
-
-- Never write a secret value into `settings.json`, `CLAUDE.md`, a skill, or `personal/`
-  (which may be pushed to a private remote). The contract's rule holds: values go to the
-  store, references go to files — and here "the store" means the user's own environment.
+- Never write a secret value into `settings.json`, `CLAUDE.md`, a skill, or `personal/`.
+  Values go to the user's own environment; references go to files.
 - A capability that requires a secret is installed by telling the user to export it
   (`export FOO_TOKEN=…` in their shell profile), then referencing `$FOO_TOKEN` by name.
 - If a capability cannot work without a managed secret store, say so and stop rather than
@@ -156,46 +203,42 @@ Consequences, and they are hard limits rather than preferences:
 Walk `aos-cap show <id>` backwards; nothing here is inferred from the filesystem.
 
 1. Delete the symlinks under `~/.claude/skills/` that the lockfile records — the links only,
-   never the render they point at, until step 3.
-2. Delete `~/.claude/agents/<name>.md` for each agent the capability created. Leave agents
-   it merely referenced.
+   never the render they point at, until step 6.
+2. Delete `mapping.agent.where` for each agent the capability created. Leave agents it
+   merely referenced.
 3. Remove context blocks by their marker pair, leaving surrounding text untouched.
 4. Uninstall the tool if the capability installed one: `uv tool uninstall <package>`.
-5. `CronDelete` each job id the lockfile records. A session-only job (one created without
-   `durable: true`) may already be gone — that is not drift, but say so rather than reporting a
+5. `CronDelete` each job id the lockfile records. A job that is already gone (one-shot
+   whose time passed, cold-start loss) is not drift — say so rather than reporting a
    deletion that did not happen.
 6. **Last, once nothing else needs to read it**: drop the pinned render under
-   `<home>/personal/capabilities/<id>/` and then the lockfile entry (`aos-cap remove <id>`).
-   The entry is the list every earlier step walks, so removing it first strands whatever has
-   not been undone yet — the job ids especially, which exist nowhere else.
+   `<aos_home>/personal/capabilities/<id>/` and then the lockfile entry
+   (`aos-cap remove <id>`). The entry is the list every earlier step walks, so removing it
+   first strands whatever has not been undone.
 
-Then confirm: `ls ~/.claude/skills/ | grep <prefix>` returns nothing, and `/context` in a
-fresh session no longer lists them.
+Confirm: `ls ~/.claude/skills/ | grep <prefix>` returns nothing, and `/context` in a fresh
+session no longer lists them.
 
 
 ## Feature notes
 
-- **`used_by` scoping: treat it as unverified, and do not promise it.** A subagent definition
-  restricts **tools** (`tools:` in its frontmatter — that is how you enforce "no messaging
-  tools"), and that much is confirmed. Whether it can restrict *skills* the way Hermes's
-  per-agent lists do is **not verified on this harness**, and a skill in `~/.claude/skills/` is
-  at minimum reachable by the main conversation. So a capability that needs scoping for
-  **safety** — an agent that must not reach a skill — does not get that guarantee here until
-  someone confirms the mechanism. Check the running build, say what you found in the install
-  summary, and fix-and-PR this line either way. Never imply the scoping held when you did not
-  test it.
-- **Sessions branch natively.** `/branch` is a conversation copy — same cwd, same skills, a
-  new session id — which is what capability-build wants. `EnterWorktree` / `--worktree`
-  isolate files, not the conversation; do not reach for them to branch a session.
-- **Plan mode is native and worth using.** capability-build's read-only gate is enforced
-  by the harness here, not by prose — the strongest form of that gate across all sheets.
-- **The diff gate is native too.** Every write is shown for approval, so the contract's
-  STAGE→GATE→EXECUTE maps onto the harness's own behaviour instead of being simulated.
-- **Two scopes, one namespace.** A user-scope skill and a project-scope skill with the same
-  name collide; the collision gate must check both (`~/.claude/skills/` and every
-  `<project>/.claude/skills/` the user cares about) plus installed plugins.
-- **Skills are symlink-friendly**, which the install depends on: the folder is read through
-  the link, and `reference/` files travel with it because the whole render directory is
-  linked as one unit.
-- **No `.aos/` convention of its own.** Machine state stays where the contract puts it
-  (`<home>/.aos/`), not under `~/.claude/`.
+The `depends.host` rows of `mapping` answer which features exist here.
+`mapping.messaging.inbound`, `mapping.messaging.outbound`, `mapping.voice.stt`,
+`mapping.voice.tts`, `mapping.calendar.read`, `mapping.calendar.write`, and `mapping.email`
+were not established in the research (`support: unknown`); verify against the running build
+before relying on them.
+
+- **`mapping.plan_mode`**: native (Shift+Tab or start-in-plan-mode) — the read-only gate is
+  enforced by the harness here, not by prose, which is the strongest form of that gate
+  across all harnesses.
+- **`mapping.hook`**: hooks run on the next matching event with no consent gate — the diff
+  gate is the only approval. Neither `"disableAllHooks": true` nor `allowManagedHooksOnly`
+  may be changed; if either is set, stop and tell the user.
+- **`mapping.agent` `used_by` scoping**: tool restriction (`tools:`) is confirmed; per-agent
+  skill scoping is unverified — do not promise it for safety until confirmed.
+- **`mapping.session`**: `/branch` is a conversation copy — same cwd, same skills, a new
+  session id — which is what capability-build wants.
+- **The diff gate is native**: every write is shown for approval — batch related edits.
+- **Two scopes, one namespace** (`mapping.skill`): a user-scope and a project-scope skill
+  with the same name collide; the name gate checks both plus installed plugins.
+- **No `.aos/` convention of its own**: machine state stays at `<aos_home>/.aos/`.

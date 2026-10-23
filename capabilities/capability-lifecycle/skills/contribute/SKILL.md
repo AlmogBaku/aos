@@ -39,7 +39,7 @@ Classify before acting — see [reference/judgment.md](reference/judgment.md).
 - **Small** — wording, a threshold, a personalization answer, a knob promotion; no new
   file beyond the knob's question/placeholder, no schema/contract change, doesn't
   change what the capability owns.
-- **Major** — a new skill/agent/schedule/kb-zone, a schema or contract change, changes
+- **Major** — a new skill/agent/cron job/kb-zone, a schema or contract change, changes
   what the capability owns or is responsible for.
 
 Judgment call — [reference/judgment.md](reference/judgment.md) has worked examples to

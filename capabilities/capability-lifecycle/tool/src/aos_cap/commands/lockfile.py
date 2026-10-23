@@ -52,7 +52,7 @@ def cmd_record(
         "--source-root",
         help="which household root shipped the capability (upstream|personal|<org>)")] = "upstream",
     job: Annotated[Optional[list[str]], typer.Option(
-        "--job", help="repeatable schedule/job id")] = None,
+        "--job", help="repeatable cron job id")] = None,
     config_key: Annotated[Optional[list[str]], typer.Option("--config-key")] = None,
     env_line: Annotated[Optional[list[str]], typer.Option(
         "--env-line", help="env var NAME added (never the value)")] = None,
@@ -73,7 +73,7 @@ def cmd_record(
         # lock_link_names), so a consumer holding a provider's skill there would make the
         # provider's own upgrade collide with itself (exit 17).
         "uses_links": {_abs(l): readlink_or_fail(l) for l in uses_link},
-        "schedules_owned": list(job),
+        "cron_owned": list(job),
         "config_keys": list(config_key),
         "env_lines": list(env_line),
         "scripts": list(script),
@@ -96,7 +96,7 @@ def cmd_record(
     save_lock(root, lock)
     print(f"recorded {capability}@{version}: "
           f"{len(entry['artifacts'])} artifacts, {len(entry['links'])} links, "
-          f"{len(entry['schedules_owned'])} schedules"
+          f"{len(entry['cron_owned'])} cron jobs"
           + (f", {len(entry['uses_links'])} uses links" if entry["uses_links"] else ""))
 
 
@@ -181,7 +181,7 @@ def list_installs(ctx: typer.Context) -> None:
         print(f"{cap}  {entry.get('version', '?')}  "
               f"{len(entry.get('artifacts', {}))} artifacts  "
               f"{len(entry.get('links', {}))} links  "
-              f"{len(entry.get('schedules_owned', []))} schedules"
+              f"{len(entry.get('cron_owned', []))} cron jobs"
               + (f"  {len(entry['uses_links'])} uses links" if entry.get("uses_links") else ""))
 
 

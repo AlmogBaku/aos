@@ -8,7 +8,7 @@ description: Answers a question from what is already stored in the user's knowle
   itself works (that is kb).
 metadata:
   aos:
-    origin: kb@0.8.0
+    origin: kb@0.8.1
 ---
 # recall
 

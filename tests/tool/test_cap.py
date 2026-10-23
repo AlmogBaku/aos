@@ -226,21 +226,29 @@ class ManifestTest(unittest.TestCase):
         self.assertEqual(r.returncode, 12)
         self.assertIn("ghost", r.stderr)
 
-    def test_manifest_schedule_and_depends_rules(self):
+    def test_manifest_cron_and_depends_rules(self):
         # One invocation reports EVERY problem: an installer fixing a manifest wants the
         # whole list, not the first line of it.
         cap = self.rewrite("skills:",
                            "depends:\n  capabilities: [ghostcap]\n"
-                           "schedules:\n  - cron: \"0 4 * * *\"\n    agent: main\nskills:")
+                           "cron:\n  - expr: \"0 4 * * *\"\n    agent: main\nskills:")
         r = self.manifest(str(cap))
         self.assertEqual(r.returncode, 12)
         self.assertIn("ghostcap", r.stderr)      # missing dependency
-        self.assertIn("id", r.stderr)            # schedule id required
+        self.assertIn("id", r.stderr)            # cron job id required
         self.assertIn("prompt_ref", r.stderr)    # agent form needs prompt_ref
         self.assertIn("degraded", r.stderr)      # degraded required
 
+    def test_manifest_cron_entry_needs_expr(self):
+        # `cron` is the aos term (ALM-51): the entry's expression field is `expr`.
+        cap = self.rewrite("skills:", "cron:\n  - id: nightly\n    exec: true\n"
+                                      "    degraded: manual\nskills:")
+        r = self.manifest(str(cap))
+        self.assertEqual(r.returncode, 12)
+        self.assertIn("expr", r.stderr)
+
     def test_manifest_malformed_shapes_exit_12(self):
-        cap = self.rewrite("skills:", "depends: [not, a, mapping]\nschedules: [oops]\nskills:")
+        cap = self.rewrite("skills:", "depends: [not, a, mapping]\ncron: [oops]\nskills:")
         r = self.manifest(str(cap))
         self.assertEqual(r.returncode, 12)
         self.assertNotIn("Traceback", r.stderr)
@@ -329,7 +337,7 @@ class LockfileTest(unittest.TestCase):
         entry = json.loads(s.stdout)
         self.assertEqual(entry["version"], "1.2.3")
         self.assertEqual(len(entry["artifacts"]), 2)
-        self.assertIn("job-abc123", entry["schedules_owned"])
+        self.assertIn("job-abc123", entry["cron_owned"])
         self.assertIn("democap.run_hour", entry["config_keys"])
         for sha in entry["artifacts"].values():
             self.assertRegex(sha, r"^[0-9a-f]{64}$")
@@ -434,7 +442,7 @@ class LockfileTest(unittest.TestCase):
         self.assertEqual(v.returncode, 0, v.stderr)
         entry = json.loads(self.lock("show", "democap").stdout)
         self.assertEqual(len(entry["artifacts"]), 2)
-        self.assertIn("job-abc123", entry["schedules_owned"])
+        self.assertIn("job-abc123", entry["cron_owned"])
 
     def test_rehash_refuses_to_empty_an_entry(self):
         """PIN: when every recorded artifact is gone, that is a broken install and not a
@@ -1205,6 +1213,73 @@ class RenderTest(unittest.TestCase):
         cap = self.cap("democap", ["democap"])
         r = self.render(cap, "ghost")
         self.assertEqual(r.returncode, 14)
+
+
+class HarnessTest(unittest.TestCase):
+    """`harness set|show` — the record of the harness `aos-session` drives — and the render,
+    which ships every cheat-sheet and needs no record."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.home = root / "home"
+        (self.home / ".aos").mkdir(parents=True)
+        self.bin = root / "bin"
+        self.bin.mkdir()
+        fake = self.bin / "fakeharness"
+        fake.write_text("#!/bin/sh\nexit 0\n")
+        fake.chmod(0o755)
+        self.sheet = root / "harness-fake.md"
+        self.sheet.write_text("---\nharness: fake\nmapping:\n  session:\n"
+                              "    primitive: a session\n"
+                              "    open: fakeharness chat -c <title> --file <file>\n---\n# Fake\n")
+        self.out = root / "renders"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def harness(self, *args, path=None):
+        env = {"PATH": str(self.bin)} if path is None else {"PATH": path}
+        return run(["--home", str(self.home), "harness", *args], env_extra=env)
+
+    def test_set_records_harness_sheet_and_absolute_cli(self):
+        r = self.harness("set", "fake", "--source", str(self.sheet))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rec = yaml.safe_load((self.home / ".aos" / "harness.yml").read_text())
+        self.assertEqual(rec["harness"], "fake")
+        self.assertTrue(rec["sheet"].endswith("reference/harness-fake.md"))
+        # The CLI is recorded as an absolute path, so a caller with a reduced PATH still
+        # reaches the harness — the drift shape of the 2026-10-19 incident.
+        self.assertEqual(rec["cli"], str(self.bin / "fakeharness"))
+
+    def test_set_without_the_cli_on_path_records_none_and_says_so(self):
+        r = self.harness("set", "fake", "--source", str(self.sheet), path="")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rec = yaml.safe_load((self.home / ".aos" / "harness.yml").read_text())
+        self.assertIsNone(rec["cli"])
+        self.assertIn("aos-session cannot run", r.stdout)
+
+    def test_set_rejects_a_bad_runtime_id(self):
+        r = self.harness("set", "Bad Name")
+        self.assertEqual(r.returncode, 1)
+
+    def test_show_without_a_record_exits_20(self):
+        r = self.harness("show")
+        self.assertEqual(r.returncode, 20)
+        self.assertIn("harness set", r.stderr)
+
+    def test_render_keeps_every_sheet_and_needs_no_record(self):
+        # One household can serve several harnesses (Hermes and Claude Code read the same
+        # renders), so the render ships every sheet; only aos-session reads the record.
+        cap = write_cap(self.home, "democap", ["democap"])
+        ref = cap / "skills" / "democap" / "reference"
+        ref.mkdir()
+        for name in ("harness-a.md", "harness-b.md", "no-cheatsheet.md", "contract.md"):
+            (ref / name).write_text(f"# {name}\n")
+        r = run(["--home", str(self.home), "render", str(cap), "democap", "--out", str(self.out)])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        kept = sorted(p.name for p in (self.out / "democap" / "reference").iterdir())
+        self.assertEqual(kept, ["contract.md", "harness-a.md", "harness-b.md", "no-cheatsheet.md"])
 
 
 class SlotTest(unittest.TestCase):

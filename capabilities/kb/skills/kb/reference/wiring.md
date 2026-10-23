@@ -1,6 +1,6 @@
-# Wiring reference — schedules, cron, degraded modes
+# Wiring reference — cron jobs, the tool, degraded modes
 
-## The three schedules
+## The three cron jobs
 
 | id | kind | when | what |
 |---|---|---|---|
@@ -8,7 +8,7 @@
 | `weekly-maintain` | agent (archiver) | Sat 07:00 | `kb prune`, then `kb lint` per base + judgment surfacing |
 | `sync` | **exec** | every 5 min | `kb sync --all` — script-direct, **no model wakes up** |
 
-Single-owner rule: each schedule runs in exactly one harness at a time. `kb prune` running
+Single-owner rule: each cron job runs in exactly one harness at a time. `kb prune` running
 weekly is a contract other capabilities depend on — a warning window shorter than the prune
 interval means items vanish before anyone can react.
 

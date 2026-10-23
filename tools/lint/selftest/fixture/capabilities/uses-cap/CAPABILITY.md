@@ -5,9 +5,9 @@ tags: [usecase]
 summary: Plants a foreign skill reached by its own agent without a uses grant, and malformed grants.
 depends:
   capabilities: [name-cap, prefix-cap]
-schedules:
+cron:
   - id: nightly
-    cron: "0 3 * * *"
+    expr: "0 3 * * *"
     agent: scribe
     prompt_ref: schedules/nightly.md
     degraded: skip

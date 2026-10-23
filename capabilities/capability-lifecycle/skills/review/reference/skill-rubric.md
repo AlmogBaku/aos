@@ -120,7 +120,7 @@ Real findings, kept as calibration:
   "confidence-gated model call across private bases only" — accurate, and not a phrase any user
   types. Adding "file this in the right base", "which base does this belong in" fixed it without
   removing the mechanism.
-- **`init`'s workflow** deferred schedule creation entirely to a cheat-sheet, so the step was not
+- **`init`'s workflow** deferred cron job creation entirely to a cheat-sheet, so the step was not
   executable as written. Inlining the three jobs and their ids fixed actionability; the cheat-sheet
   still owns the per-harness syntax.
 - **`kb`'s destructive verbs** were listed as bare actions. `kb prune` deletes pages and resolves

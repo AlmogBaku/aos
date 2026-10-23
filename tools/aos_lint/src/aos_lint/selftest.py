@@ -20,8 +20,8 @@ EXPECTED = [
     "manifest/unknown-key", "manifest/id", "manifest/version", "manifest/tags",
     "manifest/summary", "manifest/readme", "manifest/mod-example",
     "depends/capability", "depends/host-feature", "depends/host-level",
-    "schedules/unknown-key", "schedules/id", "schedules/cron", "schedules/agent",
-    "schedules/prompt-ref", "schedules/degraded",
+    "cron/unknown-key", "cron/id", "cron/expr", "cron/agent",
+    "cron/prompt-ref", "cron/degraded",
     "skills/unknown-key", "skills/missing-dir", "skills/undeclared",
     "skill/no-cross-path",
     "skill/origin-tag", "skill/unknown-key", "skill/name", "skill/description",
@@ -43,7 +43,7 @@ EXPECTED = [
     "overlay/shipped", "overlay/state-dir", "overlay/answer-key", "overlay/answer-missing",
     "overlay/secret-ref",
     "refs/dead",
-    "cheatsheet/section", "structure/harnesses-dir",
+    "cheatsheet/section", "cheatsheet/key", "structure/harnesses-dir",
     "secrets/token", "secrets/jwt", "secrets/phone", "secrets/whatsapp-jid",
     "kb/zone-key", "kb/owner-agent",
     # §2.2's degenerate case, and it is EXPECTED rather than tolerated: the check only fires
@@ -77,6 +77,22 @@ def main(argv=None) -> int:
         if not any(f.endswith(want) for f in cheat_files):
             print(f"selftest FAILED — cheatsheet/section did not fire on {want}",
                   file=sys.stderr)
+            return 1
+
+    # cheatsheet/key must fire on a sheet with no frontmatter AND on one whose frontmatter
+    # answers the rows wrongly — every message family in one planted file
+    key_msgs = [f.message for f in findings if f.code == "cheatsheet/key"]
+    key_files = {f.file for f in findings if f.code == "cheatsheet/key"}
+    if not any(f.endswith("harnesses/badharness.md") for f in key_files):
+        print("selftest FAILED — cheatsheet/key did not fire on a sheet with no frontmatter",
+              file=sys.stderr)
+        return 1
+    for want in ("missing key `source`", "status `maybe-later`", "`rules` must be a list",
+                 "mapping.email is missing", "mapping.teleportation is not a row",
+                 "exactly one of `primitive`", "support `maybe`", "names what to install",
+                 "`instead:`", "`continue` is missing"):
+        if not any(want in m for m in key_msgs):
+            print(f"selftest FAILED — cheatsheet/key never said: {want}", file=sys.stderr)
             return 1
 
     # skill/all-main must fire where a role EXISTED to scope to and was ignored, and must stay

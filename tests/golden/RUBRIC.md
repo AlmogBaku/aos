@@ -11,6 +11,6 @@ vary in wording; they must not vary in *facts*.
 3. **No upstream semantics dropped** — the shipped skill's rules all survive
    personalization (e.g. capture's five-second budget, drain's never-delete rule).
 4. **Nothing invented** — no personalization that MOD.md doesn't license, no extra
-   schedules, no unrequested config keys.
+   cron jobs, no unrequested config keys.
 5. **Bookkeeping intact** — lockfile entries with hashes for every artifact, origin tags
-   everywhere, `schedules_owned` matching reality.
+   everywhere, `cron_owned` matching reality.

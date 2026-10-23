@@ -11,7 +11,7 @@ description: 'Reviews a capability as architecture and then as prose — traces 
   that is capability-contribute upstream, or capability-evolve for one user.'
 metadata:
   aos:
-    origin: capability-lifecycle@0.5.0
+    origin: capability-lifecycle@0.6.0
 ---
 # capability-review
 
@@ -79,7 +79,7 @@ does not declare (a profile, an agent, a link) — the installer follows declara
 ## 3. Diagram it **[A]**
 
 Draw it when there is **more than one moving part** — several skills, or an agent, or a
-schedule, or a tool. Skip it for a single-skill capability with nothing else: a two-box diagram
+cron job, or a tool. Skip it for a single-skill capability with nothing else: a two-box diagram
 carries no information, and shipping one teaches the reader that these diagrams are decoration —
 the write-only artifact 6b exists to catch. The judgment is whether *relationships* matter here,
 not how many files there are.
@@ -92,7 +92,7 @@ component graph, resources in subgraphs.
 **Derive the graph from the skills and the tool first, then diff it against any diagram the
 capability already ships — a mismatch is a finding, and the shipped one is usually the stale
 side.** Reading an existing diagram first tells you what someone believed, which is exactly what
-you are testing. For shape only (not content), `<home>/upstream/capabilities/kb/docs/design.md`
+you are testing. For shape only (not content), `<aos_home>/upstream/capabilities/kb/docs/design.md`
 is a worked example.
 
 Drawing is the point, not decoration: a flow you cannot draw is a flow you do not understand yet,
@@ -124,7 +124,7 @@ Walk the decision tree adversarially and look for:
 - what happens on retry, on partial completion, and on a step that returns nothing.
 
 Then check soundness against whichever standing invariants this capability actually touches —
-skip the rest rather than padding: capture latency is sacred, grants default to deny, a schedule
+skip the rest rather than padding: capture latency is sacred, grants default to deny, a cron job
 has exactly one owner, one lifetime rule (`expires:`) and no second, and **attribution is the
 enforcement substrate** — every write is its own commit with the human as author and the acting
 agent as committer, so anything that lets a write reach git unattributed, or under the wrong
@@ -180,7 +180,7 @@ instead of stopping.
 **b. Every artifact created must name its reader.** The rule the kit already states: *a queue
 file is only justified when the work item has no artifact of its own*. Generalised — if
 nothing reads what you write, delete the writer, not the reader. This is the single most
-repeated defect in the kit's build-gap ledger (`<home>/upstream/docs/BUILD-GAPS.md`).
+repeated defect in the kit's build-gap ledger (`<aos_home>/upstream/docs/BUILD-GAPS.md`).
 
 **c. Verify guardrail claims by reproduction, never by reading.** When prose says the tool
 enforces, refuses, checks or scopes something, prove it on a throwaway fixture. Claims that a

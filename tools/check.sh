@@ -8,6 +8,7 @@ cd "$(dirname "$0")/.."
 if command -v uv >/dev/null 2>&1; then
   uv run --quiet tests/tool/test_kb.py
   uv run --quiet tests/tool/test_cap.py
+  uv run --quiet tests/tool/test_session.py
   # This lints a SHIPPED FIXTURE, so it runs in a fresh, empty aos home: with the default
   # one it would read the developer's real `~/aos/.aos/kb-registry.yaml` (its
   # confidence_bar) and identity, and the verdict would depend on whose machine ran it.

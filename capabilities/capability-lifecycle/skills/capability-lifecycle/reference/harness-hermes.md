@@ -1,3 +1,66 @@
+---
+harness: hermes
+status: verified
+source: "hermes 6e7b83a (2026-10-13); live e2e 2026-10-12; session rows probed 2026-10-20"
+rules:
+  - never hand-edit config.yaml or cron/jobs.json — every change goes through the hermes CLI
+files: [SOUL.md, AGENTS.md, CLAUDE.md, .cursorrules, memories/MEMORY.md, memories/USER.md,
+        skills/*/SKILL.md, cron/jobs.json, config.yaml, .env, mcp.json, hooks/]
+mapping:
+  agent:
+    primitive: profile — a full parallel HERMES_HOME (own config.yaml, .env, SOUL.md, skills/, cron/)
+    where: ~/.hermes/profiles/<name>/
+    create: hermes profile create <name>
+  main:
+    primitive: the default profile
+    where: ~/.hermes/
+  skill:
+    primitive: Agent Skills folder — a symlink to the pinned render
+    where: {main: ~/.hermes/skills/<installed>, agent: ~/.hermes/profiles/<agent>/skills/<installed>}
+  cron:
+    primitive: cron job owned by exactly one profile (by directory, not a field)
+    where: <profile home>/cron/jobs.json — read freely, write never
+    create: hermes -p <profile> cron create '<expr>' '<prompt>' --name 'aos:<cap>:<id>'
+    exec: hermes -p <profile> cron create '<expr>' --script '<command>' --no-agent --name 'aos:<cap>:<id>'
+    edit: hermes -p <profile> cron edit <id>
+  context_block:
+    primitive: SOUL.md (identity) · workspace/AGENTS.md (working-dir instructions)
+    where: the profile dir
+  secret:
+    primitive: .env line
+    where: {main: ~/.hermes/.env, agent: ~/.hermes/profiles/<agent>/.env}
+    store: hermes-env
+  config:
+    primitive: dotted key in the profile config.yaml
+    set: hermes -p <profile> config set <key> <value>
+  hook:
+    primitive: "shell hook — a hooks: entry in the profile config.yaml"
+    consent: one approvals entry (event, command) in the profile's shell-hooks-allowlist.json
+    check: hermes -p <profile> hooks doctor
+    revoke: hermes -p <profile> hooks revoke <command>
+  session:
+    primitive: a titled session in the profile's state.db
+    open: hermes -p <profile> --cli <skills> --pass-session-id chat --in <workdir> -c <title> --create-if-missing --source cli -Q --query-file <file>
+    skill_arg: --skills <name>
+    continue: hermes -p <profile> chat --resume <session_id> -Q --query-file <file>
+    id: {stderr: '^session_id: (\S+)$'}
+    missing: {stderr: '^Session not found'}
+    busy: {stderr: '^hermes-refusal-reason: SESSION_NOT_OWNED'}
+    scrub_env: [HERMES_SESSION_*, HERMES_CRON_SESSION, HERMES_UI_SESSION_ID, HERMES_CRON_AUTO_DELIVER_*]
+    branch: {support: none, instead: continue in place and say so}
+  plan_mode:
+    support: none
+    instead: prompt-enforced — declare "planning — no writes until approval" and hold it; the diff gate is the exit
+  messaging.inbound:
+    primitive: WhatsApp, Slack, Telegram, Discord, Signal, Mattermost, Matrix — bound to a profile via profile_routes + gateway.multiplex_profiles true
+  messaging.outbound:
+    primitive: cron --deliver origin|local|<platform>:<chat_id>; the messaging toolset; hermes send --to <target>
+  voice.stt: {primitive: the stt / voice config sections}
+  voice.tts: {primitive: the tts / voice config sections}
+  calendar.read: {support: via, via: a calendar skill (check `hermes skills list`)}
+  calendar.write: {support: via, via: a calendar skill}
+  email: {support: via, via: an email skill}
+---
 # Hermes cheat-sheet
 
 ## Contents
@@ -14,29 +77,30 @@ Knowledge for the harness LLM installing, introspecting, or removing aos capabil
 Hermes. The aos half is the `capability-lifecycle` entry skill's install contract; this
 sheet is only the Hermes half.
 
-**Rule zero: never hand-edit `config.yaml` or `cron/jobs.json`.** Both are
-machine-rewritten (comments don't survive; jobs.json holds live scheduler state). Every
-mutation goes through the `hermes` CLI.
+**Rule zero** (`rules`): both files are machine-rewritten — comments don't survive, and
+`jobs.json` holds live scheduler state — so every mutation goes through the `hermes` CLI.
 
 
 ## Primitive mapping
 
-| aos concept | Hermes primitive | Where / how |
-|---|---|---|
-| agent | **profile** — a full parallel HERMES_HOME (own `config.yaml`, `.env`, `SOUL.md`, `skills/`, `cron/`) | `~/.hermes/profiles/<name>/`; directory-defined, no registry entry. `hermes profile create <name>` — or adopt an existing one that is evidently this capability's (contract); target with `hermes -p <name> …` |
-| front agent (`main`) | the default profile | `~/.hermes/` itself |
-| skill | Agent Skills folder — a **symlink** to the pinned render in `<aos_home>/personal` | link at `~/.hermes/skills/<installed-name>` (main) or `profiles/<p>/skills/<installed-name>` (`aos-cap skills`) — per-profile links are how `used_by` scoping works, and a `uses` grant is one more link into the grantee's `profiles/<p>/skills/`; a profile sees only its own skills dir. Hermes follows symlinks in skills dirs. Name gate: one `--harness-skills` per dir (the flag repeats) |
-| schedule | cron job owned by exactly one profile (mapping is by directory, not a field) | `hermes -p <profile> cron create '<cron>' '<prompt>' --name … --skill …` |
-| context block | `SOUL.md` = identity; `workspace/AGENTS.md` = working-dir instructions | inside the profile dir |
-| secret | `.env` line | see Secrets |
-| plan mode | none native — prompt-enforced | declare "planning — no writes until approval" and hold it; the diff gate is the exit |
-| session branch | none native — `hermes sessions` has no fork; `--resume`/`--continue` reopen a session, never copy one | {{skill: build}} continues in place and says so |
+The frontmatter's `mapping` is the glossary: each aos concept and each `depends.host` word →
+the Hermes primitive, where it lives, and the one command a template can hold. What follows is
+the judgment the rows cannot carry.
 
-Files Hermes consumes — anything else you write is inert: `SOUL.md`,
-`AGENTS.md`/`CLAUDE.md`/`.cursorrules` (per working dir), `memories/MEMORY.md`,
-`memories/USER.md`, `skills/*/SKILL.md`, `cron/jobs.json`, `config.yaml`, `.env`,
-`mcp.json`, `hooks/`. Do not invent filenames (no `persona.md`); persona content goes in
-`SOUL.md`.
+- **Agent** (`mapping.agent`): target a profile with `hermes -p <name> …`. Adopt an existing
+  profile instead of creating one when it is evidently this capability's (contract).
+- **Skill** (`mapping.skill`): per-profile links are how `used_by` scoping works, and a `uses`
+  grant is one more link into the grantee's `profiles/<p>/skills/`; a profile sees only its own
+  skills dir. Hermes follows symlinks in skills dirs. Name gate: one `--harness-skills` per dir
+  (the flag repeats).
+- **Session branch** (`mapping.session.branch`): `hermes sessions` has no fork; `--resume` and
+  `--continue` reopen a session, never copy one — {{skill: build}} continues in place and says so.
+- **Session** (`mapping.session`): `chat -c <title> --create-if-missing` reopens a title that
+  exists, so a caller that wants a new session puts the time in the title. A session created from
+  the CLI carries no read watermark and counts as read; a continued session that was read turns
+  unread. While a turn runs, a second writer is refused (`mapping.session.busy`).
+- **Files** (`files`): anything else you write is inert. Do not invent filenames (no
+  `persona.md`); persona content goes in `SOUL.md`.
 
 `model_class` mapping: only set `hermes -p <name> config set model.default <model>` when
 the profile's default doesn't already fit the class; never hardcode provider names.
@@ -66,22 +130,21 @@ the profile's default doesn't already fit the class; never hardcode provider nam
    each listed agent, recorded with `--uses-link` on **this** capability's entry. Enumerate what is already there for the name gate
    with `hermes skills list` (`-p <profile>` per profile), or the dirs themselves:
    `~/.hermes/skills` and `~/.hermes/profiles/*/skills`.
-3. **Schedules.** Agent-type entries (`agent` + `prompt_ref`):
+3. **Cron jobs** (`mapping.cron`). Agent-type entries (`agent` + `prompt_ref`):
 
    ```
-   hermes -p <agent-profile> cron create '<cron>' "<personalized prompt_ref content>" \
-     --name 'aos:<capability>:<schedule-id>' [--skill <installed-name> …] [--deliver <target>]
+   hermes -p <agent-profile> cron create '<expr>' "<personalized prompt_ref content>" \
+     --name 'aos:<capability>:<cron-id>' [--skill <installed-name> …] [--deliver <target>]
    ```
 
-   (`main` ⇒ no `-p`.) **Exec-type entries (`exec:`)** are script-only jobs — hosted by the profile that owns the capability's other schedules (the front profile when it declares no agent), no agent,
+   (`main` ⇒ no `-p`.) **Exec-type entries (`exec:`)** are script-only jobs — hosted by the profile that owns the capability's other cron jobs (the front profile when it declares no agent), no agent,
    no LLM: materialize with Hermes's script job form
-   (`hermes cron create '<cron>' --script "<exec command>"
-   --no-agent --name 'aos:<capability>:<schedule-id>'`; if this Hermes build lacks
+   (`mapping.cron.exec`; if this Hermes build lacks
    script jobs, a system crontab line with the same command and a `# aos:<cap>:<id>`
    comment is the fallback — record whichever was used in the lockfile). A path-form exec
    runs as `uv run <aos_home>/upstream/<path-and-args>` (personal capabilities:
    `<aos_home>/personal/…`). Optionally compose surfacing:
-   `… || hermes notify …`. Never write an `origin:` field into jobs.json (Hermes uses it
+   `… || hermes send --to <target> …`. Never write an `origin:` field into jobs.json (Hermes uses it
    for chat provenance). Single-owner check = `hermes cron list` across profiles.
 4. **Context blocks** → marker-delimited appends to `SOUL.md` / `workspace/AGENTS.md`.
 5. **Config keys**: `hermes config set <dotted.key> <value>` (`-p <profile>` for profile
@@ -128,7 +191,7 @@ the profile's default doesn't already fit the class; never hardcode provider nam
 
 Drive everything from the lockfile entry, in order:
 
-1. Cron jobs: `hermes -p <profile> cron remove <id>` per `schedules_owned` id; then
+1. Cron jobs: `hermes -p <profile> cron remove <id>` per `cron_owned` id; then
    delete leftover `cron/output/<id>*`.
 2. Skills: delete every symlink the entry's `links` and `uses_links` list; then delete the
    render dirs in `<aos_home>/personal/<render-path>/skills/` via a commit (revertible — the
@@ -147,18 +210,13 @@ Drive everything from the lockfile entry, in order:
 
 ## Feature notes
 
-| `depends.host` | status | notes |
-|---|---|---|
-| `cron` | ✓ | `hermes cron` (cron/interval/once kinds) |
-| `messaging.inbound` | ✓ | WhatsApp, Slack, Telegram, Discord, Signal, Mattermost, Matrix; channel→agent binding via `profile_routes` + `gateway.multiplex_profiles: true` |
-| `messaging.outbound` | ✓ | cron `--deliver origin|local|<platform>:<chat_id>`; agent sends via messaging toolset |
-| `voice.stt` / `voice.tts` | ✓ | `stt`/`tts`/`voice` config sections |
-| `calendar.read` / `calendar.write` | ⚠ via skill | present only if a calendar skill is installed (`hermes skills list`); absent ⇒ apply the schedule's `degraded:` mode |
-| `email` | ⚠ via skill | same as calendar |
-| `secrets-store` | ✓ | `.env` (+ optional `hermes secrets`) |
+The `depends.host` rows of `mapping` answer which features exist here. `calendar.*` and `email`
+are present only when a skill provides them (`hermes skills list`); absent ⇒ apply the cron
+job's `degraded:` mode. Inbound channels need `profile_routes` and `gateway.multiplex_profiles:
+true` to reach an agent profile.
 
-Degraded-mode wiring: `manual` ⇒ the invocable skill lands in the same profile the job
-would have owned; `inline` ⇒ append via `hermes cron edit`.
+Degraded-mode wiring: `manual` ⇒ the invocable skill lands at `mapping.skill.where.agent` of
+the profile the job would have owned; `inline` ⇒ `mapping.cron.edit`.
 
 Safety rails to route through: the `personal/` git history first (renders and MOD files —
 revert = rollback), then Hermes-native: `hermes backup --quick` (pre-install),

@@ -10,6 +10,7 @@ lockfile — only the last group is lockfile bookkeeping:
   render    copy one skill to its installed name, resolving its name slots
             (mechanical, idempotent)
   home      print the resolved household root
+  harness   record or show the harness this household installs into
   init/record/rehash/verify/show/list/remove  own the lockfile
   (<aos_home>/.aos/installs.lock.yaml — the aos household root, e.g. ~/aos)
 
@@ -17,7 +18,8 @@ The lockfile is THIS TOOL'S file: agents call verbs, never edit the YAML.
 Exit codes: 0 ok · 1 generic (e.g. init over an existing lockfile) · 12 manifest
 invalid · 13 drift · 14 no such entry · 15 no home · 16 artifact missing ·
 17 skill-or-agent-name collision · 18 unresolvable {{skill:}}/{{agent:}} slot ·
-19 a link another lockfile entry already records (one owner per link).
+19 a link another lockfile entry already records (one owner per link) · 20 no harness
+recorded (`harness set` first).
 """
 
 from typing import Optional
@@ -27,6 +29,7 @@ import typer
 from .commands._shared import GlobalOpts, version_callback
 from .commands.inspect import app as inspect_app
 from .commands.render import app as render_app
+from .commands.harness import app as harness_app
 from .commands.lockfile import app as lockfile_app
 
 app = typer.Typer(rich_markup_mode=None, add_completion=False,
@@ -40,6 +43,7 @@ app = typer.Typer(rich_markup_mode=None, add_completion=False,
 app.add_typer(inspect_app)
 app.add_typer(render_app)
 app.add_typer(lockfile_app)
+app.add_typer(harness_app)
 
 
 @app.callback()

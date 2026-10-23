@@ -63,6 +63,7 @@ happens: [docs/INSTALL.md](docs/INSTALL.md).
 |---|---|
 | [**capability-lifecycle**](capabilities/capability-lifecycle/) | The lifecycle as skills your agent gains: install, upgrade, remove, the interview, wrapping something you already built into a capability, reviewing one. It also draws the line between **operating** and **building** mode, so before your agent makes something durable it stops and offers to plan it properly. |
 | [**kb**](capabilities/kb/) | Where your data lives. Say something worth keeping and it's filed — no form, no questions. Ask later and you get an answer *with sources*, or an honest "not in the KB". Several bases (personal, work), rules deciding what lands where, and a deterministic `kb` tool other capabilities call. |
+| [**session**](capabilities/session/) | How background work reaches you: a cron job opens a titled session for you to pick up, and finished work lands as a new turn in the conversation where you asked for it. One `aos-session` tool, driven by your harness's cheat-sheet. |
 
 **Personal-assistant capabilities, built on those:**
 
@@ -85,7 +86,7 @@ apt for your agent** — of five building blocks:
 | **Skills** | knowledge your agent loads on demand — portable [Agent Skills](https://agentskills.io) folders |
 | **Agents** | personas that run scheduled or delegated work |
 | **Tools** | real commands on PATH or an MCP server, no LLM inside. Also how one capability reaches another: a process boundary, not a shared prompt |
-| **Schedules** | crons, agent-driven or script-direct |
+| **Cron jobs** | timed jobs, agent-driven or script-direct |
 | **Patches** | harness modifications, where genuinely unavoidable |
 
 Installing one is a **conversation, not a command**. `install`, `update` and `remove` are things
@@ -115,11 +116,11 @@ Where this sits next to curated packs like gstack, and the 26-project survey beh
 
 ![aos architecture: use-case capabilities compose on infrastructure capabilities, which break down into skills; your answers sit beside them in your own repo; the harness LLM combines the capability, your answers and a per-harness cheat-sheet into your own version, linked into your harness](docs/diagram.svg)
 
-Only the [Agent Skills](https://agentskills.io) folder is portable today; hooks, schedules,
+Only the [Agent Skills](https://agentskills.io) folder is portable today; hooks, cron jobs,
 sub-agents and secret stores differ materially. So support is a **translation** problem, and the
-translation is a **document, not code** — six sections teaching that harness's own LLM how the
-concepts map onto its primitives. No adapter, no plugin, and with no document at all your agent
-works the mapping out itself.
+translation is a **document, not code** — a mapping of every concept onto that harness's
+primitives, plus six sections teaching its own LLM how to apply it. No adapter, no plugin,
+and with no document at all your agent works the mapping out itself.
 
 **Written for five harnesses, verified end to end on one.** A capability lists a harness only once
 someone has actually run it there, which is why exactly one row below is bold.

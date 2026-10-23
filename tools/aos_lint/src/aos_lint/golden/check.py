@@ -129,7 +129,7 @@ class Checker:
                 if not has_stamp(origin_stamp(f)):
                     self.fail("golden/origin-tag",
                               f"{exp_name}: {f} lacks {ORIGIN_FRONTMATTER_KEY}")
-        for s in exp.get("schedules") or []:
+        for s in exp.get("cron") or []:
             jobs_path = resolve_ref(roots, f"{s['profile']}:cron/jobs.json")
             found = False
             if jobs_path is not None and jobs_path.exists():
@@ -139,13 +139,13 @@ class Checker:
                                if str(j.get("name") or "").startswith(s["name_prefix"])]
                     found = len(matches) == 1   # single-owner: exactly one
                     if len(matches) > 1:
-                        self.fail("golden/schedule-dup",
+                        self.fail("golden/cron-dup",
                                   f"{exp_name}: {s['name_prefix']} appears {len(matches)}× "
                                   f"(single-owner rule)")
                 except (json.JSONDecodeError, OSError, UnicodeDecodeError) as e:
                     self.fail("golden/jobs-parse", f"{exp_name}: {jobs_path}: {e}")
             if not found:
-                self.fail("golden/schedule",
+                self.fail("golden/cron",
                           f"{exp_name}: no job named {s['name_prefix']}* in profile "
                           f"{s['profile']}")
         # The inverse of a sentinel: text an install must NOT write. A block we stopped

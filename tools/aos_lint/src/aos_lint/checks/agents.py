@@ -19,7 +19,7 @@ def agent_names(cap) -> list[str]:
     Deliberately NOT `aos_cap.names.declared_agent_ids`: that one falls back to the filename
     stem, because a name COMPUTATION must never raise or come back empty. Here the absence is
     the finding — `agent/required` reports the missing `name:`, and a stem substituted behind
-    its back would let `schedules/agent` and `skill/used-by-ref` resolve against a name the
+    its back would let `cron/agent` and `skill/used-by-ref` resolve against a name the
     installed agent will not actually have."""
     out = []
     for path in agent_files(cap):

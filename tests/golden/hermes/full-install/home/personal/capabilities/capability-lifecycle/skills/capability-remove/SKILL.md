@@ -4,11 +4,11 @@ description: Removes an installed aos capability exactly, walking its lockfile e
   backwards — jobs, symlinks, marker blocks, config keys, agents it created, its tool
   — and leaving the user's MOD.md in place so a re-install returns personalized. Use
   when the user says "remove", "uninstall", or "get rid of" and names an installed
-  capability. Do NOT use to undo one setting or turn off a single schedule — that
+  capability. Do NOT use to undo one setting or turn off a single cron job — that
   is capability-evolve — and not to retire something upstream, which is capability-contribute.
 metadata:
   aos:
-    origin: capability-lifecycle@0.5.0
+    origin: capability-lifecycle@0.6.0
 ---
 # capability-remove
 
@@ -16,7 +16,7 @@ Not in context yet? Load the `capability-lifecycle` skill first — the map, the
 contract, and the Experience rules.
 
 1. `aos-cap show <id>` → the entry: artifacts, `links` and `uses_links` (including the
-   capability's tool binary, recorded as an artifact), `schedules_owned`, config keys,
+   capability's tool binary, recorded as an artifact), `cron_owned`, config keys,
    env variable names, scripts.
 2. Scope: removing the capability entirely, or *from one harness* while it
    stays installed elsewhere? **Per-harness removal**: run step 4 for that harness only
@@ -25,7 +25,7 @@ contract, and the Experience rules.
    keep everything else), then step 6's verify scoped to that harness. The lockfile
    entry and the MOD file both stay. Skip step 5. Step 3's dependents check still applies **scoped to this harness** (a
    capability installed here that depends on this one). Note the lockfile's
-   `schedules_owned` is a flat id list with no harness dimension (§5.5), so identify
+   `cron_owned` is a flat id list with no harness dimension (§5.5), so identify
    *this* harness's jobs by introspecting the harness, not by reading the lockfile.
    **Whole removal** continues below.
 3. Dependents check: another entry in `aos-cap list` whose manifest
@@ -42,10 +42,10 @@ contract, and the Experience rules.
    hook's dated message says why) → marker blocks → config keys → `.env` lines (ask
    first) → agents this capability created and nothing else uses (never an adopted one —
    contract) → scripts/hooks (revoke each hook's consent record first) →
-   its tool (`uv tool uninstall`). A recorded link into `<home>/vendor` is a referenced
+   its tool (`uv tool uninstall`). A recorded link into `<aos_home>/vendor` is a referenced
    third-party skill: unlink it, and offer to drop the vendor clone only if no other entry
    links into it.
-   **Its machine-local state under `<home>/.aos/` is not in the lockfile, so nothing walks
+   **Its machine-local state under `<aos_home>/.aos/` is not in the lockfile, so nothing walks
    it backwards** — removing kb leaves `kb-principal.yml` and `kb-registry.yaml` behind.
    Offer to delete them, and say what each is: the principal list (who authors writes on
    this machine) and the registry (the list of every base). Both are the user's, not the

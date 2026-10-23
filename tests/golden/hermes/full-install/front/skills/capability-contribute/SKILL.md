@@ -11,14 +11,14 @@ description: Evolves a capability's SHIPPED SOURCE — for everyone, not one use
   build — that's capability-build.
 metadata:
   aos:
-    origin: capability-lifecycle@0.5.0
+    origin: capability-lifecycle@0.6.0
 ---
 # capability-contribute
 
 Boundary: this skill edits capability *source* — for everyone who uses the package.
 Whose package decides where that is: the user's own capabilities live in
-`<home>/personal/capabilities/<id>/` (theirs — edit directly); upstream-shipped ones
-live in `<home>/upstream/capabilities/<id>/` and are **never silently edited** — changes
+`<aos_home>/personal/capabilities/<id>/` (theirs — edit directly); upstream-shipped ones
+live in `<aos_home>/upstream/capabilities/<id>/` and are **never silently edited** — changes
 to them are contributions, drafted on a branch. Changing how an installed capability
 behaves *for this user* is capability-evolve — the overlay,
 not the source.
@@ -49,7 +49,7 @@ Classify before acting — see [reference/judgment.md](reference/judgment.md).
 - **Small** — wording, a threshold, a personalization answer, a knob promotion; no new
   file beyond the knob's question/placeholder, no schema/contract change, doesn't
   change what the capability owns.
-- **Major** — a new skill/agent/schedule/kb-zone, a schema or contract change, changes
+- **Major** — a new skill/agent/cron job/kb-zone, a schema or contract change, changes
   what the capability owns or is responsible for.
 
 Judgment call — [reference/judgment.md](reference/judgment.md) has worked examples to

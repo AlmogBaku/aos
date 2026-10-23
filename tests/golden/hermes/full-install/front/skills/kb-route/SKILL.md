@@ -10,7 +10,7 @@ description: Decides which of the user's knowledge bases a piece of content shou
   an excuse to ask the user 'work or personal?' mid-capture.
 metadata:
   aos:
-    origin: kb@0.8.0
+    origin: kb@0.8.1
 ---
 # route
 
@@ -57,6 +57,12 @@ Resolution order — stop at the first match:
    there is no cross-base form, so a better destination is filed as a `kind: finding` proposal
    for a human, whatever the target's audience. Landing in the default base is therefore cheap
    but not self-correcting — which is the price of never asking the user mid-capture.
+
+**The user's routing preferences** (from their kb MOD.md — they sit on top of the order
+above and never loosen it): anything mentioning Acme, clients, or tickets belongs in the
+shared work base `acme-kb` — but only by an explicit tag or a matching rule, never by
+model guess; with neither, it falls back as usual and the nightly pass proposes the move.
+Choir and family things always go to the personal base `personal-kb`.
 
 `method` is a closed set — `explicit` `rule` `llm` `default` — and lint flags anything else,
 so do not invent a fifth.

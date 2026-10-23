@@ -12,12 +12,12 @@ markdown, and nothing else. The capability ships:
   repo (read-only, no fork); `--templates <local-dir>` skips the network, and a clone
   failure falls back to the templates in `<aos_home>/upstream`,
 - one **Archiver** agent across all bases (cross-base re-routing is its point), on two agent
-  schedules plus a script-direct exec sync cron.
+  cron jobs plus a script-direct exec sync cron job.
 
 Skills, by the names they install under (`aos-cap skills` applies the prefix): `kb` (entry
 — the runtime face), `kb-capture` (the sub-5s path when the user fires off a thought),
 `kb-route` (destination resolution), `kb-recall` (cited answers with honest gaps), `kb-init`
-(interview → scaffold → schedules), `kb-adopt` (register in place, report divergence, run
+(interview → scaffold → cron jobs), `kb-adopt` (register in place, report divergence, run
 `kb migrate`), `kb-import` (interactive bulk import, source read-only always).
 
 Two design notes worth reading before changing anything: **kb knows exactly one thing about

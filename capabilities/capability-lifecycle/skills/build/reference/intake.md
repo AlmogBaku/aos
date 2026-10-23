@@ -3,11 +3,11 @@
 Understand the ask before researching it. Don't silently fill gaps — surface them.
 
 Ask, clustering related questions and skipping what's already answered:
-- What triggers it — a schedule, an inbound message, another agent's output, a manual
+- What triggers it — a time (cron), an inbound message, another agent's output, a manual
   ask?
 - What does it read, and what does it write or send? Any host primitive involved
   (`cron`, `messaging.inbound/outbound`, `voice.stt/tts`, `calendar.read/write`,
-  `email`, `secrets-store`)?
+  `email`, `secret`)?
 - Does it compose with anything already installed, or stand alone?
 - Who runs each piece — the user's default assistant, or its own agent (a separate chat,
   identity or toolset)? Does that agent need another capability's skill?

@@ -9,7 +9,7 @@ description: 'Runs a capability''s onboarding interview — typed questions, bat
   a source change owned by capability-contribute.'
 metadata:
   aos:
-    origin: capability-lifecycle@0.5.0
+    origin: capability-lifecycle@0.6.0
 ---
 # capability-onboard
 
@@ -64,8 +64,8 @@ secrets:
 <prose nuance under headings; omit headings with nothing under them>
 ```
 
-Location: `<home>/personal/MOD.md` for the global bootstrap (this capability's own
-interview); `<home>/personal/capabilities/<id>/MOD.md` otherwise. Never re-serialize unchanged content — edit the
+Location: `<aos_home>/personal/MOD.md` for the global bootstrap (this capability's own
+interview); `<aos_home>/personal/capabilities/<id>/MOD.md` otherwise. Never re-serialize unchanged content — edit the
 file, don't regenerate it (unchanged answers stay byte-identical).
 
 ## Report

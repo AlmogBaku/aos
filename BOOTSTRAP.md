@@ -48,7 +48,7 @@ with it, and `aos-cap --home` pins it). Two members, plus machine state:
 ├── upstream/    # this clone — the kit, pristine; NOTHING personal ever lands here
 ├── personal/    # the user's ONE private repo: answers, tweaks, private capabilities
 ├── vendor/      # third-party skills aos references, not ships (created on demand)
-└── .aos/        # machine-local state (lockfile) — created by aos-cap init
+└── .aos/        # machine-local state (lockfile, harness record) — created by aos-cap
 ```
 
 Vocabulary for the user, if they ask: `upstream/` (and future org roots) are
@@ -85,11 +85,11 @@ private remote; only `.aos/` is machine-local.
 2. Read `capabilities/capability-lifecycle/CAPABILITY.md` (the briefing), then:
    `uv tool install --from ~/aos/upstream/capabilities/capability-lifecycle/tool aos-cap`
    and `aos-cap --home ~/aos init`.
-3. Load your cheat-sheet: `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`,
-   where the **harness runtime** is the program hosting you (OpenClaw →
-   `…/reference/harness-openclaw.md` · Hermes → `harness-hermes.md` · NanoClaw →
-   `harness-nanoclaw.md` · Nanobot → `harness-nanobot.md`; Claude Code and OpenCode
-   have no sheet yet). None for your harness → follow the entry skill's
+3. Record your harness — `aos-cap --home ~/aos harness set <harness-runtime>`, where the
+   **harness runtime** is the program hosting you (`hermes` · `openclaw` · `nanoclaw` ·
+   `nanobot` · `claude-code` · `codex`) — then load its cheat-sheet:
+   `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md`.
+   None for your harness (OpenCode, today) → follow the entry skill's
    `reference/no-cheatsheet.md` — do not stop.
 4. **Name gate**, then STAGE the ten skills per the contract (mechanical — they have no
    `{{mod}}` slots):
@@ -121,7 +121,7 @@ The lifecycle skills are live — from here `install <capability>` triggers
 2. **kb**, as an ordinary install — its interview + KB setup (adopt existing KBs / init a
    fresh one → `~/aos/.aos/kb-registry.yaml`).
 
-Close per the Experience section: what was installed, where, which schedules, any
+Close per the Experience section: what was installed, where, which cron jobs, any
 degraded modes — specific and celebratory. Everything after is on demand:
 `install <capability>` · `update` · `remove <capability>` · "change how X behaves" — all
 skills now, no file re-reading required.

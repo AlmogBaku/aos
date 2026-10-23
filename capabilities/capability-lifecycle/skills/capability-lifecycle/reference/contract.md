@@ -6,7 +6,7 @@
 - The diff gate · MOD.md authorship · contribution approval
 - The lockfile, and what gets recorded
 - Installed skill names, renders, and symlinks
-- The persist hook · schedules · context blocks · secrets
+- The persist hook · cron jobs · context blocks · secrets
 - Removal, and how references resolve
 
 Binds every lifecycle operation, on every harness, with or without a cheat-sheet.
@@ -18,7 +18,8 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   `upstream/` (the kit clone — pristine, never anything personal, not
   even untracked files), `personal/` (the user's one private git repo: MOD files at
   mirrored capability paths, the pinned renders, their private capabilities), `.aos/`
-  (machine state — the lockfile, plus machine-local files a capability's tool writes for
+  (machine state — the lockfile, the harness record `harness.yml` that `aos-cap harness
+  set` writes, plus machine-local files a capability's tool writes for
   itself: kb writes `kb-principal.yml` and `kb-registry.yaml` here. Machine-local means
   gitignored and per-machine, so they are recreated by the tool rather than carried between
   machines), and
@@ -58,7 +59,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   and declining would delete it — check `git status -- <render-path>` first and say
   what you found. Nothing touches the harness
   before the gate. Where the harness has a native plan/read-only mode (cheat-sheet
-  Primitive mapping, `plan mode` row), STAGE runs inside it and the GATE approval is
+  `mapping.plan_mode`), STAGE runs inside it and the GATE approval is
   the exit.
 - **You never write** any `MOD.md` except through {{skill: evolve}} or an interview,
   and you never edit shipped capability files in any source root — personalization
@@ -77,8 +78,8 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   list). An entry carries: version, source root, render-file paths + sha256,
   harness symlinks (`--link` — the tool reads each link's target itself), the links this
   capability's `uses` made into its own agents (`--uses-link` — kept apart because `--link`
-  basenames are name claims and these name another capability's skill), job ids under
-  `schedules_owned`, config keys, `.env` variable names, scripts; a capability's
+  basenames are name claims and these name another capability's skill), cron job ids under
+  `cron_owned`, config keys, `.env` variable names, scripts; a capability's
   installed tool binary is recorded as an `--artifact` — but **resolve the symlink first**
   (`readlink -f $(command -v <tool>)`): `uv tool install` puts a *link* on PATH, and a symlink
   passed as `--artifact` is refused at exit 16 by design (that flag hashes files; links are
@@ -110,8 +111,8 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 - **Skills materialize as pinned renders + symlinks, never copies.** `aos-cap render
   <cap-dir> <id> --out <aos_home>/personal/<render-path>/skills` does the mechanical half:
   the whole folder travels (`reference/`, `scripts/`, `templates/` — scripts are executed,
-  never loaded as context), the render lands under the **installed name**, its frontmatter
-  `name` is rewritten to match, and `metadata.aos.origin: <capability>@<version>` is stamped inside
+  never loaded as context; every `harness-<runtime>.md` cheat-sheet), the render lands under the **installed
+  name**, its frontmatter `name` is rewritten to match, and `metadata.aos.origin: <capability>@<version>` is stamped inside
   the frontmatter block. Then you fill `{{mod: …}}` slots in the render (leave unfilled slots
   intact) — that judgment is yours, the copy is not. Symlink the render into the skills
   location of every agent in its `used_by`, under the same installed name: **dir, frontmatter
@@ -120,7 +121,7 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   Materialization guide says how; without the mount, stop and say so (never fall back to
   copying: one canonical render, everywhere).
 - **Declarations decide placement; the briefing never does.** `used_by`,
-  `schedules[].agent`, `uses` and `agents/` say where every skill, job and link lands; the
+  `cron[].agent`, `uses` and `agents/` say where every skill, job and link lands; the
   briefing says *how* (toolsets, identity, wiring), never *where*. A briefing that places
   something the manifest does not declare — "install into a dedicated profile", "link me
   into every profile that calls me" — is a package defect: stop and report it (the fix is
@@ -145,38 +146,38 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   entry created (the cheat-sheet says how that is recorded); an adopted agent stays.
 
 - **A `depends.host` feature is a *harness capability*, answered by the cheat-sheet's
-  Feature notes table — never by probing the user's live configuration.** ✓ means this
-  harness can express the feature; a platform the user has not paired yet is a setup note
-  for them, not an install stop. Stop on `required` only when the table says the harness
-  cannot do it at all (or there is no sheet and your own reading of the harness says so).
+  `mapping.<word>` row — never by probing the user's live configuration.** `primitive` or
+  `support: via` means this harness can express the feature; a platform the user has not
+  paired yet is a setup note for them, not an install stop. Stop on `required` only when the
+  row says `support: none` (on `support: unknown`, or with no sheet, ask the user).
   Getting this backwards fails an install that would have worked, which is worse than the
   degraded-mode path the vocabulary exists to enable.
 
-## The persist hook · schedules · context blocks · secrets
+## The persist hook · cron jobs · context blocks · secrets
 
 - **The persist hook**: after every MOD write (interview, evolve, retirement,
   drift-fold) and every render, commit `personal/` with a dated one-line message —
   you, not the user; silently. The `personal/` git history is the primary safety net;
   rollback is `git revert`.
-- **Schedules** are named `aos:<capability>:<schedule-id>` and single-owner (§5.5): check
+- **Cron jobs** are named `aos:<capability>:<cron-id>` and single-owner (§5.5): check
   across agents first — exists elsewhere → ask the user to reassign, never duplicate.
   **An exec-type entry names no agent, so it is hosted by the agent that owns the
-  capability's other schedules** — the archiver for kb's `sync`, for instance — and by the
+  capability's other cron jobs** — the archiver for kb's `sync`, for instance — and by the
   front agent when the capability declares no agent at all. Nothing runs it but the
   scheduler, so placement is a bookkeeping choice, and keeping a capability's jobs in one
   place is what makes the removal walk and the single-owner check enumerable.
   Exec-type entries run the tool the capability's briefing installs (verify
   `uv --version` before wiring); a path-form `exec:` runs as
   `uv run <aos_home>/upstream/<path-and-args>` (personal capabilities:
-  `<aos_home>/personal/<path-and-args>`). An absent host feature triggers the schedule's
-  declared degraded mode: `manual` = materialize the prompt as an invocable skill and
-  tell the user how to run it · `inline` = append it (inside markers) to an existing
-  aos-owned job · `skip` = skip it, say so in the install summary, and record it in
+  `<aos_home>/personal/<path-and-args>`). An absent host feature triggers the cron job's
+  declared degraded mode: `manual` = materialize the prompt as an invocable skill
+  (`mapping.skill.where`) and tell the user how to run it · `inline` = append it (inside
+  markers) to an existing aos-owned job (`mapping.cron.edit`) · `skip` = skip it, say so in the install summary, and record it in
   your report — the deferred `doctor` verb (RFC-004) will make skips queryable.
 - **Context blocks** are appended only inside
   `<!-- aos:<capability>@<version> begin -->` … `<!-- aos:<capability>@<version> end -->`
   markers; never touch text outside them. A capability that owns more than one block
-  discriminates them the way schedules do — `aos:<capability>:<block-id>@<version>` — so each
+  discriminates them the way cron jobs do — `aos:<capability>:<block-id>@<version>` — so each
   is independently replaceable on upgrade. Leave a blank line before a block and a trailing
   newline after it: an identity file that ends mid-marker makes the next capability's append
   start on the `end -->` line, which corrupts both blocks.

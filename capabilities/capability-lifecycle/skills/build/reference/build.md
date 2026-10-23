@@ -10,7 +10,7 @@ touches a KB. The persist hook commits it (dated message).
 
 **Every agent is declared, never described.** A piece with its own chat, identity or
 toolset is an agent: write its `agents/<id>.agent.yaml` (`workspace: own`), name it in its
-skills' `used_by` and its schedules' `agent`, and add a `uses` entry for each other
+skills' `used_by` and its cron jobs' `agent`, and add a `uses` entry for each other
 capability's skill it loads. "Install into a dedicated profile" in a draft briefing means
 this file is missing — the installer places only what the manifest declares.
 
@@ -33,7 +33,7 @@ knowledge where it will still resolve once installed — only the skill's own fo
 so depth goes in its `reference/`, another skill's knowledge is reached by naming that
 skill, and anything in the household is written from a root. Run the uniqueness gate as soon
 as the package is structurally parseable — `CAPABILITY.md`, `README.md`, every declared
-skill's `SKILL.md` and every schedule's `prompt_ref` exist — and before rendering or
+skill's `SKILL.md` and every cron job's `prompt_ref` exist — and before rendering or
 materializing anything: `aos-cap --home <aos_home> skills <package-dir> --check
 --harness-skills <dir> …` (one flag per skills dir). The verb validates the manifest first, and
 the validator refuses a declaration whose README, skill folders or prompt refs are missing,
@@ -77,5 +77,5 @@ Last — after the contribute question, and after the {{skill: install}} flow if
 ran it here. One line on what was built, then the way back to what the user was doing when
 the detector fired. Branched session: the exact command back to the original session, and
 what that session must reload to see the new skills, agents or context blocks — both from
-the cheat-sheet's `session branch` row. In place: restate the interrupted work in their
+the cheat-sheet's `mapping.session` (`branch`). In place: restate the interrupted work in their
 words and offer to pick it up; add the reload note if something landed in the harness.

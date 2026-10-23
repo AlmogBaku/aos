@@ -11,7 +11,7 @@ from ..repo import list_capabilities
 
 # The only cross-capability check in the suite. Skills land in one flat namespace per
 # harness, so two capabilities computing the same installed name is a silent override —
-# the same hazard §5.5's single-owner rule closes for schedules. Everything here works
+# the same hazard §5.5's single-owner rule closes for cron jobs. Everything here works
 # off ctx.caps, never ctx.files: the golden snapshots contain dozens of rendered
 # SKILL.md copies that are not shipped skills.
 def check_skill_names(ctx) -> None:
@@ -126,12 +126,12 @@ def _check_authored_names(ctx) -> None:
         # and AGENTS.md, which describe the kit rather than ship into a harness. cap.rel also
         # keeps the golden snapshots' rendered copies (which correctly hold literals) out.
         scope = f"{cap.rel}/skills/"
-        # A schedule's prompt is shipped prose too — the installer substitutes its slots
+        # A cron job's prompt is shipped prose too — the installer substitutes its slots
         # before `cron create` — so a dangling slot there is the same defect. Only the slot
         # checks run on it: a prompt naming its own agent literally is not prefix-fragile
         # the way rendered skill prose is.
         prompts = {f"{cap.rel}/{s['prompt_ref']}" for s in (read_frontmatter(
-            cap.dir / "CAPABILITY.md").data or {}).get("schedules") or []
+            cap.dir / "CAPABILITY.md").data or {}).get("cron") or []
             if isinstance(s, dict) and isinstance(s.get("prompt_ref"), str)}
         for file in [f for f in ctx.files
                      if (f.startswith(scope) and f.endswith(".md")) or f in prompts]:

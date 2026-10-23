@@ -37,9 +37,7 @@ kbs:
   remote: null
   sync: manual
   audience: private
-  purpose: 'Commitments Dana has to keep personally — next actions, things waiting
-    on other people, someday items. A personal backlog, never knowledge: what was
-    learned goes to personal-kb.'
+  purpose: commitments I have to keep
   routing:
     channels: []
     keywords: []

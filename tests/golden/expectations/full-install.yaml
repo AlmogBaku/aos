@@ -15,12 +15,14 @@ expect_files:
   - "front:skills/capability-lifecycle/reference/contract.md"
   - "front:skills/capability-lifecycle/reference/naming.md"
   # the cheat-sheets travel with the render — that is the point of them being reference
-  # files of the skill that reads them, rather than a capability-level directory
+  # files of the skill that reads them, rather than a capability-level directory; every
+  # sheet ships, since one household can serve several harnesses
   - "front:skills/capability-lifecycle/reference/harness-hermes.md"
   - "front:skills/capability-lifecycle/reference/harness-nanoclaw.md"
   - "front:skills/capability-lifecycle/reference/harness-openclaw.md"
   - "front:skills/capability-lifecycle/reference/harness-nanobot.md"
   - "front:skills/capability-lifecycle/reference/harness-claude-code.md"
+  - "front:skills/capability-lifecycle/reference/harness-codex.md"
   - "front:skills/capability-lifecycle/reference/no-cheatsheet.md"
   - "front:skills/capability-install/SKILL.md"
   - "front:skills/capability-upgrade/SKILL.md"
@@ -122,10 +124,10 @@ vendored: [skill-creator]
 origin_tag_roots: ["front:skills", "steward:skills", "archiver:skills"]
 
 # cron jobs in aos-* profile homes must use the aos:<cap>:<id> name prefix;
-# expected schedules with their owning profile. `sync` is an exec schedule —
-# a script-only cron job (no agent invocation; the job runs the installed `kb`
-# command directly).
-schedules:
+# expected cron jobs with their owning profile. `sync` is an exec job —
+# script-only (no agent invocation; the job runs the installed `kb` command
+# directly).
+cron:
   - {profile: steward, name_prefix: "aos:work-tracker:nightly-steward"}
   - {profile: archiver, name_prefix: "aos:kb:nightly-promote"}
   - {profile: archiver, name_prefix: "aos:kb:weekly-maintain"}
