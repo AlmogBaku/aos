@@ -170,7 +170,7 @@ The `{{mod: …}}` slot is a *convention, not a template engine* — it marks wh
 | `skills: capture, used_by: [main]` | symlink `~/.hermes/skills/wt-capture` → the pinned render, in the **root profile only** |
 | `skills: steward, used_by: [steward]` | symlink in the **steward profile's skills dir only** — the main agent never sees it |
 | `agents: steward.agent.yaml` | `~/.hermes/profiles/aos-steward/` (directory-defined — `hermes profile create`; no config.yaml registry) |
-| `schedules: nightly-steward` | entry in `~/.hermes/cron/jobs.json`, name-prefixed `aos:work-tracker:nightly-steward` (§5.3 — `jobs.json`'s own `origin` field means chat provenance, not this), assigned to profile `aos-steward` — **in exactly one harness** (single-owner rule, §5.5) |
+| `cron: nightly-steward` | entry in `~/.hermes/cron/jobs.json`, name-prefixed `aos:work-tracker:nightly-steward` (§5.3 — `jobs.json`'s own `origin` field means chat provenance, not this), assigned to profile `aos-steward` — **in exactly one harness** (single-owner rule, §5.5) |
 | `kb: zones: actions/**` | **two** things, and missing either is silent: a row appended to the target base's `AGENTS.md` grants table (§4.3) seeded from `kb/zones/actions.AGENTS.md.tmpl`, **and** a `zones:` entry plus its `type` in the base's `.kb/base.yml`. Without the second, every verb treats `actions/` as nonexistent — `find` returns nothing and `lint` says nothing, both at exit 0. The grant rows also need `index.md`, because kb seeds that to the archiver alone and both writing agents rebuild the index |
 | `secrets` in MOD.md frontmatter | values in the Hermes `.env` (root or profile — `auth.json` is Hermes's own provider-credential state, never written by installs); MOD.md holds only `{store, key}` refs |
 
@@ -192,7 +192,7 @@ installs:
     links:                           # harness symlink -> the pinned render it points at
       <HOME>/.hermes/skills/wt-capture: <HOME>/aos/personal/capabilities/work-tracker/skills/wt-capture
       <HOME>/.hermes/profiles/aos-steward/skills/wt-steward: <HOME>/aos/personal/capabilities/work-tracker/skills/wt-steward
-    schedules_owned: [nightly-steward]  # single-owner rule: this install runs the pass
+    cron_owned: [nightly-steward]        # single-owner rule: this install runs the pass
     config_keys: []
     env_lines: []
     scripts: []
@@ -206,6 +206,6 @@ instead of walking them backwards.
 Only *files* carry hashes (`sha256()` refuses a directory); links are recorded as
 path→target and checked structurally — `verify` reports MISSING / NOT A LINK (a copy
 where a link belongs) / RELINKED / DANGLING. Keyed entries in harness-owned files
-(a `jobs.json` job) are tracked by `schedules_owned` id, not by hash.
+(a `jobs.json` job) are tracked by `cron_owned` id, not by hash.
 
 Hashes exist so `aos-cap verify` can tell *"you hand-edited the rendered skill"* (→ round-trip it into MOD.md, §3.3) apart from *"the render is what we wrote"* — without them, drift is invisible and the overlay rots (risk #4).

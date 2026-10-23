@@ -1,6 +1,6 @@
 # Capability: work-tracker
 
-**Tags:** usecase · **Build order:** 3 · **Seam it proves:** first vertical composing on kb + schedules; first real routing traffic; and `calendar.write` with declared degraded modes
+**Tags:** usecase · **Build order:** 3 · **Seam it proves:** first vertical composing on kb + crons; first real routing traffic; and `calendar.write` with declared degraded modes
 
 ## Scope
 

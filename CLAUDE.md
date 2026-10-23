@@ -30,7 +30,7 @@ ARCHITECTURE §8 splits every decision into two tables:
 - **No program anywhere** — `aos import` / `install` / `update` are conversational actions the harness agent performs, never a CLI. Per-harness support is a cheat-sheet (`capabilities/capability-lifecycle/harnesses/<harness-runtime>.md` — knowledge), never adapter code. Capability-shipped software is standalone behind a process boundary, reached by a thin per-harness shim.
 - **Skill scoping** — every skill declares `used_by`; agents only load skills declared for them.
 - **KB safety** — `audience: shared` KBs never accept LLM-routed writes (rule-matched, explicitly tagged, or human-approved only); capture latency is sacred, so routing is never a synchronous prompt.
-- **Single-owner rule** — each `schedules[]` entry runs in exactly one harness at a time.
+- **Single-owner rule** — each `cron[]` entry runs in exactly one harness at a time; the lockfile key is `cron_owned`.
 
 ## Build phase (this is what the new session is for)
 
