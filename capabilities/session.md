@@ -17,7 +17,7 @@ The tool reads `<aos_home>/.aos/harness.yml` and the installed cheat-sheet's `ma
 
 - `open-session` in the household: the session-opening logic that `open-session` performed via Hermes internals, abstracted to a CLI shim that reads `harness.yml`.
 - The ghostwriter capability: its session-open usage at the start of an interview (one `aos-session open` call per interview).
-- The Artificial Thoughts close-hook runner: its notify usage after archiving a guest memo.
+- A guest-interview close-hook runner: its notify usage after archiving a guest memo.
 
 ## Depends
 
