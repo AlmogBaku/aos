@@ -130,6 +130,13 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(argv[argv.index("--query-file") + 1], str(self.prompt.resolve()))
         self.assertIn("first reply", r.stdout)
 
+    def test_open_with_exact_title_passes_the_title_unchanged(self):
+        r = self.open("--exact-title")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn('Opened "Weekly interview" (session s-new1)', r.stdout)
+        argv = self.calls()[0]["argv"]
+        self.assertEqual(argv[argv.index("-c") + 1], "Weekly interview")
+
     def test_open_expands_skills_once_per_name(self):
         r = self.open("--skills", "alpha", "--skills", "beta")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)

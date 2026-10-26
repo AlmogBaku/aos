@@ -57,12 +57,14 @@ def _prompt(path: str) -> str:
     return str(p.resolve())
 
 
-def _titled(title: str) -> str:
+def _titled(title: str, exact: bool = False) -> str:
     title = " ".join(title.split())
     if not title:
         fail(Exit.BAD_INPUT, "--title is empty")
     if "#" in title:
         fail(Exit.BAD_INPUT, "--title must not carry '#' (a harness may read it as a lineage)")
+    if exact:
+        return title[:TITLE_MAX].rstrip()  # the caller owns the title; nothing is appended
     suffix = datetime.now().strftime(" %H:%M")
     return title[:TITLE_MAX - len(suffix)].rstrip() + suffix
 
@@ -89,13 +91,14 @@ def cmd_open(
     profile: Annotated[str, typer.Option("--profile", help="the agent (harness profile) to open it in")],
     title: Annotated[str, typer.Option("--title", help="the title; the local time is appended")],
     prompt_file: Annotated[str, typer.Option("--prompt-file", help="the opening prompt")],
+    exact_title: Annotated[bool, typer.Option("--exact-title", help="use the title as given, without the local time")] = False,
     workdir: Annotated[Optional[str], typer.Option("--workdir", help="default: the current dir")] = None,
     skill: Annotated[Optional[list[str]], typer.Option("--skills", help="repeatable: a skill to preload")] = None,
     timeout: Annotated[float, typer.Option("--timeout", help="seconds")] = DEFAULT_TIMEOUT,
 ) -> None:
     _check_id("--profile", profile)
     h = hz.load(hz.find_home(ctx.obj))
-    titled = _titled(title)
+    titled = _titled(title, exact=exact_title)
     sid, stdout = _open(h, profile, titled, _prompt(prompt_file), workdir or str(Path.cwd()),
                         tuple(skill or ()), timeout)
     print(f'Opened "{titled}" (session {sid}) in profile {profile}.')

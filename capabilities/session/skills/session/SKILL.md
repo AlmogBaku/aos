@@ -19,7 +19,7 @@ aos-session open --profile <agent> --title "<2–5 word subject> · <YYYY-MM-DD>
   the session loads, never in the prompt. Write it to a temp file with the file tool; never on
   the command line.
 - The tool appends the local time to the title (a harness may reopen a title that exists). No
-  `#` in a title.
+  `#` in a title. Pass `--exact-title` to keep the title as given; the caller then owns uniqueness.
 
 ## notify — the session that asked
 
