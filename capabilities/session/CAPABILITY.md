@@ -1,6 +1,6 @@
 ---
 id: session
-version: 0.1.0
+version: 0.1.1
 tags: [infra]
 summary: Opens a new titled session for the person, or adds a turn to the session that asked for the work — through the harness's own command line, driven by the household's cheat-sheet.
 depends:

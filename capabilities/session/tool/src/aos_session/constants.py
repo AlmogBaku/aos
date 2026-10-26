@@ -5,7 +5,7 @@ and asserts it, so the two cannot drift while each tool stays an independent pac
 import re
 from pathlib import Path
 
-VERSION = "0.1.0"                       # tracks the session capability version
+VERSION = "0.1.1"                       # tracks the session capability version
 HARNESS_REL = Path(".aos") / "harness.yml"
 SESSION_KEYS = ("open", "continue", "id", "missing")
 PLACEHOLDERS = ("<profile>", "<title>", "<file>", "<session_id>", "<workdir>")
