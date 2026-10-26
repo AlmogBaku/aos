@@ -40,7 +40,7 @@ mapping:
     revoke: hermes -p <profile> hooks revoke <command>
   session:
     primitive: a titled session in the profile's state.db
-    open: hermes -p <profile> --cli <skills> --pass-session-id chat --in <workdir> -c <title> --create-if-missing --source cli -Q --query-file <file>
+    open: hermes -p <profile> --cli <skills> chat --in <workdir> -c <title> --create-if-missing --source cli -Q --query-file <file>
     skill_arg: --skills <name>
     continue: hermes -p <profile> chat --resume <session_id> -Q --query-file <file>
     id: {stderr: '^session_id: (\S+)$'}

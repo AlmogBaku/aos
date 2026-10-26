@@ -11,7 +11,7 @@ Changing a value here therefore changes what CI enforces, which is the point."""
 import re
 from pathlib import Path
 
-VERSION = "0.6.0"                       # tracks the capability-lifecycle version
+VERSION = "0.6.1"                       # tracks the capability-lifecycle version
 LOCK_REL = Path(".aos") / "installs.lock.yaml"
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 CRON5 = re.compile(r"^\S+\s+\S+\s+\S+\s+\S+\s+\S+$")

@@ -9,7 +9,7 @@ description: 'Imports a use case the user already built in this harness into an 
   draft upstream, which is capability-contribute.'
 metadata:
   aos:
-    origin: capability-lifecycle@0.6.0
+    origin: capability-lifecycle@0.6.1
 ---
 # capability-import
 
