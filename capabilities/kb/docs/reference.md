@@ -134,19 +134,20 @@ is not one I can speak to".
 | 0 | any verb | success |
 | 1 | any verb | the default refusal — `kb: error: …` on stderr, nothing written. Also `grants check` answering DENIED, `lint --ci` with criticals, and `commit` with nothing to commit |
 | 2 | any verb · `sync` | **two meanings.** From the CLI framework: a usage error — unknown verb, missing required option, value outside a closed set. From `sync`: the local commit failed, so nothing was pushed |
-| 3 | `sync` only | a genuine divergence. The merge was aborted clean and recorded as a `kind: conflict` entry in `.kb/pending/`; a human resolves it |
+| 3 | `sync` only | a genuine divergence. The merge was aborted clean and recorded as a `kind: conflict` entry in `.kb/pending/`; a human resolves it. While that entry is open, a tick that conflicts again files nothing new |
 | 4 | `sync` only | the local side committed but the push never landed after retries |
 | 5 | `sync` only | a git operation was left mid-flight (rebase, merge, cherry-pick, revert). Nothing was staged — sync refuses rather than committing conflict markers |
+| 6 | `sync` only | nothing was pulled: origin was unreachable (offline, DNS, an expired credential), or the merge failed without a conflict. Nothing is filed; the next tick retries |
 | 10 | any verb · `migrate` | not a base: no `.kb/base.yml`. Adopt it, or check `--base` |
 | 11 | any verb | layout mismatch — a tree on the previous layout, or a `layout:` this tool does not speak. Never path-guessed; run `kb migrate` |
 | 12 | `state add` only | the attention window is at `state.max_items` — adding when full is an eviction decision, so `kb state drop` something first |
 | 13 | `migrate` · write verbs | refused on an unsafe state: an uncommitted worktree, or a path outside the base |
 | 14 | `init`; also `set` | `init`: a template left an unrendered `{{placeholder}}` — it declares a variable this tool does not substitute. `set`: the field is outside the base schema (add it to `frontmatter.extensions`, or nest it under `metadata`). The commoner path is `set`, so do not read a 14 as a template bug |
 
-**`kb sync` is the only source of 2–5**, and with `--all` it visits several bases and exits
+**`kb sync` is the only source of 2–6**, and with `--all` it visits several bases and exits
 with the **worst** code any one of them produced, so a 3 means *at least one* base
 conflicted, not that all did. Every other verb answers in {0, 1, 2, 10, 11, 12, 13, 14}. Codes
-6–9 are unused.
+7–9 are unused.
 
 The double meaning of 2 is worth knowing before scripting against it: a wrapper treating 2 as
 "bad arguments" will misread a sync whose local commit failed.
