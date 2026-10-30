@@ -137,6 +137,16 @@ class SessionTest(unittest.TestCase):
         argv = self.calls()[0]["argv"]
         self.assertEqual(argv[argv.index("-c") + 1], "Weekly interview")
 
+    def test_angle_brackets_in_a_value_reach_the_harness_unchanged(self):
+        workdir = Path(self.tmp.name) / "<draft>"
+        workdir.mkdir()
+        r = self.cli_run("open", "--profile", "p", "--title", "Review <draft> and <file>",
+                         "--prompt-file", str(self.prompt), "--workdir", str(workdir))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        argv = self.calls()[0]["argv"]
+        self.assertRegex(argv[argv.index("-c") + 1], r"^Review <draft> and <file> \d\d:\d\d$")
+        self.assertEqual(argv[argv.index("--in") + 1], str(workdir))
+
     def test_open_expands_skills_once_per_name(self):
         r = self.open("--skills", "alpha", "--skills", "beta")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
