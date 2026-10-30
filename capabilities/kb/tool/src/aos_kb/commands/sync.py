@@ -1,5 +1,6 @@
-"""`sync` — ff-pull then merge on divergence, push with jittered retry; conflict ->
-safe abort + pending entry + exit 3. Never calls an LLM.
+"""`sync` — fetch, fast-forward or merge on divergence, push with jittered retry;
+conflict -> safe abort + one pending entry + exit 3; unreachable remote -> exit 6,
+nothing filed. Never calls an LLM.
 
 Isolated from every other verb because it is the one place in the tool with real
 subprocess/retry/timing concerns (jitter, backoff, sequencer-state detection) and the
@@ -22,6 +23,7 @@ from ..identity import (
 )
 from ..registry import load_registry
 from ..base import Base, resolve_base
+from ..frontmatter import read_frontmatter
 
 app = typer.Typer()
 
@@ -36,6 +38,46 @@ def sync_jitter() -> float:
 def _remote_ref_missing(proc) -> bool:
     s = (proc.stderr or "").lower()
     return "couldn't find remote ref" in s or "no such ref" in s
+
+
+def _reason(proc) -> str:
+    lines = (proc.stderr or proc.stdout or "").strip().splitlines()
+    return lines[0] if lines else f"git exit {proc.returncode}"
+
+
+def _merge_failed(base, root: Path, name: str, agent: str, author: tuple[str, str],
+                  merge) -> int:
+    # Only a merge that stopped on conflicting paths is a conflict. Any other failure
+    # (another git process holding the index lock, say) leaves nothing to resolve, so
+    # it gets the unreachable remote's answer: nothing filed, the next tick retries.
+    unmerged = git(root, "ls-files", "-u").stdout.strip()
+    if sequencer_state(root) != "MERGE_HEAD" and not unmerged:
+        print(f"{name}: merge failed, nothing filed, next tick retries: {_reason(merge)}",
+              file=sys.stderr)
+        return 6
+    git(root, "merge", "--abort")
+    title = f"sync conflict ({name})"
+    # The abort leaves the divergence in place, so every tick conflicts again until a
+    # human resolves it. The entry already open says so; another would only bury it.
+    if base and not _open_entry(base, "conflict", title):
+        entry = base.pending_add(
+            "conflict", "human", title,
+            "`git pull` hit a conflict and was aborted cleanly. The base is "
+            "consistent but behind its remote — resolve by hand, then push.",
+            agent)
+        base.commit("sync-conflict", entry,
+                    f"{name}: pull aborted, needs a human", agent, author)
+    print(f"{name}: sync conflict — aborted clean, surfaced to review queue",
+          file=sys.stderr)
+    return 3
+
+
+def _open_entry(base: Base, kind: str, title: str) -> bool:
+    for p in base.pending_dir.glob("*.md"):
+        fm, _ = read_frontmatter(p)
+        if fm and fm.get("kind") == kind and fm.get("title") == title:
+            return True
+    return False
 
 
 def _sync_one(root: Path, name: str, agent: str, author: tuple[str, str],
@@ -79,29 +121,26 @@ def _sync_one(root: Path, name: str, agent: str, author: tuple[str, str],
 
     branch = git(root, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
     for attempt in range(1, attempts + 1):
-        # Fast-forward where possible; only genuinely diverged history needs a merge.
-        # Rebase is deliberately not the default: it rewrites commits another machine
-        # may already hold, and a conflicted rebase leaves state that blocks every
-        # later tick. Both tools that run unattended across many machines — Obsidian
-        # Git and git-annex — made the same call. A braided history nobody reads is a
-        # cheaper price than a sync loop that stalls.
-        pull = git(root, "pull", "--no-stat", "--ff-only", "origin", branch)
-        if pull.returncode != 0 and not _remote_ref_missing(pull):
-            pull = git(root, "pull", "--no-stat", "--no-rebase", "--no-edit",
-                       "origin", branch)
-        if pull.returncode != 0 and not _remote_ref_missing(pull):
-            git(root, "merge", "--abort")
-            if base:
-                entry = base.pending_add(
-                    "conflict", "human", f"sync conflict ({name})",
-                    "`git pull` hit a conflict and was aborted cleanly. The base is "
-                    "consistent but behind its remote — resolve by hand, then push.",
-                    agent)
-                base.commit("sync-conflict", entry,
-                            f"{name}: pull aborted, needs a human", agent, author)
-            print(f"{name}: sync conflict — aborted clean, surfaced to review queue",
-                  file=sys.stderr)
-            return 3
+        # Fetch on its own first, so an unreachable remote (offline, DNS, an expired
+        # credential) is never mistaken for a conflict. Filed as one, every offline tick
+        # left another review entry and commit, pushed in a pile once back online.
+        fetch = git(root, "fetch", "-q", "origin", branch)
+        if fetch.returncode != 0 and not _remote_ref_missing(fetch):
+            print(f"{name}: cannot reach origin, nothing filed, next tick retries: "
+                  f"{_reason(fetch)}", file=sys.stderr)
+            return 6
+        if fetch.returncode == 0:
+            # Fast-forward where possible; only genuinely diverged history needs a merge.
+            # Rebase is deliberately not the default: it rewrites commits another machine
+            # may already hold, and a conflicted rebase leaves state that blocks every
+            # later tick. Both tools that run unattended across many machines — Obsidian
+            # Git and git-annex — made the same call. A braided history nobody reads is a
+            # cheaper price than a sync loop that stalls.
+            merge = git(root, "merge", "-q", "--ff-only", "FETCH_HEAD")
+            if merge.returncode != 0:
+                merge = git(root, "merge", "-q", "--no-edit", "FETCH_HEAD")
+            if merge.returncode != 0:
+                return _merge_failed(base, root, name, agent, author, merge)
         if git(root, "push", "-q", "origin", branch).returncode == 0:
             print(f"{name}: synced")
             return 0
@@ -117,7 +156,7 @@ def _sync_one(root: Path, name: str, agent: str, author: tuple[str, str],
 
 @app.command("sync", help="ff-pull then merge on divergence, push with jittered "
                          "retry; conflict -> safe abort + review entry + exit 3; "
-                         "never calls an LLM")
+                         "unreachable remote -> exit 6, nothing filed; never calls an LLM")
 def cmd_sync(
     ctx: typer.Context,
     all: Annotated[bool, typer.Option(

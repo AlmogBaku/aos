@@ -117,6 +117,11 @@ def match_query(fm: dict, where: list, without=None) -> bool:
         if got is None:
             return False        # a missing field never satisfies a comparison
         if op == "=":
+            # `today+1d` names a date, so `=` compares against that date as if it had been
+            # typed. Left literal, `due=today` never matches and answers empty with exit 0.
+            rel = resolve_date(val)
+            if rel is not None:
+                val = rel.isoformat()
             # A list field means membership, not stringified equality. `tags` and
             # `aliases` are lists in every base, so `--where tags=active` has to match
             # a page carrying `tags: [client, active]` — the alternative compares
