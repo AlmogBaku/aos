@@ -553,6 +553,19 @@ class BaseToolTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
         self.assertNotIn("aos-verb: sync-conflict", "\n".join(self.log_lines("%b")))
 
+    def test_sync_unreachable_remote_writes_nothing(self):
+        # Offline is not a conflict. Filing one per tick buried the queue in entries
+        # with nothing to resolve, each with its own commit pushed once back online.
+        subprocess.run(["git", "remote", "add", "origin", str(self.dir / "gone.git")],
+                       cwd=self.root, check=True)
+        head = self.git("rev-parse", "HEAD")
+        for _ in range(2):
+            r = self.b("sync")
+            self.assertEqual(r.returncode, 6, r.stderr + r.stdout)
+            self.assertIn("cannot reach origin", r.stderr)
+        self.assertEqual(self.git("rev-parse", "HEAD"), head)
+        self.assertEqual(list((self.root / ".kb" / "pending").glob("*.md")), [])
+
     def test_adopt_layout_guard_before_registry(self):
         foreign = self.dir / "f99"
         foreign.mkdir()
@@ -699,6 +712,12 @@ class BaseToolTest(unittest.TestCase):
                             text=True).stdout
         self.assertNotIn("rebase in progress", st)
         self.assertNotIn("You have unmerged paths", st)
+        # The next tick conflicts again; the open entry already says so.
+        head = self.git("rev-parse", "HEAD")
+        self.assertEqual(self.b("sync").returncode, 3)
+        self.assertEqual(self.git("rev-parse", "HEAD"), head)
+        self.assertEqual(len(list((self.root / ".kb" / "pending").glob("*.md"))),
+                         len(entries))
 
     def test_sync_refuses_while_an_operation_is_mid_flight(self):
         # The permanent-stall bug: staging a conflicted worktree commits the conflict
@@ -1543,6 +1562,8 @@ class QueryTest(unittest.TestCase):
         self.assertIn("now.md", self.b("find", "--where", "due<=today").stdout)
         self.assertIn("now.md", self.b("find", "--where", "due>=today").stdout)
         self.assertNotIn("now.md", self.b("find", "--where", "due<today").stdout)
+        self.assertIn("now.md", self.b("find", "--where", "due=today").stdout)
+        self.assertNotIn("now.md", self.b("find", "--where", "due=today+1d").stdout)
 
     def test_numbers_compare_as_numbers_not_as_strings(self):
         # String ordering puts "10" below "3", so a threshold query silently misses the

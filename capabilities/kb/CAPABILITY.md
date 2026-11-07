@@ -1,6 +1,6 @@
 ---
 id: kb
-version: 0.8.1
+version: 0.8.2
 tags: [infra]
 summary: Knowledge infrastructure — a registry of bases, rules-first routing, the deterministic `kb` tool, and one Archiver agent maintaining every base.
 depends:
