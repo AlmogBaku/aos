@@ -1,6 +1,6 @@
 [project]
 name = "aos-session"             # kit name is RFC-001's; command below is what matters
-version = "0.1.1"                # tracks the session capability version
+version = "0.1.2"                # tracks the session capability version
 description = "Open and continue harness sessions from the household's cheat-sheet (capability-shipped tool, ARCHITECTURE §2.4)"
 # >=3.10 for the same reasons as aos-kb and aos-cap: bare `X | None` unions, and typer
 # inspects Annotated[...] hints at runtime.

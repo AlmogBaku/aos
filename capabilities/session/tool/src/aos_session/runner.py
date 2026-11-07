@@ -37,14 +37,17 @@ def argv(harness: Harness, template: str, values: Mapping[str, str],
             for name in skills:
                 out.extend(t.replace("<name>", name) for t in shlex.split(skill_arg))
             continue
-        for key, value in values.items():
-            tok = tok.replace(key, value)
-        left = LEFTOVER_RE.search(tok)
-        if left:
-            fail(Exit.BAD_INPUT, f"the {harness.name} cheat-sheet template uses an unknown "
-                                 f"placeholder {left.group(0)}")
-        out.append(tok)
+        # One pass: a value is never scanned again, so a title like "Review <draft>" stays
+        # text instead of failing as an unknown placeholder or having `<file>` filled in.
+        out.append(LEFTOVER_RE.sub(lambda m: _fill(harness, values, m.group(0)), tok))
     return out
+
+
+def _fill(harness: Harness, values: Mapping[str, str], key: str) -> str:
+    if key not in values:
+        fail(Exit.BAD_INPUT, f"the {harness.name} cheat-sheet template uses an unknown "
+                             f"placeholder {key}")
+    return values[key]
 
 
 def child_env(harness: Harness, env: Optional[Mapping[str, str]] = None) -> dict[str, str]:
