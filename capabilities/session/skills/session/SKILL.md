@@ -34,7 +34,8 @@ gone does it open a new one under `--title`.
 ## Report
 
 Reply with the tool's output unchanged — on success its first line is `Opened "…" (session …)`,
-`Added to session …`, or `Session … is gone; opened …`; on a failure it is `[CRON_FAILURE]`.
+`Added to session …`, or `Session … is gone; opened …`; on a failure it is `[CRON_FAILURE]`. A
+`warning: not marked unread …` line means the session exists but may read as read.
 Exit codes: 0 ok · 1 the harness command failed · 2 bad input or no harness record · 4 not
 supported on this harness · 124 timeout (the session may still exist). Never retry, never open a
 second session, never answer the prompt yourself.

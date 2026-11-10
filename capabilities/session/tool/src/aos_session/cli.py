@@ -71,7 +71,8 @@ def _titled(title: str, exact: bool = False) -> str:
 
 def _open(h: hz.Harness, profile: str, title: str, prompt: str, workdir: str,
           skills: tuple[str, ...], timeout: float) -> tuple[str, str]:
-    """Run the sheet's `open` step; print nothing, return (new session id, harness stdout)."""
+    """Run the sheet's `open` step, then its `mark_unread`; print nothing, return (new session id,
+    a warning line if the mark failed + harness stdout)."""
     cmd = runner.argv(h, hz.step(h, "open"),
                       {"<profile>": profile, "<title>": title, "<file>": prompt,
                        "<workdir>": workdir}, skills)
@@ -82,7 +83,9 @@ def _open(h: hz.Harness, profile: str, title: str, prompt: str, workdir: str,
     if not ids:
         ran.code = ran.code or 1
         runner.failure(ran, f'open "{title}" printed no session id')
-    return ids[-1], ran.stdout
+    warning = runner.mark_unread(h, profile, ids[-1])
+    note = f"warning: not marked unread — {warning}\n" if warning else ""
+    return ids[-1], note + ran.stdout
 
 
 @app.command("open", help="open one new titled session seeded with a prompt file")

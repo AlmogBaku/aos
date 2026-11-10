@@ -2,14 +2,18 @@
 title or a path with spaces or quotes stays one argument. The first word is replaced by the
 recorded absolute CLI, which is what lets a caller with a reduced PATH still reach the harness."""
 
+import json
 import os
 import shlex
 import subprocess
 import sys
+import urllib.error
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass
 from typing import Mapping, Optional
 
-from .constants import LEFTOVER_RE, SKILLS_TOKEN
+from .constants import LEFTOVER_RE, MARK_TIMEOUT, SKILLS_TOKEN
 from .errors import Exit, fail
 from .harness import Harness
 
@@ -85,3 +89,73 @@ def failure(ran: Ran, what: str) -> None:
     if tail:
         print("\n".join(tail))
     sys.exit(Exit.HARNESS_FAILED)
+
+
+def mark_unread(harness: Harness, profile: str, session_id: str) -> Optional[str]:
+    """The sheet's optional `mark_unread` step, on a session this tool just created: a harness may
+    count a session nobody opened as read. Never fatal — returns the reason for one warning line,
+    else None. A command runs like any other step; an `http` step reads the profile's own key from
+    the env file its `env_file` command names, and never prints it."""
+    step = harness.session.get("mark_unread")
+    if step is None:
+        return None
+    values = {"<profile>": profile, "<session_id>": session_id}
+    try:
+        if isinstance(step, str):
+            ran = _quiet(harness, argv(harness, step, values))
+            return None if ran.returncode == 0 else f"exit {ran.returncode}"
+        if isinstance(step, dict) and isinstance(step.get("http"), str):
+            return _http(harness, step, values)
+    except SystemExit:  # a template `argv` refused; it already said why on stderr
+        return "the sheet's mark_unread row is malformed"
+    except Exception as e:  # the session exists: no failure here may lose it
+        return type(e).__name__
+    return "mapping.session.mark_unread is neither a command nor an http step"
+
+
+def _quiet(harness: Harness, cmd: list[str]) -> subprocess.CompletedProcess:
+    return subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                          timeout=MARK_TIMEOUT, env=child_env(harness))
+
+
+def _http(harness: Harness, step: dict, values: Mapping[str, str]) -> Optional[str]:
+    name = step.get("key")
+    key = _env_value(harness, step.get("env_file"), name, values)
+    if not key:
+        return f"no {name} in this profile's env file"
+    method, _, url = step["http"].partition(" ")
+    for placeholder, value in values.items():
+        url = url.replace(placeholder, urllib.parse.quote(value, safe=""))
+    request = urllib.request.Request(
+        url.strip(), method=method, data=json.dumps(step.get("json") or {}).encode(),
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+    # The harness's API is local: never route it through the caller's proxy.
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        with opener.open(request, timeout=MARK_TIMEOUT):
+            return None
+    except urllib.error.HTTPError as e:
+        return f"HTTP {e.code}"
+    except urllib.error.URLError:
+        return f"cannot reach {urllib.parse.urlsplit(url.strip()).netloc}"
+
+
+def _env_value(harness: Harness, env_file: object, name: object,
+               values: Mapping[str, str]) -> Optional[str]:
+    """`NAME=value` from the env file the harness names — the last assignment wins, as in a shell."""
+    if not isinstance(env_file, str) or not isinstance(name, str):
+        return None
+    ran = _quiet(harness, argv(harness, env_file, values))
+    if ran.returncode != 0 or not ran.stdout.strip():
+        return None
+    try:
+        lines = open(os.path.expanduser(ran.stdout.strip()), encoding="utf-8",
+                     errors="replace").read().splitlines()
+    except OSError:
+        return None
+    found = None
+    for line in lines:
+        k, sep, v = line.strip().removeprefix("export ").partition("=")
+        if sep and k.strip() == name:
+            found = v.strip().strip("'\"")
+    return found or None

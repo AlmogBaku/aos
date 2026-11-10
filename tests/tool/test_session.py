@@ -9,12 +9,14 @@
 harness: a script that records its argv and answers the way the sheet's patterns expect. No
 real harness is touched; every value is synthetic."""
 
+import http.server
 import json
 import os
 import re
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -34,6 +36,8 @@ import json, os, sys, time
 argv = sys.argv[1:]
 with open(os.environ["FAKE_LOG"], "a") as fh:
     fh.write(json.dumps({{"argv": argv, "secret": os.environ.get("FAKE_SECRET_TOKEN")}}) + "\\n")
+if argv[-2:] == ["config", "env-path"]:
+    print(os.environ["FAKE_ENV_PATH"]); sys.exit(0)
 if "--resume" in argv:
     mode = os.environ.get("FAKE_CONTINUE", "ok")
     if mode == "missing":
@@ -256,6 +260,79 @@ class SessionTest(unittest.TestCase):
     def test_scrub_env_from_the_sheet_keeps_a_variable_out_of_the_child(self):
         self.assertEqual(self.open(FAKE_SECRET_TOKEN="x").returncode, 0)
         self.assertIsNone(self.calls()[0]["secret"])
+
+    # -- mark_unread: a harness may count a never-opened session as read ---
+    def serve(self, status=200):
+        """A stand-in for the harness's own HTTP API: records each request, answers `status`."""
+        seen = self.requests = []
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_PATCH(self):
+                body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+                seen.append({"path": self.path, "auth": self.headers.get("Authorization"),
+                             "body": json.loads(body or b"{}")})
+                self.send_response(status)
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.shutdown)
+        return server.server_address[1]
+
+    def sheet_with(self, mark_unread):
+        self.sheet.write_text(SHEET.replace("    scrub_env:", f"    mark_unread: {mark_unread}\n    scrub_env:"))
+
+    def env_file(self, text):
+        path = Path(self.tmp.name) / "profile.env"
+        path.write_text(text)
+        return str(path)
+
+    def http_row(self, port):
+        return ("{http: 'PATCH http://127.0.0.1:%d/p/<profile>/api/sessions/<session_id>', "
+                "json: {unread: true}, key: FAKE_KEY, env_file: 'fakeharness -p <profile> config env-path'}" % port)
+
+    def test_open_marks_the_new_session_unread_with_the_profiles_own_key(self):
+        port = self.serve()
+        self.sheet_with(self.http_row(port))
+        r = self.open(FAKE_ENV_PATH=self.env_file("OTHER=x\nFAKE_KEY=k-synthetic-0001\n"))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(self.requests, [{"path": "/p/p/api/sessions/s-new1",
+                                          "auth": "Bearer k-synthetic-0001", "body": {"unread": True}}])
+        self.assertNotIn("warning", r.stdout)
+        self.assertNotIn("k-synthetic-0001", r.stdout + r.stderr)
+
+    def test_a_refused_mark_is_one_warning_and_the_open_still_succeeds(self):
+        port = self.serve(status=401)
+        self.sheet_with(self.http_row(port))
+        r = self.open(FAKE_ENV_PATH=self.env_file("FAKE_KEY=k-synthetic-0001\n"))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("(session s-new1)", r.stdout)
+        self.assertIn("warning: not marked unread — HTTP 401", r.stdout)
+        self.assertNotIn("k-synthetic-0001", r.stdout + r.stderr)
+
+    def test_a_profile_without_its_key_warns_and_sends_nothing(self):
+        port = self.serve()
+        self.sheet_with(self.http_row(port))
+        r = self.open(FAKE_ENV_PATH=self.env_file("OTHER=x\n"))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("warning: not marked unread — no FAKE_KEY", r.stdout)
+        self.assertEqual(self.requests, [])
+
+    def test_mark_unread_as_a_command_runs_with_the_new_session_id(self):
+        self.sheet_with("fakeharness -p <profile> sessions mark-unread <session_id>")
+        r = self.open()
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(self.calls()[-1]["argv"], ["-p", "p", "sessions", "mark-unread", "s-new1"])
+
+    def test_a_malformed_mark_unread_row_never_fails_an_open_that_succeeded(self):
+        self.sheet_with("fakeharness -p <profile> sessions mark-unread <nonsuch>")
+        r = self.open()
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("(session s-new1)", r.stdout)
+        self.assertIn("warning: not marked unread", r.stdout)
 
     # -- contract ----------------------------------------------------------
     def test_session_keys_agree_with_the_kit_vocabulary(self):

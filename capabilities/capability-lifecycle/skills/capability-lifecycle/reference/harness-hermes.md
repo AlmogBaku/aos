@@ -1,7 +1,7 @@
 ---
 harness: hermes
 status: verified
-source: "hermes 6e7b83a (2026-10-13); live e2e 2026-10-12; session rows probed 2026-10-20"
+source: "hermes 6e7b83a (2026-10-13); live e2e 2026-10-12; session rows probed 2026-10-20; mark_unread probed on 69f73ec 2026-11-10"
 rules:
   - never hand-edit config.yaml or cron/jobs.json — every change goes through the hermes CLI
 files: [SOUL.md, AGENTS.md, CLAUDE.md, .cursorrules, memories/MEMORY.md, memories/USER.md,
@@ -46,6 +46,7 @@ mapping:
     id: {stderr: '^session_id: (\S+)$'}
     missing: {stderr: '^Session not found'}
     busy: {stderr: '^hermes-refusal-reason: SESSION_NOT_OWNED'}
+    mark_unread: {http: 'PATCH http://127.0.0.1:8642/p/<profile>/api/sessions/<session_id>', json: {unread: true}, key: API_SERVER_KEY, env_file: 'hermes -p <profile> config env-path'}
     scrub_env: [HERMES_SESSION_*, HERMES_CRON_SESSION, HERMES_UI_SESSION_ID, HERMES_CRON_AUTO_DELIVER_*]
     branch: {support: none, instead: continue in place and say so}
   plan_mode:
@@ -99,6 +100,17 @@ the judgment the rows cannot carry.
   exists, so a caller that wants a new session puts the time in the title. A session created from
   the CLI carries no read watermark and counts as read; a continued session that was read turns
   unread. While a turn runs, a second writer is refused (`mapping.session.busy`).
+- **Session unread** (`mapping.session.mark_unread`): the CLI cannot set read state, so aos-session
+  marks each session it opens unread through the API server's per-profile route (default port
+  8642). `default` answers with the listener's own key: never add one to `~/.hermes/.env` (the last
+  line wins, so a second one rotates every API client's key). A named profile takes only its own
+  `API_SERVER_KEY`: for each named profile aos-session opens sessions in, an install or upgrade that
+  finds none in its `.env` appends a generated one (32+ random characters, never echoed) and adds
+  `--env-line API_SERVER_KEY` to the full `record` of the capability that owns that agent. Never
+  replace an existing key. The key opens the profile's whole `/p/<profile>/` API on the loopback
+  listener, not only read state. No key, or the API server off: one warning line, the session still
+  opens. Once Hermes ships `hermes sessions mark-unread` (NousResearch/hermes-agent#152602) the row
+  becomes `hermes -p <profile> sessions mark-unread <session_id>` and the keys go.
 - **Files** (`files`): anything else you write is inert. Do not invent filenames (no
   `persona.md`); persona content goes in `SOUL.md`.
 
