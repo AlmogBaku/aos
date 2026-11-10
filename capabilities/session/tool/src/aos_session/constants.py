@@ -5,7 +5,7 @@ and asserts it, so the two cannot drift while each tool stays an independent pac
 import re
 from pathlib import Path
 
-VERSION = "0.1.2"                       # tracks the session capability version
+VERSION = "0.1.3"                       # tracks the session capability version
 HARNESS_REL = Path(".aos") / "harness.yml"
 SESSION_KEYS = ("open", "continue", "id", "missing")
 PLACEHOLDERS = ("<profile>", "<title>", "<file>", "<session_id>", "<workdir>")
@@ -16,6 +16,7 @@ ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
 LEFTOVER_RE = re.compile(r"<[a-z_]+>")
 TITLE_MAX = 90                          # Hermes refuses > 100; the " HH:MM" suffix needs room
 DEFAULT_TIMEOUT = 540.0
+MARK_TIMEOUT = 15.0                     # each mark_unread call, seconds
 # A session another turn is writing to refuses a second writer (the sheet's `busy` pattern):
 # notify retries the continue this often, for this long, before it fails.
 BUSY_RETRY = 30.0
