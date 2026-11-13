@@ -17,7 +17,7 @@ mapping:
     primitive: the default instance
     where: {config: ~/.nanobot/config.json, workspace: ~/.nanobot/workspace/}
   skill:
-    primitive: Agent Skills folder — a symlink to the pinned render in <aos_home>/personal; dir name is the identity
+    primitive: Agent Skills folder — a symlink to the render in <aos_home>/rendered; dir name is the identity
     where: <workspace>/skills/<installed-name>/
     note: "read wall: tools.restrictToWorkspace: true or any tools.exec.sandbox makes read_file resolve the link and refuse a target outside the workspace — check both before linking; if either is on, stop and say so (never fall back to copying)"
   cron:
@@ -145,7 +145,7 @@ service manager (`gateway install-service`), or a rerun in its terminal (foregro
    empty) and record that `SOUL.md` as an `--artifact` — the record that marks the instance
    as created by this capability.
 2. **Skills**: `aos-cap skills <cap-dir>` gives the installed name; the render lives once
-   at `<aos_home>/personal/<render-path>/skills/<installed-name>/` (contract); per `used_by`,
+   at `<aos_home>/rendered/<capability>/skills/<installed-name>/` (contract); per `used_by`,
    `ln -s <render-dir> <workspace>/skills/<installed-name>` in that agent's instance. Never
    copy. Record each link with `aos-cap record … --link <linkpath>`; a `uses` grant is one
    more link into the grantee's `skills/`, recorded with `--uses-link`. Name gate: pass
@@ -219,9 +219,9 @@ There is no uninstall command — drive everything from the lockfile entry, in o
    instance (or delete in WebUI Automations); crontab-fallback lines: delete the
    `# aos:<cap>:<id>` line.
 2. Skills: delete every symlink the entry's `links` and `uses_links` list, and drop the
-   names from `agents.defaults.disabledSkills` if listed; the render dirs in
-   `<aos_home>/personal/<render-path>/skills/` are deleted via a commit (contract). Never
-   `capabilities/<id>/` of the user's own package: that is its source.
+   names from `agents.defaults.disabledSkills` if listed; the render,
+   `<aos_home>/rendered/<capability>/`, goes to the OS trash once its links are gone (`gio trash` / `trash-put`, never `rm -rf`) (contract). Never anything under
+   `personal/`: it holds the MOD and, for the user's own package, its source.
 3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks.
 4. Config keys: remove each recorded key path from `config.json` (JSON merge, diff gate).
 5. Environment variables added at install: remove after asking the user.

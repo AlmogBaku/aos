@@ -9,7 +9,7 @@ description: 'Creates a new knowledge base: interviews the user for purpose, zon
   kb-import.'
 metadata:
   aos:
-    origin: kb@0.8.1
+    origin: kb@0.8.3
 ---
 # init
 

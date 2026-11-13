@@ -11,7 +11,7 @@ description: 'Records something the user has said they must do themselves: class
   are knowledge and belong to kb-capture.'
 metadata:
   aos:
-    origin: work-tracker@0.1.4
+    origin: work-tracker@0.1.5
 ---
 # capture
 
@@ -28,7 +28,7 @@ that question routes every request into the list.
 | someone else's to answer | `waiting` | `waiting_on:` | nothing more |
 | a deadline, not hours | `next` | `due:` | a reminder, no block |
 | not now, maybe never | `someday` | — | nothing more |
-| trivial | `next` | `estimate:` | **file it anyway**; the confirmation is still only 🦜 (see below) |
+| trivial | `next` | `estimate:` | say *"that's a two-minute job — worth doing now?"* **and file it anyway** |
 
 **`status` is one of exactly those four words.** Nothing validates it, so a fifth value —
 `trivial`, `blocked`, `urgent` — is written happily and then matches none of the steward's
@@ -38,8 +38,8 @@ Trivial work is `next` with a small `estimate:`, not a status of its own.
 `someday` protects the list: without it every musing becomes a scheduled commitment, and a
 schedule the user stops trusting is worse than none.
 
-**Never block on a recommendation.** This user's confirmation is a bare 🦜, so there is no
-two-minute-job question at all — a commitment lost to a clarifying question costs more than a
+**Never block on the recommendation.** Ask about the two-minute job in the same breath as
+confirming, not instead of it — a commitment lost to a clarifying question costs more than a
 wrong estimate. If the exchange resolves it (*"yeah, done"*), file it `done` with an
 `expires:` rather than skipping the page.
 
@@ -85,25 +85,24 @@ for a later pass to guess at.
 ## Hand off
 
 Needs real hours → invoke wt-schedule, in a sub-agent where the harness has them and inline
-otherwise. Which one happened is not part of the confirmation for this user.
+otherwise. Which one happened, and whether a block was taken or there was no calendar, is
+recorded on the page (`block` present or absent) rather than said: this user's confirmation
+is the 🦜 alone, and an unblocked commitment surfaces in the steward's nightly backstop count.
 
-The user should experience one act, not two. wt-schedule comes back with the time (or with
-"no calendar"); you confirm once, with 🦜 and nothing else. The block is on their calendar for
-them to see. The only extra words ever allowed: wt-schedule's one-time *"no calendar here"*
-notice the very first time it happens, and a scheduling conflict with sacred time, which must
-be surfaced rather than resolved (wt-schedule).
+The user should experience one act, not two. wt-schedule comes back with the time; you
+confirm once — and per the user's preference below, that one confirmation is the 🦜.
 
 **How the confirmation reads is the user's call**: confirm every commitment with a single 🦜
-emoji — nothing else, ever. Never echo the commitment back: no restated title, no slot time,
-no "filed", no two-minute-job remark, no note about sub-agent vs inline. The 🦜 is the whole
-reply, including after a wt-schedule hand-off. Honour it exactly — this is the line they see
-several times a day, and it is the whole surface of an interaction whose other half is silent.
-(The one exception is a failure the user must know about — see below — never a success.)
+emoji — nothing else, ever. Never echo the commitment back, not even after wt-schedule took a
+block: the confirmation is still just 🦜 (the time is on their calendar and on the page, and
+they can ask). A sacred-time conflict wt-schedule surfaces is a question, not a confirmation,
+and still gets asked. Honour it exactly — this is the line they see several times a day, and
+it is the whole surface of an interaction whose other half is silent.
 
-**Phrasing on the page is verb-first** (*"Email Sam the deck"*, not *"Sam has the deck"*) —
-that is the `title:` and anything a list view shows. Anything with a deadline gets the
-deadline in the phrasing (*"Submit the KubeCon CFP by Fri 24 Oct"*), because that is the part
-worth seeing at a glance. The body still holds the user's own words verbatim.
+**How the page is phrased** is verb-first — *"Email Sam the deck"*, not *"Sam has the deck"* —
+in the `title:`. Anything with a deadline gets the deadline in the title too (*"Submit the
+KubeCon CFP by Fri 21 Nov"*), because that is the part worth seeing at a glance. The body
+still holds the user's own words verbatim.
 
 ## When something fails
 

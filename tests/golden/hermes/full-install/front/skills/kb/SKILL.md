@@ -9,7 +9,7 @@ description: Explains how the user's knowledge bases are laid out and which kb s
   base for a write already in hand (that is kb-route).
 metadata:
   aos:
-    origin: kb@0.8.1
+    origin: kb@0.8.3
 ---
 # kb — the base system in one page
 

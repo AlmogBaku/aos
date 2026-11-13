@@ -1,0 +1,83 @@
+# Stage 4 — Build
+
+Only after Design is approved. Materialize into
+`<aos_home>/personal/capabilities/<id>/` — the user's private repo, where their
+capabilities live until (and unless) they graduate — following the package layout
+every shipped capability uses: `CAPABILITY.md`, `README.md`, `skills/<id>/SKILL.md`
+(the entry skill) plus any further `skills/`, `agents/*.agent.yaml` for every agent
+Design named, `ONBOARDING.md` + `MOD.example.md` only as a pair, `kb/` only if it
+touches a KB. The persist hook commits it (dated message). The manifest carries the
+`depends` and `uses` rows the approved design gave each agent whose only audience is the
+user (Stage 3, *Depends*).
+
+**Every agent is declared, never described.** A piece with its own chat, identity or
+toolset is an agent: write its `agents/<id>.agent.yaml` (`workspace: own`), name it in its
+skills' `used_by` and its cron jobs' `agent`, and add a `uses` entry for each other
+capability's skill it loads. "Install into a dedicated profile" in a draft briefing means
+this file is missing — the installer places only what the manifest declares.
+
+**Split mechanism from nuance — same discipline as capability-import, in reverse.**
+Everything personal Intake captured (names, channels, hours, preferences) goes into
+the package's `ONBOARDING.md` as *questions*, and into the user's own
+`personal/capabilities/<id>/MOD.md` as their answers (overlay family — theirs, never
+shipped, never in a PR). Shippable files get the generic mechanism plus `{{mod: …}}`
+slots where nuance fills in; `MOD.example.md` gets invented placeholder answers, zero
+personal data. No real name, channel id, or personal detail may land in any file the
+package would ship.
+
+**Never installs, never opens a PR** — same invariant as capability-import. The output is a
+capability package sitting in `personal/`; installing it into the harness is the
+already-specified install flow, a separate step.
+
+Follow `capability-lifecycle`'s `reference/naming.md` for both halves of authoring: name
+every skill action-oriented and bare (the prefix is applied at install), and place
+knowledge where it will still resolve once installed — only the skill's own folder travels,
+so depth goes in its `reference/`, another skill's knowledge is reached by naming that
+skill, and anything in the household is written from a root. Run the uniqueness gate as soon
+as the package is structurally parseable — `CAPABILITY.md`, `README.md`, every declared
+skill's `SKILL.md` and every cron job's `prompt_ref` exist — and before rendering or
+materializing anything: `aos-cap --home <aos_home> skills <package-dir> --check
+--harness-skills <dir> …` (one flag per skills dir). The verb validates the manifest first, and
+the validator refuses a declaration whose README, skill folders or prompt refs are missing,
+so a gate right after `CAPABILITY.md` alone cannot run. Exit 17 means the name is taken;
+rename in the package, never at install time. References to other skills or agents are written as slots
+(`{{skill: <id>}}`, `{{agent: <id>}}`), never as computed names — the forms and the escape are
+in the same file.
+For the skill's own craft — drafting, description triggering, evals — use the
+`skill-creator` skill if it is installed; the aos rules above still win on names.
+
+Before calling it done: run the **capability-review skill** over what you built. The linter
+below validates schema — frontmatter, `used_by`, reference depth — and structurally cannot
+check whether the prose you wrote describes a tool that behaves that way, or whether the flow
+holds together. That gap is where most of this kit's recorded defects have lived. Review is
+read-only, so it costs you nothing but the reading.
+
+Then run the kit linter **against the personal root** —
+`uv run --project <aos_home>/upstream/tools/aos_lint python -m aos_lint.cli --root <aos_home>/personal` (without
+`--root` it lints the kit and reports green on a package it never opened) — the new
+package must add zero errors, and every warning it adds is resolved or justified in its
+briefing (`skill/all-main` means a role exists that nothing is scoped to) — and show the
+user the full file tree plus a one-line summary of each new file.
+
+**Then, the contribute question — judgment-gated, never reflexive.** Run the
+generality judgment (capability-lifecycle's overlay reference, "Promote and retire":
+stranger test, dependency test, coherence test, the maintenance-willingness question,
+the ledger search):
+
+- **Clearly generally useful** → ask, once: *"Want to contribute this?"* Yes →
+  duplicate the package onto a branch in `<aos_home>/upstream`, run the self-containment
+  scrub again on the copy, and continue per the capability-contribute skill's
+  contribute reference — the PR opens only on the user's explicit confirm.
+- **Clearly niche** (their org's CRM, their home server) → no prompt; one soft line:
+  *"kept in personal/ — say 'contribute it' anytime."*
+- **Borderline** → suggest a `promotion-signal` issue instead ("would others want
+  X?") — filed only on explicit yes.
+
+## Hand back
+
+Last — after the contribute question, and after the capability-install flow if the user
+ran it here. One line on what was built, then the way back to what the user was doing when
+the detector fired. Branched session: the exact command back to the original session, and
+what that session must reload to see the new skills, agents or context blocks — both from
+the cheat-sheet's `mapping.session` (`branch`). In place: restate the interrupted work in their
+words and offer to pick it up; add the reload note if something landed in the harness.

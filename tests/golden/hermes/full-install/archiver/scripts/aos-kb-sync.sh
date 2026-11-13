@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# aos:kb:sync — exec job, no model. Installed by aos kb@0.8.1.
-export AOS_HOME=<HOME>/aos/upstream/tests/.sandbox/aos-home
+# aos:kb:sync — kb@0.8.3 exec job (no model). Installed by capability-install; recorded in the aos lockfile.
 export AOS_AGENT=agent:archiver
-exec <HOME>/aos/upstream/tests/.sandbox/uv/bin/kb sync --all
+export AOS_HOME=<HOME>/aos/upstream/tests/.sandbox/aos-home
+export PATH=<HOME>/aos/upstream/tests/.sandbox/uv/bin:$PATH
+out=$(kb sync --all 2>&1) || { echo "kb sync needs attention:"; echo "$out"; exit 1; }
