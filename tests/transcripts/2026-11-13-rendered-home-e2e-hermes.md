@@ -370,7 +370,7 @@ Nothing outside the aos-* profiles was touched. The only profiles involved were 
 
 ### Removal
 
-All three capabilities are removed and the lockfile is now empty (`installs: {}`). I did them in dependency order: work-tracker first, then kb, then capability-lifecycle. Only aos-* profiles were touched. wt-steward, […] and the default profile were not changed or counted.
+All three capabilities are removed and the lockfile is now empty (`installs: {}`). I did them in dependency order: work-tracker first, then kb, then capability-lifecycle. Only aos-* profiles were touched. […] and the default profile were not changed or counted.
 
 What was removed:
 
@@ -415,8 +415,10 @@ The skills from this session stay in my context until you start a new session.
   scrubs `uid:<digits>` to `uid:<UID>` (Hermes 0.23's cron `origin.user_id`). It also skips
   `gateway.lock`, `active_sessions.{json,lock}`, `context_length_cache.yaml.lock` and
   `runtime/bot_live_delivery/`. The committed snapshot was re-normalized for the uid only.
-- One file did come in by `aos-cap render` after the run: the Hermes cheat-sheet (both
-  snapshot copies). Its renders-migration skip list gained `.curator_backups`, which the
-  read-only preview against a real household surfaced. That followed PROTOCOL's shortcut:
-  an untouched skill (`capability-onboard`) first re-rendered byte-identical, then the sheet
-  was rendered outside the household, normalized and copied in.
+- Five lifecycle files came in by `aos-cap render` after the run, each into both snapshot
+  copies (`front/` and `home/rendered/`): the Hermes and Claude Code cheat-sheets,
+  `contract.md`, and the `capability-upgrade` skill. They carry the review's follow-ups: the
+  `.curator_backups` and `file-history` skips the read-only household preview surfaced, the
+  per-hook gate, and the one-copy wording. Each followed PROTOCOL's shortcut: an untouched
+  skill (`capability-onboard`) first re-rendered byte-identical, then the files were
+  rendered outside the household, normalized and copied in.

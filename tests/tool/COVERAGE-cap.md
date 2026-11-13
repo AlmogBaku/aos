@@ -333,7 +333,7 @@ with a MOD, an own package with its source, a plugin-only entry with no artifact
 a file link, an unrecorded link, a baked path, a planted `.pyc`, outside references in a harness
 `config.yaml` and a `MOD.md`, and one in a session log.
 
-- [ ] test_plan_writes_nothing_but_the_scan_set_and_lists_every_reference — 0; tree, lockfile and `harness.yml` byte-identical; references printed `path:line` only (the scan reads harness homes, which hold keys); the session log skipped
+- [ ] test_plan_writes_nothing_but_its_state_and_lists_every_reference — 0; tree, lockfile and `harness.yml` byte-identical (the state file holds the scan set and the old renders); references printed `path:line` only (the scan reads harness homes, which hold keys); the session log skipped
 - [ ] test_a_drifted_render_is_listed_and_blocks_apply — 25; copying would make an uncaptured hand-edit the new baseline
 - [ ] test_apply_copies_repoints_and_rewrites_while_old_renders_stay — 0; every link resolves into `rendered/`, the baked path names `rendered/`, no `.pyc` copied, `verify` clean, a no-artifact entry gets its files recorded, MOD and source untouched, old renders still there
 - [ ] test_apply_rerun_after_a_crash_reaches_the_same_state — 0; a crash before the lockfile write, with one link back on the old render, converges on a rerun
@@ -345,8 +345,11 @@ a file link, an unrecorded link, a baked path, a planted `.pyc`, outside referen
 - [ ] test_a_stale_symlink_inside_a_live_render_blocks_finish — 25; a render's own absolute symlink into an old render is copied verbatim, and `--finish` scans `rendered/` for it
 - [ ] test_a_shipped_package_with_no_artifacts_is_found_from_its_link — 0; a shipped package recording only a deep link moves its subtree; its MOD stays
 - [ ] test_a_crashed_runs_temporary_link_is_swept — 0; a leftover `.<name>.aos-migrate` link is removed and the real link resolves
+- [ ] test_a_crash_after_the_lockfile_write_still_trashes_every_old_render — **PIN**; 0; the crash COMB-6 named: lockfile rewritten, `applied` never written — a re-plan keeps the saved roots, a re-run `--apply` converges, and `--finish` trashes the shipped package's old subtree
+- [ ] test_an_unlisted_spelling_is_still_caught_by_the_household_tail — 0; `"$AOS_HOME"/personal/…` and `${AOS_HOME:-…}/personal/…` are found by the detection-only tail match
+- [ ] test_a_link_inside_an_ignored_directory_blocks_finish — 25; a link into an old render inside an `--ignore`d directory is listed by the plan and blocks `--finish`
 - [ ] test_a_new_layout_household_has_nothing_to_migrate — 0; all three steps
 
 ## `migrate rendered` on a household under a symlinked path — 1
 
-- [ ] test_a_household_under_a_symlinked_path_migrates_cleanly — **PIN**; 0; artifacts are recorded resolved and link targets lexically, so drift, mapping and the lockfile rewrite compare both spellings; `verify` is clean after `--apply`
+- [ ] test_a_household_under_a_symlinked_path_migrates_cleanly — **PIN**; 0; artifacts are recorded resolved and link targets lexically, so drift, mapping and the lockfile rewrite compare both spellings; `verify` is clean after `--apply`; both `~/aos/…` and `$HOME/real-aos/…` spellings are found on every run, and block `--finish`

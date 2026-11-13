@@ -2034,7 +2034,7 @@ class MigrateTest(unittest.TestCase):
         mod = self.home / "personal" / "capabilities" / "owncap" / "MOD.md"
         mod.write_text(mod.read_text().replace("personal/renders/owncap", "rendered/owncap"))
 
-    def test_plan_writes_nothing_but_the_scan_set_and_lists_every_reference(self):
+    def test_plan_writes_nothing_but_its_state_and_lists_every_reference(self):
         before = (tree_bytes(self.home / "personal"), tree_bytes(self.hz),
                   self.lock.read_bytes(), (self.home / ".aos" / "harness.yml").read_bytes())
         r = self.mig()
@@ -2201,6 +2201,40 @@ class MigrateTest(unittest.TestCase):
         self.assertFalse(stale.is_symlink())
         self.assertTrue(self.links["ship"][0].exists())
 
+    def test_a_crash_after_the_lockfile_write_still_trashes_every_old_render(self):
+        # PIN: a crash between the lockfile rewrite and the state's `applied` used to let a
+        # re-derivation drop every shipped package: the lockfile names only new paths.
+        self.mig()
+        self.assertEqual(self.mig("--apply").returncode, 0)
+        st = self.home / ".aos" / "migrate-rendered.yaml"
+        state = yaml.safe_load(st.read_text())
+        state.pop("applied")
+        st.write_text(yaml.safe_dump(state))
+        self.assertIn("shipcap", self.mig().stdout)  # a re-plan keeps the saved roots
+        self.assertEqual(self.mig("--apply").returncode, 0)
+        self.fix_outside_references()
+        r = self.mig("--finish")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertFalse((self.home / "personal/capabilities/shipcap/skills").exists())
+
+    def test_an_unlisted_spelling_is_still_caught_by_the_household_tail(self):
+        # Quoted and default-expansion forms cannot all be listed; the tail is detection-only.
+        (self.hz / "wrap.sh").write_text('exec "$AOS_HOME"/personal/renders/owncap/x.sh\n'
+                                         'exec ${AOS_HOME:-$HOME/aos}/personal/renders/owncap/y\n')
+        r = self.mig()
+        self.assertIn(f"{self.hz / 'wrap.sh'}:1", r.stdout)
+        self.assertIn(f"{self.hz / 'wrap.sh'}:2", r.stdout)
+
+    def test_a_link_inside_an_ignored_directory_blocks_finish(self):
+        (self.hz / "sessions" / "pin").symlink_to(self.links["own"][1])
+        r = self.mig("--ignore", "sessions")
+        self.assertIn("1 inside --ignore'd directories", r.stdout)
+        self.mig("--apply")
+        self.fix_outside_references()
+        r = self.mig("--finish")
+        self.assertEqual(r.returncode, 25)
+        self.assertIn(f"LINK {self.hz / 'sessions' / 'pin'}", r.stdout)
+
     def test_a_new_layout_household_has_nothing_to_migrate(self):
         fresh = self.root / "fresh"
         run(["--home", str(fresh), "init"])
@@ -2231,7 +2265,13 @@ class SymlinkedHouseholdMigrateTest(unittest.TestCase):
                    env_extra={"HOME": str(self.root)})
 
     def test_a_household_under_a_symlinked_path_migrates_cleanly(self):
+        # PIN: both $HOME-relative spellings of a symlinked household must be found on
+        # every run — a set-ordered lookup found one of them at random.
+        (self.hz / "cron.sh").write_text("exec ~/aos/personal/renders/owncap/a\n"
+                                         "exec $HOME/real-aos/personal/renders/owncap/b\n")
         r = self.mig()
+        self.assertIn(f"{self.hz / 'cron.sh'}:1", r.stdout)
+        self.assertIn(f"{self.hz / 'cron.sh'}:2", r.stdout)
         self.assertIn("(0) — --apply refuses", r.stdout, r.stdout)
         self.assertEqual(self.mig("--apply").returncode, 0)
         v = run(["--home", str(self.home), "verify"], env_extra={"HOME": str(self.root)})
@@ -2239,6 +2279,7 @@ class SymlinkedHouseholdMigrateTest(unittest.TestCase):
         lock = (self.home / ".aos" / "installs.lock.yaml").read_text()
         self.assertNotIn("personal/renders", lock)
         self.assertNotIn("personal/capabilities/shipcap/skills", lock)
+        self.assertEqual(self.mig("--finish").returncode, 25, "cron.sh still names the old render")
 
 
 class ToolIdentityTest(unittest.TestCase):

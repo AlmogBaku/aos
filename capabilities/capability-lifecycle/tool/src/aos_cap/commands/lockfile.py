@@ -110,10 +110,11 @@ def _abs(path: str) -> str:
 def _refuse_staging(root: Path, paths: list[str]) -> None:
     """A staged render is not installed yet: `aos-cap swap` moves it to `rendered/<id>`, so
     a recorded `.staging` path would be MISSING the moment the gate is approved."""
-    staging = os.path.normpath(str(staging_root(root).absolute()))
+    stagings = {os.path.normpath(str(staging_root(root).absolute())),
+                os.path.normpath(str(staging_root(root).resolve()))}
     for path in paths:
-        if path == staging or path.startswith(staging + os.sep):
-            fail(Exit.WRONG_PLACE, f"{path} is inside {staging} — record the live render "
+        if any(path == s or path.startswith(s + os.sep) for s in stagings):
+            fail(Exit.WRONG_PLACE, f"{path} is inside the staging area — record the live render "
                                    f"(after `aos-cap swap`), never a staged one")
 
 

@@ -54,7 +54,7 @@ the overlay doctrine, and the Experience rules. Then:
    `reference/overlay.md`, Which MOD.md).
 7. Render into staging, then transform: `aos-cap render <dir> <skill-id> --out
    <aos_home>/rendered/.staging/<id>/skills` per declared skill, plus any other subtree the
-   briefing pins (`adapters/`, say) copied to `rendered/.staging/<id>/` — mechanical:
+   briefing pins (`adapters/`, say, leaving `__pycache__` and `*.pyc` behind) copied to `rendered/.staging/<id>/` — mechanical:
    installed name, frontmatter `name`, `metadata.aos.origin`. Then the transform per the
    `capability-lifecycle` skill's `reference/overlay.md`, against this capability's MOD.md
    (Which MOD.md): fill `{{mod}}` slots, weave its prose statements, bake `<aos_home>` — and a

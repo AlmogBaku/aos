@@ -32,9 +32,12 @@ the live render against the staged one, and only `aos-cap swap` puts a render li
    `personal/`:
    1. **Plan.** `aos-cap migrate rendered --scan <harness home>…` with each harness home
       and each `--ignore` glob of its skip list the cheat-sheet names. It writes nothing
-      but the scan set it holds the next two steps to. Show the user the whole plan —
+      but its state — the scan set and the old renders — which the next two steps read. Show the user the whole plan —
       moves, link re-points, the text the copy rewrites, drift, outside references — and
       get approval. Fold any drift first (step 3a); `--apply` refuses while any remains.
+      A recorded link that is missing or re-pointed may be the user's own change — a skill
+      taken back from a profile others can reach. Ask before re-creating it; the other fix
+      is to re-record the entry without it.
    2. **Apply.** First pause any agent whose hook compares paths (a command wall), and
       wait out a live guest session on it: between this step and the hook switch, its
       walls would refuse legitimate work. Then `aos-cap migrate rendered --apply`. It copies
@@ -81,7 +84,7 @@ the live render against the staged one, and only `aos-cap swap` puts a render li
    c. **Re-render into staging.** A `.staging/<id>` left by an abandoned gate goes first:
       `aos-cap discard <id>`. Then `aos-cap render <dir> <skill-id> --out
       <aos_home>/rendered/.staging/<id>/skills` per declared skill, plus any other subtree the
-      briefing pins (`adapters/`, say). Then apply fresh upstream × this capability's MOD.md
+      briefing pins (`adapters/`, say, leaving `__pycache__` and `*.pyc` behind). Then apply fresh upstream × this capability's MOD.md
       (the `capability-lifecycle` skill's `reference/overlay.md`, Which MOD.md) — the same
       transform as install, household rules included — to the staged copy. Interview only
       new or `re_ask` questions. A household path you bake names `rendered/<id>/`, never

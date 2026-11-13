@@ -57,15 +57,35 @@ def _rel(path: Path, root: Path) -> Optional[Path]:
     """`path` relative to `root`, or None. Compared both lexically and resolved: the
     lockfile records artifacts resolved but link targets lexically, so a household under
     a symlinked path has both spellings of one location in a single entry."""
-    for p in {path, path.resolve()}:
-        for r in {root, root.resolve()}:
-            if p == r or r in p.parents:
-                return p.relative_to(r)
+    # Fixed order, lexical first — never a set: a set's order follows string hashing, which
+    # varies per process, and a caller that keeps only the first match would then pick a
+    # different spelling on every run.
+    for p, r in ((path, root), (path, root.resolve()),
+                 (path.resolve(), root), (path.resolve(), root.resolve())):
+        if p == r or r in p.parents:
+            return p.relative_to(r)
     return None
 
 
 def _under(path: Path, roots) -> bool:
     return any(_rel(path, r) is not None for r in roots)
+
+
+def _tails(home: Path, pairs: list[tuple[Path, Path]]) -> list[re.Pattern]:
+    """Detection only, never rewrite: each old render's household-relative tail
+    (`personal/renders/foo`, `personal/capabilities/bar/skills`), behind any prefix at all.
+    It catches the spellings no list can enumerate — `"$AOS_HOME"/personal/…`,
+    `${AOS_HOME:-$HOME/aos}/personal/…` — so --finish cannot trash a render a script still
+    names. A false positive here only blocks."""
+    out = []
+    for old, _ in pairs:
+        for base in (home, home.resolve()):
+            rel = _rel(old, base)
+            if rel is not None:
+                out.append(re.compile(f"(?<!{PATH_CHARS})" + re.escape(os.fspath(rel))
+                                      + f"(?!{PATH_CHARS})"))
+                break
+    return out
 
 
 def _map(path: Path, pairs: list[tuple[Path, Path]]) -> Optional[Path]:
@@ -132,11 +152,14 @@ def _prefixes(home: Path, pairs: list[tuple[Path, Path]]) -> list[tuple[re.Patte
         spellings = {(os.fspath(old), os.fspath(new))}
         if old.resolve() != old:
             spellings.add((os.fspath(old.resolve()), os.fspath(new.resolve())))
-        rel_h = _rel(old, home_dir)
-        if rel_h is not None:
-            rel_new = _rel(new, home_dir) or rel_h
-            for pre in ("~/", "$HOME/", "${HOME}/"):
-                spellings.add((pre + os.fspath(rel_h), pre + os.fspath(rel_new)))
+        # Every distinct $HOME-relative spelling — lexical and resolved — not just the first:
+        # a household at `~/aos -> ~/real-aos` is written both ways.
+        for o_abs, n_abs in ((old, new), (old.resolve(), new.resolve())):
+            if home_dir in o_abs.parents:
+                rel_o = o_abs.relative_to(home_dir)
+                rel_n = n_abs.relative_to(home_dir) if home_dir in n_abs.parents else rel_o
+                for pre in ("~/", "$HOME/", "${HOME}/"):
+                    spellings.add((pre + os.fspath(rel_o), pre + os.fspath(rel_n)))
         rel_a, rel_an = _rel(old, home), _rel(new, home)
         if rel_a is not None and rel_an is not None:
             for pre in ("$AOS_HOME/", "${AOS_HOME}/", "<aos_home>/"):
@@ -235,11 +258,12 @@ def _scan(home: Path, lock: dict, roots: dict, scan: list[Path], ignore: list[st
     # One alternation, tried once per file before any line is: a household has dozens of
     # render roots times several spellings, and testing each line against every pattern
     # separately made a scan of a real harness home take many minutes.
-    detect = re.compile("|".join(f"(?:{rx.pattern})" for rx, _ in subs)) if subs else None
+    pats = [rx.pattern for rx, _ in subs] + [rx.pattern for rx in _tails(home, all_pairs)]
+    detect = re.compile("|".join(f"(?:{p})" for p in pats)) if pats else None
     own_caps = {c for c in lock["installs"] if _own(home, c)}
     personal = home / "personal"
     refs, links, seen = [], {}, set()
-    dangling, in_ignored, into_personal = [], 0, []
+    dangling, in_ignored, into_personal = [], [], []
     for top in scan:
         for p, ign in _walk(top, ignore, olds):
             if p in seen:
@@ -249,7 +273,7 @@ def _scan(home: Path, lock: dict, roots: dict, scan: list[Path], ignore: list[st
                 t = Path(os.path.normpath(os.path.join(os.fspath(p.parent), os.readlink(p))))
                 if _under(t, olds):
                     if ign:
-                        in_ignored += 1
+                        in_ignored.append((p, t))
                     elif not t.exists():
                         dangling.append((p, t))
                     else:
@@ -265,11 +289,17 @@ def _scan(home: Path, lock: dict, roots: dict, scan: list[Path], ignore: list[st
             for n, line in enumerate(text.splitlines(), 1):
                 if detect.search(line):
                     refs.append((p, n, _owner(p, home, own_caps)))
+    recorded = set()
     for entry in lock["installs"].values():
         for link, target in {**(entry.get("links") or {}), **(entry.get("uses_links") or {})}.items():
+            recorded.add(Path(link))
             t = Path(target)
             if _under(t, olds) and Path(link) not in dict(dangling):
                 links.setdefault(Path(link), t)
+    # A recorded link is the lockfile's to judge (re-pointed, or drift in _dirty): never also
+    # counted as an unrecorded dangling one or as one left alone in an ignored directory.
+    dangling = [(l, t) for l, t in dangling if l not in recorded]
+    in_ignored = [(l, t) for l, t in in_ignored if l not in recorded]
     return refs, links, dangling, in_ignored, into_personal
 
 
@@ -289,7 +319,8 @@ def _git_status(personal: Path, rels: list[str], ignored: bool) -> tuple[Optiona
     except OSError as err:
         return None, f"git could not run ({err})"
     if r.returncode != 0:
-        return None, f"git status failed ({(r.stderr or '').strip().splitlines()[:1]})"
+        first = ((r.stderr or "").strip().splitlines() or ["no message"])[0]
+        return None, f"git status failed: {first}"
     return r.stdout.splitlines(), ""
 
 
@@ -424,6 +455,13 @@ def cmd_rendered(
     # silently lose every shipped package from the migration.
     if step == "plan" and not applied:
         roots = _old_roots(home, lock)
+        # A re-plan never narrows what an earlier plan found: after a crash between the
+        # lockfile write and the state write, the lockfile no longer names the shipped
+        # packages' old subtrees, but they are still on disk and still to be trashed.
+        for cap, prs in _roots_of(st or {}).items():
+            have = {o for o, _ in roots.get(cap, [])}
+            roots.setdefault(cap, []).extend((o, n) for o, n in prs if o not in have and o.exists())
+        roots = {c: prs for c, prs in roots.items() if prs}
         if not roots:
             _nothing()
         dirs = [Path(d) for d in sorted({os.fspath(home / "personal"),
@@ -467,8 +505,11 @@ def cmd_rendered(
         print(f"\n## links re-pointed ({len(links)})")
         for link, target in sorted(links.items()):
             print(f"  {link}: {target} -> {_map(target, all_pairs)}")
-        print(f"\n## links into old renders left alone: {len(dangling)} dangling (listed under "
-              f"drift), {in_ignored} inside --ignore'd directories")
+        print(f"\n## links into old renders the move cannot re-point: {len(dangling)} dangling "
+              f"(listed under drift), {len(in_ignored)} inside --ignore'd directories "
+              f"(--finish refuses while any remain)")
+        for link, target in sorted(in_ignored):
+            print(f"  {link} -> {target}")
         print(f"\n## links into personal/ outside any render, left alone ({len(into_personal)})")
         for link, target in sorted(into_personal):
             print(f"  {link} -> {target}")
@@ -520,9 +561,10 @@ def cmd_rendered(
         if dirty:
             for line in dirty:
                 print(line)
-            fail(Exit.MIGRATE_BLOCKED, f"{len(dirty)} problem(s) — fold drift into MOD.md, "
-                                       f"restore or re-link by the lockfile, commit or remove "
-                                       f"uncommitted files, then plan again")
+            fail(Exit.MIGRATE_BLOCKED, f"{len(dirty)} problem(s) — fold drift into MOD.md; for a "
+                                       f"changed link ask the user, then re-link it by the "
+                                       f"lockfile or re-record the entry without it; commit or "
+                                       f"remove uncommitted files; then plan again")
         ensure_rendered_root(home)
         work = rendered_root(home) / MIGRATING
         # 1. copy, each subtree via a scratch dir and one rename, so a crash mid-copy leaves
@@ -574,7 +616,8 @@ def cmd_rendered(
                     # so the copy (rewritten or not) is the new baseline.
                     arts[os.fspath(dest)] = sha256(dest)
             for old, new in roots.get(cap, []):
-                for f in (p for p in new.rglob("*") if p.is_file() and not p.is_symlink()):
+                for f in (p for p in new.rglob("*") if p.is_file() and not p.is_symlink()
+                          and "__pycache__" not in p.parts and p.suffix != ".pyc"):
                     arts.setdefault(os.fspath(f), sha256(f))
             entry["artifacts"] = arts
             for key in ("links", "uses_links"):
@@ -597,14 +640,14 @@ def cmd_rendered(
         return
 
     # finish
-    if refs or links or dangling:
+    if refs or links or dangling or in_ignored:
         for p, n, owner in refs:
             print(f"  {p}:{n}  [{owner}]")
-        for link, target in sorted(links.items()) + sorted(dangling):
+        for link, target in sorted(links.items()) + sorted(dangling) + sorted(in_ignored):
             print(f"  LINK {link} -> {target}")
         fail(Exit.MIGRATE_BLOCKED, f"{len(refs)} outside reference(s) and "
-                                   f"{len(links) + len(dangling)} link(s) still name an old "
-                                   f"render — nothing was trashed")
+                                   f"{len(links) + len(dangling) + len(in_ignored)} link(s) still "
+                                   f"name an old render — nothing was trashed")
     if not applied:
         fail(Exit.MIGRATE_BLOCKED, "run `aos-cap migrate rendered --apply` first")
     for old, new in all_pairs:
