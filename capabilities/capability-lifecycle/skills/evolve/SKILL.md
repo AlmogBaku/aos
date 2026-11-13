@@ -30,7 +30,10 @@ appended record (the `capability-lifecycle` skill's `reference/overlay.md`).
      and hand over — nothing lands in MOD.
 3. Write the MOD.md change **first** (the `capability-lifecycle` skill's
    `reference/overlay.md`, Capture and fold —
-   the MOD statement lands before anything depends on it), then apply to the pinned render in `personal/capabilities/<id>/` (and any native
+   the MOD statement lands before anything depends on it), then apply to the render: seed
+   `<aos_home>/rendered/.staging/<id>/` with a copy of the live `rendered/<id>/` (leaving
+   bytecode behind), apply the change there, and gate it like any re-render — the diff of
+   live against staged, then `aos-cap swap <id>` or `aos-cap discard <id>` (and any native
    artifacts per the cheat-sheet — the `capability-lifecycle` skill's
    `reference/harness-<harness-runtime>.md`, load it now; native
    edit verbs where they exist), through the STAGE→GATE→EXECUTE phases.

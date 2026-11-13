@@ -78,8 +78,9 @@ SKIP = {
     # The household's kit clone. It is upstream's own tree, not anything an install produced —
     # recording it would snapshot this repo inside itself (2.7MB, including the lint selftest's
     # PLANTED violations, which then fail the linter on the copy). What the snapshot must prove
-    # about upstream is that renders point INTO personal/, which the links and lockfile already
-    # say. Excluded deliberately, and the pre-2026-07-29 snapshots did the same.
+    # about upstream is that renders point INTO rendered/, which the links and lockfile already
+    # say. (`rendered/` itself IS recorded: it is what the install produced. Its `.staging/`
+    # is deliberately not skipped — check.py fails a non-empty one, an abandoned gate.) Excluded deliberately, and the pre-2026-07-29 snapshots did the same.
     "upstream",
     # …and the vendor clone, for the same reason plus one: it is a THIRD PARTY's repo, cloned by
     # reference and never rendered (§2.1), so it is neither ours to commit nor ours to normalize

@@ -16,10 +16,44 @@ Verbs: `manifest <dir>` · `skills <dir> [--check] [--harness-skills DIR]× [--j
 `render <dir> <skill-id> --out DIR [--force]` · `init` ·
 `record <cap> --version … --source-root upstream|personal|<org> --artifact …× --link …× --uses-link …× --job …× --config-key …× --env-line …× --script …×` ·
 `rehash <cap>` (refresh recorded hashes in place) · `verify [<cap>]` · `show <cap>` ·
-`list` · `remove <cap>` · `harness set <runtime> [--source PATH] [--sheet PATH]` · `harness show`. Household discovery: `--home` > `$AOS_HOME` > `~/aos`. Exit codes: 0 ok · 1 generic (init over an existing lockfile) · 12 manifest
+`list` · `remove <cap>` · `harness set <runtime> [--source PATH] [--sheet PATH]` · `harness show` ·
+`swap <cap>` · `discard <cap>` · `migrate rendered [--apply|--finish] [--scan DIR]× [--ignore GLOB]×`. Household discovery: `--home` > `$AOS_HOME` > `~/aos`. Exit codes: 0 ok · 1 generic (init over an existing lockfile) · 12 manifest
 invalid · 13 drift · 14 no such entry · 15 no home · 16 artifact missing / not a symlink ·
 17 skill- or agent-name collision · 18 unresolvable `{{skill:}}`/`{{agent:}}` slot ·
-19 a link another entry already records · 20 no harness recorded.
+19 a link another entry already records · 20 no harness recorded · 21 not a capability id,
+or a symlinked render directory · 22 nothing staged · 23 the staged render bakes its own
+staging path or drops a linked target · 24 a path the layout forbids there · 25 migrate
+refused · 26 an interrupted swap was put back.
+
+## The rendered tree — `swap`, `discard`, `migrate rendered`
+
+Every render lives at `<aos_home>/rendered/<id>/`: unversioned, machine-local build output,
+and every harness link points into it. Inside the household, `render` writes only under
+`rendered/.staging/` (exit **24** otherwise, checked on the resolved path; an `--out` outside
+the household stays allowed). `record` and `rehash` refuse a staged path (**24**).
+
+- `swap <id>` puts the staged render live. The live one is renamed to
+  `rendered/.replaced/<id>`, the staged one renamed in, and the replaced one sent to the OS
+  trash (`send2trash`), so a link into `rendered/<id>` never points at nothing for longer than
+  one rename. It refuses, without moving anything:
+  - an id outside the kit's name grammar, or a symlinked directory (**21**);
+  - nothing staged (**22**);
+  - a staged file that names its own `.staging/<id>` path, or a staged tree missing a
+    recorded link target (**23**).
+
+  A `.replaced/<id>` left by a crash is trashed when a live render exists, and put back live
+  (**26**) when none does.
+- `discard <id>` sends the staged render to the trash; the live one is untouched.
+- `migrate rendered` moves a pre-0.7.0 household's renders out of `personal/` in three
+  steps, the old paths resolving until the last:
+  - the plan writes nothing but its scan set, `.aos/migrate-rendered.yaml`;
+  - `--apply` copies (no bytecode; old paths rewritten in UTF-8 text only), re-points every
+    link, and rewrites the lockfile and `harness.yml`, recording every moved file;
+  - `--finish` refuses (**25**) while any outside reference or link still names an old
+    render, then trashes them.
+
+  `--apply` refuses (**25**) while a render has drift or uncommitted changes. References
+  are printed as `path:line` only: the scan reads harness homes, which hold keys.
 
 ## The harness record
 
@@ -103,8 +137,8 @@ resolve `personal/` first then `upstream/` — a shadowed id is reported, never 
 `{{mod: …}}` slots are untouched by all of this: the agentic transform owns them.
 
 Lockfile entry fields (written only by `record`): `version`, `source_root` (which
-household root shipped the capability), `artifacts` (path → sha256 — the pinned-render
-files and native artifacts), `links` (harness symlink path → target, read from the link
+household root shipped the capability), `artifacts` (path → sha256 — the render
+files under `rendered/<id>/` and native artifacts), `links` (harness symlink path → target, read from the link
 itself; `verify` flags MISSING/RELINKED/DANGLING links), `uses_links` (the same shape, for
 another capability's skill this capability's `uses` linked into one of its agents — kept
 apart because `links` basenames are name claims and these are not), `cron_owned` (job ids),

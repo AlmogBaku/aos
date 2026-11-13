@@ -1,16 +1,16 @@
 ---
 name: upgrade
-description: "Upgrades installed aos capabilities by folding the user's uncaptured hand-edits into their MOD.md and re-applying it to fresh upstream, diff-gated, one reviewable commit per render. Use when the user says \"update\" or \"upgrade\" — the whole kit or one capability — or after a git pull of the aos upstream clone. Do NOT use for a capability that is not installed yet (that is capability-install) or to change what a capability does for this user (capability-evolve); this skill preserves existing personalization rather than adding any."
+description: "Upgrades installed aos capabilities by folding the user's uncaptured hand-edits into their MOD.md and re-applying it to fresh upstream, diff-gated before each render goes live. Use when the user says \"update\" or \"upgrade\" — the whole kit or one capability — or after a git pull of the aos upstream clone. Do NOT use for a capability that is not installed yet (that is capability-install) or to change what a capability does for this user (capability-evolve); this skill preserves existing personalization rather than adding any."
 ---
 
 # capability-upgrade
 
 Not in context yet? Load the `capability-lifecycle` skill first — the map, the
 contract, the overlay doctrine, and the Experience rules. The model: **MOD.md states
-the user's deltas; upgrade = re-apply them to fresh upstream, into `personal/`'s
-working tree.**
-The current install is a drift source, never a merge input; the review gate is a git
-diff in the user's own repo.
+the user's deltas; upgrade = re-apply them to fresh upstream, into
+`<aos_home>/rendered/.staging/<id>/`.**
+The current install is a drift source, never a merge input; the review gate is a diff of
+the live render against the staged one, and only `aos-cap swap` puts a render live.
 
 1. Scope: the named capability, else every entry in `aos-cap list`.
 2. Kit-wide: pull `<aos_home>/upstream` from the canonical remote (`git pull
@@ -25,6 +25,36 @@ diff in the user's own repo.
    skills come along: for each recorded link into `<aos_home>/vendor`, `git -C <vendor-clone>
    pull --ff-only` (or the harness's plugin update), then re-`record` so the hashes match.
    Offline or a dirty clone → say so and continue; a stale reference is never a blocker.
+   **Renders still in `personal/`** (a household from before capability-lifecycle 0.7.0:
+   `aos-cap migrate rendered` lists moves) → upgrade `capability-lifecycle` alone first,
+   with the skill you have, then reload this skill and run the migration before anything
+   else — every later render goes to `rendered/`, and the tool refuses an `--out` under
+   `personal/`:
+   1. **Plan.** `aos-cap migrate rendered --scan <harness home>…` with each harness home
+      and each `--ignore` glob of its skip list the cheat-sheet names. It writes nothing
+      but the scan set it holds the next two steps to. Show the user the whole plan —
+      moves, link re-points, the text the copy rewrites, drift, outside references — and
+      get approval. Fold any drift first (step 3a); `--apply` refuses while any remains.
+   2. **Apply.** First pause any agent whose hook compares paths (a command wall), and
+      wait out a live guest session on it: between this step and the hook switch, its
+      walls would refuse legitimate work. Then `aos-cap migrate rendered --apply`. It copies
+      each render, re-points every link and rewrites the lockfile. The old renders stay in
+      place, so every old path still resolves.
+   3. **Fix each outside reference through its owner.** A `MOD.md` answer goes through
+      {{skill: evolve}}. One of the user's own packages that bakes the path gets the edit in
+      its source, then a re-render through staging and the gate. A harness file is changed
+      only with the harness's own CLI: a hook is re-approved by its new exact command
+      before the config points at it, then checked, then the old approval revoked (the
+      cheat-sheet's order). Change hooks last, once their scripts are final.
+   4. **Prove the gates before anything old goes.** Run every security plugin's and
+      wall's own synthetic check against the new copies. Restart the harness, with the
+      user's go-ahead, once its work is idle, and confirm each plugin loaded from its
+      re-pointed link (the cheat-sheet's check). On any failure, re-point that link back:
+      its old render is still there.
+   5. **Finish.** `aos-cap migrate rendered --finish` refuses while anything still names
+      an old render path or links into one, and otherwise sends the old renders to the
+      trash. Resume what you paused, then commit `personal/` (dated message) — the
+      renders' removal from it is that commit.
 3. Per capability needing work:
    a. `aos-cap verify <id>` — two classes, two responses. *Artifact drift*
       (a render file's hash changed = the user's hand-edit) → fold each into
@@ -46,34 +76,23 @@ diff in the user's own repo.
       --check` — same flat namespace, same exit 17, same never-rename-locally. It checks
       two of three sources and names the third (agents already in the harness — no
       enumeration yet) in capitals.
-   c. **First, before `--force` touches anything**: `git -C <aos_home>/personal status
-      --porcelain -- <render-path>` (`capabilities/<id>` for a shipped package,
-      `renders/<id>` for the user's own — contract). `--force` re-render is `rmtree` then `copytree`, so a
-      pre-existing **untracked** file of the user's under that directory is gone with no commit
-      to recover it from — and `aos-cap verify` cannot warn you, because it is add-blind (an
-      extra file inside a recorded render reports `clean`). Name any `??` entry to the user and
-      get a decision before proceeding; a tracked file is safe (the diff in step d shows it).
-      Then re-render: `aos-cap render <dir> <skill-id> --out
-      <aos_home>/personal/<render-path>/skills --force` per declared skill, then fresh
-      upstream × this capability's MOD.md (the `capability-lifecycle` skill's `reference/overlay.md`,
-      Which MOD.md) — the same
-      transform as install, household rules included, written
-      into `personal/`'s working tree; interview only new or `re_ask` questions. A skill
-      whose installed name changed leaves its old render directory behind: delete it in the
-      same commit, so the diff shows the rename as one move. Then STAGE any native-plan
-      changes per the cheat-sheet (load it now if not in context).
-   d. GATE: stage this capability, then diff it — `git -C <aos_home>/personal add
-      -A -- <render-path>` then `git -C <aos_home>/personal diff --staged --
-      <render-path>` — the old render vs the new, per file, **including files the
-      re-render added** (a bare `git diff` hides them) — plus the native plan. Approve
-      → commit (dated message). Decline → `git -C <aos_home>/personal restore --staged
-      --worktree -- <render-path>`, then `git -C <aos_home>/personal clean -fd --
-      <render-path>` as belt-and-braces (restore already removes the staged
-      additions; clean catches anything staging missed), stop. Keep every command
-      path-scoped: unscoped staging or resetting would capture — or destroy —
-      unrelated work elsewhere in `personal/`. (The untracked-file check is step c's, because
-      by this point `--force` has already run — a warning here would name a file that no
-      longer exists.)
+   c. **Re-render into staging.** A `.staging/<id>` left by an abandoned gate goes first:
+      `aos-cap discard <id>`. Then `aos-cap render <dir> <skill-id> --out
+      <aos_home>/rendered/.staging/<id>/skills` per declared skill, plus any other subtree the
+      briefing pins (`adapters/`, say). Then apply fresh upstream × this capability's MOD.md
+      (the `capability-lifecycle` skill's `reference/overlay.md`, Which MOD.md) — the same
+      transform as install, household rules included — to the staged copy. Interview only
+      new or `re_ask` questions. A household path you bake names `rendered/<id>/`, never
+      `.staging/`. A skill whose installed name changed is simply absent from the staged
+      tree, and the gate shows it as removed. Then STAGE any native-plan changes per the
+      cheat-sheet (load it now if not in context).
+   d. GATE: `diff -ruN -x __pycache__ -x '*.pyc' <aos_home>/rendered/<id>
+      <aos_home>/rendered/.staging/<id>` — the live render against the staged one, per
+      file. It shows files the re-render added and files it dropped, including any file
+      the user added by hand inside the live render. Bytecode is left out: a live render
+      grows it as it runs. Show it with the native plan. Approve → `aos-cap swap <id>`: the
+      staged render goes live and the old one goes to the OS trash. Decline →
+      `aos-cap discard <id>`, and stop; the live render is untouched.
    e. **Re-install the capability's own tool if it ships one**, before recording:
       `uv tool install --force --from <dir>/tool <package>`. Nothing else in this flow updates
       a binary, and `uv` will otherwise serve whatever it has cached — so an upgrade that
@@ -90,8 +109,8 @@ diff in the user's own repo.
       this capability's render are that entry's: never touch them. A link this entry
       records that another capability's `uses` now declares moves to that capability:
       re-record this entry without it first, then the other with `--uses-link` (exit 19
-      enforces the order). Then EXECUTE the native plan (links usually survive re-render
-      untouched — verify, don't assume); a hook whose command or script changed must be
+      enforces the order). Then EXECUTE the native plan (links survive a swap
+      untouched, because the path is the same — verify, don't assume); a hook whose command or script changed must be
       re-approved and re-verified per the cheat-sheet — the consent was for the old one.
       `aos-cap record <id>` with the full updated set
       (start from `aos-cap show` — `record` replaces the entry wholesale, never call it

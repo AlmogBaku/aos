@@ -73,7 +73,8 @@ home: `--home`/`AOS_HOME`, else `~/aos` (not your home directory):
 ```text
 ~/aos/
 ├── upstream/    # the kit clone — pristine; nothing personal ever lands here
-├── personal/    # your ONE private repo: answers, rendered skills, private capabilities
+├── personal/    # your ONE private repo: answers, private capabilities
+├── rendered/    # every installed capability's render — build output, never committed
 ├── vendor/      # third-party skills the kit references rather than ships (on demand)
 └── .aos/        # machine-local state: the lockfile, the harness record, the kb principal list
 ```
@@ -85,12 +86,14 @@ remote; only `.aos/` is machine-local. The split is what lets one clone serve bo
 contribute, so a branch cut from it is clean by construction — change it only for what
 belongs to everybody ([CONTRIBUTING](../CONTRIBUTING.md)).
 
-**Renders are pinned, and harnesses link to them.** Installing doesn't copy a skill into
-your harness. Filling a skill's `{{mod}}` slots with your answers is a judgment call, not a
-substitution, so the result is written once into `personal/` and committed — that commit
-*is* the render's record, an upgrade reviews as a git diff, and rollback is `git revert`.
-Your harness then symlinks to that one canonical copy. No second source of truth, and
-nothing to reconcile when you edit the render by hand.
+**Renders live in `rendered/`, and harnesses link to them.** Installing doesn't copy a
+skill into your harness. Filling a skill's `{{mod}}` slots with your answers is a judgment
+call, not a substitution, so every render is staged first and waits at a gate — a diff of
+what is live against what would replace it — and only then swapped live; the replaced one
+goes to your trash. It is build output, so it stays out of your `personal/` repo, which
+holds only what you wrote. Your harness symlinks to that one canonical copy. No second
+source of truth, and nothing to reconcile when you edit the render by hand: the lockfile's
+hashes notice, and your agent folds the edit into your answers.
 
 ## The overlay — why upgrades can't eat your personalization
 
@@ -322,9 +325,10 @@ it. Four mechanisms keep it honest:
   never by the model. Removal walks it backwards; no record, no artifact. And your
   `MOD.md` *states what you changed*: upgrades re-apply it to fresh upstream, and the evolve skill
   writes your changes into it so they survive.
-- **One render, linked.** What the installer writes is a render committed in `personal/`;
-  what your harness gets is a symlink to it. Copies are refused, so "what is installed" has
-  exactly one answer, and the safety net for all of it is your `personal/` git history.
+- **One render, linked.** What the installer writes is a render in `rendered/`; what your
+  harness gets is a symlink to it. Copies are refused, so "what is installed" has exactly
+  one answer. The safety net is the gate before every swap, the trash after it, and your
+  `personal/` git history for everything you wrote.
 
 A skill the kit doesn't own is referenced, never vendored in: `capability-lifecycle` keeps
 Anthropic's [`skill-creator`](https://github.com/anthropics/skills) under `vendor/` (or via
@@ -361,7 +365,7 @@ is. When building reveals the spec is wrong, the spec gets fixed — the
 |---|---|
 | **harness** | The agent product you already run (Hermes, NanoClaw, OpenClaw, …) |
 | **harness runtime** | The program hosting your agent — names its cheat-sheet; recorded once in `.aos/harness.yml` by `aos-cap harness set` (see BOOTSTRAP.md) |
-| **household** | `~/aos` — the one directory aos lives in: `upstream/`, `personal/`, `vendor/`, `.aos/` |
+| **household** | `~/aos` — the one directory aos lives in: `upstream/`, `personal/`, `rendered/`, `vendor/`, `.aos/` |
 | **distribution / instance** | `upstream/` (and future org roots) ship capabilities; `personal/` is *your* instance of them |
 | **capability** | An installable directory of skills/agents/tools/crons/patches |
 | **entry skill** | `skills/<id>/` — the capability's runtime face and map |
@@ -369,7 +373,7 @@ is. When building reveals the spec is wrong, the spec gets fixed — the
 | **overlay** | Your `MOD.md` files; user-owned, never shipped |
 | **base** | One KB instance == one git repo, registered in `kb-registry.yaml` |
 | **materialize** | The installer writing a capability's artifacts into your harness |
-| **render (pinned)** | A capability's files with your `MOD.md` applied, committed in `personal/`; your harness symlinks to it |
+| **render** | A capability's files with your `MOD.md` applied, at `rendered/<id>/` — staged, gated, then swapped live; your harness symlinks to it |
 | **vendor** | `~/aos/vendor` — third-party skills the kit references and keeps current, never copies into itself |
 | **context block** | A marked (`aos:<capability>:<block-id>@<version>`) passage aos maintains inside an agent's own file |
 | **cheat-sheet** | `capabilities/capability-lifecycle/skills/capability-lifecycle/reference/harness-<harness-runtime>.md` — the harness half of the mapping (frontmatter `mapping` + markdown), loaded per operation |

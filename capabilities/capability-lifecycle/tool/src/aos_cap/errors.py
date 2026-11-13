@@ -23,6 +23,12 @@ class Exit(IntEnum):
     SLOT_UNRESOLVABLE = 18
     LINK_OWNED = 19
     NO_HARNESS = 20
+    BAD_RENDER_ID = 21      # swap/discard: not a capability id, or a symlinked render dir
+    NOT_STAGED = 22         # swap/discard: nothing at rendered/.staging/<id>
+    STAGED_UNSAFE = 23      # swap: the staged render bakes its own staging path, or drops a linked target
+    WRONG_PLACE = 24        # render --out / record / rehash: a path the household layout forbids there
+    MIGRATE_BLOCKED = 25    # migrate rendered: drift, uncommitted renders, old references or old links remain
+    SWAP_RECOVERED = 26     # swap: an interrupted swap's old render was put back live; run swap again
 
 
 def fail(code: Exit, msg: str) -> NoReturn:

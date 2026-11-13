@@ -99,8 +99,9 @@ own, and the install stays reconstructible as `template × your answers`:
 
 - Upstream never ships, writes or merges your answers. `git pull` cannot reach them.
 - An upgrade re-runs the transform against the new version. **That transform is judgment, not
-  templating** — which is why the gate is a git diff in your own repo: read what changed, commit
-  to accept, `git revert` to roll back.
+  templating** — which is why every render waits at a gate: a diff of what is live against what
+  would replace it. Approve to swap it in (the old one goes to your trash), decline to keep
+  what you have.
 - Edit the installed thing by hand and your agent folds the change back into your answers.
 
 Two kinds, and the manifest says which. **Infrastructure** (`tags: [infra]`) is substrate others

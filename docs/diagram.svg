@@ -67,7 +67,7 @@
   <rect class="box home" x="30" y="340" width="900" height="86"/>
   <g>
     <rect class="box cell" x="44"  y="356" width="196" height="54"/><text class="box-t" x="142" y="378">upstream/</text><text class="caption" x="142" y="396">the kit clone · pristine</text>
-    <rect class="box cell" x="252" y="356" width="286" height="54"/><text class="box-t" x="395" y="378">personal/</text><text class="caption" x="395" y="396">your repo: MOD.md · pinned renders · your capabilities</text>
+    <rect class="box cell" x="252" y="356" width="286" height="54"/><text class="box-t" x="395" y="378">personal/</text><text class="caption" x="395" y="396">your repo: MOD.md · your capabilities (renders: rendered/)</text>
     <rect class="box cell" x="550" y="356" width="168" height="54"/><text class="box-t" x="634" y="378">vendor/</text><text class="caption" x="634" y="396">referenced third-party skills</text>
     <rect class="box cell" x="730" y="356" width="186" height="54"/><text class="box-t" x="823" y="376">.aos/</text><text class="caption" x="823" y="392">machine-local · lockfile</text><text class="caption" x="823" y="404">kb registry · principals</text>
   </g>
@@ -77,7 +77,7 @@
   <rect class="box adapt" x="30" y="468" width="900" height="100"/>
   <text class="box-t" x="480" y="490" font-size="13">Per-harness cheat-sheets — knowledge, not code</text>
   <text class="caption" x="480" y="506">primitive mapping · materialization · introspection · secrets · removal · feature notes</text>
-  <text class="caption" x="480" y="522">one pinned render in personal/ · symlinked into the harness · bookkeeping: lockfile · diff gate · personal/ git history</text>
+  <text class="caption" x="480" y="522">one render in rendered/ · symlinked into the harness · bookkeeping: lockfile · diff gate · OS trash · personal/ git history</text>
   <g transform="translate(70, 530)">
     <text class="side" x="0"   y="12">Hermes · <tspan font-style="italic">profiles + cron/jobs.json</tspan></text>
     <text class="side" x="230" y="12">NanoClaw · <tspan font-style="italic">groups + DB tasks</tspan></text>

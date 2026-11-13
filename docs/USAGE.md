@@ -131,7 +131,8 @@ Three sharp edges worth knowing before you type:
   `MOD.md` when it notices them, so the next upgrade preserves them.
 - **`update`** pulls fresh upstream, then re-applies your MOD.md to the new capability
   versions — your hand-edits folded in first (MOD states current settings, not a history);
-  diff-gated, and every render is a commit in your `personal/` repo (revert = rollback).
+  diff-gated: each render is staged, you see what would change, and only then is it
+  swapped live (the replaced one goes to your trash).
 - **Corrections beat re-capture**: told it something wrong? Say so — the page is fixed in
   place (current truth), and git remembers the old state.
 

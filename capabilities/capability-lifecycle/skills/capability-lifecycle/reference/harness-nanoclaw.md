@@ -16,9 +16,9 @@ mapping:
     where: {v2: "first group's groups/<folder>/", v1: "groups/<is_main_folder>/"}
     note: "default assistant name Andy (ASSISTANT_NAME)"
   skill:
-    primitive: Agent Skills folder in .claude/skills/<installed-name>/ — a symlink to the pinned render in <aos_home>/personal
+    primitive: Agent Skills folder in .claude/skills/<installed-name>/ — a symlink to the render in <aos_home>/rendered
     where: .claude/skills/<installed-name>/
-    note: "auto-registered as /<installed-name>; pass .claude/skills to the name gate --harness-skills. Container mount requirement: links resolve inside containers only if <aos_home>/personal is mounted read-only into the group (ncl groups config add-mount --ro <aos_home>/personal) — do this once per group at first aos install, before any skill link; without it, stop and say so (never fall back to copying). v2 per-group scoping via ncl groups config skills field; v1 mount path unverified"
+    note: "auto-registered as /<installed-name>; pass .claude/skills to the name gate --harness-skills. Container mount requirement: links resolve inside containers only if <aos_home>/rendered is mounted read-only into the group (ncl groups config add-mount --ro <aos_home>/rendered; a household migrating from before capability-lifecycle 0.7.0 adds it before `aos-cap migrate rendered --apply` and removes the old personal/ mount after `--finish`) — do this once per group at first aos install, before any skill link; without it, stop and say so (never fall back to copying). v2 per-group scoping via ncl groups config skills field; v1 mount path unverified"
   cron:
     primitive: DB-driven task — host sweep every 60 s (NOT OS cron); precision ±60 s + container cold start
     where: v2 sessions DB; v1 scheduled_tasks table
@@ -145,9 +145,9 @@ already fit the class; never hardcode provider names.
    v2 `instructions.prepend.md` (then `ncl groups restart --id <id>`) · v1
    `groups/<f>/CLAUDE.md`.
 2. **Skills**: `aos-cap skills <cap-dir>` gives the installed name; the render lives once
-   at `<aos_home>/personal/capabilities/<capability>/skills/<installed-name>/` (contract);
+   at `<aos_home>/rendered/<capability>/skills/<installed-name>/` (contract);
    symlink it as `.claude/skills/<installed-name>` and record the link
-   (`aos-cap record … --link`). Verify the group's `<aos_home>/personal` ro mount first
+   (`aos-cap record … --link`). Verify the group's `<aos_home>/rendered` ro mount first
    per `mapping.skill.note`. Never copy. Scope per `used_by` via the v2 group config
    `skills` field; v2 skills that leave artifacts ship a sibling `REMOVE.md`. Channel
    plumbing comes from registry slash-skills (`/add-telegram`, …) — additive, idempotent,
@@ -209,9 +209,9 @@ Drive everything from the lockfile entry, in order:
    --id <series>` per `cron_owned` id (`pause|resume` for temporary stops); v1: ask the
    main agent to remove the task, then verify the `scheduled_tasks` row is gone.
 2. Skills: run the sibling `REMOVE.md` first (v2), then delete the
-   `.claude/skills/<installed-name>` symlink; the render dirs in `<aos_home>/personal` are
-   deleted via a commit (contract). The `<aos_home>/personal` mount stays if any other aos
-   capability is installed in the group.
+   `.claude/skills/<installed-name>` symlink; the render, `<aos_home>/rendered/<capability>/`,
+   goes to the OS trash once its links are gone (`gio trash` / `trash-put`, never `rm -rf`) (contract). The `<aos_home>/rendered` mount stays if any other aos capability is
+   installed in the group.
 3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks from v2
    `instructions.prepend.md` (then `ncl groups restart`) / v1 `groups/<f>/CLAUDE.md`.
 4. Config: v2 `ncl groups config remove-mcp-server|remove-package|remove-mount` per

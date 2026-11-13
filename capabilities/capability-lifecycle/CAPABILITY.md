@@ -1,8 +1,8 @@
 ---
 id: capability-lifecycle
-version: 0.6.3
+version: 0.7.0
 tags: [infra]
-summary: The capability lifecycle as one capability — install, upgrade, remove, onboard, import, build, contribute, evolve, and review as skills for the front agent; the MOD.md overlay with its promote/retire exit side; the household layout with pinned renders and symlink installs; the per-harness cheat-sheets; and the aos-cap tool that owns the lockfile and computes every skill's installed name.
+summary: The capability lifecycle as one capability — install, upgrade, remove, onboard, import, build, contribute, evolve, and review as skills for the front agent; the MOD.md overlay with its promote/retire exit side; the household layout with unversioned renders under rendered/ and symlink installs; the per-harness cheat-sheets; and the aos-cap tool that owns the lockfile and computes every skill's installed name.
 skill_prefix: capability-
 skills:
   - id: capability-lifecycle
@@ -34,9 +34,10 @@ install a skill. This is the only capability `BOOTSTRAP.md` installs inline (the
 chicken-and-egg break); everything else goes through the `capability-install` skill
 afterwards. The household — `<aos_home>`, the aos home: `--home`/`AOS_HOME`, else
 `~/aos` (not your home directory) — is already in place when you get here (BOOTSTRAP
-§1): `<aos_home>/upstream` this clone, `<aos_home>/personal` the user's private repo,
-`<aos_home>/.aos` machine state, and `<aos_home>/vendor` for third-party skills this
-capability references.
+§1): `<aos_home>/upstream` this clone, `<aos_home>/personal` the user's private repo (MOD
+files and their own packages' source), `<aos_home>/rendered` every installed capability's
+render (unversioned build output; created on first render), `<aos_home>/.aos` machine state,
+and `<aos_home>/vendor` for third-party skills this capability references.
 
 ## What you materialize
 
@@ -50,8 +51,9 @@ capability references.
    cheat-sheet (the entry skill's `reference/harness-<harness-runtime>.md` — the only sheet
    the render keeps; none for your harness → its `reference/no-cheatsheet.md`). The skills
    are `{{mod}}`-slot-free, so the render is purely mechanical — `aos-cap render` does it,
-   one skill at a time, into `personal/capabilities/capability-lifecycle/skills/…`
-   (committed), plus symlinks into the front agent's skills dir. Read
+   one skill at a time, into `rendered/.staging/capability-lifecycle/skills/…`, and
+   `aos-cap --home <aos_home> swap capability-lifecycle` puts it live at
+   `rendered/capability-lifecycle/skills/…`, plus symlinks into the front agent's skills dir. Read
    `reference/contract.md` in full before this step (household resolution, installed
    names, provenance, STAGE→GATE→EXECUTE, the persist hook) and `reference/naming.md`
    for the identity rules the tool enforces.
@@ -85,8 +87,8 @@ capability references.
      materialized verbatim (with `<aos_home>` baked to the real household path):
 
      > aos installs *capabilities* — directories of skills you materialize, not programs
-     > you run. They live in the household (`<aos_home>`): `upstream/` the kit, `personal/`
-     > the user's renders and their `MOD.md` answers. install / upgrade / remove are
+     > you run. They live in the household (`<aos_home>`): `upstream/` the kit, `rendered/`
+     > the renders, `personal/` the user's `MOD.md` answers. install / upgrade / remove are
      > conversations, never a program — the `capability-lifecycle` skill is the map.
 
      **And those are the only two blocks.** The line between them and everything else is
@@ -122,7 +124,7 @@ capability references.
      say so in the install summary and carry on. Our procedure stands on its own; this is
      an aid, exactly as a cheat-sheet is.
    - It is **not** a render: no `{{mod}}` slots, no `metadata.aos.origin` stamp (it is not ours
-     to tag), and it does not live under `personal/capabilities/`.
+     to tag), and it does not live under `rendered/`.
 6. Nothing else: no agents, no cron jobs, no KB zones.
 
 ## Why it is shaped this way
@@ -158,10 +160,13 @@ capability references.
   generally-useful mechanism flows out — promotion (signal-gated) to `capability-contribute`,
   and retirement closing the loop when upstream absorbs a line. The judgment lives once,
   in the entry skill's `reference/overlay.md`.
-- Renders are **pinned** (committed in `personal/`) because filling `{{mod}}` slots is
-  agentic even though the copy is not: the commit is the render's lockfile, upgrades review
-  as a git diff, and rollback is `git revert`. Harnesses symlink to the one canonical
-  render — never copies.
+- Renders live in **`rendered/`, outside the user's repo**: they are build output, and
+  keeping them in `personal/` mixed it with source — the same path was a render for a
+  shipped package and the source for the user's own. Filling `{{mod}}` slots is agentic, so
+  a render is not exactly reproducible: the gate (live against staged, before
+  `aos-cap swap`) is what reviews it, the lockfile's hashes are what catch a hand-edit, and
+  the OS trash holds what a swap replaced. Harnesses symlink to the one canonical render —
+  never copies.
 - The cheat-sheets live here because these skills are their main consumer (`aos-session`
   reads the recorded one's `mapping.session`); each is lean — a schema-checked `mapping`
   frontmatter plus the harness half's judgment — and points back at `reference/contract.md`
@@ -227,10 +232,26 @@ re-record the provider without it, then record it on the consumer with `--uses-l
 19 refuses the other order). `capability-upgrade`'s reconcile step finds these: a recorded
 link the provider no longer declares is shown and asked about, never dropped.
 
+## Upgrading to 0.7.0 — renders leave `personal/`
+
+0.7.0 moves every render out of the user's repo into `<aos_home>/rendered/<id>/`. The
+installed 0.6.x upgrade skill knows nothing about this, and it reinstalls `aos-cap` only after
+it re-renders, so the order matters:
+
+1. Upgrade **capability-lifecycle alone**, with the skill you have. It renders 0.7.0 where
+   0.6.x renders, then reinstalls the 0.7.0 `aos-cap`.
+2. Reload the capability-upgrade skill and run its renders migration (`aos-cap migrate
+   rendered`: plan, `--apply`, fix each outside reference, prove the gates, `--finish`).
+3. Upgrade everything else with the reloaded skill.
+
+From step 1 on, `aos-cap render` refuses an `--out` under `personal/`, and its message says
+to run the migration. A second machine gets its renders by re-installing, as it got its
+lockfile before.
+
 ## Removal
 
 `aos-cap show capability-lifecycle` → delete the ten skill symlinks and the
-`skill-creator` link, then the render dirs in `personal/` via a commit → remove the
+`skill-creator` link, then send `rendered/capability-lifecycle/` to the OS trash → remove the
 `aos:capability-lifecycle:*` context blocks → `<aos_home>/vendor/anthropic-skills` if nothing
 else uses it → `uv tool uninstall aos-cap` → the lockfile entry is the last thing
 standing. Removing this capability last, after every other capability is removed, is the

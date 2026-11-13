@@ -14,7 +14,7 @@ mapping:
     primitive: the main conversation — no definition file; give it skills and context blocks instead
     where: ~/.claude/
   skill:
-    primitive: Agent Skills folder — a symlink to the pinned render in <aos_home>/personal
+    primitive: Agent Skills folder — a symlink to the render in <aos_home>/rendered
     where: {user: ~/.claude/skills/<installed-name>, project: <project>/.claude/skills/<installed-name>}
   cron:
     primitive: CronCreate tool — 5-field cron, local timezone; restores on --resume/--continue not on cold start
@@ -67,6 +67,7 @@ mapping:
 - Introspection guide
 - Secrets
 - Removal
+- Renders migration (capability-lifecycle 0.7.0)
 - Feature notes
 
 
@@ -136,8 +137,9 @@ session; `/context` shows what is loaded now.
    <aos_home>/upstream/capabilities/<id>/tool <package>`. Verify `uv --version` before
    wiring anything that assumes it.
 2. **Skills.** `aos-cap skills <cap-dir>` gives each installed name; `aos-cap render`
-   writes the render once to
-   `<aos_home>/personal/capabilities/<id>/skills/<installed-name>/`, then symlink it to
+   writes the render to `<aos_home>/rendered/.staging/<id>/skills/<installed-name>/`, the
+   gate approves it, `aos-cap swap <id>` puts it live at
+   `<aos_home>/rendered/<id>/skills/<installed-name>/`, then symlink it to
    `~/.claude/skills/<installed-name>`. Symlink, never copy — a copy silently stops tracking
    the render.
 3. **Agents**, if the capability declares any: write `mapping.agent.where` — frontmatter
@@ -211,14 +213,24 @@ Walk `aos-cap show <id>` backwards; nothing here is inferred from the filesystem
 5. `CronDelete` each job id the lockfile records. A job that is already gone (one-shot
    whose time passed, cold-start loss) is not drift — say so rather than reporting a
    deletion that did not happen.
-6. **Last, once nothing else needs to read it**: drop the pinned render under
-   `<aos_home>/personal/capabilities/<id>/` and then the lockfile entry
+6. **Last, once nothing else needs to read it**: the render, `<aos_home>/rendered/<id>/`,
+   goes to the OS trash once its links are gone (`gio trash` / `trash-put`, never `rm -rf`) — never anything under `personal/`, which holds the MOD and, for the user's
+   own package, its source — and then the lockfile entry
    (`aos-cap remove <id>`). The entry is the list every earlier step walks, so removing it
    first strands whatever has not been undone.
 
 Confirm: `ls ~/.claude/skills/ | grep <prefix>` returns nothing, and `/context` in a fresh
 session no longer lists them.
 
+
+## Renders migration (capability-lifecycle 0.7.0)
+
+The capability-upgrade skill's renders migration, on Claude Code: scan with
+`aos-cap migrate rendered --scan ~/.claude --ignore plans --ignore projects`. Plans and
+session transcripts quote old paths as history, not as live configuration. The links in
+`~/.claude/skills/` are re-pointed by `--apply` itself. A `settings.json` hook command that
+names an old render path is an outside reference: change it with the same edit discipline
+as any `settings.json` change on this sheet, then reload the session.
 
 ## Feature notes
 

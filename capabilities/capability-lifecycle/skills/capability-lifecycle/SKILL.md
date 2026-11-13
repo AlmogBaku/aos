@@ -9,8 +9,10 @@ Capabilities are self-describing prompts; **you are the installer**. Judgment is
 bookkeeping is `aos-cap`'s (`aos-cap --help` — the lockfile is its file, never edit
 the YAML). Everything lives in the household `<aos_home>` — the aos home:
 `--home`/`AOS_HOME`, else `~/aos` (not your home directory): `upstream/` the pristine
-kit clone, `personal/` the user's private repo (their MOD files, the
-pinned renders harnesses symlink to, their private capabilities), `.aos/` machine
+kit clone, `personal/` the user's private repo (their MOD files and their private
+capabilities — source only), `rendered/` every installed capability's render, the
+unversioned build output harnesses symlink to (written only to `rendered/.staging/<id>/`,
+put live only by `aos-cap swap`), `.aos/` machine
 state (the lockfile; `harness.yml`, the household's harness — `aos-cap harness show`).
 The diff gate is never optional. `MOD.md` states the user's personalization — what they
 changed from the shipped defaults, current state, edited in place: you re-apply it, you

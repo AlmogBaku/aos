@@ -41,12 +41,14 @@ net, not repeated consent prompts.
 
 aos lives in one directory — **the household**, `~/aos/` by default (a plain directory,
 itself never a git repo; the user may name another location — every path below shifts
-with it, and `aos-cap --home` pins it). Two members, plus machine state:
+with it, and `aos-cap --home` pins it). Two repos, the renders built from them, plus
+machine state:
 
 ```
 ~/aos/
 ├── upstream/    # this clone — the kit, pristine; NOTHING personal ever lands here
 ├── personal/    # the user's ONE private repo: answers, tweaks, private capabilities
+├── rendered/    # every installed capability's render — unversioned, machine-local
 ├── vendor/      # third-party skills aos references, not ships (created on demand)
 └── .aos/        # machine-local state (lockfile, harness record) — created by aos-cap
 ```
@@ -69,13 +71,14 @@ private remote; only `.aos/` is machine-local.
    no global one either (`git config --global user.email`) → **ask the user** for the name
    and email to commit as, and set them — globally if they're happy with that, otherwise on
    this repo. Never invent one: a synthesized address credits a real stranger, and every
-   render and MOD write from here on is a commit. This identity is for the `personal/`
+   MOD write from here on is a commit. This identity is for the `personal/`
    repo; kb's identity is separate — `kb config set principal.id=<id>` sets it in
    `~/aos/.aos/kb-principal.yml` (on a fresh machine `kb init --principal <id>` fills it in
    instead); write verbs error without it. Offer — don't push — a private remote for
    backup/sync (`gh repo create aos-personal --private` when `gh` is available; skippable,
-   add one any time). Everything personal (MOD files, rendered skills, private capabilities)
-   will live and be auto-committed here.
+   add one any time). Everything personal (MOD files, private capabilities) will live and
+   be auto-committed here; the renders built from it live in `~/aos/rendered/`, which is
+   not a repo.
 
 ## 2. Install the capability-lifecycle capability (inline — the only one)
 
@@ -97,10 +100,11 @@ private remote; only `.aos/` is machine-local.
    --harness-skills <each skills dir your harness reads, per the cheat-sheet>` — exit 17
    means one of the names is already taken in this harness; stop and report it rather than
    renaming anything. Then `aos-cap render ~/aos/upstream/capabilities/capability-lifecycle
-   <skill-id> --out ~/aos/personal/capabilities/capability-lifecycle/skills` for each of the
-   ten, plan the symlinks (each render's own directory name) into your front agent's skills
-   dir → **GATE** (show the user the plan) → **EXECUTE** (commit the render in `personal/`,
-   create the links) →
+   <skill-id> --out ~/aos/rendered/.staging/capability-lifecycle/skills` for each of the
+   ten, plan the symlinks (each render's own directory name, under
+   `~/aos/rendered/capability-lifecycle/skills/`) into your front agent's skills dir →
+   **GATE** (show the user the plan) → **EXECUTE** (`aos-cap --home ~/aos swap
+   capability-lifecycle` puts the render live, then create the links) →
    `aos-cap record capability-lifecycle --version <manifest version> --source-root upstream
    --artifact <render-file>… --link <symlink>…` — render files go to `--artifact` (hashed),
    symlinks to `--link` (a symlink passed as `--artifact` fails: exit 16).

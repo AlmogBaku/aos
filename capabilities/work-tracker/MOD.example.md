@@ -1,6 +1,6 @@
 ---
 capability: work-tracker
-onboarded_version: 0.1.4
+onboarded_version: 0.1.5
 answers:
   capture_channels: ["whatsapp", "chat"]
   reminder_target: "whatsapp"

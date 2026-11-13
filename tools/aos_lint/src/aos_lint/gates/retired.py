@@ -125,6 +125,22 @@ RETIRED = [
     ("schedules" ":", "the manifest key is cron: (each entry's expression field is expr:)"),
     ("schedules" "_owned", "the lockfile field is cron_owned"),
     ("secrets" "-store", "the depends.host word is secret"),
+    # capability-lifecycle 0.7.0: renders left the user's repo. Every render lives at
+    # <aos_home>/rendered/<id>/, is written only to rendered/.staging/<id>/, and goes live via
+    # `aos-cap swap` — so the two old locations, the path-scoped git gate over them, and the
+    # container mount of personal/ are all gone. Split so this list is not itself a hit.
+    ("personal" "/renders", "renders live at <aos_home>/rendered/<id>/ (capability-lifecycle 0.7.0)"),
+    ("<render" "-path>", "there is one render path now: <aos_home>/rendered/<id>/"),
+    ("renders" "/<id>", "a render lives at rendered/<id>/"),
+    ("personal/capabilities/<id>" "/skills", "a shipped package's render lives at rendered/<id>/skills/"),
+    ("personal/capabilities/<capability>" "/skills", "a render lives at rendered/<capability>/skills/"),
+    ("personal/capabilities/capability-lifecycle" "/skills",
+     "the lifecycle render lives at rendered/capability-lifecycle/skills/"),
+    ("git -C <aos_home>/personal" " add", "the gate is a diff of rendered/<id> against "
+                                           "rendered/.staging/<id>, then `aos-cap swap`"),
+    ("git -C <aos_home>/personal" " restore", "a declined render is `aos-cap discard <id>`"),
+    ("--ro <aos_home>" "/personal", "containers mount <aos_home>/rendered read-only"),
+    ("pinned" " render", "renders are unversioned build output in rendered/; nothing pins them"),
 ]
 
 # `base <verb>` invocations, and only those. The lookbehind is load-bearing: a bare \b form
@@ -187,6 +203,9 @@ OLD_PATTERN_OK = {
     # the old package name has it on PATH, where it shadows the new command and both appear to
     # work. The instruction has to NAME the retired package to remove it.
     "docs/INSTALL.md": {"aos-base"},
+    # The renders migration has to NAME the old layout in order to move it out of personal/.
+    "capabilities/capability-lifecycle/tool/src/aos_cap/commands/migrate.py": {"personal" "/renders", "renders" "/<id>"},
+    "tests/tool/test_cap.py": {"personal" "/renders"},
 }
 
 # Descriptions are injected into the system prompt, so the authoring guide is explicit that a

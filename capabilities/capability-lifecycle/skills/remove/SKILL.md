@@ -28,11 +28,10 @@ contract, and the Experience rules.
 4. Un-write per the cheat-sheet's Removal section (load
    the `capability-lifecycle` skill's `reference/harness-<harness-runtime>.md` now), in its
    stated order — typically: jobs →
-   skill symlinks (delete the `links` and `uses_links`; then delete **only**
-   `personal/<render-path>/skills/` **via a commit** — `capabilities/<id>` for a shipped
-   package, `renders/<id>` for the user's own, whose `capabilities/<id>/` is its source;
-   never the capability directory itself and never its `MOD.md` — revertible, the persist
-   hook's dated message says why) → marker blocks → config keys → `.env` lines (ask
+   skill symlinks (delete the `links` and `uses_links`; then send **only**
+   `<aos_home>/rendered/<id>/` to the OS trash — `gio trash`, `trash-put`, or the
+   platform's own; never `rm -rf`, never anything under `personal/`, and never the
+   `MOD.md` — recoverable from the trash) → marker blocks → config keys → `.env` lines (ask
    first) → agents this capability created and nothing else uses (never an adopted one —
    contract) → scripts/hooks (revoke each hook's consent record first) →
    its tool (`uv tool uninstall`). A recorded link into `<aos_home>/vendor` is a referenced
@@ -47,4 +46,4 @@ contract, and the Experience rules.
 5. Tell the user their MOD.md stays: "your answers survive — in your personal repo,
    reinstalling brings it back personalized."
 6. Verify: re-introspect until no `metadata.aos.origin`, `aos:` names, marker
-   blocks, or links into `personal/` remain; `aos-cap remove <id>`; friendly close.
+   blocks, or links into `rendered/<id>/` remain; `aos-cap remove <id>`; friendly close.

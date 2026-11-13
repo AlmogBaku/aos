@@ -15,7 +15,7 @@ mapping:
     primitive: the default profile
     where: ~/.hermes/
   skill:
-    primitive: Agent Skills folder — a symlink to the pinned render
+    primitive: Agent Skills folder — a symlink to the render in <aos_home>/rendered
     where: {main: ~/.hermes/skills/<installed>, agent: ~/.hermes/profiles/<agent>/skills/<installed>}
   cron:
     primitive: cron job owned by exactly one profile (by directory, not a field)
@@ -71,6 +71,7 @@ mapping:
 - Introspection guide
 - Secrets
 - Removal
+- Renders migration (capability-lifecycle 0.7.0)
 - Feature notes
 
 
@@ -134,7 +135,8 @@ the profile's default doesn't already fit the class; never hardcode provider nam
    into any existing `ui_meta`, and increment `_ui_meta_revisions.hermes-bots` (start at 1).
    An agent a person talks to stays visible. Adopting a profile never changes its visibility.
 2. **Skills**: `aos-cap skills <cap-dir>` gives the installed name; the render lives once
-   at `<aos_home>/personal/<render-path>/skills/<installed-name>/` (contract);
+   at `<aos_home>/rendered/<capability>/skills/<installed-name>/` (contract: written to
+   `rendered/.staging/<capability>/`, put live by `aos-cap swap`);
    create a symlink per `used_by` — `ln -s <render-dir> ~/.hermes/skills/<installed-name>`
    (main) or into `profiles/<p>/skills/`. Never copy. Record each link with
    `aos-cap record … --link <linkpath>`. Per `uses` row (`aos-cap manifest`): `ln -s
@@ -205,10 +207,9 @@ Drive everything from the lockfile entry, in order:
 
 1. Cron jobs: `hermes -p <profile> cron remove <id>` per `cron_owned` id; then
    delete leftover `cron/output/<id>*`.
-2. Skills: delete every symlink the entry's `links` and `uses_links` list; then delete the
-   render dirs in `<aos_home>/personal/<render-path>/skills/` via a commit (revertible — the
-   persist hook's message says why). Never `capabilities/<id>/` of the user's own package:
-   that is its source.
+2. Skills: delete every symlink the entry's `links` and `uses_links` list; then the render,
+   `<aos_home>/rendered/<capability>/`, goes to the OS trash once its links are gone (`gio trash` / `trash-put`, never `rm -rf`). Never anything under `personal/`: it holds
+   the MOD and, for the user's own package, its source.
 3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks.
 4. Config keys: `hermes config unset <key>` per recorded key.
 5. `.env` lines added at install: remove after asking the user.
@@ -220,6 +221,38 @@ Drive everything from the lockfile entry, in order:
 8. Recorded `scripts/` and `hooks/` files of each profile: delete.
 9. Remove the lockfile entry; verify per the contract (re-run Introspection).
 
+## Renders migration (capability-lifecycle 0.7.0)
+
+The capability-upgrade skill's renders migration, on Hermes:
+
+- **Scan:** `aos-cap migrate rendered --scan ~/.hermes` with `--ignore` for each of
+  `sessions`, `request_dump_*`, `cron/output`, `backups`, `*.bak-*`, `cache`,
+  `skills/.archive`, `state-snapshots`, `logs`. Those hold transcripts and history, not live
+  configuration.
+- **A shell hook** (`hooks:` in a profile's `config.yaml`) that names an old render path is
+  switched without a moment unapproved, because Hermes skips an unapproved hook even when it
+  is `fail_closed`:
+  1. Approve the new command first: one `approvals` entry in the profile's
+     `shell-hooks-allowlist.json` with `event`, `command`, `approved_at` and
+     `script_mtime_at_approval` (the script's mtime), so `hooks doctor` can tell a changed
+     script.
+  2. Switch only the command, in one write:
+     `hermes -p <profile> config set hooks.<event>.<index>.command <new path>`. The index is
+     dotted. `hooks.<event>[<index>]` writes a bogus key and leaves the hook unchanged.
+  3. Compare `hermes -p <profile> config get hooks` before and after. Everything except
+     `command` must be identical: `hooks list` does not show `fail_closed`, and a missing one
+     reads as false.
+  4. `hermes -p <profile> hooks list` shows it allowed, and `hooks doctor` passes.
+  5. `hermes -p <profile> hooks revoke <old command>`.
+- **Plugins** (`~/.hermes/plugins/*`) load at gateway start. Before `--finish`, restart the
+  gateway (`hermes gateway restart`) once its work is idle and with the user's go-ahead. Then
+  confirm each plugin actually loaded from its re-pointed link:
+  - `hermes [-p <profile>] plugins list` lists it enabled, for the root and every profile
+    that enables it;
+  - the gateway log shows its load line after the restart, with no load error.
+
+  A gate plugin that fails to load is simply absent, so "no crash line" proves nothing.
+
 ## Feature notes
 
 The `depends.host` rows of `mapping` answer which features exist here. `calendar.*` and `email`
@@ -230,8 +263,8 @@ true` to reach an agent profile.
 Degraded-mode wiring: `manual` ⇒ the invocable skill lands at `mapping.skill.where.agent` of
 the profile the job would have owned; `inline` ⇒ `mapping.cron.edit`.
 
-Safety rails to route through: the `personal/` git history first (renders and MOD files —
-revert = rollback), then Hermes-native: `hermes backup --quick` (pre-install),
+Safety rails to route through: the gate before every `aos-cap swap` and the OS trash after
+it (renders), the `personal/` git history (MOD files — revert = rollback), then Hermes-native: `hermes backup --quick` (pre-install),
 `state-snapshots/` (pre-update), `hermes doctor`, `hermes skills diff` (feeds the §3.3
 round-trip; note stock-vs-modified tracking sees through links to the render),
 `hermes profile export` (before risky surgery).

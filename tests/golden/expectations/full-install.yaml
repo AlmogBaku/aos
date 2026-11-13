@@ -2,7 +2,7 @@
 # aos-test profile namespace. Roots resolved by check.mjs:
 #   front  = ~/.hermes/profiles/aos-test
 #   <agent>= ~/.hermes/profiles/aos-<agent>
-#   home   = <repo>/tests/.sandbox/aos-home  (the household: upstream/ + personal/ + .aos/)
+#   home   = <repo>/tests/.sandbox/aos-home  (the household: upstream/ + personal/ + rendered/ + .aos/)
 # Every skill path below is an INSTALLED name (§2.5): `<skill_prefix><id>`, with the entry
 # skill keeping the capability id. capability-lifecycle declares `capability-`, work-tracker
 # declares `wt-`, kb takes the default `kb-`. `aos-cap skills <cap-dir>` is the authority.
@@ -60,13 +60,13 @@ expect_files:
   - "steward:skills/work-tracker/reference/action-page.md"
   - "steward:skills/wt-steward/SKILL.md"
   - "steward:SOUL.md"
-  # pinned renders — the canonical artifacts in personal/ that harness links target.
+  # renders — the canonical artifacts in rendered/ that harness links target.
   # The render directory carries the installed name too: one identity end to end.
-  - "home:personal/capabilities/capability-lifecycle/skills/capability-lifecycle/SKILL.md"
-  - "home:personal/capabilities/capability-lifecycle/skills/capability-onboard/SKILL.md"
-  - "home:personal/capabilities/kb/skills/kb/SKILL.md"
-  - "home:personal/capabilities/work-tracker/skills/wt-capture/SKILL.md"
-  - "home:personal/capabilities/work-tracker/skills/wt-steward/SKILL.md"
+  - "home:rendered/capability-lifecycle/skills/capability-lifecycle/SKILL.md"
+  - "home:rendered/capability-lifecycle/skills/capability-onboard/SKILL.md"
+  - "home:rendered/kb/skills/kb/SKILL.md"
+  - "home:rendered/work-tracker/skills/wt-capture/SKILL.md"
+  - "home:rendered/work-tracker/skills/wt-steward/SKILL.md"
   # ledgers at mirrored paths in the personal root
   - "home:personal/MOD.md"
   - "home:personal/capabilities/work-tracker/MOD.md"
@@ -103,6 +103,9 @@ forbid_files:
   - "home:personal/capabilities/capability-lifecycle/harnesses/hermes.md"
   # the registry left the overlay family in kb 0.8.0: machine state, never in personal/
   - "home:personal/kb-registry.yaml"
+  # renders left personal/ in capability-lifecycle 0.7.0: a shipped package's old render
+  # location must be empty (its MOD stays beside where the render used to be)
+  - "home:personal/capabilities/kb/skills/kb/SKILL.md"
   # capabilities absorbed into capability-lifecycle must leave no separate footprint
   - "home:personal/capabilities/onboarding/CAPABILITY.md"
   - "home:personal/capabilities/importer/CAPABILITY.md"
@@ -117,7 +120,7 @@ forbid_files:
   - "front:skills/wt-format-entry/SKILL.md"
 
 # Third-party skills this capability references rather than ships: linked from
-# <aos_home>/vendor/, never rendered, so no origin tag and no personal/ link target (§2.1).
+# <aos_home>/vendor/, never rendered, so no origin tag and no rendered/ link target (§2.1).
 vendored: [skill-creator]
 
 # every materialized SKILL.md under these roots must carry the origin tag
@@ -165,11 +168,11 @@ sentinels:
   # exec schedule: the sync job's command must invoke the tool, not an agent prompt
   - {text: "kb sync --all", in_dir: "archiver:"}
 
-# every capability's lockfile entry must carry links whose targets are in personal/
-# (the snapshot-mode proxy for the symlink contract — snapshots dereference links)
-lockfile_links_into_personal: true
+# every capability's lockfile entry must carry links whose targets are live renders in
+# rendered/ (the snapshot-mode proxy for the symlink contract — snapshots dereference links)
+lockfile_links_into_rendered: true
 
-# live-only: harness skill dirs must be symlinks into personal/ (§5.3 — copies banned)
+# live-only: harness skill dirs must be symlinks into rendered/ (§5.3 — copies banned)
 expect_links:
   - "front:skills/capability-install"
   - "front:skills/kb"

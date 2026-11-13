@@ -184,7 +184,7 @@ class Checker:
                               f'{exp_name}: "{s["text"]}" not found anywhere under '
                               f'{s["in_dir"]}')
         # Symlink-install contract (§5.3): live trees must LINK harness skill dirs to the
-        # pinned render in personal/ — snapshots dereference, so this is live-only.
+        # render in rendered/ — snapshots dereference, so this is live-only.
         if live_mode:
             for ref in exp.get("expect_links") or []:
                 p = resolve_ref(roots, ref)
@@ -207,7 +207,7 @@ class Checker:
                 # Snapshots dereference symlinks, so the lockfile's `links` map is the only
                 # deterministic residue of the symlink contract (§5.3) a committed tree can
                 # carry.
-                if exp.get("lockfile_links_into_personal"):
+                if exp.get("lockfile_links_into_rendered"):
                     installs = (yaml.safe_load(lock_text) or {}).get("installs") or {}
                     for cap in exp["lockfile_capabilities"]:
                         links = (installs.get(cap) or {}).get("links") or {}
@@ -218,14 +218,23 @@ class Checker:
                                       f"— §5.3)")
                             continue
                         for t in targets:
-                            # Renders live in personal/; a referenced third-party skill lives
-                            # in vendor/ and is linked from there (never copied, never
-                            # rendered).
-                            if ("/personal/capabilities/" not in str(t)
-                                    and "/vendor/" not in str(t)):
+                            # Renders live in rendered/<id>/ (capability-lifecycle 0.7.0); a
+                            # referenced third-party skill lives in vendor/ and is linked from
+                            # there (never copied, never rendered). A target in staging is a
+                            # render nobody approved.
+                            ts = str(t)
+                            if "/rendered/.staging/" in ts or (
+                                    "/rendered/" not in ts and "/vendor/" not in ts):
                                 self.fail("golden/links",
-                                          f"{exp_name}: {cap} link target neither a personal/ "
-                                          f"render nor a vendor/ reference: {t}")
+                                          f"{exp_name}: {cap} link target neither a live "
+                                          f"rendered/ render nor a vendor/ reference: {t}")
+            # A leftover staged render is a gate someone abandoned: the run must end with
+            # rendered/.staging/ empty, not merely skipped by the normalizer.
+            staging = resolve_ref(roots, "home:rendered/.staging")
+            if staging is not None and staging.exists() and any(staging.iterdir()):
+                self.fail("golden/staging",
+                          f"{exp_name}: rendered/.staging/ is not empty — an unapproved render "
+                          f"was left behind")
 
     # Canary check lives in the protocol, not here: re-run tests/golden/prestate.sh to a
     # A committed snapshot must equal what the normalizer produces — re-normalizing it is a

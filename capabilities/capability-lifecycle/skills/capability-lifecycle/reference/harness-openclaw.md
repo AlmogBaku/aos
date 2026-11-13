@@ -16,7 +16,7 @@ mapping:
     primitive: the reserved main agent — cannot be deleted
     where: ~/.openclaw/workspace/
   skill:
-    primitive: Agent Skills folder — a symlink to the pinned render in <aos_home>/personal; identity = frontmatter name
+    primitive: Agent Skills folder — a symlink to the render in <aos_home>/rendered; identity = frontmatter name
     where: {agent: <workspace>/skills/<installed-name>, global: ~/.openclaw/skills/<installed-name>}
   cron:
     primitive: Gateway-hosted cron job — fires only while the Gateway runs; jobs persist
@@ -108,7 +108,7 @@ follows is the judgment the rows cannot carry.
   OpenClaw follows symlinked dirs. Enumerate existing names for the name gate with
   `openclaw skills list --json`, or pass each root dir to `--harness-skills`. `{baseDir}`
   resolves skill-local files. Do not route aos skills through `openclaw skills install` or
-  ClawHub — the pinned render in `<aos_home>/personal` is the source.
+  ClawHub — the render in `<aos_home>/rendered` is the source.
 - **Cron** (`mapping.cron`): Gateway-hosted, fires only while the Gateway runs. Check
   `openclaw gateway status` first — jobs never fire while the Gateway is down. For
   interval/one-shot kinds use `--every <10m|1h|1d>` / `--at <iso>` instead of `--cron`;
@@ -137,7 +137,7 @@ fit the class; never hardcode provider names.
    creation, wire into `main`. Channel routing if the capability needs it:
    `--bind <channel[:account]>`.
 2. **Skills.** `aos-cap skills <cap-dir>` gives the installed name; the render lives once
-   at `<aos_home>/personal/capabilities/<capability>/skills/<installed-name>/` (contract);
+   at `<aos_home>/rendered/<capability>/skills/<installed-name>/` (contract);
    symlink it into the owning agent's `<workspace>/skills/<installed-name>` per `used_by`
    (`~/.openclaw/skills/` only for genuinely every-agent skills), record each link
    (`aos-cap record … --link`).
@@ -196,8 +196,8 @@ Drive everything from the lockfile entry, in order:
    (`cron disable <jobId>` to pause instead of delete).
 2. Skills: there is **no `skills uninstall` subcommand** — set
    `skills.entries.<name>.enabled: false` via `openclaw config set` and delete the
-   symlink from every root the lockfile's `links` list names; the render dirs in
-   `<aos_home>/personal` are deleted via a commit (contract).
+   symlink from every root the lockfile's `links` list names; the render,
+   `<aos_home>/rendered/<capability>/`, goes to the OS trash once its links are gone (`gio trash` / `trash-put`, never `rm -rf`) (contract).
 3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks from the
    bootstrap files.
 4. Config keys: `openclaw config unset <key>` per recorded key.

@@ -26,6 +26,8 @@ app.add_typer(harness_app, name="harness")
 
 RUNTIME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 SHEET_REL = Path("capabilities/capability-lifecycle/skills/capability-lifecycle/reference")
+# The installed sheet is the lifecycle capability's live render (0.7.0: renders left personal/).
+RENDERED_SHEET_REL = Path("rendered/capability-lifecycle/skills/capability-lifecycle/reference")
 
 
 def harness_record(home: Path) -> Optional[dict]:
@@ -62,7 +64,7 @@ def cmd_set(
         fail(Exit.GENERIC, f"'{runtime}' is not a harness runtime id (lowercase-hyphen)")
     name = f"harness-{runtime}.md"
     src = Path(source).expanduser() if source else home / "upstream" / SHEET_REL / name
-    installed = Path(sheet).expanduser() if sheet else home / "personal" / SHEET_REL / name
+    installed = Path(sheet).expanduser() if sheet else home / RENDERED_SHEET_REL / name
     cli = _cli_from(src) if src.is_file() else None
     record = {"harness": runtime, "sheet": str(installed), "cli": cli}
     (home / HARNESS_REL).write_text(yaml.safe_dump(record, sort_keys=False))
