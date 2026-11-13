@@ -5,11 +5,12 @@ evaluate as a whole, not something absorbed one reply at a time. Shape it like t
 repo's own capability one-pagers:
 
 - **Scope** — what it does, one paragraph
-- **Depends** — capabilities and host primitives it needs, including the two an agent
-  whose only audience is the user brings (below)
-- **Each agent's audience** — the user alone, anyone else (guests, invited people,
-  group members an authorization plugin lets in), or nobody (background-only: it never
-  messages anyone, or only runs on schedule)
+- **Depends** — capabilities and host primitives it needs, including `capability-lifecycle`
+  (and `kb` when installed) for an agent whose only audience is the user (below)
+- **Each agent's audience and inputs** — who it answers: the user alone, anyone else
+  (guests, invited people, group members an authorization plugin lets in), or nobody
+  (background-only: it never messages anyone, or only runs on schedule); and whether it
+  reads content other people write (fetched pages, inbound mail, group messages)
 - **Skills / agents** — what gets materialized, and why each piece exists; for every
   skill and cron job, the agent that runs it (`main` or a named agent), and every other
   capability's skill an agent loads (`uses`)
@@ -23,11 +24,25 @@ kb installed. It gets one `uses` row per skill, each naming every such agent in 
 `agents:` list: `capability-lifecycle`'s `capability-lifecycle` and `evolve`, and with kb
 installed, kb's `recall`, `capture` and `route` (capture and recall both call route).
 Write the rows per package, not per agent: a `uses` row whose provider is missing from
-`depends`, or a second row for the same skill, fails the manifest. This is an allow rule.
-An agent anyone else can reach, a sandboxed agent (restricted toolsets, fail-closed
-hooks), and a background-only agent are in none of those lists: a guest must never
-retune a capability or read the user's knowledge. Name each agent's audience in the
-proposal, so the user's approval covers it.
+`depends`, or a second row for the same skill, fails the manifest.
+
+These skills run commands — `aos-cap`, `kb` — and `evolve` edits the household's MOD
+files, so an agent that gets them keeps the terminal and write access to
+`<aos_home>/personal/`; the proposal lists that in the agent's tools. If the agent would
+otherwise have no terminal, granting one for these rows is part of what the user approves.
+
+**An agent that reads content other people write** can be steered by those people even
+though only the user talks to it. It gets the two `capability-lifecycle` rows as above,
+but the three kb rows only when the proposal names the combination — the user's knowledge,
+content others write, and a terminal — and the user approves it for that agent; otherwise
+it is left out of the kb rows' `agents:` lists (and `kb` stays out of `depends` when no
+other agent needs it).
+
+This is an allow rule. An agent anyone else can reach, a sandboxed agent (fail-closed
+hooks, or a toolset restricted to contain it), and a background-only agent are in none of
+those lists: a guest must never retune a capability or read the user's knowledge. Name
+each agent's audience, inputs and tools in the proposal, so the user's approval covers
+them.
 
 Then the half a feature list leaves out. **A capability is software**, so design it as one:
 
