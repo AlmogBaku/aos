@@ -1,6 +1,6 @@
 ---
 capability: capability-lifecycle
-onboarded_version: 0.6.2
+onboarded_version: 0.6.3
 answers:
   user_name: Dana
   timezone: Europe/Lisbon

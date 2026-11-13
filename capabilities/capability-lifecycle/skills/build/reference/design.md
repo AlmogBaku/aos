@@ -5,12 +5,29 @@ evaluate as a whole, not something absorbed one reply at a time. Shape it like t
 repo's own capability one-pagers:
 
 - **Scope** — what it does, one paragraph
-- **Depends** — capabilities and host primitives it needs
+- **Depends** — capabilities and host primitives it needs, including the two an agent
+  whose only audience is the user brings (below)
+- **Each agent's audience** — the user alone, anyone else (guests, invited people,
+  group members an authorization plugin lets in), or nobody (background-only: it never
+  messages anyone, or only runs on schedule)
 - **Skills / agents** — what gets materialized, and why each piece exists; for every
   skill and cron job, the agent that runs it (`main` or a named agent), and every other
   capability's skill an agent loads (`uses`)
 - **v0.1 acceptance** — what "done" looks like
 - **Open items** — anything Research left unresolved, named explicitly, not buried
+
+**An agent whose only audience is the user** can be retuned from its own chat and reads
+and files the user's knowledge. A package that ships at least one such agent lists
+`capability-lifecycle` in `depends.capabilities`, and `kb` too when `aos-cap list` shows
+kb installed. It gets one `uses` row per skill, each naming every such agent in its
+`agents:` list: `capability-lifecycle`'s `capability-lifecycle` and `evolve`, and with kb
+installed, kb's `recall`, `capture` and `route` (capture and recall both call route).
+Write the rows per package, not per agent: a `uses` row whose provider is missing from
+`depends`, or a second row for the same skill, fails the manifest. This is an allow rule.
+An agent anyone else can reach, a sandboxed agent (restricted toolsets, fail-closed
+hooks), and a background-only agent are in none of those lists: a guest must never
+retune a capability or read the user's knowledge. Name each agent's audience in the
+proposal, so the user's approval covers it.
 
 Then the half a feature list leaves out. **A capability is software**, so design it as one:
 
