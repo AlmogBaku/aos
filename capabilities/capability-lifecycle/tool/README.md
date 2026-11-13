@@ -46,14 +46,20 @@ the household stays allowed). `record` and `rehash` refuse a staged path (**24**
 - `discard <id>` sends the staged render to the trash; the live one is untouched.
 - `migrate rendered` moves a pre-0.7.0 household's renders out of `personal/` in three
   steps, the old paths resolving until the last:
-  - the plan writes nothing but its scan set, `.aos/migrate-rendered.yaml`;
+  - the plan writes nothing but its state, `.aos/migrate-rendered.yaml`: the scan set and
+    the old renders it found, which the next two steps read rather than re-derive;
   - `--apply` copies (no bytecode; old paths rewritten in UTF-8 text only), re-points every
     link, and rewrites the lockfile and `harness.yml`, recording every moved file;
   - `--finish` refuses (**25**) while any outside reference or link still names an old
     render, then trashes them.
 
-  `--apply` refuses (**25**) while a render has drift or uncommitted changes. References
-  are printed as `path:line` only: the scan reads harness homes, which hold keys.
+  `--apply` refuses (**25**) while a render has drift or uncommitted changes, a recorded
+  link into it is not what the lockfile says, a link into it dangles, or git cannot answer.
+  An old path is found in every spelling a script might use: absolute (and resolved),
+  `~/`, `$HOME/`, `${HOME}/`, `$AOS_HOME/`, `${AOS_HOME}/` and `<aos_home>/`. `--finish`
+  also scans `rendered/` itself. References are printed as `path:line` only: the scan reads
+  harness homes, which hold keys. An `--ignore` glob applies to every scanned root, and the
+  plan prints the ones in force.
 
 ## The harness record
 

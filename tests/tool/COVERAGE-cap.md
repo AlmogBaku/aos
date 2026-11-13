@@ -311,6 +311,9 @@ Every render lives at `<aos_home>/rendered/<id>/`; inside the household it is wr
 - [ ] test_swap_on_a_first_install_only_moves_the_staged_render_in — 0; no live render, nothing trashed
 - [ ] test_swap_puts_an_interrupted_swaps_old_render_back_live — **PIN**; 26; a crash between the two renames leaves the only copy of the old render in `.replaced/<id>`; the next swap restores it rather than trashing it, then succeeds on a rerun
 - [ ] test_swap_trashes_a_finished_swaps_leftover_and_proceeds — 0; a `.replaced/<id>` beside a live render is a finished swap's debris
+- [ ] test_swap_puts_the_old_render_back_when_the_second_rename_fails — **PIN**; 1; the in-call rollback: a read-only `.staging/` makes the staged render unable to leave after the live one was moved aside — the old render is live again, `.replaced/` empty, nothing trashed (skipped as root)
+- [ ] test_swap_refuses_staged_bytecode — 23; the gate hides `__pycache__`/`*.pyc`, so a staged `.pyc` would go live unreviewed
+- [ ] test_render_leaves_bytecode_behind_and_creates_rendered_owner_only — 0; no bytecode copied into staging, and `rendered/` is created 0700 (renders carry baked MOD answers)
 - [ ] test_swap_refuses_a_staged_file_naming_its_own_staging_path — 23; a baked `.staging/<id>` path would stop resolving once live
 - [ ] test_swap_refuses_a_staged_tree_that_drops_a_linked_target — **PIN**; 23; a staged render without `adapters/` would leave a gate plugin's link dangling — the link still resolves after the refusal
 - [ ] test_discard_trashes_the_staged_render_and_leaves_the_live_one — 0; the live render is byte-identical
@@ -336,4 +339,14 @@ a file link, an unrecorded link, a baked path, a planted `.pyc`, outside referen
 - [ ] test_apply_rerun_after_a_crash_reaches_the_same_state — 0; a crash before the lockfile write, with one link back on the old render, converges on a rerun
 - [ ] test_finish_refuses_while_a_reference_or_an_old_link_remains — 25, then 0; nothing trashed while a hook or a stray link names an old render; then the old renders are in the trash, MOD stays, and every later step prints "nothing to migrate"
 - [ ] test_apply_and_finish_refuse_to_scan_less_than_the_plan — 25; no plan yet, or a new `--ignore`
+- [ ] test_a_hand_changed_link_blocks_apply_instead_of_being_overwritten — **PIN**; 25; a recorded link the user removed would be re-created (a skill handed back to a guest-reachable profile) — link drift is drift, and the link stays removed
+- [ ] test_git_that_cannot_answer_blocks_apply — **PIN**; 25; an unanswerable `git status` is not a clean one — for an entry with no recorded artifacts it is the only evidence
+- [ ] test_other_spellings_of_an_old_path_are_found_and_block_finish — **PIN**; 25; `$HOME/…` and `${AOS_HOME}/…` spellings are outside references; `--finish` trashes nothing while they remain
+- [ ] test_a_stale_symlink_inside_a_live_render_blocks_finish — 25; a render's own absolute symlink into an old render is copied verbatim, and `--finish` scans `rendered/` for it
+- [ ] test_a_shipped_package_with_no_artifacts_is_found_from_its_link — 0; a shipped package recording only a deep link moves its subtree; its MOD stays
+- [ ] test_a_crashed_runs_temporary_link_is_swept — 0; a leftover `.<name>.aos-migrate` link is removed and the real link resolves
 - [ ] test_a_new_layout_household_has_nothing_to_migrate — 0; all three steps
+
+## `migrate rendered` on a household under a symlinked path — 1
+
+- [ ] test_a_household_under_a_symlinked_path_migrates_cleanly — **PIN**; 0; artifacts are recorded resolved and link targets lexically, so drift, mapping and the lockfile rewrite compare both spellings; `verify` is clean after `--apply`

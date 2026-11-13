@@ -232,7 +232,11 @@ The capability-upgrade skill's renders migration, on Hermes:
   is listed too; its own `hooks revoke` (below) clears it.
 - **A shell hook** (`hooks:` in a profile's `config.yaml`) that names an old render path is
   switched without a moment unapproved, because Hermes skips an unapproved hook even when it
-  is `fail_closed`:
+  is `fail_closed`. Each switch is its own gate. The migrate plan shows references as
+  `path:line` only, so the user has not yet seen what they are consenting to. Before writing
+  anything, show the profile, the event, the old and the new exact command (from
+  `hermes -p <profile> config get hooks`) and the allowlist entry you will add, and wait for
+  the go-ahead. Then:
   1. Approve the new command first: one `approvals` entry in the profile's
      `shell-hooks-allowlist.json` with `event`, `command`, `approved_at` and
      `script_mtime_at_approval` (the script's mtime), so `hooks doctor` can tell a changed

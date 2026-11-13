@@ -1,7 +1,8 @@
 """`swap` and `discard` — the two ways a staged render leaves `rendered/.staging/<id>/`.
 
 The gate between them is the installer's: it diffs the live render against the staged one
-(`git diff --no-index`), and the user's approve runs `swap`, a decline runs `discard`.
+(`diff -ruN -x __pycache__ -x '*.pyc'`), and the user's approve runs `swap`, a decline runs
+`discard`.
 These verbs are the only code that moves a render, so the destructive half of a render
 lives in tested code rather than in `mv`/`rm` lines four skills would each type by hand."""
 
@@ -61,6 +62,12 @@ def cmd_swap(ctx: typer.Context,
                  f"an interrupted swap left the old render of '{capability}' aside; it is "
                  f"live again at {live} — run `aos-cap swap {capability}` again")
 
+    # Bytecode is regenerated, never shipped: the gate hides it, so a staged .pyc would go
+    # live unreviewed and run instead of the .py the user approved.
+    cached = sorted(p for p in staged.rglob("*") if p.name == "__pycache__" or p.suffix == ".pyc")
+    if cached:
+        fail(Exit.STAGED_UNSAFE, f"{cached[0]} — a staged render must carry no bytecode "
+                                 f"(the gate does not show it); re-render without it")
     needle = os.fspath(staged)
     for f in sorted(p for p in staged.rglob("*") if p.is_file() and not p.is_symlink()):
         text = text_of(f)

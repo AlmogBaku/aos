@@ -162,8 +162,10 @@ Everything the run creates is identifiable and disposable:
    Re-check after the evolve step: it edits a job, and an edit must not leave it enabled.
 
    **Re-rendering instead of re-running.** A prose fix to a `{{mod}}`-slot-free skill can be
-   re-rendered into the snapshot with `aos-cap render` (an `--out` outside the household,
-   which the tool allows) rather than costing a whole live run —
+   re-rendered into the snapshot with `aos-cap render` rather than costing a whole live run —
+   render into a scratch directory outside the household (inside it, `render` writes only
+   to `rendered/.staging/`, and a kit clone at `<aos_home>/upstream` is inside it), normalize
+   that, and copy the result into the snapshot —
    the render is a pure function of source + version for those skills. Two conditions, both
    non-negotiable: prove it first by rendering an *untouched* skill and confirming byte
    identity with the committed snapshot, and pipe the output through the normalizer (skipping

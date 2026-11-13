@@ -1767,6 +1767,40 @@ class RenderedTest(unittest.TestCase):
         r = self.cli("swap", "democap")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual((self.rendered / "democap/skills/democap/SKILL.md").read_text(), "new\n")
+        self.assertEqual(len(trashed_names()), 2, "the leftover and the replaced render")
+
+    @unittest.skipIf(os.geteuid() == 0, "root ignores directory permissions")
+    def test_swap_puts_the_old_render_back_when_the_second_rename_fails(self):
+        # The live render is moved aside, then moving the staged one in fails (its parent is
+        # read-only, so it cannot leave): the old render must be live again, untrashed.
+        self.live("democap")
+        self.stage("democap")
+        staging = self.rendered / ".staging"
+        staging.chmod(0o555)
+        try:
+            r = self.cli("swap", "democap")
+        finally:
+            staging.chmod(0o755)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("back in place", r.stderr)
+        self.assertEqual((self.rendered / "democap/skills/democap/SKILL.md").read_text(), "old\n")
+        self.assertFalse((self.rendered / ".replaced" / "democap").exists())
+        self.assertEqual(trashed_names(), [])
+
+    def test_swap_refuses_staged_bytecode(self):
+        self.live("democap")
+        self.stage("democap", rel="adapters/gate/__pycache__/x.cpython-312.pyc", body="x")
+        self.assertEqual(self.cli("swap", "democap").returncode, 23)
+
+    def test_render_leaves_bytecode_behind_and_creates_rendered_owner_only(self):
+        cap = write_cap(self.home, "democap", ["democap"])
+        (cap / "skills" / "democap" / "__pycache__").mkdir()
+        (cap / "skills" / "democap" / "__pycache__" / "x.pyc").write_bytes(b"\x00")
+        r = self.cli("render", str(cap), "democap", "--out",
+                     str(self.rendered / ".staging" / "democap" / "skills"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse(list((self.rendered / ".staging").rglob("*.pyc")))
+        self.assertEqual(self.rendered.stat().st_mode & 0o777, 0o700)
 
     def test_swap_refuses_a_staged_file_naming_its_own_staging_path(self):
         self.live("democap")
@@ -1922,6 +1956,12 @@ def old_layout_household(root):
     plug = p / "renders" / "plugcap" / "adapters" / "hermes" / "plugins" / "plugcap"
     plug.mkdir(parents=True)
     (plug / "hook.py").write_text("ALLOW = []\n")
+    # plugship: a SHIPPED package (no CAPABILITY.md in personal/) that records no artifacts,
+    # only a deep link into its render — the case found purely from a link target.
+    pship = caps / "plugship" / "adapters" / "hermes" / "plugins" / "plugship"
+    pship.mkdir(parents=True)
+    (pship / "hook.py").write_text("ALLOW = ['x']\n")
+    (caps / "plugship" / "MOD.md").write_text("---\ncapability: plugship\n---\n")
     (p / ".gitignore").write_text("__pycache__/\n*.pyc\n")
     hz = root / ".fakeh"
     for d in ("skills", "plugins", "ext", "profiles/o/skills", "sessions"):
@@ -1934,9 +1974,13 @@ def old_layout_household(root):
         "plug": (hz / "plugins" / "plugcap", plug),
         "uses": (hz / "profiles" / "o" / "skills" / "shipcap", ship),
         "unrecorded": (hz / "skills" / "extra", own / "skills" / "owncap"),
+        "plugship": (hz / "plugins" / "plugship", pship),
     }
     for link, target in links.values():
         link.symlink_to(target)
+    # a link into the user's own package SOURCE: not a render, so the migration leaves it
+    # alone — and must say so, or the approver cannot reconcile the link count
+    (hz / "skills" / "srclink").symlink_to(caps / "owncap" / "skills" / "owncap")
     (hz / "config.yaml").write_text(f"hooks:\n  pre_tool_call:\n    - command: {gate}/__init__.py\n")
     (hz / "sessions" / "s1.jsonl").write_text(f'{{"cmd": "{own}/skills/owncap"}}\n')
     H = ["--home", str(home)]
@@ -1953,6 +1997,7 @@ def old_layout_household(root):
         "--link", str(links["own"][0]), "--link", str(links["gate"][0]),
         "--link", str(links["file"][0]), "--uses-link", str(links["uses"][0]))
     rec("plugcap", "--version", "0.1.0", "--source-root", "personal", "--link", str(links["plug"][0]))
+    rec("plugship", "--version", "0.1.0", "--link", str(links["plugship"][0]))
     (home / ".aos" / "harness.yml").write_text(yaml.safe_dump(
         {"harness": "fake", "sheet": str(ship / "reference" / "harness-fake.md"), "cli": None}))
     git = ["git", "-C", str(p), "-c", "user.name=Dana Fixture", "-c", "user.email=dana@example.com"]
@@ -2002,10 +2047,14 @@ class MigrateTest(unittest.TestCase):
         self.assertIn(f"{self.hz / 'config.yaml'}:3", r.stdout)
         self.assertIn(f"{self.home / 'personal/capabilities/owncap/MOD.md'}:4", r.stdout)
         # path:line only — the scan reads harness homes, which hold keys.
-        self.assertNotIn("- command:", r.stdout.split("## outside references")[1])
+        outside = r.stdout.split("## outside references")[1].split("## scan set")[0]
+        self.assertNotIn("command:", outside)
+        self.assertNotIn("__init__.py", outside)  # the matched text never appears
+        self.assertIn("links into personal/ outside any render, left alone (1)", r.stdout)
+        self.assertIn(str(self.hz / "skills" / "srclink"), r.stdout)
         self.assertNotIn("s1.jsonl", r.stdout)
         self.assertIn(str(self.links["unrecorded"][0]), r.stdout)
-        self.assertIn("(0)", r.stdout.split("## renders with drift")[1].splitlines()[0])
+        self.assertIn("(0)", r.stdout.split("## drift")[1].splitlines()[0])
 
     def test_a_drifted_render_is_listed_and_blocks_apply(self):
         ship = self.links["ship"][1]
@@ -2051,7 +2100,7 @@ class MigrateTest(unittest.TestCase):
         self.lock.write_bytes(pre_lock)
         st = self.home / ".aos" / "migrate-rendered.yaml"
         state = yaml.safe_load(st.read_text())
-        state.pop("applied"); state.pop("roots")
+        state.pop("applied")
         st.write_text(yaml.safe_dump(state))
         own_link = self.links["own"][0]
         own_link.unlink()
@@ -2091,6 +2140,67 @@ class MigrateTest(unittest.TestCase):
         self.mig()
         self.assertEqual(self.mig("--apply", "--ignore", "config.yaml").returncode, 25)
 
+    def test_a_hand_changed_link_blocks_apply_instead_of_being_overwritten(self):
+        # PIN: --apply would re-create a link the user removed (a skill taken back from a
+        # guest-reachable profile) or overwrite one they re-pointed — shown as a re-point.
+        self.links["ship"][0].unlink()
+        r = self.mig()
+        self.assertIn("MISSING LINK", r.stdout)
+        self.assertEqual(self.mig("--apply").returncode, 25)
+        self.assertFalse(self.links["ship"][0].exists())
+
+    def test_git_that_cannot_answer_blocks_apply(self):
+        # PIN: an unanswerable git status read as clean; for a no-artifact entry it is the
+        # only integrity evidence there is.
+        shutil.move(str(self.home / "personal" / ".git"), str(self.root / "git-aside"))
+        r = self.mig()
+        self.assertIn("cannot check for uncommitted renders", r.stdout)
+        self.assertEqual(self.mig("--apply").returncode, 25)
+
+    def test_other_spellings_of_an_old_path_are_found_and_block_finish(self):
+        # PIN: a hook written with $HOME or ${AOS_HOME} named the old render, passed
+        # --finish, and the render it named was trashed.
+        own_rel = "aos/personal/renders/owncap/skills/owncap/x.sh"
+        (self.hz / "cron.sh").write_text(f"#!/bin/sh\nexec $HOME/{own_rel}\n"
+                                          f"exec ${{AOS_HOME}}/personal/renders/owncap/y.sh\n")
+        r = self.mig()
+        self.assertIn(f"{self.hz / 'cron.sh'}:2", r.stdout)
+        self.assertIn(f"{self.hz / 'cron.sh'}:3", r.stdout)
+        self.mig("--apply")
+        self.fix_outside_references()
+        self.assertEqual(self.mig("--finish").returncode, 25)
+        self.assertTrue((self.home / "personal/renders/owncap").is_dir())
+
+    def test_a_stale_symlink_inside_a_live_render_blocks_finish(self):
+        # A render's own absolute symlink into an old render is copied verbatim; --finish
+        # scans rendered/ so it cannot be trashed out from under it.
+        inner = self.home / "personal/renders/owncap/skills/owncap/peer"
+        inner.symlink_to(self.home / "personal/renders/owncap/adapters/ext")
+        subprocess.run(["git", "-C", str(self.home / "personal"), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(self.home / "personal"), "-c", "user.name=Dana Fixture",
+                        "-c", "user.email=dana@example.com", "commit", "-qm", "peer"], check=True)
+        self.mig()
+        self.assertEqual(self.mig("--apply").returncode, 0)
+        self.fix_outside_references()
+        r = self.mig("--finish")
+        self.assertEqual(r.returncode, 25)
+        self.assertIn("rendered/owncap/skills/owncap/peer", r.stdout)
+
+    def test_a_shipped_package_with_no_artifacts_is_found_from_its_link(self):
+        self.mig()
+        self.assertEqual(self.mig("--apply").returncode, 0)
+        target = Path(os.readlink(self.links["plugship"][0]))
+        self.assertEqual(target, self.home / "rendered/plugship/adapters/hermes/plugins/plugship")
+        self.assertTrue((self.home / "personal/capabilities/plugship/MOD.md").is_file())
+
+    def test_a_crashed_runs_temporary_link_is_swept(self):
+        stale = self.hz / "skills" / ".shipcap.aos-migrate"
+        stale.symlink_to(self.root / "nowhere")
+        self.mig()
+        self.assertEqual(self.mig("--apply").returncode, 0)
+        self.assertFalse(stale.is_symlink())
+        self.assertTrue(self.links["ship"][0].exists())
+
     def test_a_new_layout_household_has_nothing_to_migrate(self):
         fresh = self.root / "fresh"
         run(["--home", str(fresh), "init"])
@@ -2099,6 +2209,36 @@ class MigrateTest(unittest.TestCase):
             r = run(["--home", str(fresh), "migrate", "rendered", *args])
             self.assertEqual(r.returncode, 0)
             self.assertIn("nothing to migrate", r.stdout)
+
+
+class SymlinkedHouseholdMigrateTest(unittest.TestCase):
+    """`migrate rendered` on a household reached through a symlink: the lockfile records
+    artifacts resolved and link targets lexically, so one entry carries both spellings."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        (self.root / "real-aos").mkdir()
+        (self.root / "aos").symlink_to(self.root / "real-aos")
+        empty_trash()
+        self.home, self.hz, self.links = old_layout_household(self.root)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def mig(self, *args):
+        return run(["--home", str(self.home), "migrate", "rendered", *args],
+                   env_extra={"HOME": str(self.root)})
+
+    def test_a_household_under_a_symlinked_path_migrates_cleanly(self):
+        r = self.mig()
+        self.assertIn("(0) — --apply refuses", r.stdout, r.stdout)
+        self.assertEqual(self.mig("--apply").returncode, 0)
+        v = run(["--home", str(self.home), "verify"], env_extra={"HOME": str(self.root)})
+        self.assertEqual(v.returncode, 0, v.stdout)
+        lock = (self.home / ".aos" / "installs.lock.yaml").read_text()
+        self.assertNotIn("personal/renders", lock)
+        self.assertNotIn("personal/capabilities/shipcap/skills", lock)
 
 
 class ToolIdentityTest(unittest.TestCase):

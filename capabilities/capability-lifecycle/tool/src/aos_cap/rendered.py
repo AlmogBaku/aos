@@ -42,6 +42,15 @@ def replaced_dir(home: Path, cap: str) -> Path:
     return home / RENDERED / REPLACED / cap
 
 
+def ensure_rendered_root(home: Path) -> Path:
+    """`rendered/`, created owner-only: renders carry the user's baked MOD answers, which
+    used to sit in their private repo."""
+    root = rendered_root(home)
+    if not root.exists():
+        root.mkdir(mode=0o700)
+    return root
+
+
 def check_id(cap: str) -> None:
     """A capability id is one path segment of the kit's name grammar. Checked by grammar,
     not by where the path lands: `..` resolves to `rendered/` itself, which is inside the

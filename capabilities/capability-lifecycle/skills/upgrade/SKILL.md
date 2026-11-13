@@ -43,9 +43,11 @@ the live render against the staged one, and only `aos-cap swap` puts a render li
    3. **Fix each outside reference through its owner.** A `MOD.md` answer goes through
       {{skill: evolve}}. One of the user's own packages that bakes the path gets the edit in
       its source, then a re-render through staging and the gate. A harness file is changed
-      only with the harness's own CLI: a hook is re-approved by its new exact command
-      before the config points at it, then checked, then the old approval revoked (the
-      cheat-sheet's order). Change hooks last, once their scripts are final.
+      through the cheat-sheet's steps — its CLI, and only the consent file it names. A hook
+      is its own gate: show the user the old and new exact command and the approval you
+      will write, and wait. Then re-approve it by its new exact command before the config
+      points at it, check it, and revoke the old approval (the cheat-sheet's order). Change
+      hooks last, once their scripts are final.
    4. **Prove the gates before anything old goes.** Run every security plugin's and
       wall's own synthetic check against the new copies. Restart the harness, with the
       user's go-ahead, once its work is idle, and confirm each plugin loaded from its

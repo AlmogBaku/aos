@@ -226,8 +226,11 @@ session no longer lists them.
 ## Renders migration (capability-lifecycle 0.7.0)
 
 The capability-upgrade skill's renders migration, on Claude Code: scan with
-`aos-cap migrate rendered --scan ~/.claude --ignore plans --ignore projects`. Plans and
-session transcripts quote old paths as history, not as live configuration. The links in
+`aos-cap migrate rendered --scan ~/.claude --ignore plans --ignore tool-results --ignore
+subagents --ignore workflows --ignore file-history` (session transcripts, `*.jsonl`, are
+skipped by the tool itself). These quote old paths as history, not as live configuration. A project's `memory/`
+is NOT skipped: memories are loaded into later sessions, so a stale path there is fixed like
+any other outside reference. The links in
 `~/.claude/skills/` are re-pointed by `--apply` itself. A `settings.json` hook command that
 names an old render path is an outside reference: change it with the same edit discipline
 as any `settings.json` change on this sheet, then reload the session.

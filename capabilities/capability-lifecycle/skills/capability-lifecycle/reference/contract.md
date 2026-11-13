@@ -50,7 +50,8 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   (`aos-cap swap <id>` puts the staged render live and sends the old one to the OS trash;
   then create the links and run the native plan). Declined → `aos-cap discard <id>`: the
   staged render goes to the trash and the live one is untouched. These two verbs are the
-  only way a render moves — never `mv`, `rm` or `cp` a render by hand, and never
+  only way a render moves — never move, delete or overwrite a live render by hand (the one
+  copy allowed is evolve seeding `.staging/<id>/` from it), and never
   `aos-cap render --force` into a live render (the tool refuses any `--out` inside the
   household that is not under `rendered/.staging/`). Nothing touches the harness
   before the gate. Where the harness has a native plan/read-only mode (cheat-sheet

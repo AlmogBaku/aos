@@ -17,7 +17,7 @@ from ..constants import LEGACY_ORIGIN_KEY
 from ..errors import Exit, fail
 from ..household import find_home_soft
 from ..manifest import skill_rows
-from ..rendered import is_under, staging_root
+from ..rendered import ensure_rendered_root, is_under, staging_root
 from ..slots import resolve_tree
 
 app = typer.Typer()
@@ -135,7 +135,10 @@ def cmd_render(
         fail(Exit.GENERIC, f"{dest} exists and is not empty (pass --force to re-render in place)")
     if dest.exists():
         shutil.rmtree(dest)
-    shutil.copytree(src, dest)
+    if home is not None and is_under(dest.parent, home):
+        ensure_rendered_root(home)
+    # Bytecode is regenerated where the render runs, never shipped — and the gate hides it.
+    shutil.copytree(src, dest, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     stamp_render(dest / "SKILL.md", row["installed_name"],
                  f"{cap_dir.name}@{data.get('version')}")
     # Computed names, applied to prose (§2.5). A `{{mod:}}` slot survives — the agentic

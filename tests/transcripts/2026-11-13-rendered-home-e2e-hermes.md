@@ -338,7 +338,7 @@ The work-tracker nightly steward now runs at 22:00 Europe/Lisbon instead of 22:4
 
 Two things to know:
 - The job was already paused, and I left it paused. Because it's paused, Hermes still lists the next run as 22:47. I expect it to show 22:00 once you resume it, but I haven't checked that. Say if you want it resumed.
-- I only touched `aos-steward`. The `wt-steward` profile and every other profile not named `aos-*` were left alone.
+- I only touched `aos-steward`. Every profile not named `aos-*` was left alone.
 
 ### Capture (the PROTOCOL prompt)
 
@@ -351,7 +351,7 @@ Your 22:00 steward change is now in the ledger, and the commit that keeps it alr
 
 Your 22:00 steward is recorded in your MOD.md and will survive every upgrade.
 
-I only touched aos-* profiles. The `wt-steward` profile and the other profiles outside aos-* weren't read, changed or counted.
+I only touched aos-* profiles. Profiles outside aos-* weren't read, changed or counted.
 
 One problem: that cron job is paused. It was paused at 20:24, just before the hour change, and its stored "next run" still says the old 22:47 time. As it stands, the nightly steward won't run at all. I left it paused in case you did that on purpose. If not, `hermes -p aos-steward cron resume 09ce46b53932` will restart it and work out the next run from the new 22:00 schedule.
 
@@ -408,3 +408,15 @@ Three things I left alone because they're yours to decide:
 Should I send any of these to the trash?
 
 The skills from this session stay in my context until you start a new session.
+
+## Later the same day (2026-11-13), after this run
+
+- The two normalizer findings above are fixed in the kit, not left owed. The normalizer now
+  scrubs `uid:<digits>` to `uid:<UID>` (Hermes 0.23's cron `origin.user_id`). It also skips
+  `gateway.lock`, `active_sessions.{json,lock}`, `context_length_cache.yaml.lock` and
+  `runtime/bot_live_delivery/`. The committed snapshot was re-normalized for the uid only.
+- One file did come in by `aos-cap render` after the run: the Hermes cheat-sheet (both
+  snapshot copies). Its renders-migration skip list gained `.curator_backups`, which the
+  read-only preview against a real household surfaced. That followed PROTOCOL's shortcut:
+  an untouched skill (`capability-onboard`) first re-rendered byte-identical, then the sheet
+  was rendered outside the household, normalized and copied in.

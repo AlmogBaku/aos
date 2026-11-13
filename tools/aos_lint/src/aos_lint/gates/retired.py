@@ -139,6 +139,8 @@ RETIRED = [
     ("git -C <aos_home>/personal" " add", "the gate is a diff of rendered/<id> against "
                                            "rendered/.staging/<id>, then `aos-cap swap`"),
     ("git -C <aos_home>/personal" " restore", "a declined render is `aos-cap discard <id>`"),
+    ("git -C <aos_home>/personal" " diff --staged", "the gate is `diff -ruN` of rendered/<id> "
+                                                     "against rendered/.staging/<id>"),
     ("--ro <aos_home>" "/personal", "containers mount <aos_home>/rendered read-only"),
     ("pinned" " render", "renders are unversioned build output in rendered/; nothing pins them"),
 ]

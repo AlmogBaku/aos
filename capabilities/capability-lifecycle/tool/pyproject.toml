@@ -7,7 +7,7 @@ description = "Deterministic lifecycle bookkeeping for aos: manifest parse/valid
 # bare `X | None` unions this package uses are PEP 604 — 3.10+. uv manages its own
 # interpreter for `uv tool install`/`uvx`, so the floor costs an installing user nothing.
 requires-python = ">=3.10"
-dependencies = ["pyyaml>=6.0", "typer>=0.15", "send2trash>=2.2,<3"]
+dependencies = ["pyyaml>=6.0", "typer>=0.15", "send2trash==1.8.3"]
 
 [project.scripts]
 aos-cap = "aos_cap.cli:main"
