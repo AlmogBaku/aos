@@ -227,8 +227,9 @@ The capability-upgrade skill's renders migration, on Hermes:
 
 - **Scan:** `aos-cap migrate rendered --scan ~/.hermes` with `--ignore` for each of
   `sessions`, `request_dump_*`, `cron/output`, `backups`, `*.bak-*`, `cache`,
-  `skills/.archive`, `state-snapshots`, `logs`. Those hold transcripts and history, not live
-  configuration.
+  `skills/.archive`, `.curator_backups`, `state-snapshots`, `logs`. Those hold transcripts
+  and history, not live configuration. A hook's old approval in `shell-hooks-allowlist.json`
+  is listed too; its own `hooks revoke` (below) clears it.
 - **A shell hook** (`hooks:` in a profile's `config.yaml`) that names an old render path is
   switched without a moment unapproved, because Hermes skips an unapproved hook even when it
   is `fail_closed`:
