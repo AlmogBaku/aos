@@ -46,7 +46,7 @@
         "chat_id": "local-<SHA256>",
         "chat_name": null,
         "thread_id": null,
-        "user_id": "uid:1002",
+        "user_id": "uid:<UID>",
         "scope_id": null
       },
       "enabled_toolsets": null,
@@ -99,7 +99,7 @@
         "chat_id": "local-<SHA256>",
         "chat_name": null,
         "thread_id": null,
-        "user_id": "uid:1002",
+        "user_id": "uid:<UID>",
         "scope_id": null
       },
       "enabled_toolsets": null,
@@ -150,7 +150,7 @@
         "chat_id": "local-<SHA256>",
         "chat_name": null,
         "thread_id": null,
-        "user_id": "uid:1002",
+        "user_id": "uid:<UID>",
         "scope_id": null
       },
       "enabled_toolsets": null,

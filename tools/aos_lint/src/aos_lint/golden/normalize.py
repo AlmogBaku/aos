@@ -107,6 +107,11 @@ SKIP = {
     # Hermes 0.22's per-profile runtime state: the `.env` writer's lock, the projects index
     # (SQLite) and the provider model-list cache — written at start, never by an install.
     ".env.lock", "projects.db", "provider_models_cache.json",
+    # Hermes 0.23's per-profile runtime state: the gateway's lock (a pid and absolute home
+    # paths, which the privacy gate refuses), the live-session index and its lock, and the
+    # context-length cache's lock — written by a running gateway, never by an install.
+    "gateway.lock", "active_sessions.json", "active_sessions.lock",
+    "context_length_cache.yaml.lock",
 }
 # Hermes's per-profile plugin store, named by the marker it keeps. One in an `aos-*` profile
 # means the profile inherited a plugin (a memory provider, say) that could reach somebody's
@@ -117,7 +122,9 @@ PLUGIN_STORE_MARKER = ".install-metadata.json"
 # match (a capability may well ship an `output/`). `cron/output/<job-id>/<ts>.md` is the
 # harness's per-run job log: a sync tick that fired before the snapshot writes one, and
 # nothing an install decided is in it.
-SKIP_UNDER = {("cron", "output")}
+SKIP_UNDER = {("cron", "output"),
+              # Hermes 0.23: `runtime/bot_live_delivery/` holds only the delivery lock.
+              ("runtime", "bot_live_delivery")}
 # Lock files named by a hash or by whichever maintenance task ran, so no fixed basename can
 # list them: the cron ticker's per-fire claim (`cron/.fire-<hash>.lock`, left by every job
 # that fired) and Hermes's `state.db.<task>.lock` (fts_rebuild, quarantine, auto-maintenance…).
@@ -149,6 +156,9 @@ _PRINCIPAL = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.local\b")
 # identifies the run.
 _SESSION = re.compile(
     r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b")
+# The numeric uid of whoever ran the e2e: Hermes 0.23 stamps it into every cron job's
+# `origin.user_id` (`uid:1002`). A fact about the machine, none about the install.
+_UID = re.compile(r"\buid:\d+\b")
 
 
 def normalize_text(text: str) -> str:
@@ -159,6 +169,7 @@ def normalize_text(text: str) -> str:
     # ordering is kept because the next user-derived rule added here will not be.
     text = text.replace(HOME, "<HOME>")
     text = _PRINCIPAL.sub("<PRINCIPAL>", text)
+    text = _UID.sub("uid:<UID>", text)
     text = _TIMESTAMP.sub("<TIMESTAMP>", text)
     text = _DATE.sub("<DATE>", text)
     text = _SHA256.sub("<SHA256>", text)
