@@ -6,7 +6,9 @@ capabilities live until (and unless) they graduate — following the package lay
 every shipped capability uses: `CAPABILITY.md`, `README.md`, `skills/<id>/SKILL.md`
 (the entry skill) plus any further `skills/`, `agents/*.agent.yaml` for every agent
 Design named, `ONBOARDING.md` + `MOD.example.md` only as a pair, `kb/` only if it
-touches a KB. The persist hook commits it (dated message).
+touches a KB. The persist hook commits it (dated message). The manifest carries the
+`depends` and `uses` rows the approved design gave each agent whose only audience is the
+user (Stage 3, *Depends*).
 
 **Every agent is declared, never described.** A piece with its own chat, identity or
 toolset is an agent: write its `agents/<id>.agent.yaml` (`workspace: own`), name it in its

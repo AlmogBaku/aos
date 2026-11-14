@@ -136,6 +136,20 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   move or delete it. A grant to `main` that the provider's own `used_by: [main]` already
   serves needs no second link. A harness that scopes skills by config rather than by
   directory records the grant the way its cheat-sheet records `used_by`.
+- **The default an agent only the user talks to gets.** A package {{skill: build}} designed
+  declares it in `uses` (the build skill's design stage). For one that does not — older or
+  third-party — install and upgrade grant it as if declared. Each agent the package ships
+  whose only audience is the user (judged from its `purpose`; name each at the gate) gets
+  `capability-lifecycle` and {{skill: evolve}} linked, and with kb installed {{skill: kb/recall}},
+  {{skill: kb/capture}} and {{skill: kb/route}} — except that an agent reading content other people write gets
+  the kb links only after the user's yes. They are linked like a declared row: under the
+  provider's installed name, recorded on **this** capability's entry with `--uses-link`. Every
+  other agent gets them only when its job needs them, never by default, and an agent anyone
+  else can reach never gets `capability-lifecycle` or {{skill: evolve}}.
+- **Standing links.** A harness's cheat-sheet may name links that every install of a given
+  provider adds to one harness-level agent — on Hermes, the AOS Agent creator. They are the
+  provider's own `links`, recorded on the provider's entry, and its upgrade keeps them as it
+  keeps `used_by` links.
 - **An agent that already exists is adopted, not re-created — on positive evidence only.**
   When an agent's computed name is already a harness agent, adopt it only if something shows
   it is this capability's: the lockfile already has this capability's entry (an upgrade), or

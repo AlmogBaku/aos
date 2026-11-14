@@ -70,7 +70,9 @@ the overlay doctrine, and the Experience rules. Then:
    skills location, under `installed_name`; a path another entry or a stranger holds →
    stop), cron jobs
    (`aos:<cap>:<cron-id>`, single-owner check first), context blocks (markers), config
-   keys, the capability's own tool install line — plus whatever the root MOD's household
+   keys, the capability's own tool install line — plus, when the package does not declare
+   it, the default an agent only the user talks to gets (contract), the cheat-sheet's
+   standing links, and whatever the root MOD's household
    rules add to each agent this install creates or adopts (the `capability-lifecycle` skill's
    `reference/overlay.md`). Touch
    no harness file yet.
