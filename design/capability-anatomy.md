@@ -36,9 +36,11 @@ What a user's machine actually looks like (after installing two capabilities) �
 │   ├── MOD.md                    # global profile (identity, tz, hours, sacred time, red lines)
 │   └── capabilities/
 │       ├── work-tracker/         # personalized twin of upstream/capabilities/work-tracker/
-│       │   ├── MOD.md            # this user's deltas from the shipped defaults
-│       │   └── skills/…          # the PINNED RENDER (§3.1) — tracked; harnesses symlink here
-│       └── my-private-cap/       # private capabilities: full §2.1 package + MOD + render
+│       │   └── MOD.md            # this user's deltas from the shipped defaults
+│       └── my-private-cap/       # private capabilities: full §2.1 package + MOD (source only)
+├── rendered/                     # build output: machine-local, never committed (§3.1)
+│   ├── work-tracker/skills/…     # the LIVE RENDER — harnesses symlink here
+│   └── .staging/                 # the only place a render is written; live via `aos-cap swap`
 └── .aos/                         # machine-local state, outside every repo
     ├── installs.lock.yaml        # what's installed: versions, source roots, links, hashes
     ├── kb-registry.yaml          # kb's registry of every base — machine-local, not overlay
@@ -91,7 +93,7 @@ Five skills, one agent, one schedule, one zone. **The count is the point of the 
 usecase capability is small, and everything it needs to say about itself fits in a manifest
 plus an entry skill.
 
-The user's side lives in the personal root, mirrored: `personal/capabilities/work-tracker/MOD.md` (★ the overlay — seeded from `MOD.example.md` at install, filled by the interview, never shipped upstream) next to `personal/capabilities/work-tracker/skills/…` (the pinned render the transform writes and harnesses link to).
+The user's side lives in the personal root, mirrored: `personal/capabilities/work-tracker/MOD.md` (★ the overlay — seeded from `MOD.example.md` at install, filled by the interview, never shipped upstream). The transform's output, the render harnesses link to, lives outside that repo at `rendered/work-tracker/skills/…` — machine-local build output, never committed.
 
 Note what a usecase capability does **not** ship. No queue file of its own: "what's next" is
 `kb find --where status=next`, a view over pages that each carry their own state, so there is
@@ -105,11 +107,11 @@ rots silently when the other side changes.
 
 | Moment | Actor | Reads | Writes |
 |---|---|---|---|
-| Install | harness LLM (installer role) | CAPABILITY.md, cheat-sheet, MOD.md (after interview) | pinned render in `personal/` (committed), harness symlinks + native injections, lockfile |
+| Install | harness LLM (installer role) | CAPABILITY.md, cheat-sheet, MOD.md (after interview) | render in `rendered/<id>/` (staged, gated, put live by `aos-cap swap`), harness symlinks + native injections, lockfile |
 | Install (interview) | `capability-onboard` (capability-lifecycle) | ONBOARDING.md, MOD.example.md | MOD.md, harness secret store |
 | Runtime (capture) | main agent | rendered `wt-capture` skill (which embeds MOD.md nuances) | an action page under `actions/` in the commitments base, via `kb set` — one attributed commit, then a hand-off to `wt-schedule` in the SAME exchange |
 | Runtime (steward, 23:00) | steward agent | rendered `wt-steward` skill; five `kb find --where` queries plus one `--without block` backstop | its own bookkeeping only — an extended `expires`, a recorded stall, a rescheduled block it created, an incremented `slipped`. Anything the user committed to is a question, not a write |
-| Upgrade | harness LLM (re-render role) | new upstream files, MOD.md (the user's deltas; current render is a drift source only, §3.4) | new pinned render (reviewed as a git diff in `personal/`, commit = accept), lockfile |
+| Upgrade | harness LLM (re-render role) | new upstream files, MOD.md (the user's deltas; current render is a drift source only, §3.4) | new render (staged; reviewed as the diff of live against staged, `aos-cap swap` = accept), lockfile |
 | Lint/CI | repo CI | everything except overlay family | PR status |
 
 ## 3. Template vs page: the same skill, before and after
@@ -139,7 +141,7 @@ description: "Records something the user has said they must do themselves: class
 5. Confirm in one line. No echo, no follow-up questions.
 ```
 
-**Installed for this user** (the *page* — what `aos-cap render` materialized into `personal/capabilities/work-tracker/skills/wt-capture/` and the LLM then personalized: the render directory, the frontmatter `name`, and the symlink all carry the **installed name**, committed there and symlinked from the harness):
+**Installed for this user** (the *page* — what `aos-cap render` materialized into `rendered/.staging/work-tracker/skills/wt-capture/`, the LLM then personalized and `aos-cap swap` put live at `rendered/work-tracker/skills/wt-capture/`: the render directory, the frontmatter `name`, and the symlink all carry the **installed name**, symlinked from the harness):
 
 ```markdown
 ---
@@ -167,7 +169,7 @@ The `{{mod: …}}` slot is a *convention, not a template engine* — it marks wh
 
 | Declaration in CAPABILITY.md | Becomes (per Hermes cheat-sheet) |
 |---|---|
-| `skills: capture, used_by: [main]` | symlink `~/.hermes/skills/wt-capture` → the pinned render, in the **root profile only** |
+| `skills: capture, used_by: [main]` | symlink `~/.hermes/skills/wt-capture` → the render, in the **root profile only** |
 | `skills: steward, used_by: [steward]` | symlink in the **steward profile's skills dir only** — the main agent never sees it |
 | `agents: steward.agent.yaml` | `~/.hermes/profiles/aos-steward/` (directory-defined — `hermes profile create`; no config.yaml registry) |
 | `cron: nightly-steward` | entry in `~/.hermes/cron/jobs.json`, name-prefixed `aos:work-tracker:nightly-steward` (§5.3 — `jobs.json`'s own `origin` field means chat provenance, not this), assigned to profile `aos-steward` — **in exactly one harness** (single-owner rule, §5.5) |
@@ -187,11 +189,11 @@ installs:
     version: 0.1.0
     source_root: upstream            # which distribution shipped the package
     artifacts:                       # path -> sha256 (render files + native artifacts)
-      <HOME>/aos/personal/capabilities/work-tracker/skills/wt-capture/SKILL.md: sha256:…
+      <HOME>/aos/rendered/work-tracker/skills/wt-capture/SKILL.md: sha256:…
       <HOME>/.hermes/profiles/aos-steward/SOUL.md: sha256:…
-    links:                           # harness symlink -> the pinned render it points at
-      <HOME>/.hermes/skills/wt-capture: <HOME>/aos/personal/capabilities/work-tracker/skills/wt-capture
-      <HOME>/.hermes/profiles/aos-steward/skills/wt-steward: <HOME>/aos/personal/capabilities/work-tracker/skills/wt-steward
+    links:                           # harness symlink -> the render it points at
+      <HOME>/.hermes/skills/wt-capture: <HOME>/aos/rendered/work-tracker/skills/wt-capture
+      <HOME>/.hermes/profiles/aos-steward/skills/wt-steward: <HOME>/aos/rendered/work-tracker/skills/wt-steward
     cron_owned: [nightly-steward]        # single-owner rule: this install runs the pass
     config_keys: []
     env_lines: []
