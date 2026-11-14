@@ -260,6 +260,13 @@ def _scan(home: Path, lock: dict, roots: dict, scan: list[Path], ignore: list[st
     # separately made a scan of a real harness home take many minutes.
     pats = [rx.pattern for rx, _ in subs] + [rx.pattern for rx in _tails(home, all_pairs)]
     detect = re.compile("|".join(f"(?:{p})" for p in pats)) if pats else None
+    # Every spelling of an old render path contains that render's household-relative tail
+    # (`personal/renders/<id>`, `personal/capabilities/<id>/<sub>`), so a plain substring test
+    # rules out nearly every file before the regex runs. The tail patterns start with a
+    # lookbehind, which costs the combined regex its fast first-character skip: scanning a
+    # real harness home with the regex alone took many minutes.
+    needles = sorted({os.fspath(r) for old, _ in all_pairs
+                      for base in (home, home.resolve()) if (r := _rel(old, base)) is not None})
     own_caps = {c for c in lock["installs"] if _own(home, c)}
     personal = home / "personal"
     refs, links, seen = [], {}, set()
@@ -284,7 +291,8 @@ def _scan(home: Path, lock: dict, roots: dict, scan: list[Path], ignore: list[st
             if ign:
                 continue
             text = text_of(p)
-            if text is None or detect is None or not detect.search(text):
+            if (text is None or detect is None or not any(n in text for n in needles)
+                    or not detect.search(text)):
                 continue
             for n, line in enumerate(text.splitlines(), 1):
                 if detect.search(line):
