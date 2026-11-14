@@ -134,6 +134,25 @@ the profile's default doesn't already fit the class; never hardcode provider nam
    roster: in the profile's `profile.yaml` set `ui_meta.hermes-bots.hidden: true`, merging
    into any existing `ui_meta`, and increment `_ui_meta_revisions.hermes-bots` (start at 1).
    An agent a person talks to stays visible. Adopting a profile never changes its visibility.
+   **An agent a person talks to** (operator-facing, or a guest or interview agent) also gets
+   the AOS UI tools when the default profile registers them, since a profile never inherits
+   MCP servers:
+   - `hermes -p <profile> config set mcp_servers.aos-ui.url "$(hermes config get mcp_servers.aos-ui.url)"`,
+     then `hermes -p <profile> mcp test aos-ui` must list `present_artifact`;
+   - the AOS note:
+     `hermes -p <profile> config set platform_hints.aos-ui.append "$(hermes config get platform_hints.aos-ui.append)"`.
+
+   Record both keys with `--config-key`. Without them the agent shows files as attachments AOS
+   cannot preview. A background-only agent skips this.
+   **Standing links — the AOS Agent creator.** A profile whose `profile.yaml` has
+   `ui_meta.aos.role: creator` builds Agents for the user behind AOS's New Agent.
+   - Installing or upgrading capability-lifecycle links `capability-lifecycle`,
+     {{skill: build}}, {{skill: install}} and {{skill: onboard}} into it, plus the
+     vendored `skill-creator` when present.
+   - Installing or upgrading kb links {{skill: kb/recall}} and {{skill: kb/route}}.
+
+   Each link is recorded on its provider's entry with `--link`. The creator gets no other
+   lifecycle or kb skill, and with no creator profile there is nothing to do.
 2. **Skills**: `aos-cap skills <cap-dir>` gives the installed name; the render lives once
    at `<aos_home>/rendered/<capability>/skills/<installed-name>/` (contract: written to
    `rendered/.staging/<capability>/`, put live by `aos-cap swap`);
