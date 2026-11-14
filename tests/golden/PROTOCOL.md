@@ -24,7 +24,9 @@ Everything the run creates is identifiable and disposable:
   requires; interactive runs keep `always-review`), and `.aos/` (machine state: seeded
   with `tests/fixtures/.aos/kb-registry.yaml` — the registry is machine-local, not
   overlay, so it never goes in `personal/` — and given its lockfile by the install's own
-  `aos-cap --home <sandbox>/aos-home init`).
+  `aos-cap --home <sandbox>/aos-home init`). `rendered/` is not seeded: the install's first
+  render creates it (capability-lifecycle 0.7.0), and the run must end with
+  `rendered/.staging/` empty — `aos_lint.golden.check` fails a leftover staged render.
 
 ## Run
 
@@ -128,7 +130,8 @@ Everything the run creates is identifiable and disposable:
    > capability agent as the profile `aos-<agent id>` (`aos-archiver`, `aos-steward`).
    > Profiles outside `aos-*` belong to another household on this machine: never adopt,
    > modify or count them — their cron jobs are not this household's schedules. Renders
-   > land in `personal/` and skills are symlinked per the contract. Install: kb
+   > land in `aos-home/rendered/` (staged, gated, then swapped live) and skills are
+   > symlinked per the contract. Install: kb
    > (work-tracker comes later, as its own prompt — see the Day-N step). The lockfile
    > lives at `aos-home/.aos/installs.lock.yaml` (`aos-cap --home <sandbox>/aos-home`).
 
@@ -160,6 +163,9 @@ Everything the run creates is identifiable and disposable:
 
    **Re-rendering instead of re-running.** A prose fix to a `{{mod}}`-slot-free skill can be
    re-rendered into the snapshot with `aos-cap render` rather than costing a whole live run —
+   render into a scratch directory outside the household (inside it, `render` writes only
+   to `rendered/.staging/`, and a kit clone at `<aos_home>/upstream` is inside it), normalize
+   that, and copy the result into the snapshot —
    the render is a pure function of source + version for those skills. Two conditions, both
    non-negotiable: prove it first by rendering an *untouched* skill and confirming byte
    identity with the committed snapshot, and pipe the output through the normalizer (skipping

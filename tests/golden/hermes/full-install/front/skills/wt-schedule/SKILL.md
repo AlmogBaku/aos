@@ -8,7 +8,7 @@ description: Estimates a commitment, links it to its project, and blocks time fo
   a reminder, and do NOT use to change what the user committed to — that is wt-update.
 metadata:
   aos:
-    origin: work-tracker@0.1.4
+    origin: work-tracker@0.1.5
 ---
 # schedule
 
@@ -22,23 +22,24 @@ How long is this, honestly? Prefer the user's own number where they gave one; ot
 rough estimate beats none, because it decides how much calendar to look for and lets the
 steward spot a two-minute job that has sat for three weeks.
 
-Record it as `estimate:` on the action — `30m`, `1h30m`. This user's granularity is **half
-hours** (`30m` steps): round to the nearest half hour; invented precision (`37m`, `45m`) reads
-as noise.
+Record it as `estimate:` on the action — `30m`, `1h30m`, `2h`. The user's granularity is
+half hours: round to the nearest 30 minutes; invented precision (`37m`, `45m`) reads as noise.
 
 ## 2. Read the calendar before proposing anything
 
-Existing blocks, meetings, and the working windows from the global `MOD.md`. Blocks go on
-the user's **personal** calendar — never another one, because a block on the wrong calendar is
-visible to the wrong people. Then two rules that come from the user, not from this skill:
+Existing blocks, meetings, and the working windows from the global `MOD.md`. Then the rules
+that come from the user, not from this skill:
 
-- **Working hours** bound where a block may land at all.
-- **Sacred time is never scheduled over, and never silently moved.** This skill writes to a
+- **Working hours** bound where a block may land at all: 9:00–18:00 weekdays, Europe/Lisbon,
+  with quiet Fridays. Mornings are deep work — nothing interactive before noon.
+- **Blocks go on the user's personal calendar** — not a work one, where they would be
+  visible to the wrong people.
+- **Sacred time is never scheduled over, and never silently moved.** For this user that is
+  choir practice, Thursdays 19:00–21:00 — never book work there. This skill writes to a
   real calendar, so that rule is what makes the capability trustworthy rather than something
-  the user has to check up on. **Never book work during choir practice, Thursdays
-  19:00–21:00** — when that is where the slot would fall, surface the conflict and offer the
-  next free window instead: *"the only two-hour gap is during choir practice; shall I take
-  Friday 10:00 instead?"* — never resolved on their behalf.
+  the user has to check up on. A conflict gets surfaced — *"the only two-hour gap is during
+  choir practice; shall I look at Friday instead?"* — with the next free window offered,
+  never resolved on their behalf.
 
 The global `MOD.md`'s red lines apply here too. Sending an invitation to another person is
 acting outward as the user; blocking time on their own calendar is not.
@@ -71,10 +72,10 @@ and never frontmatter.
 
 ## 4. Report the slot back
 
-Reached from wt-capture → hand the slot back to it; the user's confirmation is a single 🦜
-and nothing else, so the time is **not** echoed to them — the block on their calendar is the
-record. Reached directly (*"find me two hours for the CFP"*), the time *is* the answer they
-asked for: name it — *"blocked 10:00–11:00 Saturday"*.
+Hand the actual time back to wt-capture (or, reached directly, to the conversation) —
+*"blocked 14:00–15:00 Tuesday"*. Reached through wt-capture, the user-facing confirmation is
+still the user's single 🦜 and nothing else; reached directly (*"find me two hours"*), they
+asked for a time, so name it.
 
 ## Where this runs
 
@@ -83,12 +84,12 @@ find a good slot is fine, even reassuring — but because finding one means read
 calendar, the existing blocks and the project page, none of which the conversation needs in
 its context afterwards.
 
-Inline is a correct fallback, not a failure. Reached directly, say which one happened;
-reached from wt-capture, the 🦜 confirmation stands alone.
+Inline is a correct fallback, not a failure. Say which one happened.
 
 ## Without a calendar
 
-Say so plainly, once: actions, statuses, deadlines and the steward all still work; there are
+Say so plainly, once — when the user asked for time directly; under wt-capture the user's
+🦜-only confirmation holds and the missing block is what the steward's backstop reports: actions, statuses, deadlines and the steward all still work; there are
 no blocks. Then set `estimate:` anyway and leave `block` absent — the steward's
 `--without block` backstop is exactly the query that finds these, so a commitment with no
 calendar is tracked rather than lost. Silently doing nothing is the one unacceptable

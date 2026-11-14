@@ -52,20 +52,19 @@ the overlay doctrine, and the Experience rules. Then:
    cheat-sheet's Secrets section) → write `<aos_home>/personal/capabilities/<id>/MOD.md`
    (capability-lifecycle's own: `<aos_home>/personal/MOD.md` — the `capability-lifecycle` skill's
    `reference/overlay.md`, Which MOD.md).
-7. Render, then transform: `aos-cap render <dir> <skill-id> --out
-   <aos_home>/personal/<render-path>/skills` per declared skill — `<render-path>` is
-   `capabilities/<id>` for a shipped package and `renders/<id>` for the user's own (whose
-   `capabilities/<id>/` is the source; `render` refuses an output inside its source) —
-   mechanical: installed name, frontmatter `name`, `metadata.aos.origin`. Then the
-   transform per the `capability-lifecycle` skill's `reference/overlay.md`, against this
-   capability's MOD.md (Which MOD.md): fill `{{mod}}` slots, weave its prose statements,
-   bake `<aos_home>`.
+7. Render into staging, then transform: `aos-cap render <dir> <skill-id> --out
+   <aos_home>/rendered/.staging/<id>/skills` per declared skill, plus any other subtree the
+   briefing pins (`adapters/`, say, leaving `__pycache__` and `*.pyc` behind) copied to `rendered/.staging/<id>/` — mechanical:
+   installed name, frontmatter `name`, `metadata.aos.origin`. Then the transform per the
+   `capability-lifecycle` skill's `reference/overlay.md`, against this capability's MOD.md
+   (Which MOD.md): fill `{{mod}}` slots, weave its prose statements, bake `<aos_home>` — and a
+   baked render path names `rendered/<id>/`, the live render, never `.staging/`.
    Source files stay untouched.
 8. **STAGE** per the cheat-sheet's Materialization guide: the render sits in
-   `personal/`'s working tree (uncommitted) plus the exact native command plan —
+   `rendered/.staging/<id>/`, nothing live yet, plus the exact native command plan —
    agents (an existing one is adopted only on positive evidence it is this capability's,
    never re-created; none → stop and ask — contract), skill symlinks (the installed name → the render, per `used_by`; container
-   harness → verify the `<aos_home>/personal` mount per the cheat-sheet), `uses` links (per
+   harness → verify the `<aos_home>/rendered` mount per the cheat-sheet), `uses` links (per
    row: the provider's recorded render from `aos-cap show <provider>` → each listed agent's
    skills location, under `installed_name`; a path another entry or a stranger holds →
    stop), cron jobs
@@ -79,9 +78,11 @@ the overlay doctrine, and the Experience rules. Then:
    Second-harness install: stage links + native plan only (the render already exists);
    cron jobs stay with their current owner unless the user reassigns.
 9. **GATE**: show the full plan, payoff-framed — each artifact → what it does
-   for the user. Wait (unless the root MOD.md says auto-accept).
-10. **EXECUTE** the approved plan: commit the render in `personal/` (dated
-   message — the persist hook), create the symlinks, run the native plan; `kb:`
+   for the user — with the staged render's contents (`diff -ruN -x __pycache__ -x '*.pyc'
+   <an empty dir> <aos_home>/rendered/.staging/<id>` lists every file). Wait (unless the
+   root MOD.md says auto-accept). Declined → `aos-cap discard <id>`, and stop.
+10. **EXECUTE** the approved plan: `aos-cap swap <id>` puts the render live at
+   `rendered/<id>/`, then create the symlinks into it and run the native plan; `kb:`
    zones → draft grant rows into each target KB's `## Grants` table, user approves.
    A capability's tool may write machine-local files under `<aos_home>/.aos/` — kb writes
    `kb-principal.yml` (`kb init --principal` fills in a missing one, `kb config set

@@ -38,8 +38,8 @@ every prior state, with dates, which is exactly why MOD doesn't carry them.
 
 ## The transform (install and upgrade use the same one)
 
-Original skills × MOD.md → the pinned render in
-`personal/capabilities/<id>/skills/…` (contract: render + symlink, never copies).
+Original skills × MOD.md → the render in `<aos_home>/rendered/<id>/` (contract: written to
+`rendered/.staging/<id>/`, gated, put live by `aos-cap swap`; symlinks, never copies).
 **Which MOD.md**: `<aos_home>/personal/capabilities/<id>/MOD.md` — except capability-lifecycle's
 own, which is `<aos_home>/personal/MOD.md`, since its interview is the global bootstrap. Never
 look for `personal/capabilities/capability-lifecycle/MOD.md`: nothing writes it.
@@ -60,11 +60,11 @@ its diff like any other change.
   so no regex can find it. Resolve each to its installed name
   (`aos-cap skills`/`aos-cap agents`) as you weave — silently, like any other change; it
   shows in the diff.
-- Upgrade is the same transform with fresh upstream, written into `personal/`'s working
-  tree: the current install is a drift *source*, never a merge input — and the review
-  gate is a *staged, capability-scoped* diff — `git add -A -- capabilities/<id>` then
-  `git diff --staged -- capabilities/<id>`, so files the re-render added are visible too
-  (commit = accept, revert = rollback; the contract has the decline commands).
+- Upgrade is the same transform with fresh upstream, written into
+  `rendered/.staging/<id>/`: the current install is a drift *source*, never a merge
+  input — and the review gate is the diff of the live render against the staged one, so
+  files the re-render added or dropped are visible too (`aos-cap swap` = accept,
+  `aos-cap discard` = decline; the contract has the commands).
 
 ## Capture and fold (the overlay's write side)
 
@@ -141,9 +141,10 @@ describes a difference from the default, and `personal/` git history holds what 
 
 ## Persist (durability)
 
-After every MOD write and every render, commit `personal/` with a dated one-line
-message ("evolve work-tracker: steward 22:00 — <DATE>") — you do this, silently; the
-user never runs git. Restore on a new machine = clone `upstream/` + clone `personal/`, then **re-install**
-(the lockfile is machine-local state, not something you carry): the renders are already
-there, so install re-creates the links and records a fresh lockfile. `personal/`'s only remote is private; nothing personal ever
+After every MOD write, commit `personal/` with a dated one-line message ("evolve
+work-tracker: steward 22:00 — <DATE>") — you do this, silently; the user never runs
+git. Renders are not committed: `rendered/` is build output. Restore on a new machine =
+clone `upstream/` + clone `personal/`, then **re-install** every capability (the lockfile
+and `rendered/` are both machine-local): install renders each one afresh from source,
+version and MOD, re-creates the links and records a fresh lockfile. `personal/`'s only remote is private; nothing personal ever
 enters any other remote.

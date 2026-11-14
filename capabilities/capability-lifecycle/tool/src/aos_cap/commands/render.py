@@ -15,7 +15,9 @@ import yaml
 
 from ..constants import LEGACY_ORIGIN_KEY
 from ..errors import Exit, fail
+from ..household import find_home_soft
 from ..manifest import skill_rows
+from ..rendered import ensure_rendered_root, is_under, staging_root
 from ..slots import resolve_tree
 
 app = typer.Typer()
@@ -68,6 +70,7 @@ def stamp_render(path: Path, name: str, origin: str) -> None:
 @app.command("render", help="copy one skill to its installed name, resolving its "
                             "{{skill:}}/{{agent:}} name slots (idempotent)")
 def cmd_render(
+    ctx: typer.Context,
     dir: Annotated[str, typer.Argument(help="capability directory")],
     skill: Annotated[str, typer.Argument(help="capability-local skill id")],
     out: Annotated[str, typer.Option(
@@ -85,7 +88,7 @@ def cmd_render(
     # `--out` must never point inside the package being rendered. Two distinct failures
     # live here, and a capability that `capability-build` or `capability-import` wrote hits
     # them on its FIRST upgrade, because it lives in `personal/capabilities/<id>/` — which
-    # is exactly where install and upgrade say to render:
+    # is exactly where install and upgrade said to render before 0.7.0:
     #
     #   1. DATA LOSS, when dest lands on the source itself (the entry skill, whose id
     #      equals the capability's, so `installed_name == skill`). The rmtree below
@@ -98,13 +101,30 @@ def cmd_render(
     #      can no longer be upgraded or removed.
     #
     # Rejecting the whole package directory covers both, and is what the skills mean by
-    # "render into the household's skills root": somewhere outside the package.
+    # "render into staging": somewhere outside the package (`rendered/.staging/<id>/`).
     src_r, dest_r, pkg_r = src.resolve(), dest.resolve(), cap_dir.resolve()
     if dest_r == pkg_r or pkg_r in dest_r.parents:
         fail(Exit.GENERIC,
              f"--out points inside the package being rendered ({dest}) — that would "
              f"{'delete the source' if dest_r == src_r else 'add an undeclared skill the manifest then rejects'}. "
              f"Render to a destination outside {cap_dir}.")
+    # Inside the household, a render is written to exactly one place: the staging area,
+    # where the gate can diff it before `aos-cap swap` puts it live. An allow rule, not a
+    # block list: `--force` below is rmtree-then-copy, so `--out rendered/<id>/skills`
+    # would replace a live render (hook scripts, gate plugins) with no gate and no trash,
+    # and `--out personal/…` is the pre-0.7.0 layout. Decided on resolved paths, so a
+    # `.staging/../<id>` or a symlinked `.staging/<id>` lands where it really points.
+    # Outside the household (a golden snapshot re-render, a scratch dir) stays allowed.
+    home = find_home_soft(ctx.obj)
+    if home is not None and is_under(dest.parent, home) and not (
+            staging_root(home).resolve() in dest_r.parents):
+        hint = (" Renders left personal/ in capability-lifecycle 0.7.0: reload the "
+                "capability-upgrade skill and run its renders migration (`aos-cap migrate "
+                "rendered`) before rendering anything else." if is_under(dest.parent, home / "personal")
+                else "")
+        fail(Exit.WRONG_PLACE,
+             f"--out {out} is inside the household but not under {staging_root(home)}/<id>/ "
+             f"— a render is written to staging and put live by `aos-cap swap`.{hint}")
     if dest.is_symlink():
         # A link where the render belongs is someone else's artifact, not ours to rmtree.
         fail(Exit.GENERIC,
@@ -115,7 +135,10 @@ def cmd_render(
         fail(Exit.GENERIC, f"{dest} exists and is not empty (pass --force to re-render in place)")
     if dest.exists():
         shutil.rmtree(dest)
-    shutil.copytree(src, dest)
+    if home is not None and is_under(dest.parent, home):
+        ensure_rendered_root(home)
+    # Bytecode is regenerated where the render runs, never shipped — and the gate hides it.
+    shutil.copytree(src, dest, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     stamp_render(dest / "SKILL.md", row["installed_name"],
                  f"{cap_dir.name}@{data.get('version')}")
     # Computed names, applied to prose (§2.5). A `{{mod:}}` slot survives — the agentic

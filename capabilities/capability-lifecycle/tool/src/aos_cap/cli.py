@@ -9,6 +9,10 @@ lockfile — only the last group is lockfile bookkeeping:
   agents    the same, for the agents it ships — one flat namespace, one exit code
   render    copy one skill to its installed name, resolving its name slots
             (mechanical, idempotent)
+  swap/discard  put a staged render (rendered/.staging/<id>) live, or decline it —
+            the old or declined render goes to the OS trash
+  migrate rendered  move a pre-0.7.0 household's renders from personal/ to rendered/
+            (plan; --apply; --finish)
   home      print the resolved household root
   harness   record or show the harness this household installs into
   init/record/rehash/verify/show/list/remove  own the lockfile
@@ -19,7 +23,11 @@ Exit codes: 0 ok · 1 generic (e.g. init over an existing lockfile) · 12 manife
 invalid · 13 drift · 14 no such entry · 15 no home · 16 artifact missing ·
 17 skill-or-agent-name collision · 18 unresolvable {{skill:}}/{{agent:}} slot ·
 19 a link another lockfile entry already records (one owner per link) · 20 no harness
-recorded (`harness set` first).
+recorded (`harness set` first) · 21 not a capability id, or a symlinked render directory ·
+22 nothing staged · 23 the staged render bakes its own staging path or drops a linked
+target · 24 a path the household layout forbids there (render --out outside staging,
+record/rehash of a staged path) · 25 migrate refused (drift, uncommitted renders, old
+references or links remain) · 26 an interrupted swap's old render was put back live.
 """
 
 from typing import Optional
@@ -31,6 +39,8 @@ from .commands.inspect import app as inspect_app
 from .commands.render import app as render_app
 from .commands.harness import app as harness_app
 from .commands.lockfile import app as lockfile_app
+from .commands.migrate import app as migrate_app
+from .commands.rendered import app as rendered_app
 
 app = typer.Typer(rich_markup_mode=None, add_completion=False,
                   help="Deterministic lifecycle bookkeeping for aos capabilities: the "
@@ -44,6 +54,8 @@ app.add_typer(inspect_app)
 app.add_typer(render_app)
 app.add_typer(lockfile_app)
 app.add_typer(harness_app)
+app.add_typer(rendered_app)
+app.add_typer(migrate_app, name="migrate")
 
 
 @app.callback()

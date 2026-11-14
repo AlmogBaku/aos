@@ -161,7 +161,7 @@ carried, `{{mod: …}}` slots untouched.
 - [ ] test_render_refuses_to_clobber_without_force — 1; and the message names `--force`
 - [ ] test_render_destination_that_is_a_file_errors_cleanly — 1; no traceback
 - [ ] test_render_destination_that_is_a_symlink_errors_cleanly — 1; a link where the render belongs is someone else's artifact — never `rmtree`d **through**
-- [ ] test_render_into_the_packages_own_skills_dir_is_refused — **PIN**; 1; the destructive case, and not a corner one: a capability written by `capability-build`/`capability-import` lives in `personal/capabilities/<id>/`, which is exactly where install and upgrade say to render — so `--out <pkg>/skills` fires on its **first** upgrade. For the entry skill dest == src, `rmtree` runs before `copytree`, and the user's hand-written skill plus its whole `reference/` tree is deleted before the copy dies on the source it just removed. Refuse before touching anything
+- [ ] test_render_into_the_packages_own_skills_dir_is_refused — **PIN**; 1; the destructive case, and not a corner one: a capability written by `capability-build`/`capability-import` lives in `personal/capabilities/<id>/`, which is exactly where install and upgrade said to render before 0.7.0 — so `--out <pkg>/skills` fired on its **first** upgrade. For the entry skill dest == src, `rmtree` runs before `copytree`, and the user's hand-written skill plus its whole `reference/` tree is deleted before the copy dies on the source it just removed. Refuse before touching anything
 - [ ] test_render_of_a_non_entry_skill_into_the_package_is_refused_too — **PIN**; 1; the second half of the same defect, which a narrower `dest == src` guard misses: `skills/sort` → `skills/democap-sort` destroys nothing but plants an on-disk skill nothing declares, so every later `manifest`/`skills`/`render` exits 12 and the install can no longer be upgraded or removed
 - [ ] test_render_to_the_package_root_is_refused — **PIN**; 1; the mildest case (litter beside `CAPABILITY.md`), kept so the rule stays statable in one clause: `--out` lives outside the package
 - [ ] test_render_unknown_skill_errors — 14; an undeclared skill id
@@ -300,3 +300,56 @@ consumer's jobs failed silently for two weeks.
 - [ ] test_set_rejects_a_bad_runtime_id — 1
 - [ ] test_show_without_a_record_exits_20 — 20
 - [ ] test_render_keeps_every_sheet_and_needs_no_record — 0; every sheet and reference file stays, with no `harness.yml`
+- [ ] test_set_defaults_the_sheet_to_the_rendered_lifecycle_render — 0; with no `--sheet`, the installed sheet is the lifecycle's live render under `rendered/` (0.7.0), not `personal/`
+
+## the rendered tree — `swap` `discard` and the staging guards (capability-lifecycle 0.7.0)
+
+Every render lives at `<aos_home>/rendered/<id>/`; inside the household it is written only to
+`rendered/.staging/<id>/` and put live only by `swap`. Exits 21–24, 26.
+
+- [ ] test_swap_replaces_the_live_render_and_trashes_the_old_one — 0; the staged render is live, a link into `rendered/<id>` resolves to it, and the old render is in the OS trash, never `rmtree`d
+- [ ] test_swap_on_a_first_install_only_moves_the_staged_render_in — 0; no live render, nothing trashed
+- [ ] test_swap_puts_an_interrupted_swaps_old_render_back_live — **PIN**; 26; a crash between the two renames leaves the only copy of the old render in `.replaced/<id>`; the next swap restores it rather than trashing it, then succeeds on a rerun
+- [ ] test_swap_trashes_a_finished_swaps_leftover_and_proceeds — 0; a `.replaced/<id>` beside a live render is a finished swap's debris
+- [ ] test_swap_puts_the_old_render_back_when_the_second_rename_fails — **PIN**; 1; the in-call rollback: a read-only `.staging/` makes the staged render unable to leave after the live one was moved aside — the old render is live again, `.replaced/` empty, nothing trashed (skipped as root)
+- [ ] test_swap_refuses_staged_bytecode — 23; the gate hides `__pycache__`/`*.pyc`, so a staged `.pyc` would go live unreviewed
+- [ ] test_render_leaves_bytecode_behind_and_creates_rendered_owner_only — 0; no bytecode copied into staging, and `rendered/` is created 0700 (renders carry baked MOD answers)
+- [ ] test_swap_refuses_a_staged_file_naming_its_own_staging_path — 23; a baked `.staging/<id>` path would stop resolving once live
+- [ ] test_swap_refuses_a_staged_tree_that_drops_a_linked_target — **PIN**; 23; a staged render without `adapters/` would leave a gate plugin's link dangling — the link still resolves after the refusal
+- [ ] test_discard_trashes_the_staged_render_and_leaves_the_live_one — 0; the live render is byte-identical
+- [ ] test_swap_and_discard_refuse_anything_but_a_capability_id — **PIN**; 21; `..` resolves `.staging/..` to `rendered/` itself — inside the tree, so a containment check passes it; the grammar does not. Nothing moves
+- [ ] test_swap_and_discard_refuse_a_symlinked_staging_dir — 21; a symlinked `.staging/<id>` would move or trash what it points at
+- [ ] test_swap_without_a_staged_render_exits_22 — 22
+- [ ] test_render_into_staging_is_accepted — 0
+- [ ] test_render_into_the_live_render_is_refused_and_writes_nothing — **PIN**; 24; `render --force` is `rmtree`-then-copy, so `--out rendered/<id>/skills` (or `.staging/../<id>`) would replace a live render with no gate and no trash
+- [ ] test_render_through_a_symlinked_staging_dir_is_refused — 24; decided on the resolved path
+- [ ] test_render_under_personal_is_refused_and_names_the_migration — 24; the pre-0.7.0 location, and the message says to run `migrate rendered`
+- [ ] test_record_and_rehash_refuse_a_staged_path — 24; a staged path is MISSING the moment `swap` runs
+
+## `migrate rendered` — a pre-0.7.0 household's renders leave `personal/` (**25**)
+
+Plan, `--apply`, `--finish`; the old paths resolve until the last. Fixture: a shipped package
+with a MOD, an own package with its source, a plugin-only entry with no artifacts, a uses link,
+a file link, an unrecorded link, a baked path, a planted `.pyc`, outside references in a harness
+`config.yaml` and a `MOD.md`, and one in a session log.
+
+- [ ] test_plan_writes_nothing_but_its_state_and_lists_every_reference — 0; tree, lockfile and `harness.yml` byte-identical (the state file holds the scan set and the old renders); references printed `path:line` only (the scan reads harness homes, which hold keys); the session log skipped
+- [ ] test_a_drifted_render_is_listed_and_blocks_apply — 25; copying would make an uncaptured hand-edit the new baseline
+- [ ] test_apply_copies_repoints_and_rewrites_while_old_renders_stay — 0; every link resolves into `rendered/`, the baked path names `rendered/`, no `.pyc` copied, `verify` clean, a no-artifact entry gets its files recorded, MOD and source untouched, old renders still there
+- [ ] test_apply_rerun_after_a_crash_reaches_the_same_state — 0; a crash before the lockfile write, with one link back on the old render, converges on a rerun
+- [ ] test_finish_refuses_while_a_reference_or_an_old_link_remains — 25, then 0; nothing trashed while a hook or a stray link names an old render; then the old renders are in the trash, MOD stays, and every later step prints "nothing to migrate"
+- [ ] test_apply_and_finish_refuse_to_scan_less_than_the_plan — 25; no plan yet, or a new `--ignore`
+- [ ] test_a_hand_changed_link_blocks_apply_instead_of_being_overwritten — **PIN**; 25; a recorded link the user removed would be re-created (a skill handed back to a guest-reachable profile) — link drift is drift, and the link stays removed
+- [ ] test_git_that_cannot_answer_blocks_apply — **PIN**; 25; an unanswerable `git status` is not a clean one — for an entry with no recorded artifacts it is the only evidence
+- [ ] test_other_spellings_of_an_old_path_are_found_and_block_finish — **PIN**; 25; `$HOME/…` and `${AOS_HOME}/…` spellings are outside references; `--finish` trashes nothing while they remain
+- [ ] test_a_stale_symlink_inside_a_live_render_blocks_finish — 25; a render's own absolute symlink into an old render is copied verbatim, and `--finish` scans `rendered/` for it
+- [ ] test_a_shipped_package_with_no_artifacts_is_found_from_its_link — 0; a shipped package recording only a deep link moves its subtree; its MOD stays
+- [ ] test_a_crashed_runs_temporary_link_is_swept — 0; a leftover `.<name>.aos-migrate` link is removed and the real link resolves
+- [ ] test_a_crash_after_the_lockfile_write_still_trashes_every_old_render — **PIN**; 0; the crash COMB-6 named: lockfile rewritten, `applied` never written — a re-plan keeps the saved roots, a re-run `--apply` converges, and `--finish` trashes the shipped package's old subtree
+- [ ] test_an_unlisted_spelling_is_still_caught_by_the_household_tail — 0; `"$AOS_HOME"/personal/…` and `${AOS_HOME:-…}/personal/…` are found by the detection-only tail match
+- [ ] test_a_link_inside_an_ignored_directory_blocks_finish — 25; a link into an old render inside an `--ignore`d directory is listed by the plan and blocks `--finish`
+- [ ] test_a_new_layout_household_has_nothing_to_migrate — 0; all three steps
+
+## `migrate rendered` on a household under a symlinked path — 1
+
+- [ ] test_a_household_under_a_symlinked_path_migrates_cleanly — **PIN**; 0; artifacts are recorded resolved and link targets lexically, so drift, mapping and the lockfile rewrite compare both spellings; `verify` is clean after `--apply`; both `~/aos/…` and `$HOME/real-aos/…` spellings are found on every run, and block `--finish`

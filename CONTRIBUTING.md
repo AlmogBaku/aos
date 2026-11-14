@@ -28,9 +28,10 @@ Two roots, two jobs:
   `origin` = canonical; forking is one command (`gh repo fork --remote`) whenever you
   need somewhere to push, and your agent only ever *offers* it — a fork is a public
   write to your account.
-- `~/aos/personal` is **the rendered result** — your answers, every skill rendered
-  against them, your own private capabilities — auto-committed by your agent and
-  restorable by cloning it. It never enters a PR and never touches a public remote.
+- `~/aos/personal` is **yours** — your answers and your own private capabilities —
+  auto-committed by your agent and restorable by cloning it. `~/aos/rendered` is every
+  skill rendered against them: build output, never committed, rebuilt by re-installing on
+  a new machine. Neither enters a PR or touches a public remote.
 - **Edit `upstream/` only for changes that belong to everybody.** Something only *you*
   want is a MOD line in `personal/`, not a commit here — the funnel below is the test.
   When it genuinely is general: branch, commit, PR. Never leave the change sitting

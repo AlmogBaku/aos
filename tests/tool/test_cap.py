@@ -43,6 +43,14 @@ from typer.testing import CliRunner
 
 from aos_cap.cli import app
 
+# `send2trash` fixes its trash directory from $XDG_DATA_HOME the first time it is imported,
+# and every test here runs in this one process — so a per-test XDG_DATA_HOME would be read
+# once and ignored after. Pin one throwaway trash for the whole run, before anything can
+# import it: no test ever reaches the developer's real trash, and each test empties it.
+TRASH_HOME = Path(tempfile.mkdtemp(prefix="aos-cap-test-trash-"))
+os.environ["XDG_DATA_HOME"] = str(TRASH_HOME)
+import send2trash  # noqa: E402,F401 — imported after the pin, on purpose
+
 REPO = Path(__file__).resolve().parents[2]
 TOOL_DIR = REPO / "capabilities/capability-lifecycle/tool"
 
@@ -1162,8 +1170,8 @@ class RenderTest(unittest.TestCase):
         """PIN, and the destructive case — not a corner case: a capability that
         `capability-build` or `capability-import` wrote lives in
         `personal/capabilities/<id>/`, which is exactly where the install and upgrade
-        skills say to render — so `--out <pkg>/skills` fires on that capability's FIRST
-        upgrade. rmtree runs before copytree, so the user's hand-written skill and its
+        skills said to render before 0.7.0 — so `--out <pkg>/skills` fired on that
+        capability's FIRST upgrade. rmtree runs before copytree, so the user's hand-written skill and its
         whole reference/ tree are deleted and then the copy dies on the source it just
         removed. Refuse before touching anything."""
         cap = self.cap("democap", ["democap", "sort"])
@@ -1267,6 +1275,13 @@ class HarnessTest(unittest.TestCase):
         r = self.harness("show")
         self.assertEqual(r.returncode, 20)
         self.assertIn("harness set", r.stderr)
+
+    def test_set_defaults_the_sheet_to_the_rendered_lifecycle_render(self):
+        r = self.harness("set", "fake", "--source", str(self.sheet))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rec = yaml.safe_load((self.home / ".aos" / "harness.yml").read_text())
+        self.assertEqual(rec["sheet"], str(self.home / "rendered/capability-lifecycle/skills/"
+                                           "capability-lifecycle/reference/harness-fake.md"))
 
     def test_render_keeps_every_sheet_and_needs_no_record(self):
         # One household can serve several harnesses (Hermes and Claude Code read the same
@@ -1652,6 +1667,619 @@ class UsesTest(unittest.TestCase):
                                       "--uses-link", str(link)).returncode, 0)
         r = self.cap_cmd("skills", str(self.prov), "--check")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+
+def tree_bytes(root):
+    """Every file and symlink under `root` as {relative path: bytes or link target} — the
+    "wrote nothing" assertion compares two of these."""
+    out = {}
+    for p in sorted(Path(root).rglob("*")):
+        rel = os.fspath(p.relative_to(root))
+        if p.is_symlink():
+            out[rel] = "-> " + os.readlink(p)
+        elif p.is_file():
+            out[rel] = p.read_bytes()
+    return out
+
+
+def trashed_names():
+    files = TRASH_HOME / "Trash" / "files"
+    return sorted(p.name for p in files.iterdir()) if files.is_dir() else []
+
+
+def empty_trash():
+    shutil.rmtree(TRASH_HOME / "Trash", ignore_errors=True)
+
+
+class RenderedTest(unittest.TestCase):
+    """`swap` / `discard` and the guards that keep a render's writes in
+    `rendered/.staging/<id>/` — `render --out`, `record`, `rehash` (capability-lifecycle 0.7.0)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.home = root / "home"
+        (self.home / ".aos").mkdir(parents=True)
+        run(["--home", str(self.home), "init"])
+        empty_trash()
+        self.rendered = self.home / "rendered"
+        self.links = root / "harness" / "skills"
+        self.links.mkdir(parents=True)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def cli(self, *args):
+        return run(["--home", str(self.home), *args])
+
+    def stage(self, cap, body="new\n", rel="skills/democap/SKILL.md"):
+        f = self.rendered / ".staging" / cap / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(body)
+        return f
+
+    def live(self, cap, body="old\n", rel="skills/democap/SKILL.md"):
+        f = self.rendered / cap / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(body)
+        return f
+
+    # -- swap -----------------------------------------------------------------
+    def test_swap_replaces_the_live_render_and_trashes_the_old_one(self):
+        live = self.live("democap")
+        (self.links / "democap").symlink_to(live.parent)
+        self.stage("democap")
+        r = self.cli("swap", "democap")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(live.read_text(), "new\n")
+        self.assertEqual((self.links / "democap" / "SKILL.md").read_text(), "new\n")
+        self.assertFalse((self.rendered / ".staging" / "democap").exists())
+        self.assertFalse((self.rendered / ".replaced" / "democap").exists())
+        self.assertEqual(trashed_names(), ["democap"])
+
+    def test_swap_on_a_first_install_only_moves_the_staged_render_in(self):
+        self.stage("democap")
+        r = self.cli("swap", "democap")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("first install", r.stdout)
+        self.assertEqual((self.rendered / "democap/skills/democap/SKILL.md").read_text(), "new\n")
+        self.assertEqual(trashed_names(), [])
+
+    def test_swap_puts_an_interrupted_swaps_old_render_back_live(self):
+        # PIN: a crash between swap's two renames leaves the only copy of the old render in
+        # .replaced/<id> and no live render; the next swap must not trash it.
+        aside = self.rendered / ".replaced" / "democap" / "skills/democap/SKILL.md"
+        aside.parent.mkdir(parents=True)
+        aside.write_text("old\n")
+        self.stage("democap")
+        r = self.cli("swap", "democap")
+        self.assertEqual(r.returncode, 26)
+        self.assertEqual((self.rendered / "democap/skills/democap/SKILL.md").read_text(), "old\n")
+        self.assertTrue((self.rendered / ".staging" / "democap").is_dir())
+        self.assertEqual(self.cli("swap", "democap").returncode, 0)
+
+    def test_swap_trashes_a_finished_swaps_leftover_and_proceeds(self):
+        self.live("democap")
+        aside = self.rendered / ".replaced" / "democap" / "x"
+        aside.parent.mkdir(parents=True)
+        aside.write_text("stale\n")
+        self.stage("democap")
+        r = self.cli("swap", "democap")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual((self.rendered / "democap/skills/democap/SKILL.md").read_text(), "new\n")
+        self.assertEqual(len(trashed_names()), 2, "the leftover and the replaced render")
+
+    @unittest.skipIf(os.geteuid() == 0, "root ignores directory permissions")
+    def test_swap_puts_the_old_render_back_when_the_second_rename_fails(self):
+        # The live render is moved aside, then moving the staged one in fails (its parent is
+        # read-only, so it cannot leave): the old render must be live again, untrashed.
+        self.live("democap")
+        self.stage("democap")
+        staging = self.rendered / ".staging"
+        staging.chmod(0o555)
+        try:
+            r = self.cli("swap", "democap")
+        finally:
+            staging.chmod(0o755)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("back in place", r.stderr)
+        self.assertEqual((self.rendered / "democap/skills/democap/SKILL.md").read_text(), "old\n")
+        self.assertFalse((self.rendered / ".replaced" / "democap").exists())
+        self.assertEqual(trashed_names(), [])
+
+    def test_swap_refuses_staged_bytecode(self):
+        self.live("democap")
+        self.stage("democap", rel="adapters/gate/__pycache__/x.cpython-312.pyc", body="x")
+        self.assertEqual(self.cli("swap", "democap").returncode, 23)
+
+    def test_render_leaves_bytecode_behind_and_creates_rendered_owner_only(self):
+        cap = write_cap(self.home, "democap", ["democap"])
+        (cap / "skills" / "democap" / "__pycache__").mkdir()
+        (cap / "skills" / "democap" / "__pycache__" / "x.pyc").write_bytes(b"\x00")
+        r = self.cli("render", str(cap), "democap", "--out",
+                     str(self.rendered / ".staging" / "democap" / "skills"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse(list((self.rendered / ".staging").rglob("*.pyc")))
+        self.assertEqual(self.rendered.stat().st_mode & 0o777, 0o700)
+
+    def test_swap_refuses_a_staged_file_naming_its_own_staging_path(self):
+        self.live("democap")
+        staged = self.rendered / ".staging" / "democap"
+        self.stage("democap", body=f"run {staged}/skills/democap/run.sh\n")
+        r = self.cli("swap", "democap")
+        self.assertEqual(r.returncode, 23)
+        self.assertEqual((self.rendered / "democap/skills/democap/SKILL.md").read_text(), "old\n")
+
+    def test_swap_refuses_a_staged_tree_that_drops_a_linked_target(self):
+        # PIN: a staged render without adapters/ would leave a gate plugin's link dangling.
+        plugin = self.live("democap", rel="adapters/plugins/gate/__init__.py")
+        link = self.links.parent / "plugins" / "gate"
+        link.parent.mkdir()
+        link.symlink_to(plugin.parent)
+        self.assertEqual(self.cli("record", "democap", "--version", "1.0.0",
+                                  "--link", str(link)).returncode, 0)
+        self.stage("democap")
+        r = self.cli("swap", "democap")
+        self.assertEqual(r.returncode, 23)
+        self.assertIn("dangling", r.stderr)
+        self.assertTrue(link.exists())
+
+    # -- discard ----------------------------------------------------------------
+    def test_discard_trashes_the_staged_render_and_leaves_the_live_one(self):
+        live = self.live("democap")
+        before = tree_bytes(self.rendered / "democap")
+        self.stage("democap")
+        r = self.cli("discard", "democap")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse((self.rendered / ".staging" / "democap").exists())
+        self.assertEqual(tree_bytes(self.rendered / "democap"), before)
+        self.assertEqual(live.read_text(), "old\n")
+        self.assertEqual(trashed_names(), ["democap"])
+
+    def test_swap_and_discard_refuse_anything_but_a_capability_id(self):
+        # PIN: `discard ..` resolves .staging/.. to rendered/ itself, inside the tree.
+        self.live("democap")
+        self.stage("democap")
+        before = tree_bytes(self.rendered)
+        for verb in ("swap", "discard"):
+            for bad in ("..", ".staging", "", "a/b", "Democap"):
+                r = self.cli(verb, bad)
+                self.assertEqual(r.returncode, 21, f"{verb} {bad!r}: {r.stderr}")
+        self.assertEqual(tree_bytes(self.rendered), before)
+
+    def test_swap_and_discard_refuse_a_symlinked_staging_dir(self):
+        live = self.live("democap")
+        (self.rendered / ".staging").mkdir()
+        (self.rendered / ".staging" / "democap").symlink_to(self.rendered / "democap")
+        for verb in ("swap", "discard"):
+            self.assertEqual(self.cli(verb, "democap").returncode, 21)
+        self.assertEqual(live.read_text(), "old\n")
+
+    def test_swap_without_a_staged_render_exits_22(self):
+        self.assertEqual(self.cli("swap", "democap").returncode, 22)
+        self.assertEqual(self.cli("discard", "democap").returncode, 22)
+
+    # -- render writes only to staging -------------------------------------------
+    def test_render_into_staging_is_accepted(self):
+        cap = write_cap(self.home, "democap", ["democap"])
+        r = self.cli("render", str(cap), "democap", "--out",
+                     str(self.rendered / ".staging" / "democap" / "skills"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue((self.rendered / ".staging/democap/skills/democap/SKILL.md").is_file())
+
+    def test_render_into_the_live_render_is_refused_and_writes_nothing(self):
+        # PIN: `render --force` is rmtree-then-copy; into rendered/<id> it would replace a
+        # live render with no gate and no trash.
+        cap = write_cap(self.home, "democap", ["democap"])
+        self.live("democap")
+        before = tree_bytes(self.rendered)
+        for out in (self.rendered / "democap" / "skills",
+                    self.rendered / ".staging" / ".." / "democap" / "skills"):
+            r = self.cli("render", str(cap), "democap", "--out", str(out), "--force")
+            self.assertEqual(r.returncode, 24, f"{out}: {r.stderr}")
+        self.assertEqual(tree_bytes(self.rendered), before)
+
+    def test_render_through_a_symlinked_staging_dir_is_refused(self):
+        cap = write_cap(self.home, "democap", ["democap"])
+        self.live("democap")
+        (self.rendered / ".staging").mkdir()
+        (self.rendered / ".staging" / "democap").symlink_to(self.rendered / "democap")
+        r = self.cli("render", str(cap), "democap", "--force", "--out",
+                     str(self.rendered / ".staging" / "democap" / "skills"))
+        self.assertEqual(r.returncode, 24)
+        self.assertEqual((self.rendered / "democap/skills/democap/SKILL.md").read_text(), "old\n")
+
+    def test_render_under_personal_is_refused_and_names_the_migration(self):
+        cap = write_cap(self.home, "democap", ["democap"])
+        out = self.home / "personal" / "capabilities" / "democap" / "skills"
+        r = self.cli("render", str(cap), "democap", "--out", str(out))
+        self.assertEqual(r.returncode, 24)
+        self.assertIn("migrate rendered", r.stderr)
+        self.assertFalse(out.exists())
+
+    def test_record_and_rehash_refuse_a_staged_path(self):
+        staged = self.stage("democap")
+        r = self.cli("record", "democap", "--version", "1.0.0", "--artifact", str(staged))
+        self.assertEqual(r.returncode, 24)
+        link = self.links / "democap"
+        link.symlink_to(staged.parent)
+        r = self.cli("record", "democap", "--version", "1.0.0", "--link", str(link))
+        self.assertEqual(r.returncode, 24)
+        self.assertNotIn("democap", yaml.safe_load(
+            (self.home / ".aos" / "installs.lock.yaml").read_text())["installs"])
+        lock = self.home / ".aos" / "installs.lock.yaml"
+        lock.write_text(yaml.safe_dump({"version": 1, "installs": {"democap": {
+            "version": "1.0.0", "artifacts": {str(staged): "0" * 64}}}}))
+        self.assertEqual(self.cli("rehash", "democap").returncode, 24)
+
+
+def old_layout_household(root):
+    """A pre-0.7.0 household with every shape the migration must handle, all synthetic:
+
+      shipcap   a shipped package (no CAPABILITY.md in personal/): its render at
+                personal/capabilities/shipcap/skills/ beside its MOD.md; one render file
+                bakes its own absolute path; harness.yml's sheet lives in it
+      owncap    the user's own package: source at personal/capabilities/owncap/, render
+                at personal/renders/owncap/ — a skill, a plugin with a planted .pyc, an
+                ext file linked as a FILE; it `uses` shipcap's skill
+      plugcap   a plugin-only own package recording NO artifacts, found only from its
+                deep link target
+    plus an unrecorded link, outside references in a harness config.yaml and in owncap's
+    MOD.md, and one in a session log that must be skipped. `root` is the fake $HOME."""
+    home = root / "aos"
+    run(["--home", str(home), "init"])
+    p = home / "personal"
+    caps = p / "capabilities"
+    ship = caps / "shipcap" / "skills" / "shipcap"
+    ship.mkdir(parents=True)
+    (caps / "shipcap" / "MOD.md").write_text("---\ncapability: shipcap\n---\nprefer short\n")
+    (ship / "SKILL.md").write_text("---\nname: shipcap\ndescription: x. Use when x.\n---\nbody\n")
+    (ship / "run.sh").write_text(f"#!/bin/sh\nexec {ship}/run.sh --again\n")
+    (ship / "reference").mkdir()
+    (ship / "reference" / "harness-fake.md").write_text("# fake\n")
+    (caps / "owncap" / "skills" / "owncap").mkdir(parents=True)
+    (caps / "owncap" / "CAPABILITY.md").write_text("---\nid: owncap\n---\n")
+    (caps / "owncap" / "skills" / "owncap" / "SKILL.md").write_text("source\n")
+    own = p / "renders" / "owncap"
+    (own / "skills" / "owncap").mkdir(parents=True)
+    (own / "skills" / "owncap" / "SKILL.md").write_text("render\n")
+    gate = own / "adapters" / "plugins" / "gate"
+    (gate / "__pycache__").mkdir(parents=True)
+    (gate / "__init__.py").write_text(f"ROOT = '{own}'\n")
+    (gate / "__pycache__" / "__init__.cpython-312.pyc").write_bytes(
+        b"\x00\x01" + os.fsencode(own) + b"\x00bytecode")
+    (own / "adapters" / "ext").mkdir()
+    (own / "adapters" / "ext" / "wrap.mjs").write_text("export default 1\n")
+    (caps / "owncap" / "MOD.md").write_text(f"---\ncapability: owncap\nanswers:\n  dir: {own}/skills/owncap\n---\n")
+    (caps / "plugcap").mkdir()
+    (caps / "plugcap" / "CAPABILITY.md").write_text("---\nid: plugcap\n---\n")
+    plug = p / "renders" / "plugcap" / "adapters" / "hermes" / "plugins" / "plugcap"
+    plug.mkdir(parents=True)
+    (plug / "hook.py").write_text("ALLOW = []\n")
+    # plugship: a SHIPPED package (no CAPABILITY.md in personal/) that records no artifacts,
+    # only a deep link into its render — the case found purely from a link target.
+    pship = caps / "plugship" / "adapters" / "hermes" / "plugins" / "plugship"
+    pship.mkdir(parents=True)
+    (pship / "hook.py").write_text("ALLOW = ['x']\n")
+    (caps / "plugship" / "MOD.md").write_text("---\ncapability: plugship\n---\n")
+    (p / ".gitignore").write_text("__pycache__/\n*.pyc\n")
+    hz = root / ".fakeh"
+    for d in ("skills", "plugins", "ext", "profiles/o/skills", "sessions"):
+        (hz / d).mkdir(parents=True)
+    links = {
+        "ship": (hz / "skills" / "shipcap", ship),
+        "own": (hz / "skills" / "owncap", own / "skills" / "owncap"),
+        "gate": (hz / "plugins" / "gate", gate),
+        "file": (hz / "ext" / "wrap.mjs", own / "adapters" / "ext" / "wrap.mjs"),
+        "plug": (hz / "plugins" / "plugcap", plug),
+        "uses": (hz / "profiles" / "o" / "skills" / "shipcap", ship),
+        "unrecorded": (hz / "skills" / "extra", own / "skills" / "owncap"),
+        "plugship": (hz / "plugins" / "plugship", pship),
+    }
+    for link, target in links.values():
+        link.symlink_to(target)
+    # a link into the user's own package SOURCE: not a render, so the migration leaves it
+    # alone — and must say so, or the approver cannot reconcile the link count
+    (hz / "skills" / "srclink").symlink_to(caps / "owncap" / "skills" / "owncap")
+    (hz / "config.yaml").write_text(f"hooks:\n  pre_tool_call:\n    - command: {gate}/__init__.py\n")
+    (hz / "sessions" / "s1.jsonl").write_text(f'{{"cmd": "{own}/skills/owncap"}}\n')
+    H = ["--home", str(home)]
+    env = {"HOME": str(root)}
+    def rec(*args):
+        r = run([*H, "record", *args], env_extra=env)
+        assert r.returncode == 0, r.stderr
+    rec("shipcap", "--version", "1.0.0",
+        *[x for f in sorted(ship.rglob("*")) if f.is_file() for x in ("--artifact", str(f))],
+        "--link", str(links["ship"][0]))
+    rec("owncap", "--version", "0.1.0", "--source-root", "personal",
+        "--artifact", str(own / "skills" / "owncap" / "SKILL.md"),
+        "--artifact", str(gate / "__init__.py"),
+        "--link", str(links["own"][0]), "--link", str(links["gate"][0]),
+        "--link", str(links["file"][0]), "--uses-link", str(links["uses"][0]))
+    rec("plugcap", "--version", "0.1.0", "--source-root", "personal", "--link", str(links["plug"][0]))
+    rec("plugship", "--version", "0.1.0", "--link", str(links["plugship"][0]))
+    (home / ".aos" / "harness.yml").write_text(yaml.safe_dump(
+        {"harness": "fake", "sheet": str(ship / "reference" / "harness-fake.md"), "cli": None}))
+    git = ["git", "-C", str(p), "-c", "user.name=Dana Fixture", "-c", "user.email=dana@example.com"]
+    subprocess.run(["git", "init", "-q", str(p)], check=True)
+    subprocess.run(git + ["add", "-A"], check=True)
+    subprocess.run(git + ["commit", "-qm", "seed"], check=True)
+    return home, hz, links
+
+
+class MigrateTest(unittest.TestCase):
+    """`migrate rendered` — a pre-0.7.0 household's renders move from personal/ to
+    rendered/ in three steps (plan, --apply, --finish), old paths live until the last."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.home, self.hz, self.links = old_layout_household(self.root)
+        empty_trash()
+        self.lock = self.home / ".aos" / "installs.lock.yaml"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def mig(self, *args):
+        return run(["--home", str(self.home), "migrate", "rendered", *args],
+                   env_extra={"HOME": str(self.root)})
+
+    def cli(self, *args):
+        return run(["--home", str(self.home), *args], env_extra={"HOME": str(self.root)})
+
+    def fix_outside_references(self):
+        gate = self.home / "rendered" / "owncap" / "adapters" / "plugins" / "gate"
+        (self.hz / "config.yaml").write_text(f"hooks:\n  pre_tool_call:\n    - command: {gate}/__init__.py\n")
+        mod = self.home / "personal" / "capabilities" / "owncap" / "MOD.md"
+        mod.write_text(mod.read_text().replace("personal/renders/owncap", "rendered/owncap"))
+
+    def test_plan_writes_nothing_but_its_state_and_lists_every_reference(self):
+        before = (tree_bytes(self.home / "personal"), tree_bytes(self.hz),
+                  self.lock.read_bytes(), (self.home / ".aos" / "harness.yml").read_bytes())
+        r = self.mig()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        after = (tree_bytes(self.home / "personal"), tree_bytes(self.hz),
+                 self.lock.read_bytes(), (self.home / ".aos" / "harness.yml").read_bytes())
+        self.assertEqual(after, before)
+        self.assertFalse((self.home / "rendered").exists())
+        self.assertTrue((self.home / ".aos" / "migrate-rendered.yaml").is_file())
+        self.assertIn(f"{self.hz / 'config.yaml'}:3", r.stdout)
+        self.assertIn(f"{self.home / 'personal/capabilities/owncap/MOD.md'}:4", r.stdout)
+        # path:line only — the scan reads harness homes, which hold keys.
+        outside = r.stdout.split("## outside references")[1].split("## scan set")[0]
+        self.assertNotIn("command:", outside)
+        self.assertNotIn("__init__.py", outside)  # the matched text never appears
+        self.assertIn("links into personal/ outside any render, left alone (1)", r.stdout)
+        self.assertIn(str(self.hz / "skills" / "srclink"), r.stdout)
+        self.assertNotIn("s1.jsonl", r.stdout)
+        self.assertIn(str(self.links["unrecorded"][0]), r.stdout)
+        self.assertIn("(0)", r.stdout.split("## drift")[1].splitlines()[0])
+
+    def test_a_drifted_render_is_listed_and_blocks_apply(self):
+        ship = self.links["ship"][1]
+        (ship / "SKILL.md").write_text("hand-edited\n")
+        r = self.mig()
+        self.assertIn("shipcap: DRIFT", r.stdout)
+        r = self.mig("--apply")
+        self.assertEqual(r.returncode, 25)
+        self.assertFalse((self.home / "rendered" / "shipcap").exists())
+
+    def test_apply_copies_repoints_and_rewrites_while_old_renders_stay(self):
+        self.assertEqual(self.mig().returncode, 0)
+        r = self.mig("--apply")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        new = self.home / "rendered"
+        for name, (link, _) in self.links.items():
+            target = Path(os.readlink(link))
+            self.assertTrue(new in target.parents, f"{name}: {target}")
+            self.assertTrue(link.exists(), name)
+        run_sh = (new / "shipcap/skills/shipcap/run.sh").read_text()
+        self.assertIn(str(new / "shipcap/skills/shipcap/run.sh"), run_sh)
+        self.assertNotIn("personal", run_sh)
+        self.assertFalse(list(new.rglob("*.pyc")))
+        self.assertEqual(self.cli("verify").returncode, 0, self.cli("verify").stdout)
+        entry = yaml.safe_load(self.lock.read_text())["installs"]
+        self.assertTrue(any("plugcap" in a for a in entry["plugcap"]["artifacts"]),
+                        "a no-artifact entry gets its moved files recorded")
+        self.assertNotIn("personal/", yaml.safe_dump(entry))
+        self.assertIn("rendered/shipcap", (self.home / ".aos/harness.yml").read_text())
+        self.assertTrue((self.home / "personal/capabilities/shipcap/MOD.md").is_file())
+        self.assertEqual((self.home / "personal/capabilities/owncap/skills/owncap/SKILL.md").read_text(),
+                         "source\n")
+        self.assertTrue((self.home / "personal/renders/owncap").is_dir())
+        self.assertTrue((self.home / "personal/capabilities/shipcap/skills").is_dir())
+
+    def test_apply_rerun_after_a_crash_reaches_the_same_state(self):
+        self.mig()
+        pre_lock = self.lock.read_bytes()
+        self.assertEqual(self.mig("--apply").returncode, 0)
+        good = {n: os.readlink(l) for n, (l, _) in self.links.items()}
+        # crash before the lockfile write: copies in place, one link back on the old render,
+        # the old lockfile, no "applied" in the state
+        self.lock.write_bytes(pre_lock)
+        st = self.home / ".aos" / "migrate-rendered.yaml"
+        state = yaml.safe_load(st.read_text())
+        state.pop("applied")
+        st.write_text(yaml.safe_dump(state))
+        own_link = self.links["own"][0]
+        own_link.unlink()
+        own_link.symlink_to(self.links["own"][1])
+        self.assertEqual(self.mig("--apply").returncode, 0)
+        self.assertEqual({n: os.readlink(l) for n, (l, _) in self.links.items()}, good)
+        self.assertEqual(self.cli("verify").returncode, 0)
+        self.assertNotIn("personal/", self.lock.read_text())
+
+    def test_finish_refuses_while_a_reference_or_an_old_link_remains(self):
+        self.mig()
+        self.mig("--apply")
+        r = self.mig("--finish")
+        self.assertEqual(r.returncode, 25)
+        self.assertIn("config.yaml:3", r.stdout)
+        self.assertTrue((self.home / "personal/renders/owncap").is_dir())
+        self.fix_outside_references()
+        stray = self.hz / "skills" / "stray"
+        stray.symlink_to(self.links["own"][1])
+        r = self.mig("--finish")
+        self.assertEqual(r.returncode, 25)
+        self.assertIn(f"LINK {stray}", r.stdout)
+        stray.unlink()
+        r = self.mig("--finish")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertFalse((self.home / "personal/renders").exists())
+        self.assertFalse((self.home / "personal/capabilities/shipcap/skills").exists())
+        self.assertTrue((self.home / "personal/capabilities/shipcap/MOD.md").is_file())
+        self.assertIn("owncap", trashed_names())
+        for args in ((), ("--apply",), ("--finish",)):
+            r = self.mig(*args)
+            self.assertEqual(r.returncode, 0, args)
+            self.assertIn("nothing to migrate", r.stdout)
+
+    def test_apply_and_finish_refuse_to_scan_less_than_the_plan(self):
+        self.assertEqual(self.mig("--apply").returncode, 25)  # no plan yet
+        self.mig()
+        self.assertEqual(self.mig("--apply", "--ignore", "config.yaml").returncode, 25)
+
+    def test_a_hand_changed_link_blocks_apply_instead_of_being_overwritten(self):
+        # PIN: --apply would re-create a link the user removed (a skill taken back from a
+        # guest-reachable profile) or overwrite one they re-pointed — shown as a re-point.
+        self.links["ship"][0].unlink()
+        r = self.mig()
+        self.assertIn("MISSING LINK", r.stdout)
+        self.assertEqual(self.mig("--apply").returncode, 25)
+        self.assertFalse(self.links["ship"][0].exists())
+
+    def test_git_that_cannot_answer_blocks_apply(self):
+        # PIN: an unanswerable git status read as clean; for a no-artifact entry it is the
+        # only integrity evidence there is.
+        shutil.move(str(self.home / "personal" / ".git"), str(self.root / "git-aside"))
+        r = self.mig()
+        self.assertIn("cannot check for uncommitted renders", r.stdout)
+        self.assertEqual(self.mig("--apply").returncode, 25)
+
+    def test_other_spellings_of_an_old_path_are_found_and_block_finish(self):
+        # PIN: a hook written with $HOME or ${AOS_HOME} named the old render, passed
+        # --finish, and the render it named was trashed.
+        own_rel = "aos/personal/renders/owncap/skills/owncap/x.sh"
+        (self.hz / "cron.sh").write_text(f"#!/bin/sh\nexec $HOME/{own_rel}\n"
+                                          f"exec ${{AOS_HOME}}/personal/renders/owncap/y.sh\n")
+        r = self.mig()
+        self.assertIn(f"{self.hz / 'cron.sh'}:2", r.stdout)
+        self.assertIn(f"{self.hz / 'cron.sh'}:3", r.stdout)
+        self.mig("--apply")
+        self.fix_outside_references()
+        self.assertEqual(self.mig("--finish").returncode, 25)
+        self.assertTrue((self.home / "personal/renders/owncap").is_dir())
+
+    def test_a_stale_symlink_inside_a_live_render_blocks_finish(self):
+        # A render's own absolute symlink into an old render is copied verbatim; --finish
+        # scans rendered/ so it cannot be trashed out from under it.
+        inner = self.home / "personal/renders/owncap/skills/owncap/peer"
+        inner.symlink_to(self.home / "personal/renders/owncap/adapters/ext")
+        subprocess.run(["git", "-C", str(self.home / "personal"), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(self.home / "personal"), "-c", "user.name=Dana Fixture",
+                        "-c", "user.email=dana@example.com", "commit", "-qm", "peer"], check=True)
+        self.mig()
+        self.assertEqual(self.mig("--apply").returncode, 0)
+        self.fix_outside_references()
+        r = self.mig("--finish")
+        self.assertEqual(r.returncode, 25)
+        self.assertIn("rendered/owncap/skills/owncap/peer", r.stdout)
+
+    def test_a_shipped_package_with_no_artifacts_is_found_from_its_link(self):
+        self.mig()
+        self.assertEqual(self.mig("--apply").returncode, 0)
+        target = Path(os.readlink(self.links["plugship"][0]))
+        self.assertEqual(target, self.home / "rendered/plugship/adapters/hermes/plugins/plugship")
+        self.assertTrue((self.home / "personal/capabilities/plugship/MOD.md").is_file())
+
+    def test_a_crashed_runs_temporary_link_is_swept(self):
+        stale = self.hz / "skills" / ".shipcap.aos-migrate"
+        stale.symlink_to(self.root / "nowhere")
+        self.mig()
+        self.assertEqual(self.mig("--apply").returncode, 0)
+        self.assertFalse(stale.is_symlink())
+        self.assertTrue(self.links["ship"][0].exists())
+
+    def test_a_crash_after_the_lockfile_write_still_trashes_every_old_render(self):
+        # PIN: a crash between the lockfile rewrite and the state's `applied` used to let a
+        # re-derivation drop every shipped package: the lockfile names only new paths.
+        self.mig()
+        self.assertEqual(self.mig("--apply").returncode, 0)
+        st = self.home / ".aos" / "migrate-rendered.yaml"
+        state = yaml.safe_load(st.read_text())
+        state.pop("applied")
+        st.write_text(yaml.safe_dump(state))
+        self.assertIn("shipcap", self.mig().stdout)  # a re-plan keeps the saved roots
+        self.assertEqual(self.mig("--apply").returncode, 0)
+        self.fix_outside_references()
+        r = self.mig("--finish")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertFalse((self.home / "personal/capabilities/shipcap/skills").exists())
+
+    def test_an_unlisted_spelling_is_still_caught_by_the_household_tail(self):
+        # Quoted and default-expansion forms cannot all be listed; the tail is detection-only.
+        (self.hz / "wrap.sh").write_text('exec "$AOS_HOME"/personal/renders/owncap/x.sh\n'
+                                         'exec ${AOS_HOME:-$HOME/aos}/personal/renders/owncap/y\n')
+        r = self.mig()
+        self.assertIn(f"{self.hz / 'wrap.sh'}:1", r.stdout)
+        self.assertIn(f"{self.hz / 'wrap.sh'}:2", r.stdout)
+
+    def test_a_link_inside_an_ignored_directory_blocks_finish(self):
+        (self.hz / "sessions" / "pin").symlink_to(self.links["own"][1])
+        r = self.mig("--ignore", "sessions")
+        self.assertIn("1 inside --ignore'd directories", r.stdout)
+        self.mig("--apply")
+        self.fix_outside_references()
+        r = self.mig("--finish")
+        self.assertEqual(r.returncode, 25)
+        self.assertIn(f"LINK {self.hz / 'sessions' / 'pin'}", r.stdout)
+
+    def test_a_new_layout_household_has_nothing_to_migrate(self):
+        fresh = self.root / "fresh"
+        run(["--home", str(fresh), "init"])
+        (fresh / "rendered" / "democap").mkdir(parents=True)
+        for args in ((), ("--apply",), ("--finish",)):
+            r = run(["--home", str(fresh), "migrate", "rendered", *args])
+            self.assertEqual(r.returncode, 0)
+            self.assertIn("nothing to migrate", r.stdout)
+
+
+class SymlinkedHouseholdMigrateTest(unittest.TestCase):
+    """`migrate rendered` on a household reached through a symlink: the lockfile records
+    artifacts resolved and link targets lexically, so one entry carries both spellings."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        (self.root / "real-aos").mkdir()
+        (self.root / "aos").symlink_to(self.root / "real-aos")
+        empty_trash()
+        self.home, self.hz, self.links = old_layout_household(self.root)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def mig(self, *args):
+        return run(["--home", str(self.home), "migrate", "rendered", *args],
+                   env_extra={"HOME": str(self.root)})
+
+    def test_a_household_under_a_symlinked_path_migrates_cleanly(self):
+        # PIN: both $HOME-relative spellings of a symlinked household must be found on
+        # every run — a set-ordered lookup found one of them at random.
+        (self.hz / "cron.sh").write_text("exec ~/aos/personal/renders/owncap/a\n"
+                                         "exec $HOME/real-aos/personal/renders/owncap/b\n")
+        r = self.mig()
+        self.assertIn(f"{self.hz / 'cron.sh'}:1", r.stdout)
+        self.assertIn(f"{self.hz / 'cron.sh'}:2", r.stdout)
+        self.assertIn("(0) — --apply refuses", r.stdout, r.stdout)
+        self.assertEqual(self.mig("--apply").returncode, 0)
+        v = run(["--home", str(self.home), "verify"], env_extra={"HOME": str(self.root)})
+        self.assertEqual(v.returncode, 0, v.stdout)
+        lock = (self.home / ".aos" / "installs.lock.yaml").read_text()
+        self.assertNotIn("personal/renders", lock)
+        self.assertNotIn("personal/capabilities/shipcap/skills", lock)
+        self.assertEqual(self.mig("--finish").returncode, 25, "cron.sh still names the old render")
 
 
 class ToolIdentityTest(unittest.TestCase):

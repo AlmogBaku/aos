@@ -1,6 +1,6 @@
 ---
 id: kb
-version: 0.8.2
+version: 0.8.3
 tags: [infra]
 summary: Knowledge infrastructure — a registry of bases, rules-first routing, the deterministic `kb` tool, and one Archiver agent maintaining every base.
 depends:
@@ -72,7 +72,7 @@ the registry, routing, grants, the deterministic `kb` tool (an installable uv pa
    run-cards.
 1. **Skills** per `used_by`. The `kb` entry skill goes to the front agent **and** the
    archiver — it carries the map, and the tool is on PATH for both. The other six are
-   front-agent skills. Skill directories render whole into `personal/` and are symlinked per
+   front-agent skills. Skill directories render whole into `<aos_home>/rendered/kb/` and are symlinked per
    agent, so `reference/` and `templates/` travel with them: one canonical render, never
    per-harness copies.
 2. **The archiver agent** (`agents/archiver.agent.yaml`) per the cheat-sheet. One archiver

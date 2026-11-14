@@ -1,7 +1,7 @@
 ---
 harness: hermes
 status: verified
-source: "hermes 6e7b83a (<DATE>); live e2e <DATE>; session rows probed <DATE>"
+source: "hermes 6e7b83a (<DATE>); live e2e <DATE>; session rows probed <DATE>; mark_unread probed on 69f73ec <DATE>"
 rules:
   - never hand-edit config.yaml or cron/jobs.json — every change goes through the hermes CLI
 files: [SOUL.md, AGENTS.md, CLAUDE.md, .cursorrules, memories/MEMORY.md, memories/USER.md,
@@ -15,7 +15,7 @@ mapping:
     primitive: the default profile
     where: ~/.hermes/
   skill:
-    primitive: Agent Skills folder — a symlink to the pinned render
+    primitive: Agent Skills folder — a symlink to the render in <aos_home>/rendered
     where: {main: ~/.hermes/skills/<installed>, agent: ~/.hermes/profiles/<agent>/skills/<installed>}
   cron:
     primitive: cron job owned by exactly one profile (by directory, not a field)
@@ -46,6 +46,7 @@ mapping:
     id: {stderr: '^session_id: (\S+)$'}
     missing: {stderr: '^Session not found'}
     busy: {stderr: '^hermes-refusal-reason: SESSION_NOT_OWNED'}
+    mark_unread: {http: 'PATCH http://127.0.0.1:8642/p/<profile>/api/sessions/<session_id>', json: {unread: true}, key: API_SERVER_KEY, env_file: 'hermes -p <profile> config env-path'}
     scrub_env: [HERMES_SESSION_*, HERMES_CRON_SESSION, HERMES_UI_SESSION_ID, HERMES_CRON_AUTO_DELIVER_*]
     branch: {support: none, instead: continue in place and say so}
   plan_mode:
@@ -70,6 +71,7 @@ mapping:
 - Introspection guide
 - Secrets
 - Removal
+- Renders migration (capability-lifecycle 0.7.0)
 - Feature notes
 
 
@@ -99,6 +101,17 @@ the judgment the rows cannot carry.
   exists, so a caller that wants a new session puts the time in the title. A session created from
   the CLI carries no read watermark and counts as read; a continued session that was read turns
   unread. While a turn runs, a second writer is refused (`mapping.session.busy`).
+- **Session unread** (`mapping.session.mark_unread`): the CLI cannot set read state, so aos-session
+  marks each session it opens unread through the API server's per-profile route (default port
+  8642). `default` answers with the listener's own key: never add one to `~/.hermes/.env` (the last
+  line wins, so a second one rotates every API client's key). A named profile takes only its own
+  `API_SERVER_KEY`: for each named profile aos-session opens sessions in, an install or upgrade that
+  finds none in its `.env` appends a generated one (32+ random characters, never echoed) and adds
+  `--env-line API_SERVER_KEY` to the full `record` of the capability that owns that agent. Never
+  replace an existing key. The key opens the profile's whole `/p/<profile>/` API on the loopback
+  listener, not only read state. No key, or the API server off: one warning line, the session still
+  opens. Once Hermes ships `hermes sessions mark-unread` (NousResearch/hermes-agent#152602) the row
+  becomes `hermes -p <profile> sessions mark-unread <session_id>` and the keys go.
 - **Files** (`files`): anything else you write is inert. Do not invent filenames (no
   `persona.md`); persona content goes in `SOUL.md`.
 
@@ -121,8 +134,28 @@ the profile's default doesn't already fit the class; never hardcode provider nam
    roster: in the profile's `profile.yaml` set `ui_meta.hermes-bots.hidden: true`, merging
    into any existing `ui_meta`, and increment `_ui_meta_revisions.hermes-bots` (start at 1).
    An agent a person talks to stays visible. Adopting a profile never changes its visibility.
+   **An agent a person talks to** (operator-facing, or a guest or interview agent) also gets
+   the AOS UI tools when the default profile registers them, since a profile never inherits
+   MCP servers:
+   - `hermes -p <profile> config set mcp_servers.aos-ui.url "$(hermes config get mcp_servers.aos-ui.url)"`,
+     then `hermes -p <profile> mcp test aos-ui` must list `present_artifact`;
+   - the AOS note:
+     `hermes -p <profile> config set platform_hints.aos-ui.append "$(hermes config get platform_hints.aos-ui.append)"`.
+
+   Record both keys with `--config-key`. Without them the agent shows files as attachments AOS
+   cannot preview. A background-only agent skips this.
+   **Standing links — the AOS Agent creator.** A profile whose `profile.yaml` has
+   `ui_meta.aos.role: creator` builds Agents for the user behind AOS's New Agent.
+   - Installing or upgrading capability-lifecycle links `capability-lifecycle`,
+     capability-build, capability-install and capability-onboard into it, plus the
+     vendored `skill-creator` when present.
+   - Installing or upgrading kb links kb-recall and kb-route.
+
+   Each link is recorded on its provider's entry with `--link`. The creator gets no other
+   lifecycle or kb skill, and with no creator profile there is nothing to do.
 2. **Skills**: `aos-cap skills <cap-dir>` gives the installed name; the render lives once
-   at `<aos_home>/personal/<render-path>/skills/<installed-name>/` (contract);
+   at `<aos_home>/rendered/<capability>/skills/<installed-name>/` (contract: written to
+   `rendered/.staging/<capability>/`, put live by `aos-cap swap`);
    create a symlink per `used_by` — `ln -s <render-dir> ~/.hermes/skills/<installed-name>`
    (main) or into `profiles/<p>/skills/`. Never copy. Record each link with
    `aos-cap record … --link <linkpath>`. Per `uses` row (`aos-cap manifest`): `ln -s
@@ -193,10 +226,9 @@ Drive everything from the lockfile entry, in order:
 
 1. Cron jobs: `hermes -p <profile> cron remove <id>` per `cron_owned` id; then
    delete leftover `cron/output/<id>*`.
-2. Skills: delete every symlink the entry's `links` and `uses_links` list; then delete the
-   render dirs in `<aos_home>/personal/<render-path>/skills/` via a commit (revertible — the
-   persist hook's message says why). Never `capabilities/<id>/` of the user's own package:
-   that is its source.
+2. Skills: delete every symlink the entry's `links` and `uses_links` list; then the render,
+   `<aos_home>/rendered/<capability>/`, goes to the OS trash once its links are gone (`gio trash` / `trash-put`, never `rm -rf`). Never anything under `personal/`: it holds
+   the MOD and, for the user's own package, its source.
 3. Context blocks: strip the `<!-- aos:<capability>… -->` marker blocks.
 4. Config keys: `hermes config unset <key>` per recorded key.
 5. `.env` lines added at install: remove after asking the user.
@@ -208,6 +240,43 @@ Drive everything from the lockfile entry, in order:
 8. Recorded `scripts/` and `hooks/` files of each profile: delete.
 9. Remove the lockfile entry; verify per the contract (re-run Introspection).
 
+## Renders migration (capability-lifecycle 0.7.0)
+
+The capability-upgrade skill's renders migration, on Hermes:
+
+- **Scan:** `aos-cap migrate rendered --scan ~/.hermes` with `--ignore` for each of
+  `sessions`, `request_dump_*`, `cron/output`, `backups`, `*.bak-*`, `cache`,
+  `skills/.archive`, `.curator_backups`, `state-snapshots`, `logs`. Those hold transcripts
+  and history, not live configuration. A hook's old approval in `shell-hooks-allowlist.json`
+  is listed too; its own `hooks revoke` (below) clears it.
+- **A shell hook** (`hooks:` in a profile's `config.yaml`) that names an old render path is
+  switched without a moment unapproved, because Hermes skips an unapproved hook even when it
+  is `fail_closed`. Each switch is its own gate. The migrate plan shows references as
+  `path:line` only, so the user has not yet seen what they are consenting to. Before writing
+  anything, show the profile, the event, the old and the new exact command (from
+  `hermes -p <profile> config get hooks`) and the allowlist entry you will add, and wait for
+  the go-ahead. Then:
+  1. Approve the new command first: one `approvals` entry in the profile's
+     `shell-hooks-allowlist.json` with `event`, `command`, `approved_at` and
+     `script_mtime_at_approval` (the script's mtime), so `hooks doctor` can tell a changed
+     script.
+  2. Switch only the command, in one write:
+     `hermes -p <profile> config set hooks.<event>.<index>.command <new path>`. The index is
+     dotted. `hooks.<event>[<index>]` writes a bogus key and leaves the hook unchanged.
+  3. Compare `hermes -p <profile> config get hooks` before and after. Everything except
+     `command` must be identical: `hooks list` does not show `fail_closed`, and a missing one
+     reads as false.
+  4. `hermes -p <profile> hooks list` shows it allowed, and `hooks doctor` passes.
+  5. `hermes -p <profile> hooks revoke <old command>`.
+- **Plugins** (`~/.hermes/plugins/*`) load at gateway start. Before `--finish`, restart the
+  gateway (`hermes gateway restart`) once its work is idle and with the user's go-ahead. Then
+  confirm each plugin actually loaded from its re-pointed link:
+  - `hermes [-p <profile>] plugins list` lists it enabled, for the root and every profile
+    that enables it;
+  - the gateway log shows its load line after the restart, with no load error.
+
+  A gate plugin that fails to load is simply absent, so "no crash line" proves nothing.
+
 ## Feature notes
 
 The `depends.host` rows of `mapping` answer which features exist here. `calendar.*` and `email`
@@ -218,8 +287,8 @@ true` to reach an agent profile.
 Degraded-mode wiring: `manual` ⇒ the invocable skill lands at `mapping.skill.where.agent` of
 the profile the job would have owned; `inline` ⇒ `mapping.cron.edit`.
 
-Safety rails to route through: the `personal/` git history first (renders and MOD files —
-revert = rollback), then Hermes-native: `hermes backup --quick` (pre-install),
+Safety rails to route through: the gate before every `aos-cap swap` and the OS trash after
+it (renders), the `personal/` git history (MOD files — revert = rollback), then Hermes-native: `hermes backup --quick` (pre-install),
 `state-snapshots/` (pre-update), `hermes doctor`, `hermes skills diff` (feeds the §3.3
 round-trip; note stock-vs-modified tracking sees through links to the render),
 `hermes profile export` (before risky surgery).

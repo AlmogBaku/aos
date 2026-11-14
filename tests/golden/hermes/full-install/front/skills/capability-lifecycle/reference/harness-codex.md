@@ -13,7 +13,7 @@ mapping:
     primitive: the current Codex session — shared; no front-agent file is created
     where: ~/
   skill:
-    primitive: Agent Skills folder — a symlink to the pinned render in <aos_home>/personal
+    primitive: Agent Skills folder — a symlink to the render in <aos_home>/rendered
     where: ~/.agents/skills/<installed-name>
     unverified: [where]
     note: "research <DATE>: vercel-labs/skills PR #2067 and intellectronica/ruler issue #585 report global skills moved from ~/.codex/skills (legacy) to ~/.agents/skills; confirm against the running build and update this row either way"
@@ -97,7 +97,7 @@ carry.
   reopens the original. Neither form is template-shaped yet — details in
   `mapping.session.note`.
 - **Files** (`files`): `AGENTS.md` and skills are the only harness-consumed files. Do not
-  copy pinned renders; symlink only.
+  copy renders; symlink only.
 
 `model_class` mapping: only set the model when the harness's default doesn't already fit
 the class; never hardcode provider names.
@@ -105,8 +105,9 @@ the class; never hardcode provider names.
 
 ## Materialization guide
 
-1. Render each aos skill under
-   `<aos_home>/personal/capabilities/<capability>/skills/<installed-name>/`.
+1. Render each aos skill into `<aos_home>/rendered/.staging/<capability>/skills/`, gate it,
+   and `aos-cap swap <capability>` puts it live at
+   `<aos_home>/rendered/<capability>/skills/<installed-name>/`.
 2. Symlink the whole directory into the skills root at `mapping.skill.where`. Confirm the
    current root on the running build — the legacy `~/.codex/skills` path may still apply.
    Run the `aos-cap skills --check` name gate first. Never copy.

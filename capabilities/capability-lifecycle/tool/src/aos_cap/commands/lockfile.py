@@ -16,6 +16,7 @@ import typer
 from ..constants import LOCK_REL
 from ..errors import Exit, fail
 from ..household import find_home
+from ..rendered import staging_root
 from ..lockfile import (
     artifact_path, get_entry, link_target, load_lock, readlink_or_fail, save_lock, sha256,
 )
@@ -78,6 +79,8 @@ def cmd_record(
         "env_lines": list(env_line),
         "scripts": list(script),
     }
+    _refuse_staging(root, list(entry["artifacts"]) + list(entry["links"].values())
+                    + list(entry["uses_links"].values()))
     both = sorted(set(entry["links"]) & set(entry["uses_links"]))
     if both:
         fail(Exit.GENERIC, f"{both[0]} given as both --link and --uses-link — a link is "
@@ -104,11 +107,23 @@ def _abs(path: str) -> str:
     return os.path.normpath(str(Path(path).expanduser().absolute()))
 
 
+def _refuse_staging(root: Path, paths: list[str]) -> None:
+    """A staged render is not installed yet: `aos-cap swap` moves it to `rendered/<id>`, so
+    a recorded `.staging` path would be MISSING the moment the gate is approved."""
+    stagings = {os.path.normpath(str(staging_root(root).absolute())),
+                os.path.normpath(str(staging_root(root).resolve()))}
+    for path in paths:
+        if any(path == s or path.startswith(s + os.sep) for s in stagings):
+            fail(Exit.WRONG_PLACE, f"{path} is inside the staging area — record the live render "
+                                   f"(after `aos-cap swap`), never a staged one")
+
+
 @app.command("rehash", help="re-hash a capability's recorded artifacts in place "
                             "(after an approved evolve)")
 def cmd_rehash(ctx: typer.Context, capability: str) -> None:
     root = find_home(ctx.obj)
     lock, entry = get_entry(root, capability)
+    _refuse_staging(root, list(entry.get("artifacts", {})))
     kept, dropped = {}, []
     for path in entry.get("artifacts", {}):
         if Path(path).is_file():

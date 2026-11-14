@@ -17,7 +17,10 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   aos home: `--home`/`AOS_HOME`, else `~/aos` (not your home directory) — contains
   `upstream/` (the kit clone — pristine, never anything personal, not
   even untracked files), `personal/` (the user's one private git repo: MOD files at
-  mirrored capability paths, the pinned renders, their private capabilities), `.aos/`
+  mirrored capability paths and their private capabilities — source only, never a render),
+  `rendered/` (every installed capability's render, shipped or the user's own, at
+  `rendered/<id>/` — unversioned and machine-local, rebuilt from source + version + MOD on a
+  new machine; `rendered/.staging/<id>/` is the only place a render is written), `.aos/`
   (machine state — the lockfile, the harness record `harness.yml` that `aos-cap harness
   set` writes, plus machine-local files a capability's tool writes for
   itself: kb writes `kb-principal.yml` and `kb-registry.yaml` here. Machine-local means
@@ -36,34 +39,28 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 
 - **The diff gate is never optional.** Nothing lands in the harness until the user has
   seen the full diff of what you are about to write and approved it (§5.4). The three
-  phases are explicit: **STAGE** (render the personalized artifacts into `personal/`'s
-  working tree and compute the exact native command plan — commit nothing, touch no
-  harness file), **GATE** (show contents + plan; for re-renders the gate *is* a git diff in
-  `personal/` — **stage first, scoped to the capability, so added files are visible**:
-  `git -C <aos_home>/personal add -A -- <render-path>` then
-  `git -C <aos_home>/personal diff --staged -- <render-path>`. `<render-path>` is
-  `capabilities/<id>` for a shipped package (its render and MOD live there) and
-  `renders/<id>` for the user's own package — whose `capabilities/<id>/` is the **source**,
-  never restored, cleaned or deleted as if it were a render. A bare `git diff` hides
-  untracked files, and a re-render that *adds* a skill or a `reference/` page is the
-  commonest upgrade shape), **EXECUTE** (commit the staged render with a dated message,
-  create the links, run the native plan). Declined → restore that capability only,
-  additions included: `git -C <aos_home>/personal restore --staged --worktree --
-  <render-path>`, then `git -C <aos_home>/personal clean -fd -- <render-path>` as
-  belt-and-braces (`restore` already removes the staged additions and prunes the
-  directories they created; `clean` catches anything staging missed). **Every one of
-  these commands is path-scoped** — a bare `add -A` or `reset --hard` would swallow or
-  destroy unrelated work elsewhere in `personal/`, including untracked files. One
-  caveat to state out loud before staging: `add -A -- <render-path>` also picks up
-  any *pre-existing untracked* file the user keeps inside that capability's directory,
-  and declining would delete it — check `git status -- <render-path>` first and say
-  what you found. Nothing touches the harness
+  phases are explicit: **STAGE** (render the personalized artifacts into
+  `<aos_home>/rendered/.staging/<id>/` and compute the exact native command plan — move
+  nothing live, touch no harness file), **GATE** (show contents + plan; the gate is
+  `diff -ruN -x __pycache__ -x '*.pyc' <aos_home>/rendered/<id> <aos_home>/rendered/.staging/<id>`,
+  the live render against the staged one — every changed, added and removed file; on a
+  first install, diff an empty directory instead of the live render. Exit 1 means "there
+  are differences", not failure. Bytecode is left out: a live plugin render grows it as it
+  runs, and it is regenerated, never shipped), **EXECUTE**
+  (`aos-cap swap <id>` puts the staged render live and sends the old one to the OS trash;
+  then create the links and run the native plan). Declined → `aos-cap discard <id>`: the
+  staged render goes to the trash and the live one is untouched. These two verbs are the
+  only way a render moves — never move, delete or overwrite a live render by hand (the one
+  copy allowed is evolve seeding `.staging/<id>/` from it), and never
+  `aos-cap render --force` into a live render (the tool refuses any `--out` inside the
+  household that is not under `rendered/.staging/`). Nothing touches the harness
   before the gate. Where the harness has a native plan/read-only mode (cheat-sheet
   `mapping.plan_mode`), STAGE runs inside it and the GATE approval is
   the exit.
 - **You never write** any `MOD.md` except through capability-evolve or an interview,
   and you never edit shipped capability files in any source root — personalization
-  lives only in `personal/` (the MOD files and the pinned renders).
+  lives only in the MOD files in `personal/` and the renders built from them in
+  `rendered/`.
 - **You never contribute without approval.** You never open a PR, file an issue,
   comment, +1, push, fork, or create a branch on a remote — for upstream or any repo
   the user doesn't own — without the user's explicit approval or request. No exceptions. Offers are cheap; writes that
@@ -108,16 +105,18 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   ships `agents/` — same `<skill_prefix><agent-id>` computation, same exit 17, same
   never-rename-here rule. It reads two of three sources and names the third (agents already
   in the harness — no enumeration yet) in capitals.
-- **Skills materialize as pinned renders + symlinks, never copies.** `aos-cap render
-  <cap-dir> <id> --out <aos_home>/personal/<render-path>/skills` does the mechanical half:
+- **Skills materialize as renders + symlinks, never copies.** `aos-cap render
+  <cap-dir> <id> --out <aos_home>/rendered/.staging/<capability>/skills` does the mechanical half:
   the whole folder travels (`reference/`, `scripts/`, `templates/` — scripts are executed,
   never loaded as context; every `harness-<runtime>.md` cheat-sheet), the render lands under the **installed
   name**, its frontmatter `name` is rewritten to match, and `metadata.aos.origin: <capability>@<version>` is stamped inside
   the frontmatter block. Then you fill `{{mod: …}}` slots in the render (leave unfilled slots
-  intact) — that judgment is yours, the copy is not. Symlink the render into the skills
+  intact) — that judgment is yours, the copy is not. A household path you bake names the
+  live render, `<aos_home>/rendered/<capability>/…`, never the staging one: `aos-cap swap`
+  refuses a staged file that names its own `.staging/` path. After the swap, symlink the render into the skills
   location of every agent in its `used_by`, under the same installed name: **dir, frontmatter
   `name`, and link all agree, on every harness — no per-harness renaming.** Container
-  harnesses resolve links only if `<aos_home>/personal` is mounted read-only — the cheat-sheet's
+  harnesses resolve links only if `<aos_home>/rendered` is mounted read-only — the cheat-sheet's
   Materialization guide says how; without the mount, stop and say so (never fall back to
   copying: one canonical render, everywhere).
 - **Declarations decide placement; the briefing never does.** `used_by`,
@@ -136,6 +135,20 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
   move or delete it. A grant to `main` that the provider's own `used_by: [main]` already
   serves needs no second link. A harness that scopes skills by config rather than by
   directory records the grant the way its cheat-sheet records `used_by`.
+- **The default an agent only the user talks to gets.** A package capability-build designed
+  declares it in `uses` (the build skill's design stage). For one that does not — older or
+  third-party — install and upgrade grant it as if declared. Each agent the package ships
+  whose only audience is the user (judged from its `purpose`; name each at the gate) gets
+  `capability-lifecycle` and capability-evolve linked, and with kb installed kb-recall,
+  kb-capture and kb-route — except that an agent reading content other people write gets
+  the kb links only after the user's yes. They are linked like a declared row: under the
+  provider's installed name, recorded on **this** capability's entry with `--uses-link`. Every
+  other agent gets them only when its job needs them, never by default, and an agent anyone
+  else can reach never gets `capability-lifecycle` or capability-evolve.
+- **Standing links.** A harness's cheat-sheet may name links that every install of a given
+  provider adds to one harness-level agent — on Hermes, the AOS Agent creator. They are the
+  provider's own `links`, recorded on the provider's entry, and its upgrade keeps them as it
+  keeps `used_by` links.
 - **An agent that already exists is adopted, not re-created — on positive evidence only.**
   When an agent's computed name is already a harness agent, adopt it only if something shows
   it is this capability's: the lockfile already has this capability's entry (an upgrade), or
@@ -156,9 +169,11 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 ## The persist hook · cron jobs · context blocks · secrets
 
 - **The persist hook**: after every MOD write (interview, evolve, retirement,
-  drift-fold) and every render, commit `personal/` with a dated one-line message —
-  you, not the user; silently. The `personal/` git history is the primary safety net;
-  rollback is `git revert`.
+  drift-fold) and every change to one of the user's own packages, commit `personal/` with
+  a dated one-line message — you, not the user; silently. The `personal/` git history is
+  the safety net for what the user wrote; rollback is `git revert`. Renders are not
+  committed anywhere: `rendered/` is build output, its safety net is the gate before a swap
+  and the OS trash after one.
 - **Cron jobs** are named `aos:<capability>:<cron-id>` and single-owner (§5.5): check
   across agents first — exists elsewhere → ask the user to reassign, never duplicate.
   **An exec-type entry names no agent, so it is hosted by the agent that owns the
@@ -188,11 +203,11 @@ Binds every lifecycle operation, on every harness, with or without a cheat-sheet
 ## Removal, and how references resolve
 
 - **Removal** walks the lockfile entry backwards; `MOD.md` is never deleted (§3.3), and
-  render deletions in `personal/` happen via a commit (revertible), under `<render-path>`
-  only. A consumer's `uses_links` go with it; a provider is not removed while another
+  the render, `<aos_home>/rendered/<id>/` only, goes to the OS trash once its links are
+  gone — never `rm -rf`, and never anything under `personal/`. A consumer's `uses_links` go with it; a provider is not removed while another
   entry's `uses` still names it. Verify by
   re-running introspection until no aos provenance (`metadata.aos.origin`, `aos:` names,
-  marker blocks, links into `personal/`) remains.
+  marker blocks, links into `rendered/<id>/`) remains.
 - **References resolve by three rules.** Inside a skill's own folder: relative paths
   (the whole-folder render keeps them valid — and links preserve them), and never into a
   sibling `reference/` file — depth is one level from SKILL.md. Across skills: by the

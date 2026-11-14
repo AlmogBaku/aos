@@ -70,7 +70,7 @@ Paste into your agent:
      PATH shadowing the new one, and both would appear to work.
 6. **kb installs through the new `capability-install` skill.** The agent reads
    the briefing, checks that no skill name it ships is already taken in your harness,
-   renders the skills against your MOD.md (committed in `personal/`), and materializes
+   renders the skills against your MOD.md (into `~/aos/rendered/kb/`), and materializes
    them per the cheat-sheet — renders linked into the right agents, the archiver agent
    created, its cron jobs registered, kb's `kb` tool installed
    (`uv tool install --from ~/aos/upstream/capabilities/kb/tool aos-kb`).
@@ -89,7 +89,7 @@ Everything else is a sentence, on demand:
 | You say | What happens |
 |---|---|
 | `install work-tracker` | Briefing read → missing deps recursed → its interview → diff gate → materialize → lockfile |
-| `update` | After `git pull`: your hand-edits folded into MOD.md → fresh upstream × MOD.md re-rendered into `personal/` → diff gate |
+| `update` | After `git pull`: your hand-edits folded into MOD.md → fresh upstream × MOD.md re-rendered into `rendered/.staging/` → diff gate → swapped live |
 | "make the steward run at 22:00" | The evolve skill: change applied AND recorded in your MOD.md — survives every upgrade |
 | `remove work-tracker` | The lockfile entry walked backwards; your `MOD.md` survives removal |
 
@@ -113,12 +113,12 @@ installing anyway is fine, silently pretending is not:
 | Thing | Where | Owned by |
 |---|---|---|
 | Your answers & nuances | `~/aos/personal/MOD.md`, `~/aos/personal/capabilities/*/MOD.md` | **you** — upstream never ships or writes these |
-| Your rendered skills (what your harness links to) | `~/aos/personal/capabilities/*/skills/` | **you** — committed by your agent, every upgrade is a reviewable git diff |
+| Your rendered skills (what your harness links to) | `~/aos/rendered/*/` | your agent — build output from your answers, never committed; every upgrade waits at a diff gate, and a replaced render goes to your trash |
 | Your KB registry | `~/aos/.aos/kb-registry.yaml` | machine state (per-machine, never committed) |
 | Your KBs | wherever you keep them (each base is its own git repo) | **you** |
 | The kit itself | `~/aos/upstream` | upstream — pristine; also the checkout you'd branch from to contribute |
 | Referenced third-party skills | `~/aos/vendor` (e.g. `skill-creator`) | their authors — kept current, never copied into the kit |
-| Skill links / agents / cron jobs | your harness's own locations (per cheat-sheet; a skill is a symlink to its one committed render in `personal/`, never a copy) | your agent, tracked in the lockfile |
+| Skill links / agents / cron jobs | your harness's own locations (per cheat-sheet; a skill is a symlink to its one render in `rendered/`, never a copy) | your agent, tracked in the lockfile |
 | Install record | `~/aos/.aos/installs.lock.yaml` (household level) | your agent, machine-local |
 | Which harness you run | `~/aos/.aos/harness.yml` — written by `aos-cap harness set` | the tool, machine-local |
 | Who you are, per machine | `~/aos/.aos/kb-principal.yml` — filled in by `kb init --principal` when missing, changed by `kb config set principal.id=` | the tool, machine-local |
@@ -126,5 +126,6 @@ installing anyway is fine, silently pretending is not:
 Hand-editing materialized artifacts is fine — the agent folds your edits back into
 MOD.md when it notices (see [USAGE.md](USAGE.md)). Everything yours lives in
 `~/aos/personal` — one private repo your agent commits for you; add a private remote
-and a new machine is `clone + clone + re-install` away (the lockfile is machine-local, so the install re-creates the links). Nothing personal ever enters the
+and a new machine is `clone + clone + re-install` away (the lockfile and `rendered/` are
+machine-local, so the install renders afresh and re-creates the links). Nothing personal ever enters the
 kit clone or any public remote.
