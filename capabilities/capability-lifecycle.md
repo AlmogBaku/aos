@@ -12,7 +12,7 @@ The whole life of a capability as **nine `main`-scoped skills** under `skill_pre
 |---|---|
 | `capability-lifecycle` | the entry skill: the map, the Experience rules, and the shared depth the others read — the install contract, the naming/identity rules, the overlay doctrine |
 | `capability-install` | §5 install: manifest → deps → **name gate** → interview → render → STAGE→GATE→EXECUTE → link + record |
-| `capability-upgrade` | pull upstream, fold drift into MOD.md, re-render upstream × MOD.md, git-diff gate, retire absorbed statements, walk absorbed capabilities |
+| `capability-upgrade` | pull upstream, fold drift into MOD.md, re-render upstream × MOD.md, live-vs-staged diff gate, retire absorbed statements, walk absorbed capabilities |
 | `capability-remove` | lockfile-driven exact removal; `MOD.md` always survives |
 | `capability-onboard` | §3.2 the interview engine: a capability's `ONBOARDING.md` → the user's `MOD.md` (typed answers in frontmatter, prose nuance in the body, `secret: true` → store references). Re-runs ask only missing/`re_ask` questions; `--refresh` re-asks all and diffs first. **The only writer of `MOD.md`.** Also owns the global bootstrap interview — identity, timezone, working hours, sacred time, red lines |
 | `capability-import` | §6 wrap → share: introspect → cluster → map → split → draft + GAP report. Read-only on the live harness |

@@ -43,7 +43,7 @@ sequenceDiagram
     H->>H: [A] translate declarations per cheat-sheet<br/>(agent→profile, schedule→jobs.json, skills scoped by used_by)
     H->>U: [D] present full diff of everything about to be written
     U->>H: approve
-    H->>HA: [D] commit pinned render in personal/ · create symlinks · write native injections, origin-tagged
+    H->>HA: [D] aos-cap swap puts the staged render live · create symlinks · write native injections, origin-tagged
     H->>HA: [A] register KB zones (append grant rows to target KB's AGENTS.md table)
     H->>L: [D] aos-cap record — artifacts + hashes + cron_owned (single-owner rule)
     H->>U: installed — degraded modes listed if any
@@ -58,25 +58,25 @@ Rules the diagram compresses:
 
 ## 3. Upgrade
 
-The riskiest operation, so every agentic step (the re-render) is fenced by deterministic gates — drift folded into MOD.md before, a git-diff gate in the user's own repo after (commit = accept, `git revert` = rollback; the pinned-render history in `personal/` is the primary safety net). MOD.md *states the user's deltas* and the agent re-applies them (§3.3/§3.4): the current install is a drift source, never a merge input. Kit-wide (`update` after a `git pull` in `upstream/`) and per-capability are one procedure at two scopes:
+The riskiest operation, so every agentic step (the re-render) is fenced by deterministic gates — drift folded into MOD.md before, the diff of the live render against the staged one after (`aos-cap swap` = accept, the replaced render to the OS trash; `aos-cap discard` = decline). MOD.md *states the user's deltas* and the agent re-applies them (§3.3/§3.4): the current install is a drift source, never a merge input. Kit-wide (`update` after a `git pull` in `upstream/`) and per-capability are one procedure at two scopes:
 
 ```mermaid
 flowchart TB
     A["git pull in upstream/<br/>[D] cannot touch personal/, by construction"] --> B{"capability files<br/>changed? [D]"}
     B -->|no| Z(["nothing to do"])
     B -->|yes| V["aos-cap verify: hand-edit drift?<br/>[D] → fold into MOD.md first [A] (§3.3)<br/>beyond-slots fold → §9 promotion judgment"]
-    V --> M(("re-render: fresh upstream ×<br/>MOD.md → personal/ working tree<br/>[A] — the risky step (risk #1)"))
-    M --> D["git diff in personal/<br/>[D gate]"]
+    V --> M(("re-render: fresh upstream ×<br/>MOD.md → rendered/.staging/<br/>[A] — the risky step (risk #1)"))
+    M --> D["diff: live render vs staged<br/>[D gate]"]
     D --> Q{"user approves?<br/>[H]"}
-    Q -->|yes| W["commit · re-hash · update lockfile<br/>· offer statement retirement [D]"]
-    Q -->|no| K(["git checkout — personal/<br/>working tree restored"])
+    Q -->|yes| W["aos-cap swap · re-hash · update lockfile<br/>· offer statement retirement [D]"]
+    Q -->|no| K(["aos-cap discard —<br/>live render untouched"])
 
     style M fill:#FCE9EF,stroke:#A61E4D
     style D fill:#E8F5E9,stroke:#1B5E20
     style W fill:#E8F5E9,stroke:#1B5E20
 ```
 
-Two honesty notes: CI requires a `version:` bump when a capability's files change (or the lockfile compares file hashes, not versions — belt and braces); and the re-render is the least-trustworthy [A] step in the system, which is exactly why it is fenced by the drift-fold before and the git-diff gate after. Long skills split their depth into `reference/*.md` files one level from SKILL.md (gstack lesson, aligned with the §2.1 packaging law) so re-renders diff per-file, not per-monolith.
+Two honesty notes: CI requires a `version:` bump when a capability's files change (or the lockfile compares file hashes, not versions — belt and braces); and the re-render is the least-trustworthy [A] step in the system, which is exactly why it is fenced by the drift-fold before and the diff gate after. Long skills split their depth into `reference/*.md` files one level from SKILL.md (gstack lesson, aligned with the §2.1 packaging law) so re-renders diff per-file, not per-monolith.
 
 ## 4. Removal
 
@@ -98,7 +98,7 @@ doctor verifies nothing orphaned                          [D]
 | Transform + cheat-sheet translation | A | diff gate [D] + origin tags |
 | Writing artifacts | D | hashes into lockfile |
 | Zone grant registration | A (edits a live KB file) | append-only + lint audits the table |
-| Upgrade re-render (overlay re-apply) | A | drift-fold before, git-diff gate in `personal/` after (revert = rollback), reference/-file granularity |
+| Upgrade re-render (overlay re-apply) | A | drift-fold before, live-vs-staged diff gate after (`swap` = accept, `discard` = decline), reference/-file granularity |
 | Drift detection, duplicate schedules | D | `doctor` |
 
 The pattern is deliberate: **every [A] step is sandwiched between [D] checks.** The LLM is trusted with judgment, never with bookkeeping — the [D] bookkeeping column is enforced by `aos-cap` (capability-lifecycle), the outcome of RFC-004's reopen path.
