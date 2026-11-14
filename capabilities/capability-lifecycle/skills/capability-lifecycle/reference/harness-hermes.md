@@ -268,6 +268,13 @@ The capability-upgrade skill's renders migration, on Hermes:
      reads as false.
   4. `hermes -p <profile> hooks list` shows it allowed, and `hooks doctor` passes.
   5. `hermes -p <profile> hooks revoke <old command>`.
+- **The dashboard keeps old hooks.** The gateway drops a hook removed from `config.yaml` on
+  its own. The dashboard (`hermes dashboard`) runs sessions too, but keeps every hook it
+  registered until it restarts. Before `--finish`, restart the dashboard once its sessions are
+  idle, with the user's go-ahead. Then check each switched profile's `logs/agent.log`: after
+  the restart it shows `shell hook registered` for the new command only. If you skip this,
+  `--finish` trashes the old script and the dashboard's `fail_closed` copy blocks its tool in
+  every dashboard session (`failed closed: command not found`).
 - **Plugins** (`~/.hermes/plugins/*`) load at gateway start. Before `--finish`, restart the
   gateway (`hermes gateway restart`) once its work is idle and with the user's go-ahead. Then
   confirm each plugin actually loaded from its re-pointed link:
