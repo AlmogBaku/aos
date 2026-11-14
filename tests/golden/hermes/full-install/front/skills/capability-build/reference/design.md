@@ -30,8 +30,8 @@ These skills run commands — `aos-cap`, `kb` — and `evolve` edits the househo
 files, so an agent that gets them keeps the terminal and write access to
 `<aos_home>/personal/`; the proposal lists that in the agent's tools. If the agent's tools
 were merely narrow and it would otherwise have no terminal, granting one for these rows is
-part of what the user approves; an agent whose tools were restricted *to contain it* stays
-sandboxed (below) and gets none of the rows.
+part of what the user approves; an agent whose tools were restricted *to contain it* is
+sandboxed (below), and does not get them by default.
 
 **An agent that reads content other people write** can be steered by those people even
 though only the user talks to it. It gets the two `capability-lifecycle` rows as above, but
@@ -44,11 +44,15 @@ bases on disk and `<aos_home>/personal/` included — and reaches the network. N
 contained to its own folder, cut off from the knowledge bases, or unable to send anything
 out while it holds a terminal or a web fetch.
 
-This is an allow rule. An agent anyone else can reach, a sandboxed agent (fail-closed
-hooks, or a toolset restricted to contain it), and a background-only agent are in none of
-those lists: a guest must never retune a capability or read the user's knowledge. Name
-each agent's audience, inputs and tools in the proposal, so the user's approval covers
-them.
+**Every other agent** — background-only, sandboxed, or one anyone besides the user can reach
+— gets none of these by default, and is not barred from them either. When its job needs one
+(a curator or historian that files and recalls knowledge, an agent that digests interviews
+into a base), add it to that skill's `uses` row — still one row per skill, with its provider in
+`depends` — and name the job that needs it in the proposal. Two limits hold whatever the need. An agent anyone besides
+the user can reach never gets `capability-lifecycle` or `evolve`: a guest must never retune
+a capability. And a kb skill on such an agent names the base it touches and what those
+people could read or write through it, so the user's approval covers that boundary. Name each
+agent's audience, inputs and tools in the proposal, so the user's approval covers them.
 
 Then the half a feature list leaves out. **A capability is software**, so design it as one:
 

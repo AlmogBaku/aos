@@ -115,8 +115,8 @@ the live render against the staged one, and only `aos-cap swap` puts a render li
       so a bumped capability is a bumped package.
    f. **Reconcile links, then EXECUTE.** Compare the entry's recorded `links` and
       `uses_links` with what the fresh manifest declares — each skill's `used_by`, each
-      `uses` row — plus any link a MOD statement sanctions (a household rule linking skills
-      into every capability agent, say). Declared but missing → stage it. Recorded but not
+      `uses` row — plus the contract's default for an agent only the user talks to, the
+      cheat-sheet's standing links, and any link a MOD statement sanctions. Declared but missing → stage it. Recorded but not
       declared → show it and ask; **never drop or move a link silently** — that is how a
       provider's upgrade once broke a consumer for weeks. Another entry's `uses_links` into
       this capability's render are that entry's: never touch them. A link this entry
